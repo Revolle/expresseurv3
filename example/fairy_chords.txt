@@ -1,0 +1,16 @@
+- Fairy Dance
+
+section(A,Sol)
+Sol       D  G C D7 G 
+G         D  G C D7 G 
+
+section(B,Sol)
+G  C  Am  D  G C D7 G
+G  C  Am  D  G C D7 G
+
+part(song,loop)
+A A B B
+
+
+
+

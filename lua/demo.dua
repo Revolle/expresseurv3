@@ -1,0 +1,14 @@
+This is a demo for preconfig.
+As the name of this file is demo.dua , it will load all lua scripts like demo_onxxx.lua
+If the LUA script file demo_onControl.lua exists, its content will be loaded, to catch Control Midi Events.
+This demo_onControl.lua should be like this one :
+  -- onControl lua script to catch Control Midi events
+  -- the next line catches the MIDI parameters of the Control Midi event
+  local deviceNr , timestamp , channel , controlNr , value = ...
+  -- the next lines make the processing of the Control Midi event
+  if ( controlNr == 7 ) then
+    -- process Control#7 
+	logmsg("this is Control#7 with value " .. value)
+  end
+
+This demo load a Control and Program catching

@@ -1,0 +1,2478 @@
+/////////////////////////////////////////////////////////////////////////////
+// Name:        expresseur.cpp
+// Purpose:     expresseur V3
+// Author:      Franck REVOLLE
+// Modified by:
+// Created:     19/03/2015
+// Copyright:   (c) Franck REVOLLE Expresseur
+// Licence:    Expresseur licence
+/////////////////////////////////////////////////////////////////////////////
+
+// ============================================================================
+// declarations
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// headers
+// ----------------------------------------------------------------------------
+
+// For compilers that support precompilation, includes "wx/wx.h".
+#include "wx/wxprec.h"
+
+#ifdef __BORLANDC__
+    #pragma hdrstop
+#endif
+
+#ifndef WX_PRECOMP
+    #include "wx/wx.h"
+#endif
+
+#include "wx/toolbar.h"
+#include "wx/log.h"
+#include "wx/image.h"
+#include "wx/filedlg.h"
+#include "wx/colordlg.h"
+#include "wx/srchctrl.h"
+#include "wx/spinctrl.h"
+#include "wx/textfile.h"
+#include "wx/ffile.h"
+#include "wx/filefn.h"
+#include "wx/filename.h"
+#include "wx/filehistory.h"
+#include "wx/tglbtn.h"
+#include "wx/config.h"
+#include "wx/listctrl.h"
+#include "wx/filepicker.h"
+#include "wx/msgdlg.h"
+#include "wx/scrolbar.h"
+#include "wx/choicdlg.h"
+#include "wx/xml/xml.h"
+#include "wx/dynarray.h"
+#include "wx/sstream.h"
+#include "wx/protocol/http.h"
+#include "wx/wizard.h"
+#include "wx/clipbrd.h"
+#include "wx/stdpaths.h"
+#include "wx/dir.h"
+#include "wx/dynlib.h"
+#include "wx/statbmp.h"
+
+#include "global.h"
+#include "basslua.h"
+#include "luabass.h"
+#include "mxconf.h"
+#include "viewerscore.h"
+#include "mixer.h"
+#include "editshortcut.h"
+#include "midishortcut.h"
+#include "expression.h"
+#include "logError.h"
+#include "emptyscore.h"
+#include "bitmapscore.h"
+#include "musicxml.h"
+#include "musicxmlcompile.h"
+#include "musicxmlscore.h"
+#include "textscore.h"
+#include "luafile.h"
+#include "expresseur.h"
+
+// define this to use XPMs everywhere (by default, BMPs are used under Win)
+// BMPs use less space, but aren't compiled into the executable on other platforms
+#ifdef __WINDOWS__
+    #define USE_XPM_BITMAPS 1
+#else
+    #define USE_XPM_BITMAPS 1
+#endif
+
+
+#ifndef wxHAS_IMAGES_IN_RESOURCES
+#endif
+
+/*
+#if USE_XPM_BITMAPS
+    #include "bitmaps/new.xpm"
+    #include "bitmaps/open.xpm"
+    #include "bitmaps/save.xpm"
+    #include "bitmaps/copy.xpm"
+    #include "bitmaps/cut.xpm"
+    #include "bitmaps/preview.xpm"  // paste XPM
+    #include "bitmaps/print.xpm"
+    #include "bitmaps/help.xpm"
+#endif // USE_XPM_BITMAPS
+*/
+
+// Define a new application
+class MyApp : public wxApp
+{
+public:
+    bool OnInit();
+};
+
+// timer value for compilation in ms
+#define periodCompile 1000
+// timer value between screen refresh in ms
+#define periodRefresh 500
+
+enum
+{
+    // toolbar menu items
+	ID_MAIN_LIST_NEW = ID_MAIN,
+	ID_MAIN_LIST_OPEN,
+	ID_MAIN_LIST_SAVE,
+	ID_MAIN_LIST_SAVEAS,
+	ID_MAIN_LIST_ADD,
+	ID_MAIN_LIST_REMOVE,
+	ID_MAIN_LIST_UP,
+	ID_MAIN_LIST_DOWN,
+
+	ID_MAIN_ORNAMENT_ADD_ABSOLUTE,
+	ID_MAIN_ORNAMENT_ADD_RELATIVE,
+	ID_MAIN_UNZOOM_3,
+	ID_MAIN_UNZOOM_2,
+	ID_MAIN_UNZOOM_1,
+	ID_MAIN_ZOOM_0,
+	ID_MAIN_ZOOM_1,
+	ID_MAIN_ZOOM_2,
+	ID_MAIN_ZOOM_3,
+
+	ID_MAIN_LIST_PREVIOUS_FILE,
+	ID_MAIN_LIST_NEXT_FILE,
+
+	ID_MAIN_TEXT_SONG ,
+
+	ID_MAIN_SCROLL_HORIZONTAL,
+	ID_MAIN_SCROLL_VERTICAL,
+
+	ID_MAIN_MIXER,
+	ID_MAIN_GOTO,
+	ID_MAIN_MIDISHORTCUT,
+	ID_MAIN_EXPRESSION,
+	ID_MAIN_LUAFILE,
+	ID_MAIN_SETTING_OPEN,
+	ID_MAIN_SETTING_SAVE,
+	ID_MAIN_SETTING_SAVEAS,
+	ID_MAIN_RESET,
+	ID_MAIN_LOG,
+	ID_MAIN_UPDATE,
+	ID_MAIN_FIRSTUSE,
+	ID_MAIN_RECORD_PLAYBACK,
+	ID_MAIN_SAVE_PLAYBACK,
+	ID_MAIN_PLAYBACK,
+
+	ID_MAIN_TIMER,
+
+	ID_MAIN_TEST,
+
+	ID_MAIN_LOCAL_OFF,
+	ID_MAIN_AUDIO_SETTING,
+
+	ID_MAIN_PREVIOUS_PAGE,
+	ID_MAIN_NEXT_PAGE,
+
+	ID_MAIN_LIST_FILE = ID_MAIN + 100,  // large range for the files in the list
+	ID_MAIN_LIST_FILE_END = ID_MAIN_LIST_FILE + 99,  // large range for the files in the list
+	ID_MAIN_ACTION = ID_MAIN_LIST_FILE_END + 1, // large range for actions
+	ID_MAIN_ACTION_END = ID_MAIN_ACTION + 99 // large range for actions
+};
+
+// ----------------------------------------------------------------------------
+// event tables
+// ----------------------------------------------------------------------------
+
+wxBEGIN_EVENT_TABLE(Expresseur, wxFrame)
+
+EVT_MENU(ID_MAIN_TEST, Expresseur::OnTest)
+
+EVT_MENU(wxID_NEW, Expresseur::OnNew)
+EVT_MENU(wxID_OPEN, Expresseur::OnOpen)
+EVT_MENU(wxID_SAVE, Expresseur::OnSave)
+EVT_MENU(wxID_SAVEAS, Expresseur::OnSaveas)
+EVT_MENU(wxID_EXIT, Expresseur::OnExit)
+EVT_MENU_RANGE(wxID_FILE1, wxID_FILE9, Expresseur::OnRecentFile)
+
+EVT_MENU(wxID_UNDO, Expresseur::OnUndo)
+EVT_MENU(wxID_REDO, Expresseur::OnRedo)
+EVT_MENU(wxID_COPY, Expresseur::OnCopy)
+EVT_MENU(wxID_CUT, Expresseur::OnCut)
+EVT_MENU(wxID_PASTE, Expresseur::OnPaste)
+EVT_MENU_RANGE(ID_MAIN_UNZOOM_3, ID_MAIN_ZOOM_3, Expresseur::OnZoom)
+EVT_MENU(ID_MAIN_ORNAMENT_ADD_RELATIVE, Expresseur::OnOrnamentAddRelative)
+EVT_MENU(ID_MAIN_ORNAMENT_ADD_ABSOLUTE, Expresseur::OnOrnamentAddAbsolute)
+
+EVT_MENU(wxID_EDIT, Expresseur::OnEdit)
+EVT_MENU(ID_MAIN_LOCAL_OFF, Expresseur::OnLocaloff)
+EVT_MENU(ID_MAIN_AUDIO_SETTING, Expresseur::OnAudioSetting)
+
+EVT_MENU(ID_MAIN_PREVIOUS_PAGE,Expresseur::OnPreviousPage)
+EVT_MENU(ID_MAIN_NEXT_PAGE, Expresseur::OnNextPage)
+
+EVT_MENU(ID_MAIN_LIST_PREVIOUS_FILE, Expresseur::OnListPreviousFile)
+EVT_MENU(ID_MAIN_LIST_NEXT_FILE, Expresseur::OnListNextFile)
+EVT_MENU(ID_MAIN_LIST_NEW, Expresseur::OnListNew)
+EVT_MENU(ID_MAIN_LIST_OPEN, Expresseur::OnListOpen)
+EVT_MENU(ID_MAIN_LIST_SAVE, Expresseur::OnListSave)
+EVT_MENU(ID_MAIN_LIST_SAVEAS, Expresseur::OnListSaveas)
+EVT_MENU(ID_MAIN_LIST_ADD, Expresseur::OnListAdd)
+EVT_MENU(ID_MAIN_LIST_REMOVE, Expresseur::OnListRemove)
+EVT_MENU(ID_MAIN_LIST_UP, Expresseur::OnListUp)
+EVT_MENU(ID_MAIN_LIST_DOWN, Expresseur::OnListDown)
+EVT_MENU_RANGE(ID_MAIN_LIST_FILE, ID_MAIN_LIST_FILE_END, Expresseur::OnListFile)
+
+EVT_MENU_RANGE(ID_MAIN_ACTION, ID_MAIN_ACTION_END, Expresseur::OnMenuAction)
+
+EVT_MENU(ID_MAIN_MIXER, Expresseur::OnMixer)
+EVT_MENU(ID_MAIN_GOTO, Expresseur::OnGoto)
+EVT_MENU(ID_MAIN_MIDISHORTCUT, Expresseur::OnMidishortcut)
+EVT_MENU(ID_MAIN_EXPRESSION, Expresseur::OnExpression)
+EVT_MENU(ID_MAIN_LUAFILE, Expresseur::OnLuafile)
+EVT_MENU(ID_MAIN_RESET, Expresseur::OnReset)
+EVT_MENU(ID_MAIN_LOG, Expresseur::OnLog)
+EVT_MENU(ID_MAIN_SETTING_OPEN, Expresseur::OnSettingOpen)
+EVT_MENU(ID_MAIN_SETTING_SAVE, Expresseur::OnSettingSave)
+EVT_MENU(ID_MAIN_SETTING_SAVEAS, Expresseur::OnSettingSaveas)
+
+EVT_MENU(ID_MAIN_RECORD_PLAYBACK, Expresseur::OnRecordPlayback)
+EVT_MENU(ID_MAIN_SAVE_PLAYBACK, Expresseur::OnSavePlayback)
+EVT_MENU(ID_MAIN_PLAYBACK, Expresseur::OnPlayback)
+
+EVT_MENU(wxID_ABOUT, Expresseur::OnAbout)
+EVT_MENU(wxID_HELP, Expresseur::OnHelp)
+EVT_MENU(ID_MAIN_UPDATE, Expresseur::OnUpdate)
+EVT_MENU(ID_MAIN_FIRSTUSE, Expresseur::OnResetConfiguration)
+
+EVT_COMMAND_SCROLL_THUMBRELEASE(ID_MAIN_SCROLL_HORIZONTAL, Expresseur::OnHorizontalScroll)
+EVT_COMMAND_SCROLL_THUMBRELEASE(ID_MAIN_SCROLL_VERTICAL, Expresseur::OnVerticalScroll)
+
+EVT_TIMER(ID_MAIN_TIMER, Expresseur::OnTimer)
+EVT_SIZE(Expresseur::OnSize)
+wxEND_EVENT_TABLE()
+
+// ============================================================================
+// implementation
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// MyApp
+// ----------------------------------------------------------------------------
+
+IMPLEMENT_APP(MyApp)
+
+Expresseur *frame = NULL;
+wxRect rectFrame;
+bool tobeMaximized = false;
+
+// The `main program' equivalent, creating the windows and returning the
+// main frame
+bool MyApp::OnInit()
+{
+    if ( !wxApp::OnInit() )
+        return false;
+
+	SetAppName(APP_NAME);
+
+	wxInitAllImageHandlers();
+
+    // Create the main frame window
+	frame = new Expresseur(NULL, wxID_ANY, APP_NAME, wxPoint(0, 0), wxSize(500, 400), wxDEFAULT_FRAME_STYLE);
+
+	// Give it an icon (this is ignored in MDI mode: uses resources)
+#ifdef RUN_WIN
+	frame->SetIcon(wxIcon("MAINICON"));
+#endif
+#ifdef RUN_LINUX
+	frame->SetIcon(wxIcon("expresseur.ico",wxBITMAP_TYPE_ICON));
+#endif
+#ifdef RUN_MAC
+	//frame->SetIcon(wxIcon("expresseur.ico",wxBITMAP_TYPE_ICON));
+#endif
+
+	// resize the main frame
+	if (rectFrame.GetWidth() < 600)
+		rectFrame.SetWidth(600);
+	if (rectFrame.GetHeight() < 400)
+		rectFrame.SetHeight(400);
+	frame->SetSize(rectFrame);
+	if (tobeMaximized)
+		frame->Maximize(true);
+	else
+		frame->CenterOnScreen();
+	frame->Show(true);
+
+#if wxUSE_STATUSBAR
+    frame->SetStatusText("",1);
+#endif
+
+	// wxMessageBox(wxFileName::GetTempDir(), "TempDir");
+
+	// start to propose something to the user ( wizard, bug managmnt, new hardware config .. )
+	frame->postInit();
+
+  return true;
+}
+
+
+Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const wxPoint& pos,const wxSize& size,long style)
+ :wxFrame(parent, id, title, pos, size, style)
+{
+#if wxUSE_STATUSBAR
+    // Give it a status line
+	CreateStatusBar(2);
+#endif
+
+	mxconf::getAppDir();
+
+	// configuration object ( with memory of all parameters
+	mConf = new mxconf();
+
+	mode = modeNil;
+	listChanged = false;
+	listName.Clear();
+
+	typeViewer = EMPTYVIEWER;
+	listSelection = -1;
+	fileName.Clear();
+	mViewerscore = NULL;
+	mTextscore = NULL;
+	mMixer = NULL;
+	mExpression = NULL;
+	mMidishortcut = NULL;
+	mLog = NULL;
+	mtimer = NULL;
+	fileHistory = NULL;
+	for (int i = 0; i < MAX_KEYS; i++)
+		ckeys[i] = 0;
+
+	// check if the last "close expreseur" exits normally
+	end_ok = mConf->get(CONFIG_END_OK, true);
+	mConf->set(CONFIG_END_OK, false);
+
+	if (mConf->get(CONFIG_VERSION_CHECKED, VERSION_EXPRESSEUR) < VERSION_EXPRESSEUR)
+		mConf->set(CONFIG_VERSION_CHECKED, VERSION_EXPRESSEUR);
+
+	// set the menus
+	wxMenu *fileMenu = new wxMenu;
+	fileMenu->Append(wxID_NEW, _("New"));
+	fileMenu->Append(wxID_OPEN, _("Open...\tCtrl+O"));
+	fileMenu->Append(wxID_SAVE, _("Save\tCtrl+S"));
+	fileMenu->Append(wxID_SAVEAS, _("Save as..."));
+	fileMenu->AppendSeparator();
+	wxMenu* menuRecent = new wxMenu;
+	fileMenu->AppendSubMenu(menuRecent, "Open Recent");
+	fileMenu->AppendSeparator();
+	fileMenu->Append(wxID_EXIT, wxT("Exit\tCtrl+Q"));
+	fileHistory = new wxFileHistory();
+	fileHistory->UseMenu(menuRecent);
+	fileHistory->AddFilesToMenu(menuRecent);
+	fileHistory->Load(*mConf->getConfig());
+
+	editMenu = new wxMenu;
+	editMenu->Append(wxID_UNDO, _("Undo\tCtrl+Z"));
+	editMenu->Append(wxID_REDO, _("Redo"));
+	editMenu->AppendSeparator();
+	editMenu->Append(wxID_COPY, _("Copy\tCtrl+C"));
+	editMenu->Append(wxID_CUT, _("Cut\tCtrl+X"));
+	editMenu->Append(wxID_PASTE, _("Paste\tCtrl+V"));
+	editMenu->AppendSeparator();
+	menuEditMode = editMenu->AppendCheckItem(wxID_EDIT, _("Edit\tCtrl+E"), _("Allow text change. Else, keystrokes are used for shortcuts"));
+	editMenu->Append(ID_MAIN_GOTO, _("Goto measure...\tCTRL+G"), _("Goto a measure in the score"));
+	editMenu->Append(ID_MAIN_PREVIOUS_PAGE, _("Previous page\tSHIFT+CTRL+UP"), _("Goto previous page of the score"));
+	editMenu->Append(ID_MAIN_NEXT_PAGE, _("Next Page\tSHIFT+CTRL+DOWN"), _("Goto next page of the score"));
+	editMenu->Append(ID_MAIN_ORNAMENT_ADD_ABSOLUTE, _("Add Ornament absolute...\tSHIFT+CTRL+A"), _("Add an ornament in the score, at the expresseur position"));
+	editMenu->Append(ID_MAIN_ORNAMENT_ADD_RELATIVE, _("Add Ornament relative...\tSHIFT+CTRL+R"), _("Add an ornament in the score, at the score position"));
+	editMenu->AppendSeparator();
+
+	zoomMenu = new wxMenu;
+	zoomMenu->AppendRadioItem(ID_MAIN_UNZOOM_3, _("very small"));
+	zoomMenu->AppendRadioItem(ID_MAIN_UNZOOM_2, _("small"));
+	zoomMenu->AppendRadioItem(ID_MAIN_UNZOOM_1, _("smaller"));
+	zoomMenu->AppendRadioItem(ID_MAIN_ZOOM_0, _("normal"));
+	zoomMenu->AppendRadioItem(ID_MAIN_ZOOM_1, _("bigger"));
+	zoomMenu->AppendRadioItem(ID_MAIN_ZOOM_2, _("big"));
+	zoomMenu->AppendRadioItem(ID_MAIN_ZOOM_3, _("very big"));
+	editMenu->AppendSubMenu(zoomMenu , "Zoom");
+
+	editMenu->AppendSeparator();
+	editMenu->AppendCheckItem(ID_MAIN_RECORD_PLAYBACK, _("record playback\tCTRL+R"), _("Start to record score playing"));
+	editMenu->Append(ID_MAIN_SAVE_PLAYBACK, _("save playback\tCTRL+T"), _("Save score playing in PLAYBACK section"));
+	editMenu->AppendCheckItem(ID_MAIN_PLAYBACK, _("playback\tCTRL+P") , _("Playback the score as described in PLAYBACK section"));
+
+	actionMenu = new wxMenu;
+
+	listMenu = new wxMenu;
+	listMenu->AppendSeparator();
+	listMenu->Append(ID_MAIN_LIST_NEW, _("New List"));
+	listMenu->Append(ID_MAIN_LIST_OPEN, _("Open List..."));
+	listMenu->Append(ID_MAIN_LIST_SAVE, _("Save List"));
+	listMenu->Append(ID_MAIN_LIST_SAVEAS, _("Save List as..."));
+	listMenu->AppendSeparator();
+	listMenu->Append(ID_MAIN_LIST_ADD, _("Add current file in list"));
+	listMenu->Append(ID_MAIN_LIST_REMOVE, _("Remove current file from list"));
+	listMenu->Append(ID_MAIN_LIST_UP, _("Up current file in list"));
+	listMenu->Append(ID_MAIN_LIST_DOWN, _("Down current file in list"));
+	listMenu->AppendSeparator();
+	listMenu->Append(ID_MAIN_LIST_PREVIOUS_FILE, _("Previous file\tCTRL+LEFT"));
+	listMenu->Append(ID_MAIN_LIST_NEXT_FILE, _("Next file\tCTRL+RIGHT"));
+
+	wxMenu *settingMenu = new wxMenu;
+	settingMenu->Append(ID_MAIN_MIXER, _("Mixer\tCTRL+M"));
+	settingMenu->Append(ID_MAIN_MIDISHORTCUT, _("Shortcut"));
+	settingMenu->Append(ID_MAIN_EXPRESSION, _("LUA setting"));
+	settingMenu->AppendSeparator();
+	settingMenu->Append(ID_MAIN_RESET, _("Reset"),_("Reset the audio/midi configuration"));
+	settingMenu->Append(ID_MAIN_AUDIO_SETTING, _("Audio..."), _("Audio settings, to decrease latency, and to select the default audio output"));
+	settingMenu->Append(ID_MAIN_LUAFILE, _("LUA Files..."));
+	// settingMenu->Append(ID_MAIN_LOG, _("Log"));
+	settingMenu->AppendSeparator();
+	settingMenu->AppendCheckItem(ID_MAIN_LOCAL_OFF, _("Send MIDI local-off"), _("Send local-off on MIDI-out opening, i.e. to unlink keyboard and soud-generator on electronic piano"));
+	settingMenu->AppendSeparator();
+	settingMenu->Append(ID_MAIN_SETTING_OPEN, _("Load setting..."));
+	settingMenu->Append(ID_MAIN_SETTING_SAVE, _("Save setting"));
+	settingMenu->Append(ID_MAIN_SETTING_SAVEAS, _("Save setting as..."));
+	settingMenu->AppendSeparator();
+	settingMenu->Append(ID_MAIN_FIRSTUSE, _("Reset configuration"));
+
+	wxMenu *helpMenu = new wxMenu;
+	helpMenu->Append(wxID_HELP, _("Web help"));
+	helpMenu->Append(wxID_ABOUT, _("About"));
+	helpMenu->Append(ID_MAIN_UPDATE, _("Check update"));
+
+    mMenuBar = new wxMenuBar( wxMB_DOCKABLE );
+
+	mMenuBar->Append(fileMenu, _("File"));
+	mMenuBar->Append(editMenu, _("Edit"));
+	mMenuBar->Append(actionMenu, _("Action"));
+	mMenuBar->Append(listMenu, _("List"));
+	mMenuBar->Append(settingMenu, _("Setting"));
+	mMenuBar->Append(helpMenu, _("Help"));
+
+    // Associate the menu bar with the frame
+	SetMenuBar(mMenuBar);
+
+	toolBar = CreateToolBar();
+
+
+	editMode = false;
+	editMenu->Check(wxID_EDIT, false);
+
+	localoff = (bool)(mConf->get(CONFIG_LOCALOFF, true));
+	settingMenu->Check(ID_MAIN_LOCAL_OFF, localoff);
+
+	// scroll horizontal
+	posScrollHorizontal = mConf->get(CONFIG_MAIN_SCROLLHORIZONTAL, 20);
+	mScrollHorizontal = new	wxScrollBar(this, ID_MAIN_SCROLL_HORIZONTAL, wxDefaultPosition, wxDefaultSize, wxSB_HORIZONTAL);
+	mScrollHorizontal->SetToolTip(_("split horizontally the text and the image of the Score"));
+	mScrollHorizontal->SetScrollbar(posScrollHorizontal, 1, 100, 1, false);
+	posScrollVertical = mConf->get(CONFIG_MAIN_SCROLLVERTICAL, 50);
+	mScrollVertical = new	wxScrollBar(this, ID_MAIN_SCROLL_VERTICAL, wxDefaultPosition, wxDefaultSize, wxSB_VERTICAL);
+	mScrollVertical->SetScrollbar(posScrollVertical, 1, 100, 1, false);
+	mScrollVertical->SetToolTip(_("split vertically the text and the image of the Score"));
+
+	rectFrame.SetX(mConf->get(CONFIG_MAINX, 10));
+	rectFrame.SetY(mConf->get(CONFIG_MAINY, 10));
+	rectFrame.SetWidth(mConf->get(CONFIG_MAINWIDTH, 1010));
+	rectFrame.SetHeight(mConf->get(CONFIG_MAINHEIGHT, 780));
+	tobeMaximized = mConf->get(CONFIG_MAINMAXIMIZED, false);
+
+
+	waitToCompile = 1 ;
+	waitToRefresh = 1 ;
+	timerDt = mConf->get(CONFIG_TIMERDT, 20);
+
+	sizer_text_viewer = new wxBoxSizer(wxVERTICAL);
+	wxBoxSizer *sizer_scroll_horizontal = new wxBoxSizer(wxHORIZONTAL);
+	sizer_scroll_horizontal->AddSpacer(mScrollVertical->GetSize().GetWidth());
+	sizer_scroll_horizontal->Add(mScrollHorizontal, wxSizerFlags().Expand().Proportion(1));
+	wxBoxSizer *sizer_scroll_vertical = new wxBoxSizer(wxHORIZONTAL);
+	sizer_scroll_vertical->Add(mScrollVertical, wxSizerFlags().Expand());
+	sizer_scroll_vertical->Add(sizer_text_viewer, wxSizerFlags().Expand().Proportion(1));
+	wxBoxSizer *topSizer = new wxBoxSizer(wxVERTICAL);
+	topSizer->Add(sizer_scroll_horizontal, wxSizerFlags().Expand());
+	topSizer->Add(sizer_scroll_vertical, wxSizerFlags().Expand().Proportion(1));
+	SetSizer(topSizer);
+
+}
+Expresseur::~Expresseur()
+{
+	checkUpdate();
+
+	if ( fileHistory)
+		fileHistory->Save(*mConf->getConfig());
+
+	if (listName.IsFileReadable())
+		mConf->set(CONFIG_LISTNAME, listName.GetFullPath());
+	else
+		mConf->remove(CONFIG_LISTNAME);
+
+	if (fileName.IsFileReadable())
+		mConf->set(CONFIG_FILENAME, fileName.GetFullPath());
+	else
+		mConf->remove(CONFIG_FILENAME);
+
+	mConf->set(CONFIG_MAINMAXIMIZED, IsMaximized());
+	if (!IsMaximized())
+	{
+		wxRect mrect = GetRect();
+		mConf->set(CONFIG_MAINWIDTH, mrect.GetWidth());
+		mConf->set(CONFIG_MAINHEIGHT, mrect.GetHeight());
+		mConf->set(CONFIG_MAINX, mrect.GetX());
+		mConf->set(CONFIG_MAINY, mrect.GetY());
+	}
+
+	mConf->set(CONFIG_MAIN_SCROLLHORIZONTAL, posScrollHorizontal);
+	mConf->set(CONFIG_MAIN_SCROLLVERTICAL, posScrollVertical);
+
+	mConf->set(CONFIG_LOCALOFF, localoff);
+
+	preClose();
+
+	delete fileHistory;
+
+	mConf->set(CONFIG_END_OK, true);
+	delete mConf;
+
+	basslua_close();
+}
+void Expresseur::preClose()
+{
+	if (mtimer)
+	{
+		mtimer->Stop();
+		delete mtimer;
+	}
+	mtimer = NULL;
+
+	if (mExpression)
+	{
+		mExpression->savePos();
+		mConf->set(CONFIG_EXPRESSIONVISIBLE, (mExpression->IsVisible()));
+		delete mExpression;
+	}
+	mExpression = NULL;
+	if (mMidishortcut)
+	{
+		mMidishortcut->savePos();
+		delete mMidishortcut;
+	}
+	mMidishortcut = NULL;
+	if (mMixer)
+	{
+		mMixer->savePos();
+		mConf->set(CONFIG_MIXERVISIBLE, (mMixer->IsVisible()));
+		delete mMixer;
+	}
+	mMixer = NULL;
+	if (mLog)
+		delete mLog;
+	mLog = NULL;
+	if (mTextscore)	
+		delete mTextscore;
+	mTextscore = NULL;
+	if ( mViewerscore)
+		delete mViewerscore;
+	mViewerscore=NULL;
+
+}
+void Expresseur::postInit()
+{
+	preClose();
+
+	// check if it the first use ( for intialization, wizard, .. )
+	initFirstUse(false);
+
+	if (!end_ok)
+	{
+		end_ok = true;
+		wxMessageBox("\
+		Expresseur has not stopped correctly...\n\
+		Please try to correct the tuning ( score, mixer devices, ... ).\n\
+		Then select menu 'Setting/reset' to restart the system.\n\
+		Sorry for this issue ...\n", "Bug...");
+	}
+	if (end_ok)
+	{
+		// read the list of scores
+		listName.Assign(mConf->get(CONFIG_LISTNAME, ""));
+		if (listName.IsFileReadable())
+			ListOpen();
+
+		fileName.Assign(mConf->get(CONFIG_FILENAME, ""));
+	}
+	// text for the score
+	mTextscore = new textscore(this, ID_MAIN_TEXT_SONG, mConf);
+	mTextscore->SetMinSize(wxSize(0, 0));
+	// empty viewer for the score
+	mViewerscore = new emptyscore(this, wxID_ANY, mConf);
+	setOrientation(posScrollVertical, posScrollHorizontal);
+
+	mtimer = new wxTimer(this, ID_MAIN_TIMER);
+	FileOpen();
+}
+void Expresseur::setRightDisplay(bool right)
+{
+	int nbItem = sizer_text_viewer->GetItemCount();
+	while (nbItem > 0)
+	{
+		sizer_text_viewer->Remove(0);
+		nbItem = sizer_text_viewer->GetItemCount();
+	}
+	if ( right )
+	{
+		sizer_A = sizer_text_viewer->Add(mViewerscore, wxSizerFlags().Expand().Proportion(50));
+		sizer_B = sizer_text_viewer->Add(mTextscore, wxSizerFlags().Expand().Proportion(50));
+	}
+	else
+	{
+		sizer_A = sizer_text_viewer->Add(mTextscore, wxSizerFlags().Expand().Proportion(50));
+		sizer_B = sizer_text_viewer->Add(mViewerscore, wxSizerFlags().Expand().Proportion(50));
+	}
+}
+void Expresseur::setOrientation(int v, int h )
+{
+	if (v == 50)
+	{
+		sizer_text_viewer->SetOrientation(wxHORIZONTAL);
+		setRightDisplay(h > 50);
+		sizer_A->SetProportion(h);
+		sizer_B->SetProportion(100 - h);
+	}
+	else
+	{
+		sizer_text_viewer->SetOrientation(wxVERTICAL);
+		setRightDisplay(v > 50);
+		sizer_A->SetProportion(v);
+		sizer_B->SetProportion(100 - v);
+	}
+}
+void Expresseur::OnHorizontalScroll(wxScrollEvent& event)
+{
+	posScrollHorizontal = event.GetPosition();
+	if (posScrollHorizontal == 50) posScrollHorizontal = 51;
+	posScrollVertical = 50;
+	mScrollVertical->SetThumbPosition(50);
+	setOrientation(posScrollVertical, posScrollHorizontal);
+	waitToRefresh = periodRefresh / timerDt;
+	Layout();
+	mTextscore->SetFocus();
+}
+void Expresseur::OnVerticalScroll(wxScrollEvent& event)
+{
+	posScrollVertical = event.GetPosition();
+	if (posScrollVertical == 50) posScrollVertical = 51;
+	posScrollHorizontal = 50;
+	mScrollHorizontal->SetThumbPosition(50);
+	setOrientation(posScrollVertical, posScrollHorizontal);
+	waitToRefresh = periodRefresh / timerDt;
+	Layout();
+	mTextscore->SetFocus();
+}
+void Expresseur::OnSize(wxSizeEvent& WXUNUSED(event))
+{
+	waitToRefresh = periodRefresh / timerDt;
+	Layout();
+}
+bool Expresseur::OnKeyUp(wxChar keycode)
+{
+	if (editMode)
+	{
+		waitToCompile = periodCompile / timerDt;
+		return(true);
+	}
+	if ((keycode != WXK_NONE) && (keycode >= 32))
+		mMidishortcut->hitkey(keycode, false , this);
+	return(false);
+}
+bool Expresseur::OnKeyDown(wxChar keycode)
+{
+	if (editMode)
+	{
+		waitToCompile = periodCompile / timerDt;
+		return(true);
+	}
+	if ((keycode != WXK_NONE) && (keycode >= 32))
+		mMidishortcut->hitkey(keycode, true , this);
+	return(false);
+}
+bool Expresseur::OnLeft(wxPoint p, wxSize s ,  bool down)
+{
+	if (editMode)
+		return(true);
+	switch (mode)
+	{
+	case modeChord:
+		{
+			if ( down )
+			{
+				int pos = mTextscore->getInsertionPoint();
+				basslua_call(moduleChord, functionChordSetPosition, "i", pos);
+			}
+		}
+		break;
+	case modeScore:
+		{
+			if ( down )
+			{
+				// play score on
+				int v ;
+				if ( posScrollVertical == 50 ) // right/left split
+					v = 64 + (40 * p.y ) / s.GetHeight() ;
+				else // up/down split
+					v = 64 + (40 * p.x ) / s.GetWidth() ;
+				if ( playScoreOn )
+					basslua_call(moduleScore, functionScorePlay, "iiiii", 0,0,10,126,0);
+				playScoreOn = true ;
+				basslua_call(moduleScore, functionScorePlay, "iiiii", 0,0,10,126,v);
+			}
+			else
+			{
+				// play score off 
+				playScoreOn = false ;
+				basslua_call(moduleScore, functionScorePlay, "iiiii", 0,0,10,126,0);
+			}
+		}
+		break ;
+	default:
+		break;
+	}
+	return(false);
+}
+bool Expresseur::timerTask(bool compile, bool refreshScreen)
+{
+	// trigger external timer for luabass and basslua
+	basslua_external_timer();
+	wxLongLong time ;
+	int nr_device , type_msg , channel , value1 , value2 ;
+	bool isProcessed ;
+	bool calledBack = luafile::isCalledback(&time, &nr_device, &type_msg, &channel, &value1, &value2, &isProcessed);
+	bool quick = false ;
+	if (calledBack )
+		quick = isProcessed ;
+	switch (mode)
+	{
+	case modeChord:
+	{
+		// compile the text of chords
+		if (compile)
+			mTextscore->compileText();
+
+		if ((quick) || (refreshScreen))
+		{
+			// scan the current position given by LUA module, according to MID events
+			int nrChord = mTextscore->scanPosition(editMode);
+			mViewerscore->setPosition(nrChord, true, quick);
+		}
+
+		break;
+	}
+	case modeScore:
+	{
+		if (playback)
+		{
+			if (!(((musicxmlscore *)(mViewerscore))->playback()))
+			{
+				editMenu->Check(ID_MAIN_PLAYBACK, false);
+				playback = false;
+			}
+		}
+		if ((quick) || (refreshScreen))
+		{
+			if ( recordPlayback && calledBack )
+			{
+				do {
+					((musicxmlscore *)(mViewerscore))->recordPlayback(time, nr_device, type_msg, channel, value1, value2);
+				} while ( luafile::isCalledback(&time, &nr_device, &type_msg, &channel, &value1, &value2, &isProcessed) );
+			}
+			int nrEvent, playing;
+			basslua_call(moduleScore, functionScoreGetPosition, ">ii", &nrEvent, &playing);
+			mViewerscore->setPosition(nrEvent, (playing>0) , quick);
+			int absolute_measure_nr, measure_nr, repeat , beat, t ;
+			bool retPos = ((musicxmlscore *)(mViewerscore))->getScorePosition(&absolute_measure_nr, &measure_nr, &repeat , &beat, &t) ;
+			if ( retPos && ( absolute_measure_nr != prev_absolute_measure_nr ))
+			{
+				prev_absolute_measure_nr = absolute_measure_nr ;
+				wxString spos ;
+				switch ( repeat )
+				{
+				case -1 :
+				case NULL_INT :
+					break ;
+				case 0 :
+					spos.Printf(_("Expresseur measure %d / Score measure %d"), absolute_measure_nr, measure_nr);
+					break ;
+				case 1 :
+					spos.Printf(_("Expresseur measure %d / Score measure %d (2nd time)"), absolute_measure_nr, measure_nr);
+					break ;
+				case 2 :
+					spos.Printf(_("Expresseur measure %d / Score measure %d (3rd time)"), absolute_measure_nr, measure_nr );
+					break ;
+				default :
+					spos.Printf(_("Expresseur measure %d / Score measure %d (%dth time)"), absolute_measure_nr, measure_nr , repeat + 1);
+					break ;
+				}
+				SetStatusText(spos, 0);
+			}
+		}
+		break;
+	}
+	default:
+		break;
+	}
+
+	if (calledBack)
+	{
+		if (mMidishortcut)
+			mMidishortcut->scanMidi(nr_device, type_msg, channel, value1, value2); // scan midi-in events for the potential shortcuts needed in the definition of the GUI
+		if (mLog && (mLog->IsVisible()))
+			mLog->scanLog(); // updates any log from LUA to the window of this GUI
+	}
+
+	if ((quick) || (refreshScreen))
+	{
+		// scan pendings useful events from LUA
+		if (mMixer && (mMixer->IsVisible()))
+			mMixer->scanVolume(); // updates the volume of the mixer of thuis GUI, with the values in LUA
+		if (mExpression && (mExpression->IsVisible()))
+			mExpression->scanValue(); // updates the values of the "expression" of thuis GUI, with the values in LUA
+
+		// scan from LUA, if a MIDI event asked to go to next file in the list of file
+		int n;
+		if ((basslua_table(moduleGlobal, tableInfo, -1, fieldNext, NULL, &n, tableGetKeyValue | tableNilKeyValue) & tableGetKeyValue) == tableGetKeyValue)
+			ListSelectNext(n);
+
+		// scan if the LUA status text has been changed
+		char ch[1024];
+		if ((basslua_table(moduleGlobal, tableInfo, -1, fieldValue, ch, NULL, tableGetKeyValue | tableNilKeyValue) & tableGetKeyValue) == tableGetKeyValue)
+			SetStatusText(ch, 1);
+
+	}
+
+	if ((refreshScreen) && (mViewerscore->isOk() ) && (image_right != mViewerscore->GetClientSize()))
+	{
+		image_right = mViewerscore->GetClientSize();
+		Layout();
+		//mlog_in("Expresseur / timerTask / refreshScreen : displayFile");
+		mViewerscore->displayFile(image_right);
+	}
+
+	return quick;
+}
+void Expresseur::OnTimer(wxTimerEvent& WXUNUSED(event))
+{
+	bool quick = timerTask(waitToCompile == 1, waitToRefresh == 1);
+	if (waitToCompile > 0)
+		waitToCompile--;
+	if ((waitToRefresh > 0) && ( !quick ))
+		waitToRefresh--;
+	else
+		waitToRefresh = periodRefresh / timerDt;
+}
+void Expresseur::setWindowsTitle()
+{
+	SetTitle(APP_NAME << wxString(" - ") << fileName.GetFullName()); // Set the Title to reflect the file open
+
+}
+void Expresseur::FileOpen()
+{
+	if (fileName.IsFileReadable())
+	{
+		if (settingReset(false))
+		{
+			fileHistory->AddFileToHistory(fileName.GetFullPath());
+			ListCheck();
+		}
+	}
+	setWindowsTitle();
+}
+void Expresseur::FileSave()
+{
+	fileName.SetExt(SUFFIXE_TEXT);
+	mTextscore->saveFile(fileName);
+	fileHistory->AddFileToHistory(fileName.GetFullPath());
+	setWindowsTitle();
+	editMode = false;
+	menuEditMode->Check(false);
+	switch (mode)
+	{
+	case modeScore:
+	  settingReset(false);
+	  break;
+	default:
+		break;
+	}
+}
+void Expresseur::getLuaAction(bool all, wxMenu *newActionMenu)
+{
+	wxBitmap b;
+	wxFileName fb;
+	fb.Assign(mxconf::getCwdDir());
+	fb.SetExt("png");
+
+	wxString s;
+	nameAction.Clear();
+	char name[512];
+	int nrAction = 0;
+	while (basslua_table(moduleGlobal, tableActions, nrAction, fieldName, name, NULL, tableGetKeyValue) == tableGetKeyValue)
+	{
+		nameAction.Add(name);
+		char shortcut[64] = "";
+		char help[512] = "";
+		basslua_table(moduleGlobal, tableActions, nrAction, fieldShortcut, shortcut, NULL, tableGetKeyValue);
+		basslua_table(moduleGlobal, tableActions, nrAction, fieldHelp, help, NULL, tableGetKeyValue);
+		if (strlen(shortcut) != 0)
+		{
+			if ((editMode) || (strlen(shortcut) == 0))
+				s.Printf("%s", _(name));
+			else
+				s.Printf("%s\t%s", _(name), shortcut);
+			if (newActionMenu != NULL)
+				newActionMenu->Append(ID_MAIN_ACTION + nrAction, s, _(help));
+		}
+		if (all)
+		{
+			char icone[64] = "";
+			basslua_table(moduleGlobal, tableActions, nrAction, fieldIcone, icone, NULL, tableGetKeyValue);
+			fb.SetName(icone);
+			s.Printf("%s %s", _(name), shortcut);
+			if (fb.IsFileReadable())
+			{
+				if (b.LoadFile(fb.GetFullPath(), wxBITMAP_TYPE_PNG))
+				{
+					toolBar->AddTool(ID_MAIN_ACTION + nrAction, _(name), b, _(help));
+				}
+			}
+		}
+		nrAction++;
+	}
+}
+void Expresseur::SetMenuAction(bool all)
+{
+	// create the actionMenu and the associated icones in the toolbar, according to actions known in the LUA script
+	mTextscore->setEditMode(editMode);
+	wxString s;
+	wxMenu *newActionMenu = new wxMenu;
+	wxBitmap b;
+	wxFileName fb;
+	fb.Assign(mxconf::getCwdDir());
+	fb.SetExt("png");
+
+	if (all)
+	{
+		fb.SetName("exit");
+		int w = 15;
+		int h = 15;
+		s = fb.GetFullPath();
+		if (fb.IsFileReadable())
+		{
+			if (b.LoadFile(fb.GetFullPath(), wxBITMAP_TYPE_PNG))
+			{
+				w = b.GetWidth();
+				h = b.GetHeight();
+			}
+		}
+		toolBar->ClearTools();
+		toolBar->SetToolBitmapSize(wxSize(w, h));
+		fb.SetName("open");
+		if (fb.IsFileReadable())
+			if (b.LoadFile(fb.GetFullPath(), wxBITMAP_TYPE_PNG))
+				toolBar->AddTool(wxID_OPEN, _("Open..."), b, _("Open..."));
+		fb.SetName("save");
+		if (fb.IsFileReadable())
+			if (b.LoadFile(fb.GetFullPath(), wxBITMAP_TYPE_PNG))
+				toolBar->AddTool(wxID_SAVE, _("Save"), b, _("Save"));
+		fb.SetName("edit");
+		if (fb.IsFileReadable())
+			if (b.LoadFile(fb.GetFullPath(), wxBITMAP_TYPE_PNG))
+				toolBar->AddTool(wxID_EDIT, _("Edit"), b, _("edit mode"), wxITEM_CHECK);
+		fb.SetName("mixer");
+		if (fb.IsFileReadable())
+			if (b.LoadFile(fb.GetFullPath(), wxBITMAP_TYPE_PNG))
+				toolBar->AddTool(ID_MAIN_MIXER, _("Mixer"), b, _("Mixer"));
+		fb.SetName("help");
+		if (fb.IsFileReadable())
+			if (b.LoadFile(fb.GetFullPath(), wxBITMAP_TYPE_PNG))
+				toolBar->AddTool(wxID_HELP, _("Help"), b, _("Help"));
+		fb.SetName("exit");
+		if (fb.IsFileReadable())
+			if (b.LoadFile(fb.GetFullPath(), wxBITMAP_TYPE_PNG))
+				toolBar->AddTool(wxID_EXIT, _("Exit"), b, _("Exit"));
+		toolBar->AddSeparator();
+		fb.SetName("goto");
+		if (fb.IsFileReadable())
+			if (b.LoadFile(fb.GetFullPath(), wxBITMAP_TYPE_PNG))
+				toolBar->AddTool(ID_MAIN_GOTO, _("Goto"), b, _("Goto measure number"));
+		toolBar->AddSeparator();
+	}
+
+	if (toolBar->FindById(wxID_EDIT))
+		toolBar->ToggleTool(wxID_EDIT, editMode);
+	editMenu->Check(wxID_EDIT, editMode);
+
+	getLuaAction(all, newActionMenu);
+
+	if ( all )
+		toolBar->Realize();
+
+	wxMenu *oldactionMenu = mMenuBar->Replace(2, newActionMenu, _("Action"));
+	delete oldactionMenu;
+
+	mTextscore->SetEditable(editMode);
+	if (editMode == false)
+	{
+		mTextscore->SelectNone();
+		//mTextscore->HideNativeCaret();;
+	}
+	/*
+	else
+	{
+		mTextscore->ShowNativeCaret(true);;
+	}
+	*/
+}
+void Expresseur::OnMenuAction(wxCommandEvent& event)
+{
+	int nrAction = event.GetId() - ID_MAIN_ACTION;
+	if (basslua_table(moduleGlobal, tableActions, nrAction, fieldCallFunction, NULL, NULL, tableCallKeyFunction) != tableCallKeyFunction)
+	{
+		if (basslua_table(moduleGlobal, tableActions, nrAction, (mode == modeChord) ? fieldCallChord : fieldCallScore, NULL, NULL, tableCallKeyFunction) == tableCallKeyFunction)
+			luafile::functioncallback(NULL_INT, NULL_INT, NULL_INT, NULL_INT, NULL_INT, NULL_INT, true);
+		else
+		{
+			wxString s;
+			s.Printf(_("Error calling LUA action %d : %s "), nrAction + 1, nameAction[nrAction]);
+			SetStatusText(s, 1);
+		}
+	}
+}
+void Expresseur::OnRecordPlayback(wxCommandEvent& event)
+{
+	// start recording for future playback
+	bool new_recordPlayback = event.GetInt();
+	if (new_recordPlayback != recordPlayback)
+	{
+		if (new_recordPlayback)
+		{
+			editMenu->Check(ID_MAIN_PLAYBACK, false);
+			if (basslua_call(moduleScore, "firstPart", ""))
+				luafile::functioncallback(NULL_INT, NULL_INT, NULL_INT, NULL_INT, NULL_INT, NULL_INT, true);
+			((musicxmlscore *)(mViewerscore))->initRecordPlayback();
+		}
+	}
+	recordPlayback = new_recordPlayback;
+}
+void Expresseur::OnSavePlayback(wxCommandEvent& WXUNUSED(event))
+{
+	wxString f = ((musicxmlscore *)(mViewerscore))->getPlayback();
+	mTextscore->savePlayback(f);
+}
+void Expresseur::OnPlayback(wxCommandEvent& event)
+{
+	// playback
+	bool new_playback = event.GetInt() ;
+	if ( new_playback != playback )
+	{
+		if ( new_playback )
+		{
+			editMenu->Check(ID_MAIN_RECORD_PLAYBACK,false);
+			if (basslua_call(moduleScore,"firstPart", ""))
+				luafile::functioncallback(NULL_INT, NULL_INT, NULL_INT, NULL_INT, NULL_INT, NULL_INT, true);
+			((musicxmlscore *)(mViewerscore))->initPlayback();
+		}
+	}
+	playback = new_playback ;
+}
+void Expresseur::OnNew(wxCommandEvent& WXUNUSED(event)) 
+{
+	if (mTextscore->needToSave())
+	{
+		if (wxMessageBox(_("Current file has not been saved! Proceed?"), _("File modified"),
+			wxICON_QUESTION | wxYES_NO, this) == wxNO)
+			return;
+	}
+	mTextscore->SetValue("");
+	fileName.SetName("newsong");
+	fileName.SetExt(SUFFIXE_TEXT);
+	wxTextFile tfile;
+	if (fileName.IsFileWritable() == false)
+		tfile.Create(fileName.GetFullPath());
+	tfile.Write();
+	tfile.Close();
+	Open(fileName.GetFullPath());
+	mTextscore->noNeedToSave();
+}
+void Expresseur::OnOpen(wxCommandEvent& WXUNUSED(event)) 
+{
+	if (mTextscore->needToSave())
+	{
+		if (wxMessageBox(_("Current file has not been saved! Proceed?"), _("File modified"),
+			wxICON_QUESTION | wxYES_NO, this) == wxNO)
+			return;
+	}
+	wxFileDialog
+		openFileDialog(this, _("Open file"), "", "",
+		"music file (*.txt;*.png;*.xml;*.mxl)|*.txt;*.png;*.xml;*.mxl", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (openFileDialog.ShowModal() == wxID_CANCEL)
+		return; // the user changed idea...
+	Open(openFileDialog.GetPath());
+	mTextscore->noNeedToSave();
+}
+void Expresseur::OnSave(wxCommandEvent& WXUNUSED(event)) 
+{
+	if (fileName.IsFileWritable() == false)
+	{
+		wxFileDialog
+			openFileDialog(this, _("Save file"), "", "",
+			"song file (*.txt)|*.txt", wxFD_SAVE);
+		if (openFileDialog.ShowModal() == wxID_CANCEL)
+			return; // the user changed idea...
+		fileName.Assign(openFileDialog.GetPath());
+	}
+	FileSave();
+}
+void Expresseur::OnSaveas(wxCommandEvent& WXUNUSED(event)) 
+{
+	wxFileDialog
+		openFileDialog(this, _("Save file"), "", "",
+		"song file (*.txt)|*.txt", wxFD_SAVE);
+	if (openFileDialog.ShowModal() == wxID_CANCEL)
+		return; // the user changed idea...
+	fileName.Assign(openFileDialog.GetPath());
+	FileSave();
+}
+void Expresseur::OnExit(wxCommandEvent& WXUNUSED(event)) 
+{
+	if (mTextscore->needToSave())
+	{
+		if (wxMessageBox(_("Current file has not been saved! Proceed?"), _("File modified"),
+			wxICON_QUESTION | wxYES_NO, this) == wxNO)
+			return;
+	}
+	Close(true);
+}
+
+void Expresseur::OnUndo(wxCommandEvent& WXUNUSED(event)) 
+{
+	mTextscore->Undo();
+}
+void Expresseur::OnRedo(wxCommandEvent& WXUNUSED(event)) 
+{
+	mTextscore->Redo();
+}
+void Expresseur::OnCopy(wxCommandEvent& WXUNUSED(event)) 
+{
+	mTextscore->Copy();
+}
+void Expresseur::OnCut(wxCommandEvent& WXUNUSED(event)) 
+{
+	mTextscore->Cut();
+}
+void Expresseur::OnPaste(wxCommandEvent& WXUNUSED(event))
+{
+	mTextscore->Paste();
+}
+void Expresseur::setZoom()
+{
+	if (mViewerscore != NULL)
+	{
+		int zoom;
+		if (typeViewer == MUSICXMLVIEWER)
+		{
+			zoom = mConf->get(CONFIG_ZOOM_MUSICXML, 0);
+			mTextscore->zoom(0);
+			mViewerscore->zoom(zoom);
+		}
+		else
+		{
+			zoom = mConf->get(CONFIG_ZOOM_TEXT, 0);
+			mTextscore->zoom(zoom);
+			mViewerscore->zoom(0);
+		}
+		wxMenuItem *mmenuItem = zoomMenu->FindChildItem(zoom + ID_MAIN_ZOOM_0);
+		if (mmenuItem)
+			mmenuItem->Check();
+	}
+
+}
+void Expresseur::OnZoom(wxCommandEvent& event)
+{
+	int zoom = event.GetId() - ID_MAIN_ZOOM_0;
+	if (typeViewer == MUSICXMLVIEWER)
+		mConf->set(CONFIG_ZOOM_MUSICXML, zoom);
+	else
+		mConf->set(CONFIG_ZOOM_TEXT, zoom);
+	setZoom();
+
+	// mlog_in("Expresseur / OnZoom / : displayFile");
+	mViewerscore->displayFile(mViewerscore->GetClientSize());
+}
+void Expresseur::OnOrnamentAddAbsolute(wxCommandEvent& WXUNUSED(event))
+{
+	ornamentAdd(true);
+}
+void Expresseur::OnOrnamentAddRelative(wxCommandEvent& WXUNUSED(event))
+{
+	ornamentAdd(false);
+}
+void Expresseur::ornamentAdd(bool absolute)
+{
+	if (mode != modeScore)
+		return;
+	int absolute_measure_nr, measure_nr, repeatNr , beat, t;
+	bool ret = ((musicxmlscore *)(mViewerscore))->getScorePosition(&absolute_measure_nr, &measure_nr, &repeatNr , &beat, &t);
+	if (!ret)
+		return;
+	wxArrayString list_ornament = musicxmlcompile::getListOrnament();
+	wxString ornament = wxGetSingleChoice("Select ornament", "Add ornament", list_ornament, this);
+	if (ornament.IsEmpty())
+		return;
+	wxString line;
+	wxString measure;
+	wxString repeat;
+	wxString ti;
+	if (absolute)
+		measure.Printf("!%d", absolute_measure_nr);
+	else
+	{
+		if ( repeatNr == 0 )
+			measure.Printf("%d", measure_nr);
+		else
+			measure.Printf("%d*%d", measure_nr , repeatNr + 1);
+	}
+	if (t > 0)
+		ti.Printf(".%d", t);
+	line.Printf("%s.%d%s%s:%s", measure, beat + 1, ti, repeat, ornament);
+	if (wxTheClipboard->Open())
+	{
+		wxTheClipboard->SetData(new wxTextDataObject(line));
+		wxTheClipboard->Close();
+		wxMessageBox("You can 'paste' the line in the Score Description", "Add ornament");
+	}
+	else
+	{
+		wxMessageBox("Error clipboard ...");
+	}
+
+}
+void Expresseur::OnEdit(wxCommandEvent& WXUNUSED(event))
+{
+	editMode = !editMode;
+	SetMenuAction(false);
+}
+void Expresseur::OnLocaloff(wxCommandEvent& WXUNUSED(event))
+{
+	localoff = !localoff;
+}
+void Expresseur::OnPreviousPage(wxCommandEvent& WXUNUSED(event))
+{
+	if (mViewerscore == NULL)
+		return;
+	mViewerscore->gotoNextPage(false);
+}
+void Expresseur::OnNextPage(wxCommandEvent& WXUNUSED(event))
+{
+	if (mViewerscore == NULL)
+		return;
+	mViewerscore->gotoNextPage(true);
+}
+void Expresseur::ListClearMenu()
+{
+	for (unsigned int i = ID_MAIN_LIST_FILE; i < ID_MAIN_LIST_FILE_END; i++)
+	{
+		if (listMenu->FindItem(i) != NULL)
+			listMenu->Delete(i);
+	}
+}
+void Expresseur::ListUpdateMenu()
+{
+	ListClearMenu();
+	wxFileName f;
+	for (int i = listFiles.Count() - 1; i >= 0; i--)
+	{
+		f.Assign(listFiles.Item(i));
+		listMenu->PrependCheckItem(ID_MAIN_LIST_FILE + i, f.GetFullName() , f.GetFullPath() );
+		listMenu->Check(ID_MAIN_LIST_FILE + i, false);
+	}
+}
+void Expresseur::ListSave()
+{
+	wxString s;
+	wxFileName f;
+	wxTextFile tfile;
+	if (listName.IsFileWritable() == false)
+		tfile.Create(listName.GetFullPath());
+	fileHistory->AddFileToHistory(listName.GetFullPath());
+	tfile.Open(listName.GetFullPath());
+	if (tfile.IsOpened() == false)
+		return;
+	tfile.Clear();
+	tfile.AddLine(LIST_FILE);
+	for (unsigned int i = 0; i < listFiles.Count(); i++)
+	{
+		f.Assign(listFiles.Item(i));
+		f.MakeRelativeTo(listName.GetPath());
+		tfile.AddLine(f.GetFullPath());
+	}
+	tfile.Write();
+	tfile.Close();
+	listChanged = false;
+	fileHistory->AddFileToHistory(listName.GetFullPath());
+}
+void Expresseur::ListOpen()
+{
+	wxString        str;
+	wxFileName f;
+	// open the file
+	wxTextFile      tfile;
+	if (listName.IsFileReadable() == false)
+		return;
+	tfile.Open(listName.GetFullPath());
+	if (tfile.IsOpened() == false)
+	{
+		return;
+	}
+	str = tfile.GetFirstLine();
+	if (str != LIST_FILE)
+	{
+		wxMessageBox(_("This file is not a list"),_("Open list"));
+		tfile.Close();
+		return;
+	}
+	fileHistory->AddFileToHistory(listName.GetFullPath());
+	str = tfile.GetNextLine();
+	while (!tfile.Eof())
+	{
+		if (str.IsEmpty() == false)
+		{
+			f.Assign(str);
+			f.MakeAbsolute(listName.GetPath());
+			listFiles.Add(f.GetFullPath());
+		}
+		str = tfile.GetNextLine();
+	}
+	tfile.Close();
+	ListUpdateMenu();
+	listSelection = -1;
+	ListCheck();
+}
+void Expresseur::ListNew()
+{
+	ListClearMenu();
+	listFiles.Clear();
+	listName.Clear();
+
+}
+void Expresseur::ListCheck()
+{
+	wxFileName f;
+	for (int i = listFiles.Count() - 1; i >= 0; i--)
+	{
+		f.Assign(listFiles.Item(i));
+		if (f.GetFullPath() == fileName.GetFullPath())
+		{
+			listMenu->Check(ID_MAIN_LIST_FILE + i, true);
+			listSelection = i;
+		}
+		else
+		{
+			listMenu->Check(ID_MAIN_LIST_FILE + i, false);
+		}
+	}
+
+}
+void Expresseur::ListSelectNext(int df)
+{
+	if (listSelection == -1)
+	{
+		if (df > 0)
+			ListSelect(0);
+		else
+			ListSelect(listFiles.Count() - 1);
+		return;
+	}
+	ListSelect(listSelection + df);
+}
+void Expresseur::ListSelect(int id)
+{
+	int nrfile;
+	if ((int)(listFiles.Count()) == 0)
+		return;
+	nrfile = id;
+	if (id < 0)
+		nrfile = (int)(listFiles.Count()) - 1;
+	if (id >= (int)(listFiles.Count()))
+		nrfile = 0;
+	Open(listFiles.Item(nrfile));
+	listSelection = nrfile;
+	for (int i = listFiles.Count() - 1; i >= 0; i--)
+	{
+		listMenu->Check(ID_MAIN_LIST_FILE + i, (i == nrfile));
+	}
+}
+void Expresseur::OnListNew(wxCommandEvent& WXUNUSED(event)) 
+{ 
+	ListNew();
+}
+void Expresseur::OnListOpen(wxCommandEvent& WXUNUSED(event)) 
+{
+	if (listChanged)
+	{
+		if (wxMessageBox(_("Current list has not been saved! Proceed?"), _("Please confirm"),
+			wxICON_QUESTION | wxYES_NO, this) == wxNO)
+			return;
+	}
+	wxFileDialog
+		openFileDialog(this, _("Open list file"), "", "",
+		"list files (*.txt)|*.txt", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (openFileDialog.ShowModal() == wxID_CANCEL)
+		return; // the user changed idea...
+
+	listFiles.Clear();
+	listName.Assign(openFileDialog.GetPath());
+	ListOpen();
+}
+void Expresseur::OnListSave(wxCommandEvent& WXUNUSED(event)) 
+{
+	if (listName.IsFileWritable() == false)
+	{
+		wxFileDialog
+			openFileDialog(this, _("Save list file"), "", "",
+			"list files (*.txt)|*.txt", wxFD_SAVE );
+		if (openFileDialog.ShowModal() == wxID_CANCEL)
+			return; // the user changed idea...
+		listName.Assign(openFileDialog.GetPath());
+	}
+	ListSave();
+}
+void Expresseur::OnListSaveas(wxCommandEvent& WXUNUSED(event)) 
+{
+	wxFileDialog
+		openFileDialog(this, _("Save list file"), "", "",
+		"list files (*.txt)|*.txt", wxFD_SAVE);
+	if (openFileDialog.ShowModal() == wxID_CANCEL)
+		return; // the user changed idea...
+	listName.Assign(openFileDialog.GetPath());
+	ListSave();
+}
+void Expresseur::OnListAdd(wxCommandEvent& WXUNUSED(event)) 
+{
+	if (fileName.IsOk() == false)
+		return;
+	listFiles.Add(fileName.GetFullPath());
+	ListUpdateMenu();
+	listChanged = true;
+	ListCheck();
+}
+void Expresseur::OnListRemove(wxCommandEvent& WXUNUSED(event)) 
+{
+	if (listFiles.Index(fileName.GetFullPath()) != wxNOT_FOUND)
+	{
+		listFiles.Remove(fileName.GetFullPath());
+		ListUpdateMenu();
+		listChanged = true;
+	}
+}
+void Expresseur::OnListUp(wxCommandEvent& WXUNUSED(event)) 
+{
+	if ((listFiles.Index(fileName.GetFullPath()) != wxNOT_FOUND)
+		&& (listFiles.Index(fileName.GetFullPath()) != 0 ))
+	{
+		int p = listFiles.Index(fileName.GetFullPath());
+		listFiles.Insert(fileName.GetFullPath(), p-1);
+		listFiles.RemoveAt(p+1);
+		ListUpdateMenu();
+		listChanged = true;
+	}
+}
+void Expresseur::OnListDown(wxCommandEvent& WXUNUSED(event)) 
+{
+	if ((listFiles.Index(fileName.GetFullPath()) != wxNOT_FOUND)
+		&& (listFiles.Index(fileName.GetFullPath()) != ((int)(listFiles.Count()) - 1 )))
+	{
+		int p = listFiles.Index(fileName.GetFullPath());
+		listFiles.Insert(fileName.GetFullPath(), p + 2);
+		listFiles.RemoveAt(p);
+		ListUpdateMenu();
+		listChanged = true;
+	}
+}
+void Expresseur::OnListFile(wxCommandEvent& event) 
+{
+	ListSelect(event.GetId() - ID_MAIN_LIST_FILE);
+}
+void Expresseur::OnListPreviousFile(wxCommandEvent& WXUNUSED(event))
+{
+	ListSelectNext(-1);
+}
+void Expresseur::OnListNextFile(wxCommandEvent& WXUNUSED(event)) 
+{
+	ListSelectNext(1);
+}
+
+void Expresseur::OnMixer(wxCommandEvent& WXUNUSED(event))
+{
+	if ( mMixer == NULL )
+		settingReset(true);
+	mMixer->Show();
+	mMixer->Raise();
+}
+void Expresseur::OnGoto(wxCommandEvent& WXUNUSED(event))
+{
+	if (mode != modeScore)
+		return;
+	mViewerscore->gotoPosition();
+}
+void Expresseur::OnMidishortcut(wxCommandEvent& WXUNUSED(event))
+{
+	mMidishortcut->Show();
+	mMidishortcut->Raise();
+}
+void Expresseur::OnExpression(wxCommandEvent& WXUNUSED(event))
+{
+	mExpression->Show();
+	mExpression->Raise();
+}
+void Expresseur::OnLuafile(wxCommandEvent& WXUNUSED(event))
+{
+	luafile mLuafile(this, wxID_ANY, _("Lua script"), mConf);
+	if ( mLuafile.ShowModal() == 1 )
+		settingReset(true);
+}
+void Expresseur::settingSave()
+{
+	wxArrayString lChoice;
+	lChoice.Add(_("Mixer"));
+	lChoice.Add(_("Expression"));
+	lChoice.Add(_("Shortcuts"));
+	lChoice.Add(_("Lua Files"));
+	wxMultiChoiceDialog mChoice(this, _("Select the settings to save"), _("Savec setting"), lChoice, wxOK);
+	if (mChoice.ShowModal() != wxID_OK)
+		return;
+	wxArrayInt listToSave = mChoice.GetSelections();
+
+	wxString s;
+	wxFileName f;
+	wxTextFile tfile;
+	if (settingName.IsFileWritable() == false)
+		tfile.Create(settingName.GetFullPath());
+	fileHistory->AddFileToHistory(settingName.GetFullPath());
+	tfile.Open(settingName.GetFullPath());
+	if (tfile.IsOpened() == false)
+		return;
+	
+	tfile.Clear();
+
+	tfile.AddLine(CONFIG_FILE);
+
+	for (unsigned int i = 0; i < listToSave.GetCount(); i++)
+	{
+		switch (listToSave[i])
+		{
+		case 0: mMixer->write(&tfile); break;
+		case 1: mExpression->write(&tfile); break;
+		case 2:mMidishortcut->write(&tfile); break;
+		case 3: luafile::write(mConf, &tfile); break;
+		default: break;
+		}
+	}
+
+	tfile.Write();
+	tfile.Close();
+	fileHistory->AddFileToHistory(settingName.GetFullPath());
+}
+void Expresseur::settingOpen()
+{
+	wxString        str;
+	wxFileName f;
+	// open the file
+	wxString sf = settingName.GetFullPath();
+	wxTextFile      tfile;
+	if (settingName.IsFileReadable() == false)
+		return;
+	tfile.Open(sf);
+	if (tfile.IsOpened() == false)
+		return;
+	str = tfile.GetFirstLine();
+	if (str != CONFIG_FILE)
+	{
+		wxMessageDialog(this, "First line of the file is not the expected one", "read setting error", wxICON_ERROR | wxOK );
+		return;
+	}
+
+	if ( mMixer != NULL ) mMixer->read( &tfile);
+	if (mMidishortcut != NULL) mMidishortcut->read( &tfile);
+	if (mExpression != NULL) mExpression->read(&tfile);
+	luafile::read(mConf, &tfile);
+
+	tfile.Close();
+
+
+}
+bool Expresseur::settingReset(bool all)
+{
+	wxBusyCursor wait;
+
+	bool retcode = true;
+
+	// stop the timer to be quite
+	mtimer->Stop();
+
+	// close and load the right LUA script
+	luafile::reset(mConf , all , timerDt );
+
+	basslua_call(moduleLuabass, soutAllNoteOff, "s", "a");
+
+	// setup the menus
+	SetMenuAction(true);
+
+	// load the shortcuts
+	if (mMidishortcut != NULL)
+	{
+		mMidishortcut->Show(false);
+		delete mMidishortcut;
+	}
+	mMidishortcut = NULL;
+	mMidishortcut = new midishortcut(this, wxID_ANY, _("shortcut"), mConf, nameAction);
+
+	// load the expression
+	if (mExpression != NULL)
+	{
+		mExpression->Show(false);
+		delete mExpression;
+	}
+	mExpression = NULL;
+	mExpression = new expression(this, wxID_ANY, _("Expression"), mConf);
+
+	// caculate the prefix of settings, according to valid midi-out devices connected
+	mConf->setPrefix();
+
+	int h = posScrollHorizontal;
+	int v = posScrollVertical;
+
+
+	setAudioDefault();
+
+	viewerscore *newViewerscore = NULL;
+	typeViewer = EMPTYVIEWER;
+	mode = modeNil;
+	if (fileName.IsFileReadable())
+	{
+		wxString ext = fileName.GetExt();
+		if ((ext == SUFFIXE_MUSICXML) || (ext == SUFFIXE_MUSICMXL))
+		{
+			newViewerscore = new musicxmlscore(this, wxID_ANY, mConf/*, musicxmlDll*/);
+			if (newViewerscore->setFile(fileName))
+			{
+				typeViewer = MUSICXMLVIEWER;
+				mode = modeScore;
+			}
+			else
+			{
+				delete newViewerscore;
+				newViewerscore = NULL;
+				typeViewer = EMPTYVIEWER;
+			}
+		}
+		if (ext == SUFFIXE_BITMAPCHORD)
+		{
+			newViewerscore = new bitmapscore(this, wxID_ANY, mConf);
+			if (newViewerscore->setFile(fileName))
+			{
+				typeViewer = BITMAPVIEWER;
+				mode = modeChord;
+			}
+			else
+			{
+				delete newViewerscore;
+				newViewerscore = NULL;
+				typeViewer = EMPTYVIEWER;
+			}
+		}
+		if (ext == SUFFIXE_TEXT)
+		{
+			newViewerscore = new musicxmlscore(this, wxID_ANY, mConf);
+			if (newViewerscore->setFile(fileName))
+			{
+				typeViewer = MUSICXMLVIEWER;
+				mode = modeScore;
+			}
+			else
+			{
+				delete newViewerscore;
+				newViewerscore = NULL;
+				typeViewer = EMPTYVIEWER;
+				mode = modeChord;
+			}
+		}
+	}
+
+	if (newViewerscore == NULL)
+	{
+		// empty viewer for the score
+		newViewerscore = new emptyscore(this, wxID_ANY, mConf);
+		v = 50;
+		h = 100;
+	}
+
+	basslua_setMode(mode);
+	
+	editMenu->Enable(ID_MAIN_RECORD_PLAYBACK , mode == modeScore);
+	editMenu->Enable(ID_MAIN_PLAYBACK , mode == modeScore);
+	editMenu->Enable(ID_MAIN_GOTO , mode == modeScore);
+	editMenu->Enable(ID_MAIN_ORNAMENT_ADD_RELATIVE , mode == modeScore);
+	editMenu->Enable(ID_MAIN_ORNAMENT_ADD_ABSOLUTE , mode == modeScore);
+	editMenu->Check(ID_MAIN_RECORD_PLAYBACK,false);
+	editMenu->Check(ID_MAIN_PLAYBACK,false);
+	if (mode != modeScore)
+	{
+		musicxmlcompile::clearLuaScore();
+	}
+	// load the text file, suffixe .txt , attached to the image or musicxml file
+	if (fileName.IsFileReadable())
+	{
+		mTextscore->setFile(fileName);
+	}
+
+	waitToCompile = periodCompile / timerDt;
+
+	sizer_text_viewer->Replace(mViewerscore, newViewerscore);
+	delete mViewerscore;
+	mViewerscore = newViewerscore;
+	setOrientation(v, h);
+
+
+	// load the mixer
+	if (mMixer != NULL)
+	{
+		mMixer->Show(false);
+		delete mMixer;
+	}
+	mMixer = NULL;
+	mMixer = new mixer(this, wxID_ANY, _("mixer"), mConf, mViewerscore);
+
+	// set the size of the windows
+	int x, y, width, height;
+	x = mConf->get(CONFIG_MIXERX, 30);
+	y = mConf->get(CONFIG_MIXERY, 30);
+	width = mConf->get(CONFIG_MIXERWIDTH, 500);
+	height = mConf->get(CONFIG_MIXERHEIGHT, 350);
+	if ((x > 0) && (y > 0) && (width > 100) && (height > 60))
+		mMixer->SetSize(x, y, width, height);
+	mMixer->Show(mConf->get(CONFIG_MIXERVISIBLE,false));
+
+	x = mConf->get(CONFIG_SHORTCUTX, 50);
+	y = mConf->get(CONFIG_SHORTCUTY, 50);
+	width = mConf->get(CONFIG_SHORTCUTWIDTH, 500);
+	height = mConf->get(CONFIG_SHORTCUTHEIGHT, 300);
+	if ((x > 0) && (y > 0) && (width > 100) && (height > 60))
+		mMidishortcut->SetSize(x, y, width, height);
+	mMidishortcut->Show(false);
+
+	x = mConf->get(CONFIG_EXPRESSIONX, 80);
+	y = mConf->get(CONFIG_EXPRESSIONY, 80);
+	width = mConf->get(CONFIG_EXPRESSIONWIDTH, 500);
+	height = mConf->get(CONFIG_EXPRESSIONHEIGHT, 250);
+	if ((x > 0) && (y > 0) && (width > 100) && (height > 60))
+		mExpression->SetSize(x, y, width, height);
+	mExpression->Show(mConf->get(CONFIG_EXPRESSIONVISIBLE, false));
+
+	if (end_ok)
+	{
+		mMixer->reset(localoff,true);
+		mMidishortcut->reset();
+		mExpression->reset();
+	}
+
+	setZoom();
+
+	waitToCompile = 1 ;
+	waitToRefresh = 1 ;
+
+	// restart the timer
+	mtimer->Start(timerDt);
+
+	return retcode;
+}
+void Expresseur::OnReset(wxCommandEvent& WXUNUSED(event))
+{
+	end_ok = true;
+	settingReset(true);
+}
+void Expresseur::OnLog(wxCommandEvent& WXUNUSED(event))
+{
+	// load the log
+	if (mLog != NULL)
+	{
+		delete mLog;
+	}
+	mLog = NULL;
+	mLog = new logerror(this, wxID_ANY, _("log !!! timeline bottom->up : last-event is the first-line !!!"));
+	mLog->Show();
+}
+void Expresseur::OnSettingOpen(wxCommandEvent& WXUNUSED(event))
+{
+	wxFileDialog
+		openFileDialog(this, _("Open setting file"), "", "",
+		"setting files (*.txt)|*.txt", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (openFileDialog.ShowModal() == wxID_CANCEL)
+		return; // the user changed idea...
+
+	settingName.Assign(openFileDialog.GetPath());
+	settingOpen();
+	settingReset(true);
+
+}
+void Expresseur::OnSettingSave(wxCommandEvent& WXUNUSED(event))
+{
+	if (settingName.IsFileWritable() == false)
+	{
+		wxFileDialog
+			openFileDialog(this, _("Save setting file"), "", "",
+			"setting files (*.txt)|*.txt", wxFD_SAVE);
+		if (openFileDialog.ShowModal() == wxID_CANCEL)
+			return; // the user changed idea...
+		settingName.Assign(openFileDialog.GetPath());
+	}
+	settingSave();
+}
+void Expresseur::OnSettingSaveas(wxCommandEvent& WXUNUSED(event))
+{
+	wxFileDialog
+		openFileDialog(this, _("Save setting file"), "", "",
+		"list files (*.txt)|*.txt", wxFD_SAVE);
+	if (openFileDialog.ShowModal() == wxID_CANCEL)
+		return; // the user changed idea...
+	settingName.Assign(openFileDialog.GetPath());
+	settingSave();
+}
+
+void Expresseur::OnAbout(wxCommandEvent& WXUNUSED(event)) 
+{	
+	wxString s;
+	s.Printf("Expresseur 3.%d\n(C) 2017 REVOLLE Franck <franck.revolle@orange.fr>\n\ntemp directory = <%s>", VERSION_EXPRESSEUR,wxFileName::GetTempDir());
+ 	wxMessageBox(s,"about");
+}
+void Expresseur::OnHelp(wxCommandEvent& WXUNUSED(event)) 
+{
+	wxLaunchDefaultBrowser("http://www.expresseur.com");
+}
+void Expresseur::initFirstUse(bool force)
+{
+	// is is the first time the Expresseur start ?
+	bool initialized = mConf->get(CONFIG_INITIALIZED, false);
+	if ((initialized) && (! force))
+		return;
+
+	// set as already initialized
+	mConf->set(CONFIG_INITIALIZED, true);
+	mConf->set(CONFIG_CORRECTINCH, 1000);
+	
+	// open the LUA script
+	luafile::reset(mConf, true, timerDt);
+
+	// set a prefix on the actual Midi config
+	mConf->setPrefix();
+	
+	// get the user directory in its documents folder
+	wxFileName finstruments;
+	wxStandardPaths mpath = wxStandardPaths::Get();
+	finstruments.AssignDir(mpath.GetAppDocumentsDir());
+	if (finstruments.GetFullPath().Contains(APP_NAME) == false)
+		finstruments.AppendDir(APP_NAME);
+	if ( ! finstruments.IsDirReadable() )
+		finstruments.Mkdir(wxS_DIR_DEFAULT,wxPATH_MKDIR_FULL);
+	//wxMessageBox(finstruments.GetFullPath(),"user dir");
+
+	// copy examples from example-folder in documents/expresseurV3-folder
+	wxFileName fdirExample;
+	fdirExample.Assign(mxconf::getCwdDir());
+	fdirExample.AppendDir("example");
+	wxString sExample = fdirExample.GetFullPath() ;
+	//wxMessageBox(sExample,"example dir");
+	wxDir dirExample(sExample);
+	if ( dirExample.IsOpened() )
+	{
+		wxString file1 , file2 ;
+		bool cont = dirExample.GetFirst(&file1, "*.*", wxDIR_FILES);
+		while ( cont )
+		{
+			wxFileName ffile1(file1);
+			wxFileName ffile2(file1);
+			ffile1.SetPath(fdirExample.GetPath());
+			file1 = ffile1.GetFullPath();
+			ffile2.SetPath(finstruments.GetPath());
+			file2 = ffile2.GetFullPath();
+			//wxMessageBox(file1 + " to " + file2 , "copy example");
+			wxCopyFile(file1,file2);
+		  cont = dirExample.GetNext(&file1);
+		}
+	}
+
+	// get the first score as example
+	wxString sfirst;
+	sfirst = wxDir::FindFirst(finstruments.GetFullPath(), "*.txt");
+	finstruments.SetFullName(sfirst);
+	wxString defScore = finstruments.GetFullPath();
+	mConf->set(CONFIG_FILENAME, defScore);
+	finstruments.SetFullName("");
+
+	// set the directory of ressources
+	finstruments.AppendDir("ressources");
+	wxString sinstruments = finstruments.GetPath();
+	mConf->set(CONFIG_DIR_RESSOURCE, sinstruments);
+	if ( ! finstruments.IsDirReadable() )
+		finstruments.Mkdir(wxS_DIR_DEFAULT,wxPATH_MKDIR_FULL);
+	//wxMessageBox(finstruments.GetFullPath(),"user instrument dir");
+
+	// copy instruments-ressources from ressources-folder in documents/expresseurV3/ressources-folder
+	wxFileName fdirRessources;
+	fdirRessources.Assign(mxconf::getCwdDir());
+	fdirRessources.AppendDir("ressources");
+	wxString sRessources = fdirRessources.GetFullPath() ;
+	//wxMessageBox(sRessources,"ressources dir");
+	wxDir dirRessources(sRessources);
+	if ( dirRessources.IsOpened())
+	{
+		wxString file1 , file2 ;
+		bool cont = dirRessources.GetFirst(&file1, "*.*", wxDIR_FILES);
+		while ( cont )
+		{
+			wxFileName ffile1(file1);
+			wxFileName ffile2(file1);
+			ffile1.SetPath(fdirRessources.GetPath());
+			file1 = ffile1.GetFullPath();
+			ffile2.SetPath(finstruments.GetPath());
+			file2 = ffile2.GetFullPath();
+			//wxMessageBox(file1 + " to " + file2 , "copy ressource");
+			wxCopyFile(file1,file2);
+		  cont = dirRessources.GetNext(&file1);
+		}
+	}
+	// get the actions from the LUA script
+	getLuaAction(false, NULL);
+
+	// run the wizard to tune up the audio, and to inform the user
+	wizard();
+
+	// clean everything
+	if (mMixer != NULL) delete mMixer;
+	if (mMidishortcut != NULL) delete mMidishortcut;
+	if (mExpression != NULL) delete mExpression;
+	mMixer = NULL;
+	mMidishortcut = NULL;
+	mExpression = NULL;
+
+	mMidishortcut = new midishortcut(this, wxID_ANY, _("shortcut"), mConf, nameAction);
+	mExpression = new expression(this, wxID_ANY, _("Expression"), mConf);
+	mMixer = new mixer(this, wxID_ANY, _("mixer"), mConf, mViewerscore);
+
+	// load the dfautl setting for the shorcuts, ...
+	settingName.AssignDir(mConf->get(CONFIG_DIR_RESSOURCE, ""));
+	settingName.SetFullName("default_setting.txt");
+	//wxMessageBox(settingName.GetFullPath(),"default setting");
+	settingOpen();
+
+	if (mMixer != NULL) delete mMixer;
+	if (mMidishortcut != NULL) delete mMidishortcut;
+	if (mExpression != NULL) delete mExpression;
+	mMixer = NULL;
+	mMidishortcut = NULL;
+	mExpression = NULL;
+
+
+
+}
+void Expresseur::OnAudioSetting(wxCommandEvent& WXUNUSED(event))
+{
+	wizard(true);
+	settingReset();
+}
+void Expresseur::wizard(bool audio_only)
+{
+	wxSizerFlags sizerFlagMinimumPlace;
+	wxSizerFlags sizerFlagMaximumPlace;
+	//sizerFlagMaximumPlace.Proportion(1);
+	sizerFlagMaximumPlace.Expand();
+	sizerFlagMaximumPlace.Border(wxALL, 5);
+	//sizerFlagMinimumPlace.Proportion(1);
+	sizerFlagMinimumPlace.Border(wxALL, 5);
+
+	wxString labelWizard;
+	if (audio_only)
+		labelWizard = "Audio setting";
+	else
+		labelWizard = "Wizard Expresseur";
+	wxWizard *mwizard = new wxWizard(this, wxID_ANY, labelWizard);
+	mwizard->SetPageSize(wxSize(400,500));
+
+	////// welcome 
+
+	wxWizardPageSimple *pwizard_welcome = new wxWizardPageSimple(mwizard );
+	wxBoxSizer *topsizer_welcome = new wxBoxSizer(wxVERTICAL);
+	wxString sstart = _("\
+Welcome to Expresseur Wizard.\n\n\
+Next screens will hep you to setup\n\
+MIDI and audio devices.\n\
+Last screens will describe the default\n\
+basic tunings to play.\n");
+	topsizer_welcome->Add(new wxStaticBitmap(pwizard_welcome,wxID_ANY,wxBitmap("wizard_welcome.jpg", wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
+	topsizer_welcome->Add(new wxStaticText(pwizard_welcome, wxID_ANY,sstart ), sizerFlagMaximumPlace);
+	pwizard_welcome->SetSizerAndFit(topsizer_welcome);
+
+	///// Midi-in
+
+	wxWizardPageSimple *pwizard_midi_in = new wxWizardPageSimple(mwizard);
+	wxBoxSizer *topsizer_midi_in = new wxBoxSizer(wxVERTICAL);
+	topsizer_midi_in->Add(new wxStaticBitmap(pwizard_midi_in,wxID_ANY,wxBitmap("wizard_midi_in.jpg", wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
+	wxString smidi_in;
+	wxArrayString nameMidiInDevices;
+	int nrMidiInDevice = 0;
+	int nbMidiInDevice = 0;
+	char nameMidiInDevice[MAXBUFCHAR];
+	*nameMidiInDevice = '\0';
+	while (true)
+	{
+		basslua_call(moduleLuabass, sinGetMidiName, "i>s", nrMidiInDevice + 1, nameMidiInDevice);
+		if (*nameMidiInDevice == '\0')
+			break;
+		bool valid = false;
+		basslua_call(moduleGlobal, sinMidiIsValid, "s>b", nameMidiInDevice, &valid);
+		if ( valid )
+		{
+			nameMidiInDevices.Add(nameMidiInDevice);
+			nbMidiInDevice ++ ;
+		}
+		nrMidiInDevice++;
+	}
+	if (nbMidiInDevice == 0)
+	{
+		smidi_in = _("\
+No MIDI-in keyboard connected.\n\
+You can play on the computer\n\
+keyboard with a limited experience.\n\
+With a MIDI-in keyboard, it will be\n\
+easier to play music, adding sensivity\n\
+and velocity.\n\n");
+	}
+	else
+	{
+	  wxListBox *mlistMidiin = new	wxListBox(pwizard_midi_in, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameMidiInDevices);
+		topsizer_midi_in->Add(mlistMidiin, sizerFlagMaximumPlace);
+		smidi_in += _("\
+MIDI-in detected : it can be used to\n\
+play music, adding sensivity and velocity.\n\n");
+	}
+	topsizer_midi_in->Add(new wxStaticText(pwizard_midi_in, wxID_ANY, smidi_in), sizerFlagMaximumPlace);
+	pwizard_midi_in->SetSizerAndFit(topsizer_midi_in);
+
+	///// Midi-out
+
+	wxWizardPageSimple *pwizard_midi_out = new wxWizardPageSimple(mwizard);
+	wxBoxSizer *topsizer_midi_out = new wxBoxSizer(wxVERTICAL);
+	topsizer_midi_out->Add(new wxStaticBitmap(pwizard_midi_out,wxID_ANY,wxBitmap("wizard_midi_out.jpg", wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
+	wxString smidi_out;
+	nameMidiOutDevices.Clear();
+	int nrMidiOutDevice = 0;
+	int nbMidiOutDevice = 0;
+	char nameMidiOutDevice[MAXBUFCHAR];
+	*nameMidiOutDevice = '\0';
+	while (true)
+	{
+		basslua_call(moduleLuabass, soutGetMidiName, "i>s", nrMidiOutDevice + 1, nameMidiOutDevice);
+		if (*nameMidiOutDevice == '\0')
+			break;
+		bool valid = false;
+		basslua_call(moduleGlobal, soutMidiIsValid, "s>b", nameMidiOutDevice, &valid);
+		if ( valid )
+		{
+			nameMidiOutDevices.Add(nameMidiOutDevice);
+			nbMidiOutDevice ++ ;
+		}
+		nrMidiOutDevice++;
+	}
+	if (nbMidiOutDevice == 0)
+	{
+		smidi_out = _("\
+No MIDI-out sound expander.\n\
+To generate music sound, you will have\n\
+to use the SF2 with the sound-card.\n\
+Next screen will help you for the tuning.\n\n");
+	}
+	else
+	{
+		nameMidiOutDevices.Add(_("no Midi-out as default"));
+		mlistMidiout = new	wxListBox(pwizard_midi_out, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameMidiOutDevices);
+		mlistMidiout->Bind(wxEVT_LISTBOX, &Expresseur::OnMidioutChoice, this);
+		topsizer_midi_out->Add(mlistMidiout, sizerFlagMaximumPlace);
+		smidi_out = _("\
+MIDI-out sound expander detected.\n\
+Select the MIDI-out you want as default\n\
+sound expander\n\n");
+	}
+	topsizer_midi_out->Add(new wxStaticText(pwizard_midi_out, wxID_ANY, smidi_out + _("\
+With an electronic piano, you will\n\
+add the possibility to play the sound\n\
+of this piano, with a good quality.\n\n\
+If you have a software instrument (e.g.\n\
+Pianoteq ), connect it on the virtual\n\
+midi-in cable, and connect Expresseur\n\
+on the virtual midi-out cable.\n")), sizerFlagMaximumPlace);
+	pwizard_midi_out->SetSizerAndFit(topsizer_midi_out);
+
+	/////// Audio
+
+	wxWizardPageSimple *pwizard_audio = new wxWizardPageSimple(mwizard);
+	wxBoxSizer *topsizer_audio = new wxBoxSizer(wxVERTICAL);
+	topsizer_audio->Add(new wxStaticBitmap(pwizard_audio,wxID_ANY,wxBitmap("wizard_audio.jpg", wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
+	getListAudio();
+	int defaultNrDevice = setAudioDefault();
+	wxString saudio = _("\
+Audio is used to play VSTi & SF2.\n\
+Select an audio device to use\n\
+by default.\n\
+Decrease the buffer sizes to\n\
+decrease latency.\n\
+VALIDATE THE GOOD QUALITY OF SOUND\n");
+	topsizer_audio->Add(new wxStaticText(pwizard_audio, wxID_ANY, saudio));
+	mlistAudio = new	wxListBox(pwizard_audio, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameaudioDevices);
+	mlistAudio->Bind(wxEVT_LISTBOX, &Expresseur::OnAudioChoice, this);
+	if (( defaultNrDevice >= 0 ) && ( defaultNrDevice < (int)(nameaudioDevices.GetCount())))
+		mlistAudio->SetSelection(defaultNrDevice);
+	topsizer_audio->Add(mlistAudio, sizerFlagMaximumPlace);
+
+	wxGridSizer *msaudio = new wxGridSizer(2, 2, 2);
+	msaudio->Add(new wxStaticText(pwizard_audio, wxID_ANY, _("update period ms")));
+	mupdatems = new wxSpinCtrl(pwizard_audio, wxID_ANY, "1000", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 10, 100, 0);
+	msaudio->Add(mupdatems);
+	msaudio->Add(new wxStaticText(pwizard_audio, wxID_ANY, _("add buffer length ms")));
+	mbufferms = new wxSpinCtrl(pwizard_audio, wxID_ANY, "1000", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, -100, 100, 0);
+	msaudio->Add(mbufferms);
+	mAsioSet = new wxButton(pwizard_audio, wxID_ANY, _("Asio setting"));
+	mAsioSet->Bind(wxEVT_BUTTON, &Expresseur::OnAsioSet, this);
+	msaudio->AddSpacer(5);
+	msaudio->Add(mAsioSet);
+	wxButton *mTest = new wxButton(pwizard_audio, wxID_ANY, _("TEST AUDIO"));
+	mTest->Bind(wxEVT_BUTTON, &Expresseur::OnAudioTest, this);
+	msaudio->AddSpacer(5);
+	msaudio->Add(mTest);
+	topsizer_audio->Add(msaudio);
+
+	pwizard_audio->SetSizerAndFit(topsizer_audio);
+	setAudioChoice(defaultNrDevice);
+
+	////// play score
+
+	wxWizardPageSimple *pwizard_playscore = new wxWizardPageSimple(mwizard);
+	wxBoxSizer *topsizer_playscore = new wxBoxSizer(wxVERTICAL);
+	topsizer_playscore->Add(new wxStaticBitmap(pwizard_playscore,wxID_ANY,wxBitmap("wizard_playscore.jpg", wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
+	wxString splayscore = _("\
+To play a score : open a musicXML\n\
+file, and play with F2 to B2 keys\n\
+on your MIDI keyboard, or with 'azqw'\n\
+keys on your computer.\n\n\
+To come back at the beginning of the\n\
+score, use C#2 ( or CTRL-UP).\n\
+Some example of musicXML files have\n\
+been installed.");
+	topsizer_playscore->Add(new wxStaticText(pwizard_playscore, wxID_ANY, splayscore), sizerFlagMaximumPlace);
+	pwizard_playscore->SetSizerAndFit(topsizer_playscore);
+
+	///// improvise
+
+	wxWizardPageSimple *pwizard_improvise = new wxWizardPageSimple(mwizard);
+	wxBoxSizer *topsizer_improvise = new wxBoxSizer(wxVERTICAL);
+	topsizer_improvise->Add(new wxStaticBitmap(pwizard_improvise,wxID_ANY,wxBitmap("wizard_improvise.jpg", wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
+	wxString simprovise = _("\
+To improvise on a grid : open a\n\
+chord file, improvise with pitches\n\
+in the chord using F3 to A4 white\n\
+keys , and black keys for pithes\n\
+out of the chords ( or respectively\n\
+'sdfghjkl' and 'rtyuio' on the\n\
+computer keyboard). \n\
+Move to next chord with D#3, or 'x'.\n\n\
+To come back at the beginning of \n\
+the score, use C#2 ( or CTRL-UP).\n\
+To switch-off sounds, use E3 ( or BACK )\n\n\
+Some example of text files with \n\
+chords have been installed.");
+	topsizer_improvise->Add(new wxStaticText(pwizard_improvise, wxID_ANY, simprovise), sizerFlagMaximumPlace);
+	pwizard_improvise->SetSizerAndFit(topsizer_improvise);
+
+	wxWizardPageSimple *pwizard_end = new wxWizardPageSimple(mwizard);
+	wxBoxSizer *topsizer_end = new wxBoxSizer(wxVERTICAL);
+	topsizer_end->Add(new wxStaticBitmap(pwizard_end,wxID_ANY,wxBitmap("wizard_end.jpg", wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
+	wxString send = _("\
+Please consult the web help, to benefit\n\
+all the features, or to change the \n\
+configuration-behavior.\n\n\
+To come back later in this wizard,\n\
+select the menu setup/wizard.");
+	topsizer_end->Add(new wxStaticText(pwizard_end, wxID_ANY, send), sizerFlagMaximumPlace);
+	wxButton *bHelp = new wxButton(pwizard_end, wxID_ANY, _("web help"));
+	bHelp->Bind(wxEVT_BUTTON, &Expresseur::OnHelp, this);
+	topsizer_end->Add(bHelp);
+	pwizard_end->SetSizerAndFit(topsizer_end);
+
+	if (audio_only)
+	{
+		pwizard_audio->SetPrev(NULL);
+		pwizard_audio->SetNext(NULL);
+		mwizard->RunWizard(pwizard_audio);
+	}
+	else
+	{
+		pwizard_welcome->SetPrev(NULL);
+		pwizard_welcome->SetNext(pwizard_midi_in);
+		pwizard_midi_in->SetPrev(pwizard_welcome);
+		pwizard_midi_in->SetNext(pwizard_midi_out);
+		pwizard_midi_out->SetPrev(pwizard_midi_in);
+		pwizard_midi_out->SetNext(pwizard_audio);
+		pwizard_audio->SetPrev(pwizard_midi_out);
+		pwizard_audio->SetNext(pwizard_playscore);
+		pwizard_playscore->SetPrev(pwizard_audio);
+		pwizard_playscore->SetNext(pwizard_improvise);
+		pwizard_improvise->SetPrev(pwizard_playscore);
+		pwizard_improvise->SetNext(pwizard_end);
+		pwizard_end->SetPrev(pwizard_improvise);
+		pwizard_end->SetNext(NULL);
+		mwizard->RunWizard(pwizard_welcome);
+	}
+
+	mwizard->Destroy();
+}
+int Expresseur::getListAudio()
+{
+	nameaudioDevices.Clear();
+	int nraudioDevice = 0;
+	char nameaudioDevice[MAXBUFCHAR];
+	*nameaudioDevice = '\0';
+	while (true)
+	{
+		basslua_call(moduleLuabass, "getAudioName", "i>s", nraudioDevice + 1, nameaudioDevice);
+		if (*nameaudioDevice == '\0')
+			break;
+		nameaudioDevices.Add(nameaudioDevice);
+		nraudioDevice++;
+	}
+	return nraudioDevice;
+}
+void Expresseur::OnMidioutChoice(wxCommandEvent& event)
+{
+	unsigned int nrDevice = event.GetSelection();
+	if ( nrDevice == ( nameMidiOutDevices.GetCount() - 1 ))
+		return ; // "select the lat which is "no midiout as default"
+	wxString s;
+	s.Printf("%s:%s", SMIDI, nameMidiOutDevices[nrDevice]);
+	mConf->set(CONFIG_MIXERDEVICEDEFAULT, s , true);
+}
+void Expresseur::OnAudioChoice(wxCommandEvent& event)
+{
+	int nrDevice = event.GetSelection();
+	setAudioChoice(nrDevice);
+}
+void Expresseur::setAudioChoice(int nrDevice)
+{
+	if ((nrDevice < 0 ) || (nrDevice >= (int)(mlistAudio->GetCount())))
+		return ;
+	wxString name_device = mlistAudio->GetString(nrDevice);
+	if (name_device.StartsWith("asio_"))
+	{
+		mAsioSet->Enable();
+		mupdatems->Disable();
+		mbufferms->Disable();
+	}
+	else
+	{
+		mAsioSet->Disable();
+		mupdatems->Enable();
+		int vupdate = mConf->get(CONFIG_AUDIO_UPDATE, 25, false, name_device);
+		mupdatems->SetValue(vupdate);
+		mbufferms->Enable();
+		int vbuffer = mConf->get(CONFIG_AUDIO_BUFFER, 25, false, name_device);
+		mbufferms->SetValue(vbuffer);
+	}
+	mConf->set(CONFIG_DEFAULT_AUDIO, name_device);
+}
+void Expresseur::OnAsioSet(wxCommandEvent& WXUNUSED(event))
+{
+	int nrDevice = setAudioDefault() ;
+	basslua_call(moduleLuabass, "asioSet", "i", nrDevice + 1);
+}
+void Expresseur::OnAudioTest(wxCommandEvent& WXUNUSED(event))
+{
+	wxString name_device = mConf->get(CONFIG_DEFAULT_AUDIO, "");
+	int vupdate = mupdatems->GetValue();
+	mConf->set(CONFIG_AUDIO_UPDATE, vupdate, false, name_device);
+	int vbuffer = mbufferms->GetValue();
+	mConf->set(CONFIG_AUDIO_BUFFER, vbuffer, false, name_device);
+
+	setAudioDefault();
+	
+	wxFileName fsound;
+	fsound.AssignDir(mConf->get(CONFIG_DIR_RESSOURCE, ""));
+	fsound.SetFullName("test.wav");
+	char buff[MAXBUFCHAR];
+	wxString fs = fsound.GetFullPath();
+	strcpy(buff, fs.c_str());
+	basslua_call(moduleLuabass, "outSoundPlay", "s", buff);
+}
+int Expresseur::setAudioDefault()
+{
+	wxString name_device= mConf->get(CONFIG_DEFAULT_AUDIO,"");
+	basslua_call(moduleLuabass, "audioClose", "");
+	getListAudio();
+	int nrDevice = nameaudioDevices.Index(name_device);
+	if (nrDevice == wxNOT_FOUND)
+	{
+		switch ( nameaudioDevices.GetCount() )
+		{
+			case 0 : nrDevice = -1 ; break ;
+			case 1 : nrDevice = 0 ; break ;
+			default : nrDevice = 1 ; break ;
+		}
+	}
+	basslua_call(moduleLuabass, "audioDefaultDevice", "i", nrDevice + 1 );
+	for (unsigned int n = 0; n < nameaudioDevices.GetCount(); n++)
+	{
+		int vupdate = mConf->get(CONFIG_AUDIO_UPDATE, 25, false, nameaudioDevices[n]);
+		int vbuffer = mConf->get(CONFIG_AUDIO_BUFFER, 25, false, nameaudioDevices[n]);
+		basslua_call(moduleLuabass, "audioSet", "iii", n + 1, vupdate, vbuffer);
+	}
+	return nrDevice;
+}
+void Expresseur::OnUpdate(wxCommandEvent& WXUNUSED(event))
+{
+	checkUpdate();;
+}
+void Expresseur::checkUpdate()
+{
+	wxHTTP get;
+	get.SetHeader(_T("Content-type"), _T("text/html; charset=utf-8"));
+	get.SetTimeout(3);
+
+	// this will wait until the user connects to the internet. It is important in case of dialup (or ADSL) connections
+	if (!get.Connect(_T("www.expresseur.com")))
+	{
+		get.Close();
+		return;// only the server, no pages here yet ...
+	}
+
+	wxApp::IsMainLoopRunning(); // should return true
+
+	// use _T("/") for index.html, index.php, default.asp, etc.
+	wxInputStream *httpStream = get.GetInputStream(_T("/update/"));
+
+	// wxLogVerbose( wxString(_T(" GetInputStream: ")) << get.GetResponse() << _T("-") << ((resStream)? _T("OK ") : _T("FAILURE ")) << get.GetError() );
+
+	if (get.GetError() == wxPROTO_NOERR)
+	{
+		wxString res;
+		wxStringOutputStream out_stream(&res);
+		httpStream->Read(out_stream);
+
+		int pos = res.Find("Version#");
+		if (pos != wxNOT_FOUND)
+		{
+			pos += 10;
+			int epos = pos ;
+			while ((res[epos] >= '0') && (res[epos] <= '9') && (epos < (pos + 10)))
+				epos++;
+			wxString sv = res.Mid(pos,epos - pos);
+			long l;
+			if (sv.ToLong(&l))
+			{
+				int vo = mConf->get(CONFIG_VERSION_CHECKED, VERSION_EXPRESSEUR);
+				mConf->set(CONFIG_VERSION_CHECKED, l);
+				if (l > vo)
+				{
+					wxString mes;
+					mes.Printf("New version 3.%d available. Go to the web-page ?", l);
+					if (wxMessageBox(mes, "update", wxYES_NO) == wxYES)
+					{
+						wxDELETE(httpStream);
+						get.Close();
+						wxLaunchDefaultBrowser("http://www.expresseur.com/update/");
+						return;
+					}
+				}
+			}
+		}
+	}
+	wxDELETE(httpStream);
+	get.Close();
+
+}
+
+void Expresseur::OnResetConfiguration(wxCommandEvent& WXUNUSED(event))
+{
+	int manswer = wxMessageBox(_("Delete and reset all the configuration ?"),_("Confirm"),wxYES_NO,this);
+	if ( manswer == wxYES ) 
+	{
+		mConf->deleteConf() ;
+		postInit();
+	}
+}
+void Expresseur::OnTest(wxCommandEvent& WXUNUSED(event))
+{
+}
+void Expresseur::OnRecentFile(wxCommandEvent& event)
+{
+	wxString f(fileHistory->GetHistoryFile(event.GetId() - wxID_FILE1));
+
+	if (!f.empty())
+	{
+		Open(f);
+	}
+}
+void Expresseur::Open(wxString f)
+{
+	wxBusyCursor waitcursor;
+	wxFileName fn(f);
+	wxString ext = fn.GetExt();
+	if ( ext == SUFFIXE_TEXT)
+	{
+		// read the fist line of the file
+		wxTextFile      tfile;
+		if (fn.IsFileReadable() == false)
+			return;
+		tfile.Open(fn.GetFullPath());
+		if (tfile.IsOpened() == false)
+			return;
+		wxString str = tfile.GetFirstLine();
+		tfile.Close();
+
+		if (str == CONFIG_FILE)
+		{
+			settingName.Assign(f);
+			settingOpen();
+			settingReset(true);
+			return;
+		}
+		if (str == LIST_FILE)
+		{
+			listName.Assign(f);
+			ListOpen();
+			return;
+		}
+		fileName.Assign(f);
+		FileOpen();
+	}
+	if ((ext == SUFFIXE_MUSICMXL) || (ext == SUFFIXE_MUSICXML))
+	{
+		fileName.Assign(f);
+
+		wxFileName txtFilename = fileName;
+		txtFilename.SetExt(SUFFIXE_TEXT);
+		if (txtFilename.IsFileReadable())
+		{
+			// a musicxml file is loaded, and the txt file already exists : warning 
+			if (wxMessageBox(_("Current text file already exists ! Overwrite ?"), _("File txt exists"),
+				wxICON_QUESTION | wxYES_NO, NULL) == wxNO)
+				return;
+		}
+		FileOpen();
+	}
+	if (ext == SUFFIXE_BITMAPCHORD)
+	{
+		fileName.Assign(f);
+		FileOpen();
+	}
+}

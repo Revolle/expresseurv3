@@ -1,0 +1,3 @@
+LIBRARY   LUABASS
+EXPORTS
+	luaopen_luabass @1

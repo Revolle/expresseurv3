@@ -1,0 +1,345 @@
+--[[
+Created: 10/02/2015
+-- update : 23/11/2016 18:00 
+
+
+This LUA script is started by basslua.
+
+Basslua manages input ( GUI, MIDI-In, timer ). These inputs are sent to this LUA script.
+
+Basslua loads in addition, by default, these modules, accessible as global :
+- luabass : C-LUA-Module for midi output.
+- luachord.lua : script-LUA-module to interpret text chords.
+- luascore.lua : script-LUA-module to interpret score.
+
+Function onStart(param) : called by basslua ,when this LUA script is started.
+Function onStop() : called by basslua , before to close this LUA script.
+
+basslua uses these tables :
+- midiinOpen = { 1, 3 } : LUA table which contains midiIn deviceNrs to open. Checked regularly by basslua.
+- info.value = "text to display in the gui" : LUA string, to be displayed in the GUI. Checked regularly by basslua.
+- info.next = 1 : LUA value to increment-decrement the file in the GUI list. Checked regularly by basslua.
+- values = { {},..} : table of values which can be tuned in the GUI. 
+    Read by the GUI through basslua.
+	The GUI, through basslua, will add fields : values[valueName]=value
+    callFunction is used by GUI, through basslua. e.g. to change MIDI parameters
+    Example :
+    values = {
+      { name = "ctrl7 Bass" , value=60 , callFunction = ctrl7Bass , help="volume Midi track Bass"  } }
+	  create values["ctrl7 Bass"] with initial value 60. function ctrl7Bass will be called on each change.
+
+- tracks = { {},..} : table of tracks which can be tuned in the mixer of the GUI. 
+    Read by the GUI through basslua.
+    Example :
+    tracks = { 
+       -- callFunction is used by GUI, through basslua. E.G to set the trackNr in the midiout-processor
+       callFunction = function (nameTrack, nrTrack) luabass.setVarMidiOut(nameTrack,nrtrack) end  ,
+       -- the GUI, through basslua, will add fields tracks[trackName]=TrackNr
+       { name = "chord-bass" , help = "track volume for the bass for the chords"  } }
+- actions = { {},..} : table of actions which can be used in thh GUI. Example :
+    Read by the GUI through basslua.
+    Example :
+     actions = { 
+     -- <name> : displayed in the GUI
+     -- <icone> : if file icone.bmp exists, action is displyed in the toolbar
+     -- <help> : help displayed in the GUI
+     -- <shortcut> : if it exists, action is displayed in the menu bar ( e.g. HOME, END, DOWN, LEFT, RIGHT, CTRL+LEFT , ALT+RIGHT, SHIFT+HOME... )
+     -- callFunction is called when the selector is triggered ( by a midi event, or a keystroke )
+     -- callFunction parameters are :
+     --   time : float, timestamp of the event
+     --   uidKey : integer, unique id of the event ( composed of the selector id , channel, and picth )
+     --   channel[1..16] of the event
+     --   pitch[0..127] : integer, pitch of the event ( or control nr )
+     --   velocity[0..127] : integer, velocity of the event ( or control value )
+     --   paramString : string , parameter set in the GUI for this selector
+     --   indexKey[1..n] : integer, index of the picth within the range of the selector. 1 means the start.
+     --   medianeKey[-n/2..0..n/2] : integer, index of the pitch within the the range of the selector. 0 means the middle.
+     --   whiteIndex : integer,  idem indexKey, but taking in account only "white keys"
+     --   whiteMediane : integer,  idem medianeKey, but taking in account only "white keys"
+     --   black[0,1] : integer,  0 means white key. 1 means black key.
+ 
+Functions on<event>(...) : LUA functions to take actions on midi events
+  called by luabass.dll on midi or timer event.
+	
+  To process-map midi events before their processing ( change pitch ... ) : 
+		onMidi(integer deviceNr 1.. , float timestamp, integer type_msg 0..15, integer channel 1..16,  integer value1 0..127 , integer value2 0..127). 
+		return nothing to stop the process of the MIDI message, or return the new (or same) midi message to continue the process :
+	     	integer type_msg 0..15  , integer channel 1..16,  integer value1 0..127 , integer value2 0..127
+  These functions return nothing
+    To catch a specific category of MidiEvent ( in abscence of onMidi ) :
+		onNoteOn(integer deviceNr 1.. , float timestamp, integer channel 1..16, integer pitch 0..127, integer velocity 0..127). 
+		onNoteOff(integer deviceNr 1.. , float timestamp, integer channel 1..16, integer pitch 0..127, integer velocity 0..127)
+		onKeypressure(integer deviceNr 1.. , float timestamp, integer channel 1..16, integer pitch 0..127, integer value 0..127)
+		onControl(integer deviceNr 1.. , float timestamp, integer channel 1..16, integer controlNr 0..127, integer value 0..127)
+		onProgram(integer deviceNr 1.. , float timestamp, integer channel 1..16, integer programNr 0..127)
+		onChannelPressure(integer deviceNr 1.. , float timestamp, integer channel 1..16, integer value 0..127 )
+		onPitchBend(integer deviceNr 1.. , float timestamp, integer channel 1..16, integer value 0..127*127 )
+		onSystemeCommon(integer deviceNr 1.. , float timestamp, integer value1 0..127, integer value2 0..127 , integer value3 0..127 )
+    To catch special Midi event :
+	    onSysex(integer deviceNr 1.. , float timestamp , string asciiHexSysex e.g. FE4F7C4A... )
+        onActive(integer deviceNr 1.. , float timestamp )
+        onClock(integer deviceNr 1.. , float timestamp )
+	To catch the regulat timer
+        onTimer(float timestamp)
+
+This LUA script can starts another LUA script, to manage midi-out events. cf. luabass.onMidiout(LUAfile)
+The script should contains ones of these functions :
+    onNoteOn(integer trackNr 1.. , integer pitch 0..127, integer velocity 0..127)
+    onNoteOff(integer trackNr 1.. , integer pitch 0..127, integer velocity 0..127)
+    onKeyPressure(integer trackNr 1.. , integer pitch 0..127, integer value 0..127)
+    onControl(integer trackNr 1.. , integer controlNr 0..127, integer value 0..127)
+    onProgram(integer trackNr 1.. , integer programNr 0..127)
+    onChannelPressure(integer trackNr 1.. , integer value 0..127)
+    onPitchBend(integer trackNr 1.. , integer LSB 0..127, integer MSB 0..127)
+These functions must return a list of zero or many MIDI messages, to send on midi-out. One message is 4 values :
+  integer trackNr 1.., 
+  string typeMessage ( NoteOn, noteOff, keyPressure, Control, Program, channelPressure, pitchBend )
+  integer value1 0..127 ( pitch for note, programNr, controlNr, LSB for pitchbend )
+  integer value2 0.127 ( velcoity for note, 0 fro program, cnotrolValue, MSB for pitchben )
+
+--]]
+
+-- Validity of a Midi-Out device, for the GUI  ( used by the GUI )
+function midiOutIsValid(midiout_name)
+  -------================
+  -- return false if the midiout is not valid for the GUI
+  local s = string.lower(midiout_name)
+  local invalid = { "teensy", "wavetable" , "sd%-50 midi" , "sd%-50 control" , "keystation" , "nanokey" , "key25" , "key49" }
+  for inil,v in ipairs(invalid) do
+    if ( string.find(s,v ) ~= nil) then
+      return false ;
+    end
+  end
+  return true ;
+end
+-- Validity of a Midi-In device, for the GUI  ( used by the GUI )
+function midiInIsValid(midiin_name)
+  -------===============
+  -- return false if the midiin is not valid for the GUI
+  local s = string.lower(midiin_name)
+  local valid = { "sd%-50 midi" }
+  local invalid = { "iac" , "loop" , "sd%-50" }
+  for inil,v in ipairs(valid) do
+    if ( string.find(s,v ) ~= nil) then
+      return true ;
+    end
+  end
+  for inil,v in ipairs(invalid) do
+    if ( string.find(s,v ) ~= nil) then
+      return false ;
+    end
+  end
+  return true ;
+end
+
+-- list of values, for the GUI ( throug basslua )
+values = {
+  -- callFunction is used by GUI, through basslua. E.G to change MIDI parameters
+  -- basslua, will add fields values[valueName]=value
+  { name = "chord delay" , defaultValue=10 , help="Chord improvisation : delay between notes, in ms" },
+  { name = "chord decay" , defaultValue=40 , help="Chord improvisation : decay beween notes, 64 = no decay" },
+  { name = "scale delay" , defaultValue=0 , help="Scale improvisation : delay beween notes of the chord, in ms" },
+  { name = "scale decay" , defaultValue=0 , help="Scale improvisation : decay beween notes of the chord, 64 = no decay" },
+}
+
+-- list of the tracks, for the GUI
+tracks = { 
+  -- callFunction is used by GUI, through basslua. e.g. to set the trackNr in the midiout-processor
+  callFunction = function (nameTrack, nrTrack) luabass.setVarMidiOut(nameTrack,nrtrack) end  ,
+  -- the GUI, through basslua, will add fields tracks[trackName]=TrackNr
+  { name = "chord-bass" , help = "bass for improvisation"  } , 
+  { name = "chord-background" , help = "background chords for improvisation"  } , 
+  { name = "chord-chord" , help = "chords for improvisation"  } ,
+  { name = "chord-scale" , help = "scale for improvisation"  } ,
+}
+
+function onNoteOn(deviceNr , timestamp, channel , pitch , velocity )
+	if (( pitch >= 12 ) and (pitch <= 15 )) then
+		luachord.playPitches(1000,0,pitch - 12,0,"chord","scale",1,-1,0,0) -- play chord strings
+		luachord.playPitches(1000,velocity,pitch - 12,0,"chord","scale",1,-1,50,50) -- play chord strings
+	end		
+	if (( pitch >= 16 ) and (pitch <= 19 )) then
+		luachord.playPitches(1000,0,pitch - 16,0,"chord","scale",1,-1,0,0) -- play chord strings
+		luachord.playPitches(1000,velocity,pitch - 16,0,"chord","scale",-1,1,50,50) -- play chord strings
+	end		
+end
+
+
+local	guitare_posStrings = {} -- positions of strings
+local	guitare_first_time = true -- to initialize the guitare first time
+local	guitare_dString = 5 -- calculated trigger distance
+local	guitare_nbInterval = 20 -- calculated : intervals betwenn strings
+local	guitare_velocity = 64 -- modified by y-axis
+local	guitare_touch = 0 -- 0=no_touch 1=first_touch 2=next_touch
+local	guitare_prevValue = 1 -- previous position
+local   guitare_prevInterval = 1 -- previous interval
+
+function onControl(deviceNr ,  timestamp,  channel ,  controlNr ,  value )
+	
+	if ( guitare_first_time ) then
+	  guitare_first_time = false
+	  -- build a guitar with 6 strings, width=128
+	  local dp = 128 / ( 6 + 1 )
+	  guitare_dString = math.floor(dp/4)
+	  local p = 0
+	  while p < 128 do
+		table.insert(guitare_posStrings,math.floor(p))
+		p = p + dp
+	  end
+	  guitare_nbInterval = #guitare_posStrings
+	end
+
+	if ( controlNr == 20 ) then
+		values["scale decay"] = value
+		return
+	end
+	if ( controlNr == 21 ) then
+		values["scale delay"] = value
+		return
+	end
+	
+	if ( controlNr == 15 ) then -- guitare_touch
+	  if value > 60 then -- start guitare_touch
+		guitare_touch = 1 -- will calculate the intial position
+	  else -- stop guitare_touch
+		guitare_touch = 0 -- wait to guitare_touch
+	  end
+	  return
+	end
+
+	if ( controlNr == 17 ) then -- y-axis
+	  guitare_velocity = value 
+	  return
+	end
+
+	if ( controlNr == 16 ) then -- x-axis
+	  if ( guitare_touch == 0 ) then return end
+	  if ( guitare_touch == 1 ) then 
+		guitare_touch = 2 
+		guitare_prevValue = value -- start at this position
+		guitare_prevInterval = guitare_nbInterval
+		for i = 1 , guitare_nbInterval do
+		  if ( value <= guitare_posStrings[i] ) then
+			guitare_prevInterval = i -- start on this interval
+		  return
+		  end
+		end
+		return 
+	  end
+	  if ( value > guitare_prevValue ) then -- goes up
+		for i = guitare_prevInterval + 1 , guitare_nbInterval do
+		  if value > ( guitare_posStrings[i] + guitare_dString ) then
+			if ( i == 2 ) then
+				luachord.playPitches(2002,0,1,0,"bass","bass",1,1,0,0) -- play bass on first string
+				luachord.playPitches(2002,guitare_velocity,1,0,"bass","bass",1,1,0,0) -- play bass on first string
+			else
+				luachord.playPitches(2000+i,0,i - 2,0,"chord","scale",1,1,0,0) -- play chord strings
+				luachord.playPitches(2000+i,guitare_velocity,i - 2,0,"chord","scale",1,1,0,0) -- play chord strings
+			end
+			guitare_prevInterval = i
+		  end
+		end
+	  else -- goes down
+		for i = guitare_prevInterval  , 1 , -1 do
+		  if value < ( guitare_posStrings[i] - guitare_dString ) then
+			if ( i == 2 ) then
+				luachord.playPitches(2002,0,1,0,"bass","bass",1,1,0,0) -- play bass on first string
+				luachord.playPitches(2002,guitare_velocity,1,0,"bass","bass",1,1,0,0) -- play bass on first string
+			else
+				luachord.playPitches(2000+i,0,i - 2,0,"chord","scale",1,1,0,0) -- play chord strings
+				luachord.playPitches(2000+i,guitare_velocity,i - 2,0,"chord","scale",1,1,0,0) -- play chord strings
+			end
+			guitare_prevInterval = i - 1
+		  end
+		end
+	  end
+	  guitare_prevValue= value 
+	end
+end
+
+function allNoteOff( t, bid, ch, pitch, velo )
+  if ( velo or 64 ) > 0 then luabass.outAllNoteOff("n") end
+end
+function mainVolume( t, bid, ch, pitch, velo )
+  if ( velo or 64 ) > 0 then luabass.outSetVolume(velo) end
+end
+function nextFile( t, bid, ch, pitch, velo )
+  if ( velo or 64 ) > 0 then info.next = 1 end
+end
+function previousFile( t, bid, ch, pitch, velo )
+  if ( velo or 64 ) > 0 then info.next = -1 end
+end
+-- list of actions for the GUI ( throug basslua )
+  -- <name> : displayed in the GUI
+  -- <icone> : if file icone.bmp exists, action is displyed in the toolbar
+  -- <help> : help displayed in the GUI
+  -- <shortcut> : if it exists, action is displayed in the menu bar 
+  --           ( e.g. HOME, END, DOWN, LEFT, RIGHT, CTRL+LEFT , ALT+RIGHT, SHIFT+HOME, SPACE... )
+  -- callFunction is called when the selector is triggered ( by a midi event, or a keystroke )
+  --    ( callScore and callChord will be preferred when the "mode" "Score" or "Chord" is set by the GUI throug basslua )
+  -- callFunction parameters are :
+  --   time : float, timestamp
+  --   uidKey : integer, unique id of the event ( composed of the selector id ,channel , and picth )
+  --   channel[1..16] : integer, channel of the event ( or control nr , or program nr )
+  --   pitch[0..127] : integer, pitch of the event ( or control nr , or program nr )
+  --   velocity[0..127] : integer, velocity of the event ( or control value )
+  --   paramString : string , pamaeter set in the selector
+  --   indexKey[1..n] : index of the picth within the range of the selector. 1 means the minimum of the range
+  --   medianeKey[-n/2..0..n/2] : index of the pitch within the the range of the selector. 0 means the middle of the range
+  --   whiteIndex : idem indexKey, but taking in account only "white keys"
+  --   whiteMediane : idem medianeKey, but taking in account only "white keys"
+  --   black[0,1] : 0 means white key. 1 means black key.
+actions = { 
+  {name="global/all note off", callFunction = allNoteOff ,help="all note off", shortcut = "BACK" , icone = "all_note_off" },
+  {name="global/main volume", callFunction = mainVolume },
+  {name="global/previous file",  help="go to previous file of the list", callFunction = previousFile  },
+  {name="global/next file", help="go to next file of the list", 
+    callFunction = nextFile , shortcut = "TAB", icone = "next_file" },
+  {name="move/previous move", help="go to the position of the previous move",
+    callScore = luascore.previousPos,callChord=luachord.previousPos,shortcut = "ALT+UP",icone = "previous_move" },
+  {name="move/first part", help="go to beginning of the score",
+    callScore = luascore.firstPart,callChord=luachord.firstPart,shortcut = "CTRL+UP",icone = "first_part" },
+  {name="move/previous part", help="go to previous part of the score",
+    callScore = luascore.previousPart,callChord=luachord.previousPart,shortcut="SHIFT+UP",icone="previous_part" },
+  {name="move/previous measure",help="go to previous section/measure of the score",
+    callScore = luascore.previousMeasure, callChord = luachord.previousSection, shortcut = "UP" , icone = "previous_section"},
+  {name="move/previous chord",help="go to previous chord of the score",
+    callScore=luascore.previousEvent,callChord=luachord.previousChord,shortcut="LEFT",icone="previous_chord"},
+  {name="move/next chord",help="go to next chord of the score",
+    callScore=luascore.nextEvent,callChord=luachord.nextChord,shortcut="RIGHT",icone="next_chord" },
+  {name="move/next measure", help="go to next section/measure of the score",
+    callScore = luascore.nextMeasure, callChord = luachord.nextSection , shortcut = "DOWN" , icone = "next_section" },
+  {name="move/next part", help="go to next part of the score",
+    callScore = luascore.nextPart,callChord=luachord.nextPart,shortcut = "SHIFT+DOWN", icone = "next_part" },
+  {name="move/last part", help="go to last part of the score",
+    callScore = luascore.lastPart, callChord = luachord.lastPart , shortcut = "CTRL+DOWN", icone = "last_part" },
+  {name="move/repeat part",callScore = luascore.repeatPart, callChord = luachord.repeatPart },
+  {name="move/first part smooth",callScore=luascore.firstPartSmooth,callChord=luachord.firstPartSmooth},
+  {name="move/repeat part smooth",callScore=luascore.repeatPartSmooth,callChord=luachord.repeatPartSmooth},
+  {name="move/next part smooth",callScore=luascore.nextPartSmooth,callChord=luachord.nextPartSmooth },
+  {name="move/last part smooth",callScore=luascore.lastPartSmooth,callChord=luachord.lastPartSmooth},
+  {name="score/play", callFunction = luascore.play} ,
+  {name="chord/change chord on noteon", callFunction = luachord.changeChordOn },
+  {name="chord/change chord on noteoff", callFunction = luachord.changeChordOff },
+  {name="chord/change chord white/black", callFunction = luachord.alternateChord },
+  {name="chord/play scale chord", callFunction = luachord.playScaleChord },
+  {name="chord/play scale penta", callFunction = luachord.playScalePenta },
+  {name="chord/play chord brush up", callFunction = luachord.playChordUp },
+  {name="chord/play chord brush down", callFunction = luachord.playChordDown },
+  {name="chord/play background", callFunction = luachord.playBackground },
+  {name="chord/play bass", callFunction = luachord.playBass },
+  {name="chord/play walking bass", callFunction = luachord.playWalkingBass },
+  {name="chord/pedal scale", callFunction = luachord.pedalScale },
+  {name="chord/pedal chord", callFunction = luachord.pedalChord },
+  {name="chord/pedal background", callFunction = luachord.pedalBackground },
+  {name="chord/pedal bass", callFunction = luachord.pedalBass },
+  {name="chord/octave scale", callFunction = luachord.octaveScale },
+  {name="chord/octave chord", callFunction = luachord.octaveChord },
+  {name="chord/octave background", callFunction = luachord.octaveBackground },
+  {name="chord/octave bass", callFunction = luachord.octaveBass },
+  }
+
+
+
+ 
+
