@@ -19,6 +19,10 @@
 #include "wx/wx.h"
 #endif
 
+#include <stdio.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
 
 #include "wx/dialog.h"
 #include "wx/filename.h"
@@ -41,6 +45,7 @@
 #include "wx/dir.h"
 #include "wx/datetime.h"
 #include "wx/time.h"
+#include "wx/longlong.h"
 
 #include "global.h"
 #include "basslua.h"
@@ -67,6 +72,142 @@
 #define DEF_INCH 25578
 #endif
 
+#define PREFIX_CACHE "CACHE_EXPRESSEUR_V3"
+
+// CRC tool to optimize calcualtion of MuseScore pages
+
+// poly is: x^64 + x^62 + x^57 + x^55 + x^54 + x^53 + x^52 + x^47 + x^46 + x^45 + x^40 + x^39 + 
+//          x^38 + x^37 + x^35 + x^33 + x^32 + x^31 + x^29 + x^27 + x^24 + x^23 + x^22 + x^21 + 
+//          x^19 + x^17 + x^13 + x^12 + x^10 + x^9  + x^7  + x^4  + x^1  + 1
+//
+// represented here with lsb = highest degree term
+//
+// 1100100101101100010101111001010111010111100001110000111101000010_
+// ||  |  | || ||   | | ||||  | | ||| | ||||    |||    |||| |    | |
+// ||  |  | || ||   | | ||||  | | ||| | ||||    |||    |||| |    | +- x^64 (implied)
+// ||  |  | || ||   | | ||||  | | ||| | ||||    |||    |||| |    |
+// ||  |  | || ||   | | ||||  | | ||| | ||||    |||    |||| |    +--- x^62
+// ||  |  | || ||   | | ||||  | | ||| | ||||    |||    |||| +-------- x^57
+// .......................................................................
+// ||
+// |+---------------------------------------------------------------- x^1
+// +----------------------------------------------------------------- x^0 (1)
+wxLongLong crc_poly = 0xC96C5795D7870F42;
+
+// input is dividend: as 0000000000000000000000000000000000000000000000000000000000000000<8-bit byte>
+// where the lsb of the 8-bit byte is the coefficient of the highest degree term (x^71) of the dividend
+// so division is really for input byte * x^64
+
+// you may wonder how 72 bits will fit in 64-bit data type... well as the shift-right occurs, 0's are supplied
+// on the left (most significant) side ... when the 8 shifts are done, the right side (where the input
+// byte was placed) is discarded
+
+// when done, table[XX] (where XX is a byte) is equal to the CRC of 00 00 00 00 00 00 00 00 XX
+//
+wxLongLong crc_table[256];
+
+VOID crc_generate_table()
+{
+    for(UINT i=0; i<256; ++i)
+    {
+    	wxLongLong crc = i;
+
+    	for(UINT j=0; j<8; ++j)
+    	{
+            // is current coefficient set?
+    		if(crc & 1)
+            {
+                // yes, then assume it gets zero'd (by implied x^64 coefficient of dividend)
+                crc >>= 1;
+    
+                // and add rest of the divisor
+    			crc ^= crc_poly;
+            }
+    		else
+    		{
+    			// no? then move to next coefficient
+    			crc >>= 1;
+            }
+    	}
+    
+        crc_table[i] = crc;
+    }
+}
+
+// will give an example CRC calculation for input array {0xDE, 0xAD}
+//
+// each byte represents a group of 8 coefficients for 8 dividend terms
+//
+// the actual polynomial dividend is:
+//
+// = DE       AD       00 00 00 00 00 00 00 00 (hex)
+// = 11011110 10101101 0000000000000000000...0 (binary)
+//   || ||||  | | || |
+//   || ||||  | | || +------------------------ x^71
+//   || ||||  | | |+-------------------------- x^69
+//   || ||||  | | +--------------------------- x^68
+//   || ||||  | +----------------------------- x^66
+//   || ||||  +------------------------------- x^64
+//   || ||||  
+//   || |||+---------------------------------- x^78
+//   || ||+----------------------------------- x^77
+//   || |+------------------------------------ x^76
+//   || +------------------------------------- x^75
+//   |+--------------------------------------- x^73
+//   +---------------------------------------- x^72
+//
+
+// the basic idea behind how the table lookup results can be used with one
+// another is that:
+//
+// Mod(A * x^n, P(x)) = Mod(x^n * Mod(A, P(X)), P(X))
+//
+// in other words, an input data shifted towards the higher degree terms
+// changes the pre-computed crc of the input data by shifting it also
+// the same amount towards higher degree terms (mod the polynomial)
+
+// here is an example:
+//
+// 1) input:
+//
+//    00 00 00 00 00 00 00 00 AD DE
+//          
+// 2) index crc table for byte DE (really for dividend 00 00 00 00 00 00 00 00 DE)
+//
+//    we get A8B4AFBDC5A6ACA4
+//
+// 3) apply that to the input stream:
+//
+//    00 00 00 00 00 00 00 00 AD DE 
+//       A8 B4 AF BD C5 A6 AC A4
+//    -----------------------------
+//    00 A8 B4 AF BD C5 A6 AC 09
+//
+// 4) index crc table for byte 09 (really for dividend 00 00 00 00 00 00 00 00 09)
+// 
+//    we get 448FCBB7FCB9E309
+//
+// 5) apply that to the input stream
+//
+//    00 A8 B4 AF BD C5 A6 AC 09
+//    44 8F CB B7 FC B9 E3 09
+//    --------------------------
+//    44 27 7F 18 41 7C 45 A5
+//
+//
+wxLongLong crc_value = 0 ;
+void crc_cumulate(PBYTE stream, UINT n)
+{
+	// cumulate CRC of stream (lenght=n)
+    for(INT i=0; i<n; ++i)
+    {
+        BYTE index = stream[i] ^ crc_value;
+        wxLongLong lookup = crc_table[index];
+
+        crc_value >>= 8;
+        crc_value ^= lookup;
+    }
+}
 
 enum
 {
@@ -82,11 +223,12 @@ wxEND_EVENT_TABLE()
 musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 : viewerscore(parent, id)
 {
+	crc_generate_table();
+
 	mParent = parent;
 	mConf = lconf;
 	nrChord = -1;
 	xmlName.Clear();
-	previousSizeClient.Set(0,0);
 	
 	inch = (float)(DEF_INCH) * ((float)(mConf->get(CONFIG_CORRECTINCH, 1000))/1000.0) / 1000.0;
 	musescore_def_xml = (bool)(MUSE_SCORE_DEF_XML) ;
@@ -203,6 +345,23 @@ void musicxmlscore::cleanTmp()
 		wxFileName ft;
 		ft.SetPath(wxFileName::GetTempDir());
 		bool cont = dir.GetFirst(&filename, "expresseur*.png", wxDIR_FILES);
+		while (cont)
+		{
+			ft.SetFullName(filename);
+			wxRemoveFile(ft.GetFullPath());
+			cont = dir.GetNext(&filename);
+		}
+	}
+}
+static void musicxmlscore::cleanCache()
+{
+	wxDir dir(wxFileName::GetTempDir());
+	if (dir.IsOpened())
+	{
+		wxString filename;
+		wxFileName ft;
+		ft.SetPath(wxFileName::GetTempDir());
+		bool cont = dir.GetFirst(&filename, PREFIX_CACHE + "*.*", wxDIR_FILES);
 		while (cont)
 		{
 			ft.SetFullName(filename);
@@ -649,20 +808,57 @@ void musicxmlscore::gotoPosition()
 			basslua_call(moduleScore, functionScoreGotoNrEvent, "i", nrEvent + 1);
 	}
 }
+void musicxmlscore::crc_init()
+{
+	crc_value = 0 ;
+}
+wxLongLong musicxmlscore::crc_cumulate_file(wxString fname)
+{
+	// cumulate the 64bits CRC of the file
+    FILE *fp;
+    size_t fsz;
+    long   off_end;
+    int    rc;
+    char *buf ;
+    fp = fopen ( fname.c_str() , "rb" );
+    if( !fp ) return crc_value;
+    rc = fseek(fp, 0L, SEEK_END);
+    if( 0 != rc ) { fclose(fp); return crc_value; }
+    if( 0 > (off_end = ftell(fp)) ) { fclose(fp); return crc_value; }
+    fsz = (size_t)off_end;
+    buf = malloc( fsz+1);
+    if( NULL == buf ) { fclose(fp); return crc_value; }
+    rewind(fp);
+    if( fsz != fread(buf, 1, fsz, fp) ) {fclose(fp); free(buf); return crc_value; }
+	fclose(fp);
+	crc_cumulate(buf,fsz);
+	free(buf);
+	return crc_value ;
+}
+wxLongLong musicxmlscore::crc_cumulate_string(wxString s)
+{
+	// cumulate the 64bits CRC of the string
+	crc_cumulate(s.char_str(),s.lenght());
+	return crc_value ;
+}
 bool musicxmlscore::newLayout(wxSize sizeClient)
 {
 	if (!isOk())
 		return false;
 	wxBusyCursor waitcursor;
+
+	wxFileName fm;
+
+	// window big enough ?
 	if ((sizeClient.GetWidth() < 200) || (sizeClient.GetHeight() < 100))
 		return false;
 
-	if ((sizeClient.GetX() == previousSizeClient.GetX() ) && (sizeClient.GetY() == previousSizeClient.GetY() ) && ( ! xmlCompile->isModified ) && ( fzoom == previousZoom))
-		return docOK ;
+	// avoir uselees compilation if there is no change
+	//if ((sizeClient.GetX() == previousSizeClient.GetX() ) && (sizeClient.GetY() == previousSizeClient.GetY() ) && ( ! xmlCompile->isModified ) && ( fzoom == previousZoom))
+	//	return docOK ;
 
-	previousSizeClient = sizeClient;
+	// calculation for the page layout
 	xmlCompile->isModified = false ;
-	previousZoom = fzoom ;
 
 	sizePage.SetWidth( sizeClient.GetX() );
 	sizePage.SetHeight( sizeClient.GetY() );
@@ -696,15 +892,9 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		xmlCompile->compiled_score->defaults.page_layout.margin = 10.0 ;
 	}
 
+	// clena useless temp files
 	cleanTmp();
-
-	wxFileName fm;
-	fm.SetPath(wxFileName::GetTempDir());
-
-	fm.SetFullName("expresseur_out.xml");
-	xmlCompile->music_xml_displayed_file = fm.GetFullPath();
-	xmlCompile->compiled_score->write(xmlCompile->music_xml_displayed_file, true);
-
+	// remove old pages
 	fm.SetFullName("expresseur_out.png");
 	musescorepng = fm.GetFullPath();
 	wxFileName fp(musescorepng);
@@ -721,11 +911,20 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		p++;
 	}
 
+	wxFileName fm;
+	fm.SetPath(wxFileName::GetTempDir());
 
+	// prepare the musicXml file to display
+	fm.SetFullName("expresseur_out.xml");
+	xmlCompile->music_xml_displayed_file = fm.GetFullPath();
+	xmlCompile->compiled_score->write(xmlCompile->music_xml_displayed_file, true);
+
+	// the file to store position of notes
 	fm.SetFullName("expresseur_pos.txt");
 	musescorepos = fm.GetFullPath();
 
 
+	// prepare the script for MuseScore
 	fm.SetFullName("expresseur_scan.qml");
 	musescorescript = fm.GetFullPath();
 	wxTextFile fin, fout;
@@ -777,27 +976,98 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		fout.Close();
 	}
 
+	// prepare the command line to run MuseScore
 	wxString command;
 	//"C:\Program Files (x86)\MuseScore 2\bin/MuseScore.exe" - s -r <resolution> -m <user_temp>\musicxml.xml - p <user_temp>\scan_position.qml - o <user_temp>\expresseur_out.png
 	command.Printf("\"%s\" -s -r %d -m %s -p %s", musescoreexe, (int)resolution_dpi, xmlCompile->music_xml_displayed_file, musescorescript);
-	char bufMuseScoreBatch[1024];
-	strcpy(bufMuseScoreBatch,command.c_str());
-	mlog_in("musicxmlscore newLayout musescore-batch : %s",bufMuseScoreBatch);
-	wxFileName::SetCwd(wxFileName::GetTempDir());
-	long lexec = wxExecute(command, wxEXEC_SYNC | wxEXEC_HIDE_CONSOLE);
-	if (lexec < 0)
+
+
+	// calculate the CRC of this display
+	crc_init();
+	crc_cumulate_file(xmlCompile->music_xml_displayed_file);
+	crc_cumulate_file(musescorescript);
+	wxString ssize ; ssize.printf("%d %d %d", sizeClient.GetX() , sizeClient.GetY(), fzoom ); crc_cumulate_string(ssize);
+	wxLongLong crc_this = crc_cumulate_string(command);
+	wxString crc_suffix ;
+	crc_suffix.printf("%ll",crc_this);
+	alreadyAvailable = false ;
+	crc_suffix.printf(".%ll",crc_this);
+	fm.SetName(PREFIX_CACHE + musescorepos.GetName() + crc_suffix);
+	fm.SetExt(musescorepos.GetExt());
+	if ( fm.FileExists())
 	{
-		return false;
+		// MuseScore result already available in cache. Let's reuse it
+		alreadyAvailable = true ;
+		if ( ! wxCopyFile(fm.GetFullPath(),musescorepos.GetFullPath()) ) alreadyAvailable = false ;
+		// copy pages
+		wxFileName fsource(musescorepng);
+		wxFileName fdest(musescorepng);
+		wxString fn;
+		int p = 1;
+		while (true)
+		{
+			fn.Printf("%s-%d", fsource.GetName(), p);
+			fsource.SetName(PREFIX_CACHE + fn + crc_suffix);
+			if (fsource.IsFileReadable())
+			{
+				fdest.SetName(fn);
+				if ( ! wxCopyFile(fsource.GetFullPath(),fdest.GetFullPath()) ) alreadyAvailable = false ;
+			}
+			else
+				break;
+			p++;
+		}
 	}
-	
-	for(int nbTry=0; nbTry < 10 ; nbTry ++ )
+	if ( ! alreadyAvailable)
 	{
-		if ( readPos() )
-			break ;
-		wxSleep(1);
+		// run the MuseScore batch to build he pages and the positions
+		char bufMuseScoreBatch[1024];
+		strcpy(bufMuseScoreBatch,command.c_str());
+		mlog_in("musicxmlscore newLayout musescore-batch : %s",bufMuseScoreBatch);
+		wxFileName::SetCwd(wxFileName::GetTempDir());
+		long lexec = wxExecute(command, wxEXEC_SYNC | wxEXEC_HIDE_CONSOLE);
+		if (lexec < 0)
+		{
+			return false;
+		}
+		
+		// wait for the position file, which should dclare the end of the MuseScore batch
+		for(int nbTry=0; nbTry < 10 ; nbTry ++ )
+		{
+			if ( readPos() )
+				break ;
+			wxSleep(1);
+		}
+		// cache this result for potential reuse
+		wxRmdir(crc_dir.GetPath());
+		alreadyAvailable = true ;
+		if ( wxMkdir(crc_dir.GetPath()) )
+		{
+			crc_dir.SetFullName(musescorepos.GetFullName());
+			if ( ! wxCopyFile(musescorepos.GetFullPath(),crc_dir.GetFullPath()) ) alreadyAvailable = false ;
+			wxFileName fdest(crc_dir);
+			fdest.SetFullName(musescorepng.GetFullName());
+			wxFileName fsource(musescorepng);
+			wxString fn;
+			int p = 1;
+			while (true)
+			{
+				fn.Printf("%s-%d", fsource.GetName(), p);
+				fsource.SetName(fn);
+				if (fsource.IsFileReadable())
+				{
+					fdest.SetName(fn);
+					if ( ! wxCopyFile(fsource.GetFullPath(),fdest.GetFullPath()) ) alreadyAvailable = false ;
+				}
+				else
+					break;
+				p++;
+			}
+		}
+		if ( ! alreadyAvailable )
+			wxRmdir(crc_dir.GetPath());
 	}
 		
-
 	currentPageNrFull = -1;
 	currentPageNrPartial = -1;
 	newPos = prevPos ;

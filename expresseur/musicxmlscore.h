@@ -18,6 +18,7 @@ public:
 	void OnLeftDown(wxMouseEvent& event);
 	bool isOk();
 	void cleanTmp();
+	static void cleanCache();
 
 	void xmlProcessScore();
 	void xmlProcessPartList(wxXmlNode *xmlParentIn, wxXmlNode *xmlParentOut);
@@ -59,8 +60,6 @@ private:
 	float inch = 25.4;
 	bool musescore_def_xml = true ;
 
-	wxSize previousSizeClient ;
-	float previousZoom = 1.0 ;
 	int newPos = 0 ;
 	bool newPlaying = false ;
 	bool newQuick = false ;
@@ -83,6 +82,9 @@ private:
 	int currentPageNrPartial = 0;
 	wxSize sizePage;
 	wxRect buttonPage;
+
+	void crc_init();
+	UINT64 crc_cumulate_file(wxString fname);
 
 	wxDECLARE_EVENT_TABLE();
 

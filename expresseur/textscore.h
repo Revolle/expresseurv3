@@ -27,8 +27,8 @@ public:
 
 	void savePlayback(wxString f);
 
-	void OnKeyUp(wxKeyEvent& event);
-	void OnKeyDown(wxKeyEvent& event);
+	//void OnKeyUp(wxKeyEvent& event);
+	//void OnKeyDown(wxKeyEvent& event);
 	void OnLeftDown(wxMouseEvent& event);
 	void OnLeftUp(wxMouseEvent& WXUNUSED(event));
 

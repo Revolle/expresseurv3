@@ -35,7 +35,9 @@ public:
 	void OnVolume(wxEvent& event);
 	void savePos();
 
-	bool hitkey(wxChar c , bool on , wxFrame *parent);
+	wxArrayString getShortcuts() ;
+	void onShortcut(int nrShortcut);
+	//bool hitkey(wxChar c , bool on , wxFrame *parent);
 
 private:
 	wxFrame *mParent;
@@ -68,8 +70,12 @@ private:
 	wxArrayInt valueMin;
 	wxArrayInt valueMax;
 	wxArrayString valueStopOnMatch;
-	wxChar valueHitkey;
-	wxArrayString valueEvent;
+	//wxChar valueHitkey;
+	//wxArrayString valueEvent;
+
+	wxArrayInt shortcutAction ;
+	wxArrayString shortcutKey ;
+	int prevShortcutAction = -1 ;
 
 	wxChoice *listFunctionMidi;
 

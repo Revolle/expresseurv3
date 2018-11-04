@@ -72,8 +72,8 @@
 
 wxBEGIN_EVENT_TABLE(textscore, wxPanel)
 EVT_SIZE(textscore::OnSize)
-EVT_KEY_DOWN(textscore::OnKeyDown)
-EVT_KEY_UP(textscore::OnKeyUp)
+//EVT_KEY_DOWN(textscore::OnKeyDown)
+//EVT_KEY_UP(textscore::OnKeyUp)
 EVT_LEFT_DOWN(textscore::OnLeftDown)
 EVT_LEFT_UP(textscore::OnLeftUp)
 wxEND_EVENT_TABLE()
@@ -167,6 +167,7 @@ int textscore::scanPosition(bool editmode)
 		DiscardEdits();
 	return nrChord;
 }
+/*
 void textscore::OnKeyUp(wxKeyEvent& event)
 {
 	bool toskip = ((Expresseur*)(GetParent()))->OnKeyUp(event.GetUnicodeKey());
@@ -177,6 +178,7 @@ void textscore::OnKeyDown(wxKeyEvent& event)
 	bool toskip = ((Expresseur*)(GetParent()))->OnKeyDown(event.GetUnicodeKey());
 	event.Skip(toskip);
 }
+*/
 void textscore::OnLeftDown(wxMouseEvent& event)
 {
 	wxClientDC dc(this);

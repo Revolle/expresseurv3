@@ -677,6 +677,97 @@ void midishortcut::read(wxTextFile *lfile)
 		}
 	}
 }
+wxArrayString midishortcut::getShortcuts()
+{
+	shortcutAction.Clear();
+	shortcutKey.Clear();
+	wxArrayString ls ;
+	for (unsigned int nrSelector = 0; nrSelector < valueAction.GetCount(); nrSelector++)
+	{
+		for(unsigned int nrShortcut = 0 ; nrShortcut < valueKey[nrSelector].length() ; nrShortcut)
+		{
+			wxString cs = valueKey[nrSelector] ;
+			cs.MakeUpper() ;
+			wxChar c = cs[nrShortcut];
+			if ((c >= 'A') && (c <= 'Z'))
+			{
+				wxString s;
+				s.printf("%s\tALT+%c\n", nameAction[nrSelector] , c);
+				ls.Add(s);
+				shortcutAction.Add(nrSelector);
+				shortcutKey.Add(c);
+			}
+		}
+	}
+	return ls ;
+}
+void midishortcut::onShortcut(int nrShortcut)
+{
+	if ((nrShortcut < 0 ) || ( nrShortcut >= shortcutAction.GetCount()))
+		return ;
+	
+	if ( prevShortcutAction >= 0)
+	{
+		// off the previous shortcut
+		if (valueEvent[prevShortcutAction] == snoteonoff)
+		{
+			wxString skey = valueKey[prevShortcutAction] ;
+			skey.MakeUpper() ;
+			int pos = skey.Find(shortcutKey[prevShortcutAction]);
+			if (pos != wxNOT_FOUND)
+			{
+				int p = valueMin[prevShortcutAction];
+				int v = 0;
+				int len = valueKey[prevShortcutAction].length();
+				if (valueMin[prevShortcutAction] != valueMax[prevShortcutAction])
+				{
+					if (len > 1)
+						p = valueMin[prevShortcutAction] + pos;
+				}
+				// simulation of note-off
+				int nrDevice = valueDevice[prevShortcutAction];
+				int nrChannel = valueChannel[prevShortcutAction];
+				basslua_selectorSearch(nrDevice, nrChannel, NOTEOFF, p, v);
+			}
+		}
+	}
+	prevShortcutAction = -1 ;
+	
+	// on this event
+	int nrSelector = shortcutAction[nrShortcut]; 
+	wxString skey = valueKey[nrSelector] ;
+	skey.MakeUpper() ;
+	int pos = skey.Find(shortcutKey[nrSelector]);
+	if (pos == wxNOT_FOUND)
+		return ;
+	int p = valueMin[nrSelector];
+	int v = 64;
+	int len = valueKey[nrSelector].length();
+	if (valueMin[nrSelector] == valueMax[nrSelector])
+	{
+		// only one value : the range is translated to velocity
+		if (len > 1)
+		{
+			if ((valueEvent[nrSelector] == snoteonoff) || (valueEvent[nrSelector] == snoteononly))
+				v = 1 + (126 * ( pos + 1 )) / ( len + 1 );
+			else
+				v = (127 * (pos + 1)) / (len + 1);
+		}
+	}
+	else
+	{
+		// more than one value : the range is translated to pitch
+		if (len > 1)
+			p = valueMin[nrSelector] + pos;
+	}
+	int nrDevice = valueDevice[nrSelector];
+	int nrChannel = valueChannel[nrSelector];
+	// simulation of the event
+	basslua_selectorSearch(nrDevice, nrChannel, NOTEON, p, v);
+	prevShortcutAction = nrSelector ;
+}
+
+/*
 bool midishortcut::hitkey(wxChar c , bool on , wxFrame *parent)
 {
 	// simulate a selector , acording to the hit key
@@ -775,3 +866,5 @@ bool midishortcut::hitkey(wxChar c , bool on , wxFrame *parent)
 	}
 	return found;
 }
+*/
+

@@ -55,6 +55,7 @@ public:
 	void OnListDown(wxCommandEvent& WXUNUSED(event));
 	void OnListFile(wxCommandEvent& event);
 	void OnMenuAction(wxCommandEvent& event);
+	void OnMenuShortcut(wxCommandEvent& event);
 	void OnRecordPlayback(wxCommandEvent& event);
 	void OnSavePlayback(wxCommandEvent& WXUNUSED(event));
 	void OnPlayback(wxCommandEvent& event);
@@ -86,8 +87,8 @@ public:
 	void OnHorizontalScroll(wxScrollEvent& event);
 	void OnVerticalScroll(wxScrollEvent& event);
 
-	bool OnKeyUp(wxChar k);
-	bool OnKeyDown(wxChar k);
+	//bool OnKeyUp(wxChar k);
+	//bool OnKeyDown(wxChar k);
 	bool OnLeft(wxPoint p, wxSize s , bool down);
 
 	void OnTimer(wxTimerEvent& event);
@@ -159,9 +160,11 @@ private:
 	wxMenu *actionMenu;
 	wxMenu *editMenu;
 	wxMenu *zoomMenu;
+	wxMenu *shortcutMenu;
 	wxMenuItem *menuEditMode;
 
 	void getLuaAction(bool all, wxMenu *newActionMenu);
+	void getShortcutAction(wxMenu *newActionMenu);
 	void SetMenuAction(bool all);
 	void ornamentAdd(bool absolute);
 

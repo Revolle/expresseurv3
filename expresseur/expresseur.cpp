@@ -173,6 +173,8 @@ enum
 	ID_MAIN_LIST_FILE_END = ID_MAIN_LIST_FILE + 99,  // large range for the files in the list
 	ID_MAIN_ACTION = ID_MAIN_LIST_FILE_END + 1, // large range for actions
 	ID_MAIN_ACTION_END = ID_MAIN_ACTION + 99 // large range for actions
+	ID_MAIN_KEY_SHORTCUT = ID_MAIN_ACTION_END + 1, // large range for shortcuts
+	ID_MAIN_KEY_SHORTCUT_END = ID_MAIN_KEY_SHORTCUT + 99 // large range for shortcuts
 };
 
 // ----------------------------------------------------------------------------
@@ -219,6 +221,7 @@ EVT_MENU(ID_MAIN_LIST_DOWN, Expresseur::OnListDown)
 EVT_MENU_RANGE(ID_MAIN_LIST_FILE, ID_MAIN_LIST_FILE_END, Expresseur::OnListFile)
 
 EVT_MENU_RANGE(ID_MAIN_ACTION, ID_MAIN_ACTION_END, Expresseur::OnMenuAction)
+EVT_MENU_RANGE(ID_MAIN_KEY_SHORTCUT, ID_MAIN_KEY_SHORTCUT_END, Expresseur::OnMenuShortcut)
 
 EVT_MENU(ID_MAIN_MIXER, Expresseur::OnMixer)
 EVT_MENU(ID_MAIN_GOTO, Expresseur::OnGoto)
@@ -495,6 +498,8 @@ Expresseur::~Expresseur()
 {
 	checkUpdate();
 
+	musicxmlscore::cleanCache();
+	
 	if ( fileHistory)
 		fileHistory->Save(*mConf->getConfig());
 
@@ -670,6 +675,7 @@ void Expresseur::OnSize(wxSizeEvent& WXUNUSED(event))
 	waitToRefresh = periodRefresh / timerDt;
 	Layout();
 }
+/*
 bool Expresseur::OnKeyUp(wxChar keycode)
 {
 	if (editMode)
@@ -692,6 +698,7 @@ bool Expresseur::OnKeyDown(wxChar keycode)
 		mMidishortcut->hitkey(keycode, true , this);
 	return(false);
 }
+*/
 bool Expresseur::OnLeft(wxPoint p, wxSize s ,  bool down)
 {
 	if (editMode)
@@ -943,6 +950,18 @@ void Expresseur::getLuaAction(bool all, wxMenu *newActionMenu)
 		nrAction++;
 	}
 }
+void Expresseur::getShortcutAction(wxMenu *newActionMenu)
+{
+	if ((newActionMenu == NULL) || (mMidishortcut == NULL))
+		return ;
+	// get the list of shortcuts : name+ALT+key
+	wxArrayString ls = mMidishortcut->getShortcuts();
+	for (unsigned int nrSelector = 0; nrSelector < ls.GetCount(); nrSelector++)
+	{
+		wxString s = ls[nrSelector];
+		newActionMenu->Append(ID_MAIN_KEY_SHORTCUT + nrSelector, s);
+	}
+}
 void Expresseur::SetMenuAction(bool all)
 {
 	// create the actionMenu and the associated icones in the toolbar, according to actions known in the LUA script
@@ -1007,6 +1026,8 @@ void Expresseur::SetMenuAction(bool all)
 	editMenu->Check(wxID_EDIT, editMode);
 
 	getLuaAction(all, newActionMenu);
+	newActionMenu->AddSeparator();
+	getShortcutAction(all, newActionMenu);
 
 	if ( all )
 		toolBar->Realize();
@@ -1041,6 +1062,13 @@ void Expresseur::OnMenuAction(wxCommandEvent& event)
 			SetStatusText(s, 1);
 		}
 	}
+}
+void Expresseur::OnMenuShortcut(wxCommandEvent& event)
+{
+	int nrShortcut = event.GetId() - ID_MAIN_KEY_SHORTCUT;
+	if (mMidishortcut == NULL)
+		return ;
+	mMidishortcut->onShortcut(nrShortcut);
 }
 void Expresseur::OnRecordPlayback(wxCommandEvent& event)
 {
@@ -1287,8 +1315,19 @@ void Expresseur::ListUpdateMenu()
 	for (int i = listFiles.Count() - 1; i >= 0; i--)
 	{
 		f.Assign(listFiles.Item(i));
-		listMenu->PrependCheckItem(ID_MAIN_LIST_FILE + i, f.GetFullName() , f.GetFullPath() );
-		listMenu->Check(ID_MAIN_LIST_FILE + i, false);
+		wxMenuItem *mfilelist = listMenu->PrependCheckItem(ID_MAIN_LIST_FILE + i, f.GetFullName() , f.GetFullPath() );
+		mfilelist->Check(false);
+		wxString slabel ;
+		if ( i < 9 )
+			slabel.printf("\tALT+%d\n",f.GetFullName(), i + 1 );
+		else if ( i == 9 )
+			slabel.printf("\tALT+%d\n",f.GetFullName() , 0);
+		if ( i < 19 )
+			slabel.printf("\tSHIFT+ALT+%d\n",f.GetFullName() , i + 1 );
+		else if ( i == 19 )
+			slabel.printf("\tSHIFT+ALT+%d\n",f.GetFullName(), 0);
+		if ( slabel.length() > 0 )
+			mfilelist->SetItemLabel(slabel);
 	}
 }
 void Expresseur::ListSave()
