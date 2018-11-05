@@ -259,7 +259,6 @@ void midishortcut::saveShortcut()
 	valueMax.Clear();
 	valueStopOnMatch.Clear();
 	valueEvent.Clear();
-	valueHitkey = 0 ;
 	mConf->set(CONFIG_SHORTCUTNB, listShortchut->GetItemCount(), false);
 	//mlog_in("midishortcut / saveShortcut / listShortchut->GetItemCount() : %d",listShortchut->GetItemCount());
 	for (int nrItem = 0; nrItem < listShortchut->GetItemCount(); nrItem++)
@@ -692,7 +691,7 @@ wxArrayString midishortcut::getShortcuts()
 			if ((c >= 'A') && (c <= 'Z'))
 			{
 				wxString s;
-				s.printf("%s\tALT+%c\n", nameAction[nrSelector] , c);
+				s.Printf("%s\tALT+%c\n", nameAction[nrSelector] , c);
 				ls.Add(s);
 				shortcutAction.Add(nrSelector);
 				shortcutKey.Add(c);

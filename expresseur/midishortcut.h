@@ -71,7 +71,7 @@ private:
 	wxArrayInt valueMax;
 	wxArrayString valueStopOnMatch;
 	//wxChar valueHitkey;
-	//wxArrayString valueEvent;
+	wxArrayString valueEvent;
 
 	wxArrayInt shortcutAction ;
 	wxArrayString shortcutKey ;

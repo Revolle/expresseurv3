@@ -86,7 +86,8 @@ private:
 	wxRect buttonPage;
 
 	void crc_init();
-	wxLonglong crc_cumulate_file(wxString fname);
+	wxLongLong crc_cumulate_file(wxString fname);
+	wxLongLong crc_cumulate_string(wxString buf);
 
 	wxDECLARE_EVENT_TABLE();
 

@@ -115,7 +115,8 @@ VOID crc_generate_table()
     	for(UINT j=0; j<8; ++j)
     	{
             // is current coefficient set?
-    		if(crc & 1)
+			wxLongLong alreadySet = crc & 1;
+    		if(alreadySet != 0)
             {
                 // yes, then assume it gets zero'd (by implied x^64 coefficient of dividend)
                 crc >>= 1;
@@ -196,13 +197,14 @@ VOID crc_generate_table()
 //
 //
 wxLongLong crc_value = 0 ;
-void crc_cumulate(PBYTE stream, UINT n)
+void crc_cumulate(char *stream, UINT n)
 {
 	// cumulate CRC of stream (lenght=n)
-    for(INT i=0; i<n; ++i)
+    for(UINT i=0; i<n; ++i)
     {
-        BYTE index = stream[i] ^ crc_value;
-        wxLongLong lookup = crc_table[index];
+        wxLongLong index = wxLongLong(stream[i]) ^ crc_value;
+		unsigned long ii = index.GetLo();
+        wxLongLong lookup = crc_table[ii];
 
         crc_value >>= 8;
         crc_value ^= lookup;
@@ -353,7 +355,7 @@ void musicxmlscore::cleanTmp()
 		}
 	}
 }
-static void musicxmlscore::cleanCache()
+void musicxmlscore::cleanCache()
 {
 	wxDir dir(wxFileName::GetTempDir());
 	if (dir.IsOpened())
@@ -361,7 +363,9 @@ static void musicxmlscore::cleanCache()
 		wxString filename;
 		wxFileName ft;
 		ft.SetPath(wxFileName::GetTempDir());
-		bool cont = dir.GetFirst(&filename, PREFIX_CACHE + "*.*", wxDIR_FILES);
+		wxString sn;
+		sn.Printf("%s*.*", PREFIX_CACHE);
+		bool cont = dir.GetFirst(&filename, sn , wxDIR_FILES);
 		while (cont)
 		{
 			ft.SetFullName(filename);
@@ -828,7 +832,7 @@ wxLongLong musicxmlscore::crc_cumulate_file(wxString fname)
     if( 0 != rc ) { fclose(fp); return crc_value; }
     if( 0 > (off_end = ftell(fp)) ) { fclose(fp); return crc_value; }
     fsz = (size_t)off_end;
-    buf = malloc( fsz+1);
+    buf = (char*)(malloc( fsz+1));
     if( NULL == buf ) { fclose(fp); return crc_value; }
     rewind(fp);
     if( fsz != fread(buf, 1, fsz, fp) ) {fclose(fp); free(buf); return crc_value; }
@@ -840,7 +844,7 @@ wxLongLong musicxmlscore::crc_cumulate_file(wxString fname)
 wxLongLong musicxmlscore::crc_cumulate_string(wxString s)
 {
 	// cumulate the 64bits CRC of the string
-	crc_cumulate(s.char_str(),s.lenght());
+	crc_cumulate(s.char_str(),s.Len());
 	return crc_value ;
 }
 bool musicxmlscore::newLayout(wxSize sizeClient)
@@ -913,7 +917,6 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		p++;
 	}
 
-	wxFileName fm;
 	fm.SetPath(wxFileName::GetTempDir());
 
 	// prepare the musicXml file to display
@@ -988,36 +991,36 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	crc_init();
 	crc_cumulate_file(xmlCompile->music_xml_displayed_file);
 	crc_cumulate_file(musescorescript);
-	wxString ssize ; ssize.printf("%d %d %d", sizeClient.GetX() , sizeClient.GetY(), fzoom ); crc_cumulate_string(ssize);
+	wxString ssize ; ssize.Printf("%d %d %d", sizeClient.GetX() , sizeClient.GetY(), fzoom ); crc_cumulate_string(ssize);
 	wxLongLong crc_this = crc_cumulate_string(command);
 	wxString crc_suffix ;
-	crc_suffix.printf("%ll",crc_this);
-	alreadyAvailable = false ;
-	crc_suffix.printf(".%ll",crc_this);
-	fm.SetName(PREFIX_CACHE + musescorepos.GetName() + crc_suffix);
-	fm.SetExt(musescorepos.GetExt());
+	crc_suffix.Printf(".%ll",crc_this);
+	bool alreadyAvailable = false;
+	wxFileName fnMusescorepos(musescorepos);
+	fm.SetName(PREFIX_CACHE + fnMusescorepos.GetName() + crc_suffix);
+	fm.SetExt(fnMusescorepos.GetExt());
 	if ( fm.FileExists())
 	{
 		// MuseScore result already available in cache. Let's reuse it
 		alreadyAvailable = true ;
-		if ( ! wxCopyFile(fm.GetFullPath(),musescorepos.GetFullPath()) ) alreadyAvailable = false ;
+		if ( ! wxCopyFile(fm.GetFullPath(), fnMusescorepos.GetFullPath()) ) alreadyAvailable = false ;
 		// copy pages
 		wxFileName fsource(musescorepng);
 		wxFileName fdest(musescorepng);
-		wxString fn;
-		int p = 1;
+		wxString ffn;
+		int pp = 1;
 		while (true)
 		{
-			fn.Printf("%s-%d", fsource.GetName(), p);
-			fsource.SetName(PREFIX_CACHE + fn + crc_suffix);
+			ffn.Printf("%s-%d", fsource.GetName(), pp);
+			fsource.SetName(PREFIX_CACHE + ffn + crc_suffix);
 			if (fsource.IsFileReadable())
 			{
-				fdest.SetName(fn);
+				fdest.SetName(ffn);
 				if ( ! wxCopyFile(fsource.GetFullPath(),fdest.GetFullPath()) ) alreadyAvailable = false ;
 			}
 			else
 				break;
-			p++;
+			pp++;
 		}
 	}
 	if ( ! alreadyAvailable)
@@ -1041,33 +1044,28 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 			wxSleep(1);
 		}
 		// cache this result for potential reuse
-		wxRmdir(crc_dir.GetPath());
-		alreadyAvailable = true ;
-		if ( wxMkdir(crc_dir.GetPath()) )
+		fm.SetName(PREFIX_CACHE + fnMusescorepos.GetName() + crc_suffix);
+		fm.SetExt(fnMusescorepos.GetExt());
+
+		if ( ! wxCopyFile(musescorepos,fm.GetFullPath()) ) alreadyAvailable = false ;
+
+		wxFileName fdest(musescorepng);
+		wxFileName fsource(musescorepng);
+		wxString ffn;
+		int pp = 1;
+		while (true)
 		{
-			crc_dir.SetFullName(musescorepos.GetFullName());
-			if ( ! wxCopyFile(musescorepos.GetFullPath(),crc_dir.GetFullPath()) ) alreadyAvailable = false ;
-			wxFileName fdest(crc_dir);
-			fdest.SetFullName(musescorepng.GetFullName());
-			wxFileName fsource(musescorepng);
-			wxString fn;
-			int p = 1;
-			while (true)
+			ffn.Printf("%s-%d", fsource.GetName(), pp);
+			fsource.SetName(ffn);
+			if (fsource.IsFileReadable())
 			{
-				fn.Printf("%s-%d", fsource.GetName(), p);
-				fsource.SetName(fn);
-				if (fsource.IsFileReadable())
-				{
-					fdest.SetName(fn);
-					if ( ! wxCopyFile(fsource.GetFullPath(),fdest.GetFullPath()) ) alreadyAvailable = false ;
-				}
-				else
-					break;
-				p++;
+				fdest.SetName(PREFIX_CACHE + ffn + crc_suffix);
+				if ( ! wxCopyFile(fsource.GetFullPath(),fdest.GetFullPath()) ) alreadyAvailable = false ;
 			}
+			else
+				break;
+			pp++;
 		}
-		if ( ! alreadyAvailable )
-			wxRmdir(crc_dir.GetPath());
 	}
 		
 	currentPageNrFull = -1;

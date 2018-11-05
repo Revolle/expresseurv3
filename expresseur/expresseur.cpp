@@ -184,7 +184,7 @@ enum
 	ID_MAIN_LIST_FILE = ID_MAIN + 100,  // large range for the files in the list
 	ID_MAIN_LIST_FILE_END = ID_MAIN_LIST_FILE + 99,  // large range for the files in the list
 	ID_MAIN_ACTION = ID_MAIN_LIST_FILE_END + 1, // large range for actions
-	ID_MAIN_ACTION_END = ID_MAIN_ACTION + 99 // large range for actions
+	ID_MAIN_ACTION_END = ID_MAIN_ACTION + 99 , // large range for actions
 	ID_MAIN_KEY_SHORTCUT = ID_MAIN_ACTION_END + 1, // large range for shortcuts
 	ID_MAIN_KEY_SHORTCUT_END = ID_MAIN_KEY_SHORTCUT + 99 // large range for shortcuts
 };
@@ -1055,8 +1055,8 @@ void Expresseur::SetMenuAction(bool all)
 	editMenu->Check(wxID_EDIT, editMode);
 
 	getLuaAction(all, newActionMenu);
-	newActionMenu->AddSeparator();
-	getShortcutAction(all, newActionMenu);
+	newActionMenu->AppendSeparator();
+	getShortcutAction(newActionMenu);
 
 	if ( all )
 		toolBar->Realize();
@@ -1376,13 +1376,13 @@ void Expresseur::ListUpdateMenu()
 		mfilelist->Check(false);
 		wxString slabel ;
 		if ( i < 9 )
-			slabel.printf("\tALT+%d\n",f.GetFullName(), i + 1 );
+			slabel.Printf("\tALT+%d\n",f.GetFullName(), i + 1 );
 		else if ( i == 9 )
-			slabel.printf("\tALT+%d\n",f.GetFullName() , 0);
+			slabel.Printf("\tALT+%d\n",f.GetFullName() , 0);
 		if ( i < 19 )
-			slabel.printf("\tSHIFT+ALT+%d\n",f.GetFullName() , i + 1 );
+			slabel.Printf("\tSHIFT+ALT+%d\n",f.GetFullName() , i + 1 );
 		else if ( i == 19 )
-			slabel.printf("\tSHIFT+ALT+%d\n",f.GetFullName(), 0);
+			slabel.Printf("\tSHIFT+ALT+%d\n",f.GetFullName(), 0);
 		if ( slabel.length() > 0 )
 			mfilelist->SetItemLabel(slabel);
 	}

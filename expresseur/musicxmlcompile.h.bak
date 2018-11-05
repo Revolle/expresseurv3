@@ -271,7 +271,6 @@ public:
 	wxString getTrackName(int nrTrack);
 	wxString getTrackId(int nrTrack);
 	int getTracksCount();
-	void setPlayVisible(wxString sin);
 	static void clearLuaScore();
 	wxString pitchToString(int p);
 	wxString pitchToString(wxArrayInt p);
