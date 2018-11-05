@@ -37,9 +37,6 @@ public:
 	void OnLocaloff(wxCommandEvent& WXUNUSED(event));
 	void OnAudioSetting(wxCommandEvent& WXUNUSED(event));
 	void OnZoom(wxCommandEvent& WXUNUSED(event));
-	void OnPlayviewSolo(wxCommandEvent& WXUNUSED(event));
-	void OnPlayview(wxCommandEvent& WXUNUSED(event));
-	void OnPlayviewAll(wxCommandEvent& WXUNUSED(event));
 	void OnOrnamentAddAbsolute(wxCommandEvent& WXUNUSED(event));
 	void OnOrnamentAddRelative(wxCommandEvent& WXUNUSED(event));
 	void OnPreviousPage(wxCommandEvent& WXUNUSED(event));

@@ -25,6 +25,8 @@ public:
 	wxXmlNode *GetXmlPath(wxXmlNode *parent, const wxString name, wxString *content);
 	bool getScorePosition(int *absolute_measure_nr, int *measure_nr, int *repeat , int *beat, int *t);
 
+	void setPlayVisible(wxString sin);
+
 	void initRecordPlayback();
 	void initPlayback();
 	void recordPlayback(wxLongLong time, int nr_device, int type_msg, int channel, int value1, int value2);
@@ -84,7 +86,7 @@ private:
 	wxRect buttonPage;
 
 	void crc_init();
-	UINT64 crc_cumulate_file(wxString fname);
+	wxLonglong crc_cumulate_file(wxString fname);
 
 	wxDECLARE_EVENT_TABLE();
 

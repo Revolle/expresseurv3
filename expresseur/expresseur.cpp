@@ -135,6 +135,18 @@ enum
 	ID_MAIN_ZOOM_2,
 	ID_MAIN_ZOOM_3,
 
+	ID_MAIN_PLAYVIEW,
+	ID_MAIN_SOLO0,
+	ID_MAIN_SOLO1,
+	ID_MAIN_SOLO2,
+	ID_MAIN_SOLO3,
+	ID_MAIN_SOLO4,
+	ID_MAIN_SOLO5,
+	ID_MAIN_SOLO6,
+	ID_MAIN_SOLO7,
+	ID_MAIN_SOLO8,
+	ID_MAIN_SOLO9,
+
 	ID_MAIN_LIST_PREVIOUS_FILE,
 	ID_MAIN_LIST_NEXT_FILE,
 
@@ -197,6 +209,9 @@ EVT_MENU(wxID_REDO, Expresseur::OnRedo)
 EVT_MENU(wxID_COPY, Expresseur::OnCopy)
 EVT_MENU(wxID_CUT, Expresseur::OnCut)
 EVT_MENU(wxID_PASTE, Expresseur::OnPaste)
+EVT_MENU_RANGE(ID_MAIN_SOLO1, ID_MAIN_SOLO9, Expresseur::OnPlayviewSolo)
+EVT_MENU(ID_MAIN_SOLO0, Expresseur::OnPlayviewAll)
+EVT_MENU(ID_MAIN_PLAYVIEW, Expresseur::OnPlayview)
 EVT_MENU_RANGE(ID_MAIN_UNZOOM_3, ID_MAIN_ZOOM_3, Expresseur::OnZoom)
 EVT_MENU(ID_MAIN_ORNAMENT_ADD_RELATIVE, Expresseur::OnOrnamentAddRelative)
 EVT_MENU(ID_MAIN_ORNAMENT_ADD_ABSOLUTE, Expresseur::OnOrnamentAddAbsolute)
@@ -393,6 +408,20 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	zoomMenu->AppendRadioItem(ID_MAIN_ZOOM_2, _("big"));
 	zoomMenu->AppendRadioItem(ID_MAIN_ZOOM_3, _("very big"));
 	editMenu->AppendSubMenu(zoomMenu , "Zoom");
+
+	wxMenu *viewplayMenu = new wxMenu;
+	viewplayMenu->Append(ID_MAIN_PLAYVIEW, _("Play/View ...\tCtrl+L"), _("Quick-select tracks to play/view in the score"));
+	viewplayMenu->Append(ID_MAIN_SOLO0, _("Play & View all tracks\tCtrl+0"), _("extraquick play/view all tracks"));
+	viewplayMenu->Append(ID_MAIN_SOLO1, _("Solo part 1\tCtrl+1"), _("extraquick solo play/view track #1"));
+	viewplayMenu->Append(ID_MAIN_SOLO2, _("Solo part 2\tCtrl+2"), _("extraquick solo play/view track #2"));
+	viewplayMenu->Append(ID_MAIN_SOLO3, _("Solo part 3\tCtrl+3"), _("extraquick solo play/view track #3"));
+	viewplayMenu->Append(ID_MAIN_SOLO4, _("Solo part 4\tCtrl+4"), _("extraquick solo play/view track #4"));
+	viewplayMenu->Append(ID_MAIN_SOLO5, _("Solo part 5\tCtrl+5"), _("extraquick solo play/view track #5"));
+	viewplayMenu->Append(ID_MAIN_SOLO6, _("Solo part 6\tCtrl+6"), _("extraquick solo play/view track #6"));
+	viewplayMenu->Append(ID_MAIN_SOLO7, _("Solo part 7\tCtrl+7"), _("extraquick solo play/view track #7"));
+	viewplayMenu->Append(ID_MAIN_SOLO8, _("Solo part 8\tCtrl+8"), _("extraquick solo play/view track #8"));
+	viewplayMenu->Append(ID_MAIN_SOLO9, _("Solo part 9\tCtrl+9"), _("extraquick solo play/view track #9"));
+	editMenu->AppendSubMenu(viewplayMenu, "View/Play score-tracks");
 
 	editMenu->AppendSeparator();
 	editMenu->AppendCheckItem(ID_MAIN_RECORD_PLAYBACK, _("record playback\tCTRL+R"), _("Start to record score playing"));
@@ -1231,6 +1260,35 @@ void Expresseur::OnZoom(wxCommandEvent& event)
 	// mlog_in("Expresseur / OnZoom / : displayFile");
 	mViewerscore->displayFile(mViewerscore->GetClientSize());
 }
+void Expresseur::OnPlayviewSolo(wxCommandEvent& event)
+{
+	if (mode != modeScore)
+		return;
+	int tracknr = event.GetId() - ID_MAIN_SOLO1;
+	wxString s;
+	s.Printf("%d/", tracknr);
+	((musicxmlscore*)mViewerscore)->setPlayVisible(s);
+	mViewerscore->displayFile(mViewerscore->GetClientSize());
+}
+void Expresseur::OnPlayviewAll(wxCommandEvent& event)
+{
+	if (mode != modeScore)
+		return;
+	((musicxmlscore*)mViewerscore)->setPlayVisible("*/");
+	mViewerscore->displayFile(mViewerscore->GetClientSize());
+}
+void Expresseur::OnPlayview(wxCommandEvent& event)
+{
+	if (mode != modeScore)
+		return;
+	wxTextEntryDialog mdialog(NULL, "Tracks to play/view.\n14 : play track#1 & #4\n* : play all tracks\n12/ play and view track #1 & #2\n1/2 play track #1 and view track #2\n/3 view track #3\n/* view all tracks\n*/ play and view all tracks", "Expresseur");
+	if (mdialog.ShowModal() == wxID_OK)
+	{
+		wxString s = mdialog.GetValue();
+		((musicxmlscore*)mViewerscore)->setPlayVisible(s);
+	}
+	mViewerscore->displayFile(mViewerscore->GetClientSize());
+}
 void Expresseur::OnOrnamentAddAbsolute(wxCommandEvent& WXUNUSED(event))
 {
 	ornamentAdd(true);
@@ -1277,7 +1335,6 @@ void Expresseur::ornamentAdd(bool absolute)
 	{
 		wxMessageBox("Error clipboard ...");
 	}
-
 }
 void Expresseur::OnEdit(wxCommandEvent& WXUNUSED(event))
 {

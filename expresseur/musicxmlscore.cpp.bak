@@ -799,8 +799,6 @@ void musicxmlscore::OnLeftDown(wxMouseEvent& event)
 }
 void musicxmlscore::gotoPosition()
 {
-	if (xmlCompile == NULL)
-		return;
 	wxTextEntryDialog mdialog(NULL, "Expresseur measure (prefix !). eg !12\nScore measure (optional repetion with *). eg 6*2 ( measure 6 2nd time)\nA label as described in the text file. eg A*2 (label A 2nd time)", "Expresseur");
 	if (mdialog.ShowModal() == wxID_OK)
 	{
@@ -1265,11 +1263,5 @@ bool musicxmlscore::playback()
 wxString musicxmlscore::getPlayback()
 {
 	return xmlCompile->getPlayback();
-}
-void musicxmlscore::setPlayVisible(wxString sin)
-{
-	if (xmlCompile == NULL)
-		return;
-	xmlCompile->setPlayVisible(sin);
 }
 

@@ -279,8 +279,29 @@ end
 function allNoteOff( t, bid, ch, pitch, velo )
   if ( velo or 64 ) > 0 then luabass.outAllNoteOff("n") end
 end
-function mainVolume( t, bid, ch, pitch, velo )
-  if ( velo or 64 ) > 0 then luabass.outSetVolume(velo) end
+function mainVolume( t, bid, ch, pitch, velo , paramString )
+  if  paramString and tonumber(paramString) then
+    luabass.outSetVolume(tonumber(paramString))
+  else
+    if velo and tonumber(velo) and tonumber(velo) > 0 then
+      luabass.outSetVolume(tonumber(velo)) 
+    end
+  end
+end
+function trackVolume( t, bid, ch, pitch, velo , paramString )
+  local trackNr
+  local ss = string.match(paramString or "1","%d+")
+  if  ss then
+	trackNr = tonumber(ss)
+	ss = string.match(paramString or "1","%d+", string.len(ss) + 1)
+	if  ss then
+		luabass.trackSetVolume(tonumber(ss),trackNr)
+	else
+		if velo and tonumber(velo) and tonumber(velo) > 0 then 
+			luabass.outSetVolume(tonumber(velo),trackNr) 
+		end
+	end
+  end
 end
 function nextFile( t, bid, ch, pitch, velo )
   if ( velo or 64 ) > 0 then info.next = 1 end
@@ -311,6 +332,7 @@ end
 actions = { 
   {name="global/all note off", callFunction = allNoteOff ,help="all note off", shortcut = "BACK" , icone = "all_note_off" },
   {name="global/main volume", callFunction = mainVolume },
+  {name="global/track volume", callFunction = trackVolume },
   {name="global/previous file",  help="go to previous file of the list", callFunction = previousFile  },
   {name="global/next file", help="go to next file of the list", 
     callFunction = nextFile , shortcut = "TAB", icone = "next_file" },
