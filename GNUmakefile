@@ -12,7 +12,7 @@ LDFLAGS  :=
 
 ifeq ($(PLATFORM),Darwin)
 	  
-    WX_CONFIG =../wxwidgets/build64/wx-config
+    WX_CONFIG =../wxWidgets/build64/wx-config
 
     CXXFLAGS := $(CXXFLAGS) -mmacosx-version-min=10.9 -D__MACOSX_CORE__
     LDFLAGS := $(LDFLAGS) -mmacosx-version-min=10.9
@@ -43,7 +43,7 @@ ifeq ($(PLATFORM),Linux)
 		
 		CPPFLAGS := $(CPPFLAGS) -O -fPIC -D__LINUX_ALSA__
 
-		WX_CONFIG=~/Documents/wxwidgets/buildgtk/wx-config
+		WX_CONFIG=~/Documents/wxWidgets/buildgtk/wx-config
 
     # dynamic library for basslua ( called by GUI expresseur )
     DYNLIB_EXT := dylib
@@ -55,9 +55,10 @@ ifeq ($(PLATFORM),Linux)
 
 		DIRPLATFORM := linux
 		LUADIR := $(DIRPLATFORM)/lua-5.3.4/src
-		RTMIDIDIR := ../rtmidi
+		RTMIDIDIR := $(DIRPLATFORM)/rtmidi
 		BASSDIR := $(DIRPLATFORM)/bass
-		VSTDIR := $(DIRPLATFORM)/vst2.x
+		MLOGDIR := mlog
+		VSTDIR := ../vst2.x
 
 		LUABASS_LIBS := -L$(BASSDIR) -lbass -lbassmidi -lbassmix -lrt -lm -ldl -lasound -lpthread
 		BASSLUA_LIBS := $(LUABASS_LIBS)  -L$(LUADIR) -llua 

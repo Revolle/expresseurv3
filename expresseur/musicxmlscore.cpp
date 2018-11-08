@@ -106,13 +106,13 @@ wxLongLong crc_poly = 0xC96C5795D7870F42;
 //
 wxLongLong crc_table[256];
 
-VOID crc_generate_table()
+void crc_generate_table()
 {
-    for(UINT i=0; i<256; ++i)
+    for(uint i=0; i<256; ++i)
     {
     	wxLongLong crc = i;
 
-    	for(UINT j=0; j<8; ++j)
+    	for(uint j=0; j<8; ++j)
     	{
             // is current coefficient set?
 			wxLongLong alreadySet = crc & 1;
@@ -197,10 +197,10 @@ VOID crc_generate_table()
 //
 //
 wxLongLong crc_value = 0 ;
-void crc_cumulate(char *stream, UINT n)
+void crc_cumulate(char *stream, uint n)
 {
 	// cumulate CRC of stream (lenght=n)
-    for(UINT i=0; i<n; ++i)
+    for(uint i=0; i<n; ++i)
     {
         wxLongLong index = wxLongLong(stream[i]) ^ crc_value;
 		unsigned long ii = index.GetLo();

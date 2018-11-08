@@ -1637,7 +1637,7 @@ void musicxmlcompile::setPlayVisible(wxString sin)
 	}
 	if (changePlay)
 	{
-		for (int i = 0; i < compiled_score->part_list->score_parts.GetCount() && (i < 9 ); i++)
+		for (unsigned int i = 0; i < compiled_score->part_list->score_parts.GetCount() && (i < 9 ); i++)
 		{
 			c_score_part *current = compiled_score->part_list->score_parts[i];
 			if (splay == "*")
@@ -1652,7 +1652,7 @@ void musicxmlcompile::setPlayVisible(wxString sin)
 	}
 	if (changeVisible)
 	{
-		for (int i = 0; i < compiled_score->part_list->score_parts.GetCount() && (i < 9); i++)
+		for (unsigned int i = 0; i < compiled_score->part_list->score_parts.GetCount() && (i < 9); i++)
 		{
 			c_score_part *current = compiled_score->part_list->score_parts[i];
 			if (svisible == "*")
@@ -4307,9 +4307,9 @@ bool musicxmlcompile::getTrackPlay(int nrTrack)
 }
 wxArrayInt musicxmlcompile::getTracksPlay()
 {
-	if (!isOk())
-		return false;
 	wxArrayInt a;
+	if (!isOk())
+		return a;
 	int nr;
 	int nb = getTracksCount();
 	l_score_part::iterator iter;
@@ -4330,9 +4330,9 @@ bool musicxmlcompile::getTrackDisplay(int nrTrack)
 }
 wxArrayInt musicxmlcompile::getTracksDisplay()
 {
-	if (!isOk())
-		return false;
 	wxArrayInt a;
+	if (!isOk())
+		return a;
 	int nr;
 	int nb = getTracksCount();
 	l_score_part::iterator iter;

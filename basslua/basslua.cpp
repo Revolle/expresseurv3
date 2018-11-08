@@ -21,6 +21,7 @@
 
 //////////////////////////////////////////////
 
+
 #ifdef _WIN32
 #define V_PC 1
 #endif
@@ -1249,8 +1250,8 @@ static void mutex_in_init()
 	}
 #endif
 #ifdef V_LINUX
-	{
 	if (pthread_mutex_init(&g_mutex_in, NULL) != 0)
+	{
 		mlog_in("pthread_mutex_init : error mutex_in_init");
 		g_mutex_in_ok = false ;
 	}

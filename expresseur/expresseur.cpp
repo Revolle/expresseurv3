@@ -284,7 +284,9 @@ bool tobeMaximized = false;
 bool MyApp::OnInit()
 {
     if ( !wxApp::OnInit() )
+    {
         return false;
+    }
 
 	SetAppName(APP_NAME);
 

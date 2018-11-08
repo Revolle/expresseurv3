@@ -2097,10 +2097,13 @@ static bool sendmsgdt(const T_midioutmsg midioutmsg)
 
 	bool retCode = true;
     if (midioutmsg.dt == 0)
+    {
 		retCode = sendmsg(midioutmsg);
+    }
     else
+    {
         queue_insert(midioutmsg);
-
+    }
 	return(retCode);
 }
 static int mvi_open(const char *fname, int nr_deviceaudio, int volume,bool sf2)

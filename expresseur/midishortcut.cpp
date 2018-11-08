@@ -683,7 +683,7 @@ wxArrayString midishortcut::getShortcuts()
 	wxArrayString ls ;
 	for (unsigned int nrSelector = 0; nrSelector < valueAction.GetCount(); nrSelector++)
 	{
-		for(unsigned int nrShortcut = 0 ; nrShortcut < valueKey[nrSelector].length() ; nrShortcut)
+		for(unsigned int nrShortcut = 0 ; nrShortcut < valueKey[nrSelector].length() ; nrShortcut++)
 		{
 			wxString cs = valueKey[nrSelector] ;
 			cs.MakeUpper() ;
@@ -702,7 +702,7 @@ wxArrayString midishortcut::getShortcuts()
 }
 void midishortcut::onShortcut(int nrShortcut)
 {
-	if ((nrShortcut < 0 ) || ( nrShortcut >= shortcutAction.GetCount()))
+	if ((nrShortcut < 0 ) || ( nrShortcut >= (int)(shortcutAction.GetCount())))
 		return ;
 	
 	if ( prevShortcutAction >= 0)
