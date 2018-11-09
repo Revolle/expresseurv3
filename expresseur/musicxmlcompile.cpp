@@ -1666,28 +1666,35 @@ void musicxmlcompile::setPlayVisible(wxString sin)
 		}
 	}
 
+
 	// remove an existing Expresseur Part
 	removeExpresseurPart();
 
-
 	// build the sequence of measures in the compiled parts
 	addExpresseurPart();
+
+	wxMessageBox("buildMeasures","setPlayVisible changeVisible");
 	buildMeasures();
 
 	// compile the score and build the notes to play in lMusicxmlevents
+	wxMessageBox("compileScore","setPlayVisible changeVisible");
 	compileScore();
 
 	//  add lOrnaments in the notes to play in lMusicxmlevents
+	wxMessageBox("addOrnaments","setPlayVisible changeVisible");
 	addOrnaments();
 	// lMusicxmlevents contains the notes to play. Compile lMusicxmlevents
+	wxMessageBox("compileMusicxmlevents","setPlayVisible changeVisible");
 	compileMusicxmlevents();
 
 	// add the part for Expresseur, according to lMusicxmlevents
+	wxMessageBox("compileExpresseurPart","setPlayVisible changeVisible");
 	compileExpresseurPart();
 
 	nbEvents = lMusicxmlevents.GetCount();
 
 	// push the events to play to the LUA-script
+	wxMessageBox("pushLuaMusicxmlevents","setPlayVisible changeVisible");
 	pushLuaMusicxmlevents();
 }
 void musicxmlcompile::readMarks(bool full)

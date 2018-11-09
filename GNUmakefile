@@ -41,7 +41,7 @@ ifeq ($(PLATFORM),Darwin)
 else
 ifeq ($(PLATFORM),Linux)
 		
-		CPPFLAGS := $(CPPFLAGS) -O -fPIC -D__LINUX_ALSA__
+		CPPFLAGS := $(CPPFLAGS) -O -fPIC -D__LINUX_ALSA__ 
 
 		WX_CONFIG=~/Documents/wxWidgets/buildgtk/wx-config
 
@@ -60,9 +60,12 @@ ifeq ($(PLATFORM),Linux)
 		MLOGDIR := mlog
 		VSTDIR := ../vst2.x
 
-		LUABASS_LIBS := -L$(BASSDIR) -lbass -lbassmidi -lbassmix -lrt -lm -ldl -lasound -lpthread
-		BASSLUA_LIBS := $(LUABASS_LIBS)  -L$(LUADIR) -llua 
-		EXPRESSCMD_LIBS := -lrt -lm -ldl -Wl,-rpath=$(BASSDIR),-rpath=basslua
+		MORIGIN := $$ORIGIN
+		EXPRESS_LIBPATH := -Wl,-rpath=$(BASSDIR),-rpath=../$(BASSDIR),-rpath=basslua,-rpath=luabass
+
+		LUABASS_LIBS := -L$(BASSDIR) -lbass -lbassmidi -lbassmix -lrt -lm -ldl -lasound -lpthread $(EXPRESS_LIBPATH)
+		BASSLUA_LIBS := $(LUABASS_LIBS)  -L$(LUADIR) -llua $(EXPRESS_LIBPATH)
+		EXPRESSCMD_LIBS := -lrt -lm -ldl $(EXPRESS_LIBPATH)
 		EXPRESSEUR_LIBS := $(shell $(WX_CONFIG) --libs base,net,core,adv,xml) $(EXPRESSCMD_LIBS) 
 		EXPRESSEURCONTENT := $(EXPRESSEURAPP)/Contents/Linux
 		EXPRESSEURRESOURCES := $(EXPRESSEURAPP)/Contents/Resources
