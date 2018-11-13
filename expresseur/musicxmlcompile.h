@@ -2,6 +2,12 @@
 
 #define DEF_MUSICXMLCOMPILE
 
+#define END_OF_THE_SCORE "END_OF_THE_SCORE"
+#define PART_PLAYED "played"
+#define PART_NOT_PLAYED "not played"
+#define PART_VISIBLE "visible"
+#define PART_NOT_VISIBLE "not visible"
+
 // class to have a list of lMeasureMarks
 ///////////////////////////////////////
 class c_measureMark
@@ -251,12 +257,15 @@ public:
 	~musicxmlcompile();
 	bool isModified = true;
 	wxFileName loadTxtFile(wxFileName txtfile);
-	void setNameFile(wxFileName txtfile,wxFileName xmlfile);
+	void setNameFile(wxFileName txtfile, wxFileName xmlfile);
+	wxFileName getNameTxtFile();
+	wxFileName getNameXmlFile();
 	bool loadXmlFile(wxString xmlfilein,bool useMarkFile = true);
 	bool isOk(bool compiled_score = false);
 	bool getPosEvent(int nrEvent, int *pageNr, wxRect *rect , bool *turn );
 	void setPosEvent(int nrMeasure, int t480, int pageNr, wxRect rect);
 	void setMeasureTurnEvent(int nrMeasure, bool clean = false);
+	int getPartNr(wxString spart, int *partNb = NULL);
 	int pageToEventNr(int pageNr);
 	int pointToEventNr(int pageNr , wxPoint p);
 	int stringToEventNr(wxString s);
@@ -271,7 +280,6 @@ public:
 	wxString getTrackName(int nrTrack);
 	wxString getTrackId(int nrTrack);
 	int getTracksCount();
-	void setPlayVisible(wxString sin);
 	static void clearLuaScore();
 	wxString pitchToString(int p);
 	wxString pitchToString(wxArrayInt p);
@@ -289,7 +297,7 @@ public:
 
 private:
 	void dump_musicxmlevents();
-	void compile(bool reanalyse);
+	void compileScore(bool reanalyse);
 	void writeMarks();
 	void readMarks(bool full = true);
 	bool readMarkLine(wxString line, wxString sectionName);
@@ -302,7 +310,6 @@ private:
 	void analyseNoteOrnaments(c_note *note, int measureNumber, int t);
 	void sortMeasureMarks();
 	int getDivision(int measure_nr, int *division_quarter, int *division_measure);
-	int getPartNr(wxString spart, int *partNb = NULL);
 	int compileNote(c_part *part,c_note *note, int measureNr, int originalMeasureNr, int t, int division_measure, int division_beat, int division_quarter, int repeat, int key_fifths);
 	void compileTie(c_part *part, c_note *note, int *measureNr, int *t, int nbDivision);
 	void compileMusicxmlevents(bool second_time = false);
@@ -350,6 +357,7 @@ private:
 	wxLongLong t0RecordPlayback ;
 	wxLongLong timeReadPlayback;
 	int ratioPlayback;
+
 
 };
 

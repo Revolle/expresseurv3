@@ -52,7 +52,7 @@ wxEND_EVENT_TABLE()
 editshortcut::editshortcut(wxWindow *parent, wxWindowID id, const wxString &title,
 wxString *lname,
 wxString *laction, wxArrayString nameAction,
-wxString *lkey,
+wxString *lkey, wxArrayString nameKey,
 wxString *ldevice, wxArrayString nameDevice,
 wxString *lchannel, wxArrayString nameChannel,
 wxString *levent, wxArrayString nameEvent,
@@ -83,12 +83,9 @@ wxString *lstopOnMatch, wxArrayString nameStopOnMatch
 	fName->SetToolTip(_("Any name. Free text"));
 	fieldsizer->Add(fName, sizerFlagMaximumPlace);
 
-	fieldsizer->Add(new wxStaticText(this, wxID_ANY, _("Key shortcuts")), sizerFlagMinimumPlace);
-	wxTextCtrl *fkey = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, 0, wxTextValidator(wxFILTER_NONE, lkey));
-	wxString s, s1;
-	s1 = _("If max-value is specified, midi-msg will have data1 dispatched between min-value and max-value\nIf Max-value is not specified, midi-msg will have data1=min-value and data2 dispatched between 0 and 127");
-	s.Printf("%s\n%s", _("Keystroke trigger"), s1);
-	fkey->SetToolTip(s);
+	fieldsizer->Add(new wxStaticText(this, wxID_ANY, _("ALT+Keyboard-shortcut")), sizerFlagMinimumPlace);
+	wxChoice *fkey = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,nameKey, 0, wxGenericValidator(lkey));
+	fkey->SetToolTip("a key from the computer keyboard, to be adde din the menu Action");
 	fieldsizer->Add(fkey, sizerFlagMaximumPlace);
 
 	fieldsizer->Add(new wxStaticText(this, wxID_ANY, _("Device")), sizerFlagMinimumPlace);
@@ -113,8 +110,7 @@ wxString *lstopOnMatch, wxArrayString nameStopOnMatch
 
 	fieldsizer->Add(new wxStaticText(this, wxID_ANY, _("Max Value")), sizerFlagMinimumPlace);
 	wxChoice *fMax = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameValueMax, 0, wxGenericValidator(lmax));
-	s.Printf("%s\n%s", _("Maximum value (included ) for the pitch of the note, control number, or program number"), s1);
-	fMax->SetToolTip(s);
+	fMax->SetToolTip(_("Maximum value (included ) for the pitch of the note, control number, or program number"));
 	fieldsizer->Add(fMax, sizerFlagMaximumPlace);
 
 	fieldsizer->Add(new wxStaticText(this, wxID_ANY, _("Action")), sizerFlagMinimumPlace);

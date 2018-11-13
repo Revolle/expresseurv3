@@ -16,6 +16,7 @@
 #define LIST_RECT "list of rectangles ExpresseurV3"
 
 #define CONFIG_TIMERDT "/timerdtms"
+#define CONFIG_DAYCACHE "/daycache"
 
 #define CONFIG_VERSION_CHECKED "/versionchecked"
 #define CONFIG_END_OK "/end_ok"

@@ -107,6 +107,7 @@ bool basslua_getLog(char *buf);
 
 void basslua_setSelector(int i, int luaNrAction, char op, int nrDevice, int nrChannel, const char *type_msg, const int *pitch, int nbPitch, bool stopOnMatch , const char* param );
 bool basslua_selectorSearch(int nrDevice, int nrChannel, int type_msg, int p, int v);
+bool basslua_selectorTrigger(int nr_selector,int nrDevice, int nrChannel, int type_msg, int d1, int d2);
 void basslua_playbackmsg(int midinr, int type_msg, int channel, int value1, int value2);
 void basslua_setMode(int mode);
 

@@ -18,7 +18,7 @@ public:
 	void OnLeftDown(wxMouseEvent& event);
 	bool isOk();
 	void cleanTmp();
-	static void cleanCache();
+	static void cleanCache(int nbDayCache);
 
 	void xmlProcessScore();
 	void xmlProcessPartList(wxXmlNode *xmlParentIn, wxXmlNode *xmlParentOut);

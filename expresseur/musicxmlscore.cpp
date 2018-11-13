@@ -109,11 +109,11 @@ wxULongLong crc_table[256];
 
 void crc_generate_table()
 {
-    for(uint i=0; i<256; ++i)
+    for(unsigned int i=0; i<256; ++i)
     {
     	wxULongLong crc = i;
 
-    	for(uint j=0; j<8; ++j)
+    	for(unsigned int j=0; j<8; ++j)
     	{
             // is current coefficient set?
 			wxULongLong alreadySet = crc & 1;
@@ -198,10 +198,10 @@ void crc_generate_table()
 //
 //
 wxULongLong crc_value = 0 ;
-void crc_cumulate(char *stream, uint n)
+void crc_cumulate(char *stream, unsigned int n)
 {
 	// cumulate CRC of stream (lenght=n)
-    for(uint i=0; i<n; ++i)
+    for(unsigned int i=0; i<n; ++i)
     {
     	wxULongLong mc = wxULongLong(stream[i]);
         wxULongLong index = mc ^ crc_value;
@@ -233,7 +233,7 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 	mConf = lconf;
 	nrChord = -1;
 	xmlName.Clear();
-	
+
 	inch = (float)(DEF_INCH) * ((float)(mConf->get(CONFIG_CORRECTINCH, 1000))/1000.0) / 1000.0;
 	musescore_def_xml = (bool)(MUSE_SCORE_DEF_XML) ;
 
@@ -357,13 +357,13 @@ void musicxmlscore::cleanTmp()
 		}
 	}
 }
-void musicxmlscore::cleanCache()
+void musicxmlscore::cleanCache(int nbDayCache)
 {
 	wxDir dir(wxFileName::GetTempDir());
 	if (dir.IsOpened())
 	{
 		wxDateTime mlimitdate = wxDateTime::Now();
-		mlimitdate.Subtract(wxDateSpan(0,0,2,0)); 	
+		mlimitdate.Subtract(wxDateSpan(0, 0, 0, nbDayCache));
 		wxString filename;
 		wxFileName ft;
 		ft.SetPath(wxFileName::GetTempDir());
@@ -1311,8 +1311,166 @@ wxString musicxmlscore::getPlayback()
 }
 void musicxmlscore::setPlayVisible(wxString sin)
 {
-	if (xmlCompile == NULL)
+	if (!isOk())
 		return;
-	xmlCompile->setPlayVisible(sin);
+	// analyse sin , to select tracks to be play/view
+	// 2/4 : play 2 / view 4
+	// 34 : play 3 & 4
+	// /12 : view 1 & 2
+	// 23/ : play/view 2 & 3
+	// */ : play view all
+	// * : play all
+	// /* : view all
+	wxString overwriteListPlay;
+	wxString overwriteListVisible;
+	bool overwritePlay = false;
+	bool overwriteVisible = false;
+
+	overwritePlay = true;
+	overwriteVisible = false;
+	overwriteListPlay.Empty();
+	overwriteListVisible.Empty();
+
+	if (sin.Contains("/"))
+	{
+		if (sin.Left(1) == "/")
+		{
+			overwritePlay = false;
+			overwriteVisible = true;
+			overwriteListPlay = "";
+			overwriteListVisible = sin.Mid(1);
+		}
+		else
+		{
+			if (sin.Right(1) == "/")
+			{
+				overwritePlay = true;
+				overwriteVisible = true;
+				overwriteListPlay = sin.Mid(0, sin.Length() - 1);
+				overwriteListVisible = overwriteListPlay;
+			}
+			else
+			{
+				overwritePlay = true;
+				overwriteVisible = true;
+				int pos = sin.Find('/');
+				overwriteListPlay = sin.Left(pos);
+				overwriteListVisible = sin.Mid(pos + 1);
+			}
+		}
+	}
+	else
+	{
+		overwritePlay = true;
+		overwriteVisible = false;
+		overwriteListPlay = sin;
+		overwriteListVisible = "";
+	}
+
+	wxFileName txtFile = xmlCompile->getNameTxtFile();
+	wxTextFile f;
+	f.Open(txtFile.GetFullPath());
+	if (f.IsOpened() == false)
+		return;
+	wxString line;
+	wxString sectionName;
+	int line_nb = f.GetLineCount();
+	for (int line_nr = 0; line_nr < line_nb; line_nr++)
+	{
+		line = f.GetLine(line_nr);
+		wxString s = line.Upper().Trim();
+		// ret_code = true;
+		if ((s.IsEmpty() == false) && (s.StartsWith(COMMENT_EXPRESSEUR) == false))
+		{
+			if (s.StartsWith(SET_MUSICXML_FILE))
+			{
+				sectionName = "";
+			}
+			else if (s.StartsWith(SET_TITLE))
+			{
+				sectionName = "";
+			}
+			else if (s.StartsWith(SET_PLAY_MARKS))
+			{
+				sectionName = "";
+			}
+			else if (s.StartsWith(SET_MARKS))
+			{
+				sectionName = "";
+			}
+			else if (s.StartsWith(SET_PARTS))
+			{
+				sectionName = SET_PARTS;
+			}
+			else if (s.StartsWith(SET_ORNAMENTS))
+			{
+				sectionName = "";
+			}
+			else if (s.StartsWith(SET_PLAYBACK))
+			{
+				sectionName = "";
+			}
+			else 
+			{
+				if (sectionName == SET_PARTS)
+				{
+					int partNr = xmlCompile->getPartNr(line);
+					if ((partNr != wxNOT_FOUND) && (partNr >= 0) && (partNr < 9))
+					{
+						wxString spart;
+						spart.Printf("%d", partNr + 1);
+						bool changeLine = false;
+						if (overwritePlay)
+						{
+							if ((overwriteListPlay.Contains(spart)) || (overwriteListPlay == "*"))
+							{
+								if (line.Replace(PART_NOT_PLAYED, PART_PLAYED, false) > 0)
+								{
+									changeLine = true;
+								}
+							}
+							else
+							{
+								if (line.Contains(PART_NOT_PLAYED) == false)
+								{
+									if (line.Replace(PART_PLAYED, PART_NOT_PLAYED, false) > 0)
+									{
+										changeLine = true;
+									}
+								}
+							}
+						}
+						if (overwriteVisible)
+						{
+							if ((overwriteListVisible.Contains(spart)) || (overwriteListVisible == "*"))
+							{
+								if (line.Replace(PART_NOT_VISIBLE, PART_VISIBLE, false) > 0)
+								{
+									changeLine = true;
+								}
+							}
+							else
+							{
+								if (line.Contains(PART_NOT_VISIBLE) == false)
+								{
+									if (line.Replace(PART_VISIBLE, PART_NOT_VISIBLE, false) > 0)
+									{
+										changeLine = true;
+									}
+								}
+							}
+						}
+						if (changeLine)
+						{
+							f.RemoveLine(line_nr);
+							f.InsertLine(line, line_nr);
+						}
+					}
+				}
+			}
+		}
+	}
+	f.Write();
+	f.Close();
 }
 

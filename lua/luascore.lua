@@ -667,7 +667,7 @@ function dumpScore()
   for nrEvent=1 , #(score.events) ,  1 do
     local t = score.events[nrEvent]
     io.write( "#" .. nrEvent.."/"..t[eStartMeasureNr].."."..t[eStartT].."/"..luachord.pitchToString(t[ePitch]) ," Played="..t[ePlayed]," Visible="..t[eVisible], "\n")
-    io.write( "          TrackNr#"..t[eTrackNr]," Pitch#"..t[ePitch]," velo#"..t[eVelocity]," Delay="..t[eDelay],"\n")
+    io.write( "          TrackNr#"..t[eTrackNr]," Pitch#"..t[ePitch]," velo#"..t[eVelocity]," Delay="..t[eDelay]," Pedal="..t[ePedal],"\n")
     if t[eStopIndex] > 0 then
     io.write( "          StopIndex           #" .. t[eStopIndex], "\n")
     end

@@ -278,7 +278,7 @@ IMPLEMENT_APP(MyApp)
 Expresseur *frame = NULL;
 wxRect rectFrame;
 bool tobeMaximized = false;
-
+ 
 // The `main program' equivalent, creating the windows and returning the
 // main frame
 bool MyApp::OnInit()
@@ -324,12 +324,8 @@ bool MyApp::OnInit()
 
 	// wxMessageBox(wxFileName::GetTempDir(), "TempDir");
 
-	// start to propose something to the user ( wizard, bug managmnt, new hardware config .. )
-	frame->postInit();
-
   return true;
 }
-
 
 Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const wxPoint& pos,const wxSize& size,long style)
  :wxFrame(parent, id, title, pos, size, style)
@@ -412,17 +408,17 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	editMenu->AppendSubMenu(zoomMenu , "Zoom");
 
 	wxMenu *viewplayMenu = new wxMenu;
-	viewplayMenu->Append(ID_MAIN_PLAYVIEW, _("Play/View ...\tCtrl+L"), _("Quick-select tracks to play/view in the score"));
-	viewplayMenu->Append(ID_MAIN_SOLO0, _("Play & View all tracks\tCtrl+0"), _("extraquick play/view all tracks"));
-	viewplayMenu->Append(ID_MAIN_SOLO1, _("Solo part 1\tCtrl+1"), _("extraquick solo play/view track #1"));
-	viewplayMenu->Append(ID_MAIN_SOLO2, _("Solo part 2\tCtrl+2"), _("extraquick solo play/view track #2"));
-	viewplayMenu->Append(ID_MAIN_SOLO3, _("Solo part 3\tCtrl+3"), _("extraquick solo play/view track #3"));
-	viewplayMenu->Append(ID_MAIN_SOLO4, _("Solo part 4\tCtrl+4"), _("extraquick solo play/view track #4"));
-	viewplayMenu->Append(ID_MAIN_SOLO5, _("Solo part 5\tCtrl+5"), _("extraquick solo play/view track #5"));
-	viewplayMenu->Append(ID_MAIN_SOLO6, _("Solo part 6\tCtrl+6"), _("extraquick solo play/view track #6"));
-	viewplayMenu->Append(ID_MAIN_SOLO7, _("Solo part 7\tCtrl+7"), _("extraquick solo play/view track #7"));
-	viewplayMenu->Append(ID_MAIN_SOLO8, _("Solo part 8\tCtrl+8"), _("extraquick solo play/view track #8"));
-	viewplayMenu->Append(ID_MAIN_SOLO9, _("Solo part 9\tCtrl+9"), _("extraquick solo play/view track #9"));
+	viewplayMenu->Append(ID_MAIN_PLAYVIEW, _("Play/View ...\tCTRL+L"), _("Quick-select tracks to play/view in the score"));
+	viewplayMenu->Append(ID_MAIN_SOLO0, _("Play & View all tracks\tALT+0"), _("extraquick play/view all tracks"));
+	viewplayMenu->Append(ID_MAIN_SOLO1, _("Solo part 1\tALT+1"), _("extraquick solo play/view track #1"));
+	viewplayMenu->Append(ID_MAIN_SOLO2, _("Solo part 2\tALT+2"), _("extraquick solo play/view track #2"));
+	viewplayMenu->Append(ID_MAIN_SOLO3, _("Solo part 3\tALT+3"), _("extraquick solo play/view track #3"));
+	viewplayMenu->Append(ID_MAIN_SOLO4, _("Solo part 4\tALT+4"), _("extraquick solo play/view track #4"));
+	viewplayMenu->Append(ID_MAIN_SOLO5, _("Solo part 5\tALT+5"), _("extraquick solo play/view track #5"));
+	viewplayMenu->Append(ID_MAIN_SOLO6, _("Solo part 6\tALT+6"), _("extraquick solo play/view track #6"));
+	viewplayMenu->Append(ID_MAIN_SOLO7, _("Solo part 7\tALT+7"), _("extraquick solo play/view track #7"));
+	viewplayMenu->Append(ID_MAIN_SOLO8, _("Solo part 8\tALT+8"), _("extraquick solo play/view track #8"));
+	viewplayMenu->Append(ID_MAIN_SOLO9, _("Solo part 9\tALT+9"), _("extraquick solo play/view track #9"));
 	editMenu->AppendSubMenu(viewplayMenu, "View/Play score-tracks");
 
 	editMenu->AppendSeparator();
@@ -524,12 +520,15 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	topSizer->Add(sizer_scroll_vertical, wxSizerFlags().Expand().Proportion(1));
 	SetSizer(topSizer);
 
+	// start to propose something to the user ( wizard, bug managmnt, new hardware config .. )
+	mtimer = new wxTimer(this, ID_MAIN_TIMER);
+	mtimer->Start(500);
 }
 Expresseur::~Expresseur()
 {
 	checkUpdate();
 
-	musicxmlscore::cleanCache();
+	musicxmlscore::cleanCache(mConf->get(CONFIG_DAYCACHE, 15));
 	
 	if ( fileHistory)
 		fileHistory->Save(*mConf->getConfig());
@@ -610,7 +609,7 @@ void Expresseur::preClose()
 }
 void Expresseur::postInit()
 {
-	preClose();
+	//preClose();
 
 	// check if it the first use ( for intialization, wizard, .. )
 	initFirstUse(false);
@@ -640,8 +639,7 @@ void Expresseur::postInit()
 	mViewerscore = new emptyscore(this, wxID_ANY, mConf);
 	setOrientation(posScrollVertical, posScrollHorizontal);
 
-	mtimer = new wxTimer(this, ID_MAIN_TIMER);
-	FileOpen();
+	FileOpen(true);
 }
 void Expresseur::setRightDisplay(bool right)
 {
@@ -895,6 +893,12 @@ bool Expresseur::timerTask(bool compile, bool refreshScreen)
 }
 void Expresseur::OnTimer(wxTimerEvent& WXUNUSED(event))
 {
+	if (firstTimer)
+	{
+		postInit();
+		firstTimer = false;
+		return;
+	}
 	bool quick = timerTask(waitToCompile == 1, waitToRefresh == 1);
 	if (waitToCompile > 0)
 		waitToCompile--;
@@ -908,11 +912,11 @@ void Expresseur::setWindowsTitle()
 	SetTitle(APP_NAME << wxString(" - ") << fileName.GetFullName()); // Set the Title to reflect the file open
 
 }
-void Expresseur::FileOpen()
+void Expresseur::FileOpen(bool all)
 {
 	if (fileName.IsFileReadable())
 	{
-		if (settingReset(false))
+		if (settingReset(all))
 		{
 			fileHistory->AddFileToHistory(fileName.GetFullPath());
 			ListCheck();
@@ -983,8 +987,11 @@ void Expresseur::getLuaAction(bool all, wxMenu *newActionMenu)
 }
 void Expresseur::getShortcutAction(wxMenu *newActionMenu)
 {
-	if ((newActionMenu == NULL) || (mMidishortcut == NULL))
+	if (newActionMenu == NULL)
 		return ;
+	if (mMidishortcut == NULL)
+		return;
+
 	// get the list of shortcuts : name+ALT+key
 	wxArrayString ls = mMidishortcut->getShortcuts();
 	for (unsigned int nrSelector = 0; nrSelector < ls.GetCount(); nrSelector++)
@@ -1206,7 +1213,6 @@ void Expresseur::OnExit(wxCommandEvent& WXUNUSED(event))
 	}
 	Close(true);
 }
-
 void Expresseur::OnUndo(wxCommandEvent& WXUNUSED(event)) 
 {
 	mTextscore->Undo();
@@ -1235,14 +1241,14 @@ void Expresseur::setZoom()
 		if (typeViewer == MUSICXMLVIEWER)
 		{
 			zoom = mConf->get(CONFIG_ZOOM_MUSICXML, 0);
-			mTextscore->zoom(0);
+			//mTextscore->zoom(0);
 			mViewerscore->zoom(zoom);
 		}
 		else
 		{
 			zoom = mConf->get(CONFIG_ZOOM_TEXT, 0);
 			mTextscore->zoom(zoom);
-			mViewerscore->zoom(0);
+			//mViewerscore->zoom(0);
 		}
 		wxMenuItem *mmenuItem = zoomMenu->FindChildItem(zoom + ID_MAIN_ZOOM_0);
 		if (mmenuItem)
@@ -1262,24 +1268,30 @@ void Expresseur::OnZoom(wxCommandEvent& event)
 	// mlog_in("Expresseur / OnZoom / : displayFile");
 	mViewerscore->displayFile(mViewerscore->GetClientSize());
 }
+void Expresseur::setPlayView(wxString s)
+{
+	((musicxmlscore*)mViewerscore)->setPlayVisible(s);
+	mTextscore->setFile(fileName);
+	fileName.SetExt(SUFFIXE_TEXT);
+	mViewerscore->setFile(fileName);
+	mViewerscore->displayFile(mViewerscore->GetClientSize());
+}
 void Expresseur::OnPlayviewSolo(wxCommandEvent& event)
 {
 	if (mode != modeScore)
 		return;
 	int tracknr = event.GetId() - ID_MAIN_SOLO1;
 	wxString s;
-	s.Printf("%d/", tracknr);
-	((musicxmlscore*)mViewerscore)->setPlayVisible(s);
-	mViewerscore->displayFile(mViewerscore->GetClientSize());
+	s.Printf("%d/", tracknr + 1);
+	setPlayView(s);
 }
-void Expresseur::OnPlayviewAll(wxCommandEvent& event)
+void Expresseur::OnPlayviewAll(wxCommandEvent& WXUNUSED(event))
 {
 	if (mode != modeScore)
 		return;
-	((musicxmlscore*)mViewerscore)->setPlayVisible("*/");
-	mViewerscore->displayFile(mViewerscore->GetClientSize());
+	setPlayView("*/");
 }
-void Expresseur::OnPlayview(wxCommandEvent& event)
+void Expresseur::OnPlayview(wxCommandEvent& WXUNUSED(event))
 {
 	if (mode != modeScore)
 		return;
@@ -1287,9 +1299,8 @@ void Expresseur::OnPlayview(wxCommandEvent& event)
 	if (mdialog.ShowModal() == wxID_OK)
 	{
 		wxString s = mdialog.GetValue();
-		((musicxmlscore*)mViewerscore)->setPlayVisible(s);
+		setPlayView(s);
 	}
-	mViewerscore->displayFile(mViewerscore->GetClientSize());
 }
 void Expresseur::OnOrnamentAddAbsolute(wxCommandEvent& WXUNUSED(event))
 {
@@ -1378,13 +1389,13 @@ void Expresseur::ListUpdateMenu()
 		mfilelist->Check(false);
 		wxString slabel ;
 		if ( i < 9 )
-			slabel.Printf("\tALT+%d\n",f.GetFullName(), i + 1 );
+			slabel.Printf("%s\tCTRL+%d\n",f.GetFullName(), i + 1 );
 		else if ( i == 9 )
-			slabel.Printf("\tALT+%d\n",f.GetFullName() , 0);
-		if ( i < 19 )
-			slabel.Printf("\tSHIFT+ALT+%d\n",f.GetFullName() , i + 1 );
+			slabel.Printf("%s\tCTRL+%d\n",f.GetFullName() , 0);
+		else if ( i < 19 )
+			slabel.Printf("%s\tSHIFT+CTRL+%d\n",f.GetFullName() , i + 1 - 10 );
 		else if ( i == 19 )
-			slabel.Printf("\tSHIFT+ALT+%d\n",f.GetFullName(), 0);
+			slabel.Printf("%s\tSHIFT+CTRL+%d\n",f.GetFullName(), 0);
 		if ( slabel.length() > 0 )
 			mfilelist->SetItemLabel(slabel);
 	}
@@ -1603,7 +1614,6 @@ void Expresseur::OnListNextFile(wxCommandEvent& WXUNUSED(event))
 {
 	ListSelectNext(1);
 }
-
 void Expresseur::OnMixer(wxCommandEvent& WXUNUSED(event))
 {
 	if ( mMixer == NULL )
@@ -1716,9 +1726,7 @@ bool Expresseur::settingReset(bool all)
 	luafile::reset(mConf , all , timerDt );
 
 	basslua_call(moduleLuabass, soutAllNoteOff, "s", "a");
-
-	// setup the menus
-	SetMenuAction(true);
+	getLuaAction(false, NULL);
 
 	// load the shortcuts
 	if (mMidishortcut != NULL)
@@ -1737,6 +1745,10 @@ bool Expresseur::settingReset(bool all)
 	}
 	mExpression = NULL;
 	mExpression = new expression(this, wxID_ANY, _("Expression"), mConf);
+
+	// setup the menus
+	SetMenuAction(true);
+
 
 	// caculate the prefix of settings, according to valid midi-out devices connected
 	mConf->setPrefix();
@@ -1940,7 +1952,6 @@ void Expresseur::OnSettingSaveas(wxCommandEvent& WXUNUSED(event))
 	settingName.Assign(openFileDialog.GetPath());
 	settingSave();
 }
-
 void Expresseur::OnAbout(wxCommandEvent& WXUNUSED(event)) 
 {	
 	wxString s;
@@ -1961,7 +1972,8 @@ void Expresseur::initFirstUse(bool force)
 	// set as already initialized
 	mConf->set(CONFIG_INITIALIZED, true);
 	mConf->set(CONFIG_CORRECTINCH, 1000);
-	
+	mConf->set(CONFIG_DAYCACHE, 15);
+
 	// open the LUA script
 	luafile::reset(mConf, true, timerDt);
 

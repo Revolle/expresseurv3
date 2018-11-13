@@ -104,6 +104,7 @@ public:
 	midishortcut *mMidishortcut = NULL;
 	expression *mExpression = NULL;
 	logerror *mLog;
+	wxTimer *mtimer;
 
 private:
 	viewerscore *mViewerscore;
@@ -116,6 +117,7 @@ private:
 
 	void setOrientation(int v, int h);
 
+	bool firstTimer = true;
 	int waitToRefresh = 1;
 	int waitToCompile = 1; 
 	int timerDt = 20 ;
@@ -123,7 +125,6 @@ private:
 	mxconf *mConf;
 	bool end_ok = true;
 	wxMenuBar *mMenuBar;
-	wxTimer *mtimer;
 
 	void setRightDisplay(bool right);
 	void setZoom();
@@ -131,7 +132,7 @@ private:
 	// management of the file
 	wxFileName fileName;
 	wxFileHistory* fileHistory;
-	void FileOpen();
+	void FileOpen(bool all = false);
 	void FileSave();
 	void setWindowsTitle();
 	void checkUpdate();
@@ -183,6 +184,8 @@ private:
  
 	int getListAudio();
 	void setAudioChoice(int nrDevice);
+
+	void setPlayView(wxString s);
 
 	wxChar  ckeychar, ckeys[MAX_KEYS];
 	int typeViewer;

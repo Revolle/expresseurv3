@@ -122,11 +122,6 @@ char const *ornamentName[] =
 	"flagend"
 };
 
-#define END_OF_THE_SCORE "END_OF_THE_SCORE"
-#define PART_PLAYED "played"
-#define PART_NOT_PLAYED "not played"
-#define PART_VISIBLE "visible"
-#define PART_NOT_VISIBLE "not visible"
 
 int musicXmlEventsCompareStart(const void *arg1, const void *arg2)
 {
@@ -337,6 +332,14 @@ void musicxmlcompile::setNameFile(wxFileName itxtFile, wxFileName ixmlFile)
 	txtFile = itxtFile;
 	musicxmlFile = ixmlFile;
 }
+wxFileName musicxmlcompile::getNameTxtFile()
+{
+	return txtFile;
+}
+wxFileName musicxmlcompile::getNameXmlFile()
+{
+	return musicxmlFile;
+}
 bool musicxmlcompile::loadXmlFile(wxString xmlfilein, bool useMarkFile)
 {
 	// load the musicxml musicxmlFile, compile it, and generate the MUSICXML_FILE for the musicxml-viewer
@@ -353,7 +356,7 @@ bool musicxmlcompile::loadXmlFile(wxString xmlfilein, bool useMarkFile)
 	// - a musicxml file to diplay 
 	// - a set of events to play
 	// - a file of parameters ( lOrnaments, repetitions, .. )
-	compile(useMarkFile);
+	compileScore(useMarkFile);
 
 	return isOk();
 }
@@ -394,7 +397,7 @@ void musicxmlcompile::xmlLoad(wxString xmlfilein)
 	}
 
 }
-void musicxmlcompile::compile(bool useMarkFile)
+void musicxmlcompile::compileScore(bool useMarkFile)
 {
 	// compile the C++ score structure into :
 	// - a musicxml file to diplay 
@@ -1291,7 +1294,7 @@ void musicxmlcompile::writeMarks()
 	f.Write();
 	f.Close();
 }
-bool musicxmlcompile::readMarkLine(wxString s, wxString sectionName )
+bool musicxmlcompile::readMarkLine(wxString s, wxString sectionName)
 {
 	bool ret_code = true;
 	if (sectionName == SET_MARKS)
@@ -1561,12 +1564,13 @@ int musicxmlcompile::getDivision(int measure_nr, int *division_quarter, int *div
 	*division_measure = measure->division_measure;
 	return measure->division_beat;
 }
-int musicxmlcompile::getPartNr(wxString spart , int *partNb)
+int musicxmlcompile::getPartNr(wxString ispart , int *partNb)
 {
 	// spart = id_name , return partnr
 	int nbPart = score->part_list->score_parts.GetCount();
 	if (partNb)
 		*partNb = nbPart;
+	wxString spart = ispart.BeforeFirst(':');
 	wxString s1 , r;
 	if (spart.StartsWith("P", &r) || spart.StartsWith("p", &r))
 	{
@@ -1585,117 +1589,6 @@ int musicxmlcompile::getPartNr(wxString spart , int *partNb)
 		}
 	}
 	return(wxNOT_FOUND);
-}
-void musicxmlcompile::setPlayVisible(wxString sin)
-{
-	// analyse sin , to select tracks to be play/view
-	// 2/4 : play 2 / view 4
-	// 34 : play 3 & 4
-	// /12 : view 1 & 2
-	// 23/ : play/view 2 & 3
-	// */ : play view all
-	// * : play all
-	// /* : view all
-	wxString splay ="" ;
-	wxString svisible = "" ;
-	bool changePlay = true;
-	bool changeVisible = false;
-	if (sin.Contains("/"))
-	{
-		if (sin.Left(1) == "/")
-		{
-			changePlay = false;
-			changeVisible = true;
-			splay = "";
-			svisible = sin.Mid(1);
-		}
-		else
-		{
-			if (sin.Right(1) == "/")
-			{
-				changePlay = true;
-				changeVisible = true;
-				splay = sin.Mid(0, sin.Length() - 1);
-				svisible = splay;
-			}
-			else
-			{
-				changePlay = true;
-				changeVisible = true;
-				int pos = sin.Find('/');
-				splay = sin.Left(pos - 1);
-				svisible = sin.Mid(pos + 1);
-			}
-		}
-	}
-	else
-	{
-		changePlay = true;
-		changeVisible = false;
-		splay = sin;
-		svisible = "";
-	}
-	if (changePlay)
-	{
-		for (unsigned int i = 0; i < compiled_score->part_list->score_parts.GetCount() && (i < 9 ); i++)
-		{
-			c_score_part *current = compiled_score->part_list->score_parts[i];
-			if (splay == "*")
-				current->play = true;
-			else
-			{
-				wxString s;
-				s.Printf("%d", i + 1);
-				current->play = splay.Contains(s);
-			}
-		}
-	}
-	if (changeVisible)
-	{
-		for (unsigned int i = 0; i < compiled_score->part_list->score_parts.GetCount() && (i < 9); i++)
-		{
-			c_score_part *current = compiled_score->part_list->score_parts[i];
-			if (svisible == "*")
-				current->view = true;
-			else
-			{
-				wxString s;
-				s.Printf("%d", i + 1);
-				current->view = svisible.Contains(s);
-			}
-		}
-	}
-
-
-	// remove an existing Expresseur Part
-	removeExpresseurPart();
-
-	// build the sequence of measures in the compiled parts
-	addExpresseurPart();
-
-	wxMessageBox("buildMeasures","setPlayVisible changeVisible");
-	buildMeasures();
-
-	// compile the score and build the notes to play in lMusicxmlevents
-	wxMessageBox("compileScore","setPlayVisible changeVisible");
-	compileScore();
-
-	//  add lOrnaments in the notes to play in lMusicxmlevents
-	wxMessageBox("addOrnaments","setPlayVisible changeVisible");
-	addOrnaments();
-	// lMusicxmlevents contains the notes to play. Compile lMusicxmlevents
-	wxMessageBox("compileMusicxmlevents","setPlayVisible changeVisible");
-	compileMusicxmlevents();
-
-	// add the part for Expresseur, according to lMusicxmlevents
-	wxMessageBox("compileExpresseurPart","setPlayVisible changeVisible");
-	compileExpresseurPart();
-
-	nbEvents = lMusicxmlevents.GetCount();
-
-	// push the events to play to the LUA-script
-	wxMessageBox("pushLuaMusicxmlevents","setPlayVisible changeVisible");
-	pushLuaMusicxmlevents();
 }
 void musicxmlcompile::readMarks(bool full)
 {
@@ -2594,7 +2487,7 @@ void musicxmlcompile::createImperativeOrnament(c_ornament *ornament)
 		ornament->staffNr = -1 ;
 		return ;
 	}
-	int nbPart = score->parts.GetCount();;
+	int nbPart = score->parts.GetCount() - 1;
 	for(int p = 0 ; p < nbPart ; p++)
 	{
 		ornament->partNr = p ;

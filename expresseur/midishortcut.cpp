@@ -107,7 +107,7 @@ midishortcut::midishortcut(wxFrame *parent, wxWindowID id, const wxString &title
 	}
 	listShortchut = new wxListView(this, IDM_MIDISHORTCUT_LIST);
 	listShortchut->AppendColumn(_("name"), wxLIST_FORMAT_LEFT, widthColumn[0]);
-	listShortchut->AppendColumn(_("key"), wxLIST_FORMAT_LEFT, widthColumn[1]);
+	listShortchut->AppendColumn(_("ALT+key"), wxLIST_FORMAT_LEFT, widthColumn[1]);
 	listShortchut->AppendColumn(_("device"), wxLIST_FORMAT_LEFT, widthColumn[2]);
 	listShortchut->AppendColumn(_("channel"), wxLIST_FORMAT_LEFT, widthColumn[3]);
 	listShortchut->AppendColumn(_("event"), wxLIST_FORMAT_LEFT, widthColumn[4]);
@@ -219,6 +219,12 @@ void midishortcut::loadShortcut()
 		name = mConf->get(CONFIG_SHORTCUTNAME, "", false, wxString::Format("%d", nrSelector));
 		action = mConf->get(CONFIG_SHORTCUTACTION, "", false, wxString::Format("%d", nrSelector));
 		key = mConf->get(CONFIG_SHORTCUTKEY, "", false, wxString::Format("%d", nrSelector));
+		key = key.Left(1);
+		key.MakeUpper();
+		if ((key.Len() > 0) && ((key[0] < 'A') || (key[0] > 'Z')))
+		{
+			key.Empty();
+		}
 		device = mConf->get(CONFIG_SHORTCUTDEVICENAME, "", false, wxString::Format("%d", nrSelector));
 		channel = mConf->get(CONFIG_SHORTCUTCHANNEL, "", false, wxString::Format("%d", nrSelector));
 		event = mConf->get(CONFIG_SHORTCUTEVENT, "", false, wxString::Format("%d", nrSelector));
@@ -250,21 +256,27 @@ void midishortcut::saveShortcut()
 	wxString s;
 	wxString name, action, key;
 	wxString sdevice, event, schannel, smin, smax, stopOnMatch , param;
+	valueName.Clear();
 	valueAction.Clear();
 	valueParam.Clear();
 	valueKey.Clear();
 	valueDevice.Clear();
 	valueChannel.Clear();
 	valueMin.Clear();
-	valueMax.Clear();
-	valueStopOnMatch.Clear();
 	valueEvent.Clear();
 	mConf->set(CONFIG_SHORTCUTNB, listShortchut->GetItemCount(), false);
 	//mlog_in("midishortcut / saveShortcut / listShortchut->GetItemCount() : %d",listShortchut->GetItemCount());
 	for (int nrItem = 0; nrItem < listShortchut->GetItemCount(); nrItem++)
 	{
-		name = listShortchut->GetItemText(nrItem, 0);
-		key = listShortchut->GetItemText(nrItem, 1); valueKey.Add(key);
+		name = listShortchut->GetItemText(nrItem, 0); valueName.Add(name);
+		key = listShortchut->GetItemText(nrItem, 1); 
+		key = key.Left(1);
+		key.MakeUpper();
+		if ((key.Len() > 0) && ((key[0] < 'A') || (key[0] > 'Z')))
+		{
+			key.Empty();
+		}
+		valueKey.Add(key);
 		sdevice = listShortchut->GetItemText(nrItem, 2); 
 		schannel = listShortchut->GetItemText(nrItem, 3);
 		event = listShortchut->GetItemText(nrItem, 4); valueEvent.Add(event);
@@ -272,7 +284,7 @@ void midishortcut::saveShortcut()
 		smax = listShortchut->GetItemText(nrItem, 6);
 		action = listShortchut->GetItemText(nrItem, 7); valueAction.Add(action);
 		param = listShortchut->GetItemText(nrItem, 8); valueParam.Add(param);
-		stopOnMatch = listShortchut->GetItemText(nrItem, 9); valueStopOnMatch.Add(stopOnMatch);
+		stopOnMatch = listShortchut->GetItemText(nrItem, 9); 
 		long nrDevice = nameDevice.Index(sdevice); nrDevice--;  valueDevice.Add(nrDevice);
 		long channel = nameChannel.Index(schannel); channel--; valueChannel.Add(channel);
 		long min; smin.ToLong(&min); valueMin.Add(min);
@@ -281,7 +293,6 @@ void midishortcut::saveShortcut()
 			smax.ToLong(&max);
 		else
 			max = min;
-		valueMax.Add(max);
 		
 
 		mConf->set(CONFIG_SHORTCUTNAME, name, false, wxString::Format("%d", nrItem));
@@ -302,19 +313,30 @@ void midishortcut::InitLists()
 
 	getMidiinDevices();
 
+	nameEvent.Clear();
 	nameEvent.Add(_("(none)"));
 	nameEvent.Add(snoteonoff);
 	nameEvent.Add(snoteononly);
 	nameEvent.Add(scontrol);
 	nameEvent.Add(sprogram);
 
+	nameChannel.Clear();
 	nameChannel.Add(SALLCHANNEL);
 	for (int i = 0; i < 16; i++)
 	{
-		s.Printf("%s#%d",_("channel"), i + 1);
+		s.Printf("%s#%d", _("channel"), i + 1);
 		nameChannel.Add(s);
 	}
 
+	nameKey.Clear();
+	nameKey.Add("");
+	for (char i = 'A' ; i <= 'Z'; i++)
+	{
+		s.Printf("%c", i);
+		nameKey.Add(s);
+	}
+
+	nameValueMax.Clear();
 	nameValueMax.Add("");
 	for (int i = 0; i < 128; i++)
 	{
@@ -324,6 +346,7 @@ void midishortcut::InitLists()
 		nameParam.Add(s);
 	}
 
+	nameStopOnMatch.Clear();
 	nameStopOnMatch.Add(SSTOP);
 	nameStopOnMatch.Add("continue");
 
@@ -485,7 +508,7 @@ int midishortcut::edit(long i)
 	medit = new editshortcut (this, wxID_ANY, ("edit midishortcut"), 
 		&lname,
 		&laction, nameAction ,
-		&lkey ,
+		&lkey , nameKey ,
 		&ldevice, nameDevice ,
 		&lchannel , nameChannel ,
 		&levent, nameEvent ,
@@ -678,23 +701,21 @@ void midishortcut::read(wxTextFile *lfile)
 }
 wxArrayString midishortcut::getShortcuts()
 {
-	shortcutAction.Clear();
-	shortcutKey.Clear();
+	shortcutNrSelector.Clear();
 	wxArrayString ls ;
 	for (unsigned int nrSelector = 0; nrSelector < valueAction.GetCount(); nrSelector++)
 	{
-		for(unsigned int nrShortcut = 0 ; nrShortcut < valueKey[nrSelector].length() ; nrShortcut++)
+		wxString cs = valueKey[nrSelector] ;
+		cs.MakeUpper() ;
+		if (cs.Len() > 0)
 		{
-			wxString cs = valueKey[nrSelector] ;
-			cs.MakeUpper() ;
-			wxChar c = cs[nrShortcut];
+			wxChar c = cs[0];
 			if ((c >= 'A') && (c <= 'Z'))
 			{
 				wxString s;
-				s.Printf("%s\tALT+%c\n", nameAction[nrSelector] , c);
+				s.Printf("%s\tALT+%c\n", valueName[nrSelector], c);
 				ls.Add(s);
-				shortcutAction.Add(nrSelector);
-				shortcutKey.Add(c);
+				shortcutNrSelector.Add(nrSelector);
 			}
 		}
 	}
@@ -702,168 +723,56 @@ wxArrayString midishortcut::getShortcuts()
 }
 void midishortcut::onShortcut(int nrShortcut)
 {
-	if ((nrShortcut < 0 ) || ( nrShortcut >= (int)(shortcutAction.GetCount())))
+	if ((nrShortcut < 0 ) || ( nrShortcut >= (int)(shortcutNrSelector.GetCount())))
 		return ;
 	
-	if ( prevShortcutAction >= 0)
+	if (prevShortcutNrSelector >= 0)
 	{
 		// off the previous shortcut
-		if (valueEvent[prevShortcutAction] == snoteonoff)
+		if (valueEvent[prevShortcutNrSelector] == snoteonoff)
 		{
-			wxString skey = valueKey[prevShortcutAction] ;
-			skey.MakeUpper() ;
-			int pos = skey.Find(shortcutKey[prevShortcutAction]);
-			if (pos != wxNOT_FOUND)
-			{
-				int p = valueMin[prevShortcutAction];
-				int v = 0;
-				int len = valueKey[prevShortcutAction].length();
-				if (valueMin[prevShortcutAction] != valueMax[prevShortcutAction])
-				{
-					if (len > 1)
-						p = valueMin[prevShortcutAction] + pos;
-				}
-				// simulation of note-off
-				int nrDevice = valueDevice[prevShortcutAction];
-				int nrChannel = valueChannel[prevShortcutAction];
-				basslua_selectorSearch(nrDevice, nrChannel, NOTEOFF, p, v);
-			}
+			// simulation of note-off
+			int nrDevice = valueDevice[prevShortcutNrSelector];
+			int nrChannel = valueChannel[prevShortcutNrSelector];
+			int pitch = valueMin[prevShortcutNrSelector];
+			basslua_selectorTrigger(prevShortcutNrSelector, nrDevice, nrChannel, NOTEOFF, pitch, 0);
 		}
 	}
-	prevShortcutAction = -1 ;
+	prevShortcutNrSelector = -1 ;
 	
 	// on this event
-	int nrSelector = shortcutAction[nrShortcut]; 
-	wxString skey = valueKey[nrSelector] ;
-	skey.MakeUpper() ;
-	int pos = skey.Find(shortcutKey[nrSelector]);
-	if (pos == wxNOT_FOUND)
-		return ;
-	int p = valueMin[nrSelector];
-	int v = 64;
-	int len = valueKey[nrSelector].length();
-	if (valueMin[nrSelector] == valueMax[nrSelector])
-	{
-		// only one value : the range is translated to velocity
-		if (len > 1)
-		{
-			if ((valueEvent[nrSelector] == snoteonoff) || (valueEvent[nrSelector] == snoteononly))
-				v = 1 + (126 * ( pos + 1 )) / ( len + 1 );
-			else
-				v = (127 * (pos + 1)) / (len + 1);
-		}
-	}
-	else
-	{
-		// more than one value : the range is translated to pitch
-		if (len > 1)
-			p = valueMin[nrSelector] + pos;
-	}
+	int nrSelector = shortcutNrSelector[nrShortcut];
 	int nrDevice = valueDevice[nrSelector];
 	int nrChannel = valueChannel[nrSelector];
-	// simulation of the event
-	basslua_selectorSearch(nrDevice, nrChannel, NOTEON, p, v);
-	prevShortcutAction = nrSelector ;
-}
-
-/*
-bool midishortcut::hitkey(wxChar c , bool on , wxFrame *parent)
-{
-	// simulate a selector , acording to the hit key
-	bool found = false;
-	if (on)
+	int pitch = valueMin[nrSelector];
+	int ievent = -1;
+	wxString mevent = valueEvent[nrSelector];
+	if (mevent == snoteonoff)
+		ievent = NOTEON;
+	else if (mevent == snoteononly)
+		ievent = NOTEON;
+	else if (mevent == scontrol)
+		ievent = CONTROL;
+	else if (mevent == sprogram)
+		ievent = PROGRAM;
+	int velo = 64;
+	wxString mparameter = valueParam[nrSelector];
+	wxString firstParameter = mparameter.BeforeFirst(' ');
+	if (firstParameter.IsNumber() )
 	{
-		if (valueHitkey == c)
-			return(false); // multi-on of the same key. Ignored
-		valueHitkey = c ; // new on on this key
-	}
-	else
-	{
-		valueHitkey = c; 
-	}
-	wxString sValueKey(valueHitkey);
-	sValueKey.MakeLower();
-	char lowValueHitkey = sValueKey.at(0);
-	for (unsigned int nrSelector = 0; nrSelector < valueAction.GetCount(); nrSelector++)
-	{
-		int pos ;
-		if ((pos = valueKey[nrSelector].Find(lowValueHitkey)) != wxNOT_FOUND)
+		long l;
+		if (firstParameter.ToLong(&l))
 		{
-			found = true; // a selector wants this key
-			if (on)
+			if ((l >= 0) && (l < 128))
 			{
-				int p = valueMin[nrSelector];
-				int v = 64;
-				int len = valueKey[nrSelector].length();
-				if (valueMin[nrSelector] == valueMax[nrSelector])
-				{
-					// only one value : the range is translated to velocity
-					if (len > 1)
-					{
-						if ((valueEvent[nrSelector] == snoteonoff) || (valueEvent[nrSelector] == snoteononly))
-							v = 1 + (126 * ( pos + 1 )) / ( len + 1 );
-						else
-							v = (127 * (pos + 1)) / (len + 1);
-					}
-				}
-				else
-				{
-					// more than one value : the range is translated to pitch
-					if (len > 1)
-						p = valueMin[nrSelector] + pos;
-				}
-				int nrDevice = valueDevice[nrSelector];
-				int nrChannel = valueChannel[nrSelector];
-				// simulation of the event
-				basslua_selectorSearch(nrDevice, nrChannel, NOTEON, p, v);
-				wxString strace;
-				strace.Printf("shortcut %c : NoteOn %s %s , p=%d , v=%d", lowValueHitkey, 
-					(nrDevice >= -1) ? nameDevice[nrDevice + 1] : nameDevice[0],
-					(nrChannel >= -1) ? nameChannel[nrChannel + 1] : nameChannel[0],
-					p, v);
-				parent->SetStatusText(strace);
-			}
-			else
-			{ // off
-				if (valueEvent[nrSelector] == snoteonoff)
-				{
-					int p = valueMin[nrSelector];
-					int v = 0;
-					pos = valueKey[nrSelector].Find(lowValueHitkey);
-					int len = valueKey[nrSelector].length();
-					if (valueMin[nrSelector] != valueMax[nrSelector])
-					{
-						if (len > 1)
-							p = valueMin[nrSelector] + pos;
-					}
-					// simulation of note-off
-					int nrDevice = valueDevice[nrSelector];
-					int nrChannel = valueChannel[nrSelector];
-					basslua_selectorSearch(nrDevice, nrChannel, NOTEOFF, p, v);
-					wxString strace;
-					strace.Printf("shortcut %c : NoteOff %s %s , p=%d , v=%d", lowValueHitkey, 
-						(nrDevice >= -1) ? nameDevice[nrDevice + 1] : nameDevice[0],
-						(nrChannel >= -1) ? nameChannel[nrChannel + 1] : nameChannel[0],
-						p, v);
-					parent->SetStatusText(strace);
-				}
-				else
-				{
-					wxString strace;
-					strace.Printf("shortcut %c : off", lowValueHitkey);
-					parent->SetStatusText(strace);
-				}
-				valueHitkey = 0;
+				velo = l;
 			}
 		}
 	}
-	if (!found)
+	// simulation of the event
+	if (ievent != -1)
 	{
-		wxString strace;
-		strace.Printf("shortcut %c : not recognized", lowValueHitkey);
-		parent->SetStatusText(strace);
+		basslua_selectorTrigger(nrSelector,nrDevice, nrChannel, ievent, pitch, velo);
+		prevShortcutNrSelector = nrSelector;
 	}
-	return found;
 }
-*/
-

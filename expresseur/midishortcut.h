@@ -53,29 +53,28 @@ private:
 	wxListView *listShortchut;
 
 	wxArrayString nameAction;
+	wxArrayString nameKey;
 	wxArrayString nameDevice;
 	wxArrayString nameChannel;
 	wxArrayString nameEvent;
 	wxArrayString nameValueMin;
 	wxArrayString nameValueMax;
 	wxArrayString nameStopOnMatch;
-	wxArrayString nameCurve;
 	wxArrayString nameParam;
 
+	wxArrayString valueName;
 	wxArrayString valueAction;
 	wxArrayString valueParam;
 	wxArrayString valueKey;
 	wxArrayInt valueDevice;
 	wxArrayInt valueChannel;
-	wxArrayInt valueMin;
-	wxArrayInt valueMax;
-	wxArrayString valueStopOnMatch;
-	//wxChar valueHitkey;
 	wxArrayString valueEvent;
+	wxArrayInt valueMin;
+	wxArrayString valueStopOnMatch;
 
-	wxArrayInt shortcutAction ;
-	wxArrayString shortcutKey ;
-	int prevShortcutAction = -1 ;
+	wxArrayInt shortcutNrSelector;
+
+	int prevShortcutNrSelector = -1 ;
 
 	wxChoice *listFunctionMidi;
 

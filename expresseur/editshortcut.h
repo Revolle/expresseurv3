@@ -12,7 +12,7 @@ public:
 	editshortcut(wxWindow *parent, wxWindowID id, const wxString &title,
 		wxString *lname,
 		wxString *laction, wxArrayString nameAction,
-		wxString *lkey,
+		wxString *lkey, wxArrayString nameKey,
 		wxString *ltrack, wxArrayString nameTrack,
 		wxString *lchannel, wxArrayString nameChannel,
 		wxString *levent, wxArrayString nameEvent,

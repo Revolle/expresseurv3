@@ -6,10 +6,11 @@ EXPORTS
 	basslua_call	@4
 	basslua_setSelector	@5
 	basslua_selectorSearch @6
-	basslua_getLog	@7
-	basslua_openMidiIn	@8
-	basslua_setMode	@9
-	basslua_addMidiFunction	@10
-	basslua_external_timer	@11
-	basslua_playbackmsg @12
-	mlog_in @13
+	basslua_selectorTrigger @7
+	basslua_getLog	@8
+	basslua_openMidiIn	@9
+	basslua_setMode	@10
+	basslua_addMidiFunction	@11
+	basslua_external_timer	@12
+	basslua_playbackmsg @13
+	mlog_in @14

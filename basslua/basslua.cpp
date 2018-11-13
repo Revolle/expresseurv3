@@ -82,7 +82,10 @@
 #include <bass.h>
 #include <bassmidi.h>
 #include <luabass.h>
-#include <mlog.h>
+
+#ifdef  V_LINUX
+#define V_MLOG 1
+#endif
 
 #ifdef V_PC
 #include <mmsystem.h>
@@ -115,6 +118,11 @@
 #include <aeffectx.h>
 #include <vstfxstore.h>
 #endif
+
+#ifdef V_MLOG
+#include <mlog.h>
+#endif
+
 
 #include "global.h"
 #include "basslua.h"
@@ -709,10 +717,8 @@ static void runAction(int nrAction,double time, int nr_selector, int nrChannel, 
 	}
 	lua_pop(g_LUAstate, 1); // pop table actions
 }
-bool selectorSearch(double time, int nrDevice, int nrChannel, int type_msg, int d1, int d2)
+bool selectorTrigger(int nr_selector, double time, int nrDevice, int nrChannel, int type_msg, int d1, int d2)
 {
-	// search a note/program/control ( in midimsg u ) , within the selectors
-	// the selectors are created with the LUA funtion selector()
 	// if this note/program/control matches a selector, it calls the LUA functions
 	//     midibetween() : for between selector
 	//			parameters :
@@ -722,6 +728,7 @@ bool selectorSearch(double time, int nrDevice, int nrChannel, int type_msg, int 
 	//              channel : channel of the note
 	//				pitch : pitch of the note
 	//              velocity : velocity of the note ( 0 for noteff )
+	//              param : string of parameter in the selector
 	//              index : index of the note within the selector ( 1=first , 2=second, ... )
 	//              mediane : index of the note from the middle of the selector ( 0 = middle )
 	//              white-key index : index of the white_key within the selector
@@ -733,11 +740,56 @@ bool selectorSearch(double time, int nrDevice, int nrChannel, int type_msg, int 
 	//              channel : channel of the note
 	//				pitch : pitch of the note
 	//              velocity : velocity of the note ( 0 for noteff )
+	//              param : string of parameter in the selector
 	//              index : index of the note within the selector ( 1=first , 2=second, ... )
 	//              0
 	//              0
 	//              0
 	//              0
+	bool found = false;
+	T_selector *s = &(g_selectors[nr_selector]);
+	int sharp;
+	switch (s->op)
+	{
+	case 'b': //between
+		if ((s->nbPitch == 2) &&
+			(d1 >= s->pitch[0]) && (d1 <= s->pitch[1]))
+		{
+			int v = pitch_to_white_key(d1, s->pitch[0], &sharp);
+			int w = pitch_to_white_key(d1, (s->pitch[1] + s->pitch[0]) / 2, &sharp);
+			runAction(s->luaNrAction, time, nr_selector, nrChannel, d1, (type_msg == NOTEOFF) ? 0 : d2, s->param,
+				d1 - s->pitch[0] + 1, d1 - (s->pitch[1] + s->pitch[0]) / 2 + 1,
+				v, w, sharp);
+			found = true;
+			//mlog_in("selectorSearch #%d found between", nr_selector);
+			if (s->stopOnMatch)
+				return found;
+		}
+		break;
+	case 'o': //or
+		for (int m = 0; m < s->nbPitch; m++)
+		{
+			if (d1 == s->pitch[m])
+			{
+				runAction(s->luaNrAction, time, nr_selector, nrChannel, d1, d2, s->param,
+					m + 1, 0,
+					0, 0, 0);
+				//mlog_in("selectorSearch #%d found or", nr_selector);
+				found = true;
+				if (s->stopOnMatch)
+					return found;
+			}
+		}
+		break;
+	default:
+		break;
+	}
+	return found;
+}
+bool selectorSearch(double time, int nrDevice, int nrChannel, int type_msg, int d1, int d2)
+{
+	// search a note/program/control ( in midimsg u ) , within the selectors
+	// the selectors are created with the LUA funtion selector()
 
 	bool found = false ;
 	for (int nr_selector = 0; nr_selector < g_selectormax; nr_selector++)
@@ -749,42 +801,7 @@ bool selectorSearch(double time, int nrDevice, int nrChannel, int type_msg, int 
 			&& ((s->nrChannel == -1) || (s->nrChannel == nrChannel))
 			)
 		{
-			int sharp;
-			switch (s->op)
-			{
-			case 'b': //between
-				if ((s->nbPitch == 2) &&
-					(d1 >= s->pitch[0]) && (d1 <= s->pitch[1]))
-				{
-					int v = pitch_to_white_key(d1, s->pitch[0], &sharp);
-					int w = pitch_to_white_key(d1, (s->pitch[1] + s->pitch[0]) / 2, &sharp);
-					runAction(s->luaNrAction, time, nr_selector, nrChannel, d1, (type_msg == NOTEOFF)?0:d2, s->param,
-						d1 - s->pitch[0] + 1, d1 - (s->pitch[1] + s->pitch[0]) / 2 + 1,
-						v, w, sharp);
-					found = true ;
-					//mlog_in("selectorSearch #%d found between", nr_selector);
-					if (s->stopOnMatch)
-						return found;
-				}
-				break;
-			case 'o': //or
-				for (int m = 0; m < s->nbPitch; m++)
-				{
-					if (d1 == s->pitch[m])
-					{
-						runAction(s->luaNrAction, time, nr_selector, nrChannel, d1, d2, s->param,
-							m + 1, 0,
-							0, 0, 0);
-						//mlog_in("selectorSearch #%d found or", nr_selector);
-						found = true ;
-						if (s->stopOnMatch)
-							return found;
-					}
-				}
-				break;
-			default:
-				break;
-			}
+			found = selectorTrigger(nr_selector, time, nrDevice, nrChannel, type_msg, d1, d2);
 		}
 	}
 	return found ;
@@ -1274,6 +1291,8 @@ static void mutex_in_free()
 }
 static void process_in_timer()
 {
+	if (g_LUAstate == NULL)
+		return;
 
 	// proces the timer in luabass module
 	if (lua_getglobal(g_LUAstate, moduleLuabass) == LUA_TTABLE)
@@ -1504,6 +1523,13 @@ bool basslua_selectorSearch(int nrDevice, int nrChannel, int type_msg, int p, in
 {
 	lock_mutex_in();
 	bool ret = selectorSearch(g_current_t, nrDevice, nrChannel, type_msg, p, v);
+	unlock_mutex_in();
+	return ret;
+}
+bool basslua_selectorTrigger(int nrSelector, int nrDevice, int nrChannel, int type_msg, int p, int v)
+{
+	lock_mutex_in();
+	bool ret = selectorTrigger(nrSelector , g_current_t, nrDevice, nrChannel, type_msg, p, v);
 	unlock_mutex_in();
 	return ret;
 }
@@ -1788,5 +1814,7 @@ void basslua_close()
 	char fmlog[1024];
 	strcpy(fmlog,g_path_in_error_txt);
 	strcat(fmlog,".mlog");
+#ifdef V_MLOG
 	mlogflush(fmlog);
+#endif
 }
