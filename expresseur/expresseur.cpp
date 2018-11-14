@@ -455,9 +455,9 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	settingMenu->AppendSeparator();
 	settingMenu->AppendCheckItem(ID_MAIN_LOCAL_OFF, _("Send MIDI local-off"), _("Send local-off on MIDI-out opening, i.e. to unlink keyboard and soud-generator on electronic piano"));
 	settingMenu->AppendSeparator();
-	settingMenu->Append(ID_MAIN_SETTING_OPEN, _("Load setting..."));
-	settingMenu->Append(ID_MAIN_SETTING_SAVE, _("Save setting"));
-	settingMenu->Append(ID_MAIN_SETTING_SAVEAS, _("Save setting as..."));
+	settingMenu->Append(ID_MAIN_SETTING_OPEN, _("Import setting..."));
+	settingMenu->Append(ID_MAIN_SETTING_SAVE, _("Export setting"));
+	settingMenu->Append(ID_MAIN_SETTING_SAVEAS, _("Export setting as..."));
 	settingMenu->AppendSeparator();
 	settingMenu->Append(ID_MAIN_FIRSTUSE, _("Reset configuration"));
 
@@ -1629,8 +1629,8 @@ void Expresseur::OnGoto(wxCommandEvent& WXUNUSED(event))
 }
 void Expresseur::OnMidishortcut(wxCommandEvent& WXUNUSED(event))
 {
-	mMidishortcut->Show();
-	mMidishortcut->Raise();
+	mMidishortcut->ShowModal();
+	settingReset(true);
 }
 void Expresseur::OnExpression(wxCommandEvent& WXUNUSED(event))
 {

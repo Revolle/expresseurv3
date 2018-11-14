@@ -369,6 +369,9 @@ function noteOff_Event(bid)
   -- stop the group of event started with the same button-id ( bid )
   --if trace then trace = string.rep("|",nb_events) end
   local to_stop_index = noteOffStops[bid]
+  if c_nrEvent_playing and c_nrEvent_playing[1] == bid then
+      c_nrEvent_playing =  nil
+  end
   if to_stop_index and to_stop_index > 0 then
     local list_stop = score.events[to_stop_index][eStops]
     for nilvalue,nrEvent in ipairs(list_stop) do
@@ -386,6 +389,15 @@ function noteOff_Event(bid)
   
 end
 
+function noteOff_Event_All()
+-----------------------------
+  
+  -- stop zll the group of events
+  for nrBid,nilValue in pairs(noteOffStops) do
+	noteOff_Event(nrBid)
+  end
+ end
+
 function resetPendingTuning()
   c_nrEvent_noteOff = 1
   playPendingTuningOff()
@@ -402,9 +414,6 @@ function E.play( t, bid, ch, pitch, velo )
   
   if velo == 0 then
     -- noteoff
-    if c_nrEvent_playing and c_nrEvent_playing[1] == bid then
-      c_nrEvent_playing =  nil
-    end
     --luabass.logmsg("noteoff#"..bid)
     noteOff_Event(bid)
   else
@@ -417,6 +426,7 @@ end
 
 function E.previousPos()
   -- move to the previsous pos_move 
+  noteOff_Event_All()
   local m = memEvent
   -- E.firstPart()
   c_nrEvent_noteOn = m - 1
@@ -426,7 +436,7 @@ function E.previousPos()
 end
 function E.firstPart()
   -- move to the beginning of the tune 
-  
+  noteOff_Event_All()
   nb_events = #(score.events)
   c_nrEvent_noteOn = 0 -- current index for the next note-on 
   c_nrEvent_noteOff = 1 -- current index for the next note-off
@@ -439,12 +449,14 @@ function E.firstPart()
 end
 function E.nextEvent()
   -- move to the next event
+  noteOff_Event_All()
   nextGroupEvent()
   playPendingTuningOff()
   memPos()
 end
 function E.nextMeasure()
   -- move to the next part
+  noteOff_Event_All()
   local nr = -1
   local j = 1
   for i,t in ipairs(score.events) do
@@ -461,6 +473,7 @@ function E.nextMeasure()
 end
 function E.nextPart()
   -- move to the next part
+  noteOff_Event_All()
   local nr = -1
   local j = 1
   for i,t in ipairs(score.events) do
@@ -477,6 +490,7 @@ function E.nextPart()
 end
 function E.lastPart()
   -- move to the last part
+  noteOff_Event_All()
   local nr = -1
   local j = 1
   local pj = 1
@@ -493,6 +507,7 @@ function E.lastPart()
 end
 function E.previousPart()
   -- move to the previous mark
+  noteOff_Event_All()
   local nr = -1
   local j = 1
   local pj = 1
@@ -515,6 +530,7 @@ function E.previousPart()
 end
 function E.previousMeasure()
   -- move to the previous measure
+  noteOff_Event_All()
   local nr = -1
   local j = 1
   local pj = 1
@@ -538,6 +554,7 @@ end
 
 function E.previousEvent()
   -- move to the previous event
+  noteOff_Event_All()
   c_nrEvent_noteOn =  c_nrEvent_noteOn  - 1
   while ( c_nrEvent_noteOn > 1) and  (#(score.events[c_nrEvent_noteOn][eStarts]) ==  0 ) 
   do
@@ -549,6 +566,7 @@ function E.previousEvent()
 end
 
 function E.gotoNrEvent(nrEvent)
+  noteOff_Event_All()
   E.firstPart()
   c_nrEvent_noteOn = nrEvent - 1
   nextGroupEvent()

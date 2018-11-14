@@ -3,6 +3,7 @@
 
 #define DEF_MIDISHORTCUT
 
+
 class midishortcut
 	: public wxDialog
 {
