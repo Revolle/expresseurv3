@@ -49,6 +49,7 @@ basslua uses these tables :
      --   time : float, timestamp of the event
      --   uidKey : integer, unique id of the event ( composed of the selector id , channel, and picth )
      --   channel[1..16] of the event
+     --   type_msg_MIDI[1..16] of the event
      --   pitch[0..127] : integer, pitch of the event ( or control nr )
      --   velocity[0..127] : integer, velocity of the event ( or control value )
      --   paramString : string , parameter set in the GUI for this selector
@@ -171,7 +172,7 @@ tracks = {
 
 --[[
 --======== Guitare
-function onNoteOn(deviceNr , timestamp, channel , pitch , velocity )
+function onNoteOn(deviceNr , timestamp, channel , typemsg, pitch , velocity )
 	if (( pitch >= 12 ) and (pitch <= 15 )) then
 		luachord.playPitches(1000,0,pitch - 12,0,"chord","scale",1,-1,0,0) -- play chord strings
 		luachord.playPitches(1000,velocity,pitch - 12,0,"chord","scale",1,-1,50,50) -- play chord strings
@@ -192,7 +193,7 @@ local	guitare_touch = 0 -- 0=no_touch 1=first_touch 2=next_touch
 local	guitare_prevValue = 1 -- previous position
 local   guitare_prevInterval = 1 -- previous interval
 
-function onControl(deviceNr ,  timestamp,  channel ,  controlNr ,  value )
+function onControl(deviceNr ,  timestamp,  channel , typemsg,  controlNr ,  value )
 	
 	if ( guitare_first_time ) then
 	  guitare_first_time = false
@@ -276,21 +277,24 @@ function onControl(deviceNr ,  timestamp,  channel ,  controlNr ,  value )
 end
 --]]
 
-function allNoteOff( t, bid, ch, pitch, velo )
-  if ( velo or 64 ) > 0 then luabass.outAllNoteOff("n") end
+function playNote( t, bid, ch, typemsg, d1, d2 )
+	luabass.outSystem(ch + typemsg * 16 , d1, d2)
 end
-function mainVolume( t, bid, ch, pitch, velo , paramString )
+function allNoteOff( )
+    luabass.outAllNoteOff()
+end
+function mainVolume( t, bid, ch, typemsg, pitch, velo , paramString )
   vol = string.match(paramString or "" , "(%d+)")
   luabass.outSetVolume(vol or ( velo or 64 )) 
 end
-function trackVolume( t, bid, ch, pitch, velo , paramString )
+function trackVolume( t, bid, ch, typemsg, pitch, velo , paramString )
   vol, trackNr = string.match(paramString or "" , "(%d+) (%d+)")
   luabass.outSetTrackVolume(vol or (velo or 64),trackNr or (ch or 1))
 end
-function nextFile( t, bid, ch, pitch, velo )
+function nextFile( t, bid, ch, typemsg, pitch, velo )
   if ( velo or 64 ) > 0 then info.next = 1 end
 end
-function previousFile( t, bid, ch, pitch, velo )
+function previousFile( t, bid, typemsg, ch, pitch, velo )
   if ( velo or 64 ) > 0 then info.next = -1 end
 end
 -- list of actions for the GUI ( throug basslua )
@@ -315,6 +319,7 @@ end
   --   black[0,1] : 0 means white key. 1 means black key.
 actions = { 
   {name="global/all note off", callFunction = allNoteOff ,help="all note off", shortcut = "BACK" , icone = "all_note_off" },
+  {name="global/play note", callFunction = playNote ,help="play the midi event" },
   {name="global/main volume", callFunction = mainVolume },
   {name="global/track volume", callFunction = trackVolume },
   {name="global/previous file",  help="go to previous file of the list", callFunction = previousFile  },

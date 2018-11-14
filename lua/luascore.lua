@@ -407,7 +407,7 @@ function memPos()
   collectgarbage("restart")
 end
 
-function E.play( t, bid, ch, pitch, velo )
+function E.play( t, bid, ch, typemsg, pitch, velo )
   --luabass.logmsg("play score bid="..bid.." velo="..velo)
   collectgarbage("stop")
   if nb_events == 0 then return end

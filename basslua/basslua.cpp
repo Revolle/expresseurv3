@@ -645,7 +645,7 @@ bool basslua_call(const char *module, const char *function, const char *sig, ...
 	unlock_mutex_in();
 	return retCode;
 }
-static void runAction(int nrAction,double time, int nr_selector, int nrChannel, int d1, int d2, const char *param, int index, int mediane, int whiteIndex, int whiteMediane, int sharp)
+static void runAction(int nrAction,double time, int nr_selector, int nrChannel, int type_msg, int d1, int d2, const char *param, int index, int mediane, int whiteIndex, int whiteMediane, int sharp)
 {
 	// mlog_in("runaction #%d (%d)", nrAction , lua_gettop(g_LUAstate));
 	if (lua_getglobal(g_LUAstate, tableActions) == LUA_TTABLE)
@@ -681,6 +681,7 @@ static void runAction(int nrAction,double time, int nr_selector, int nrChannel, 
 				int bid = nr_selector * 127 * 17 + (nrChannel+1) * 17 + d1;
 				lua_pushinteger(g_LUAstate, bid);
 				lua_pushinteger(g_LUAstate, nrChannel + 1);
+				lua_pushinteger(g_LUAstate, type_msg);
 				lua_pushinteger(g_LUAstate, d1);
 				lua_pushinteger(g_LUAstate, d2);
 				//mlog_in("call parameters t=%f bid=%d nr_chanem=%d d1=%d d2=%d", time, bid, nrChannel, d1, d2);
@@ -693,7 +694,7 @@ static void runAction(int nrAction,double time, int nr_selector, int nrChannel, 
 				lua_pushinteger(g_LUAstate, whiteIndex);
 				lua_pushinteger(g_LUAstate, whiteMediane);
 				lua_pushinteger(g_LUAstate, sharp);
-				if (lua_pcall(g_LUAstate, 11, 0, 0) != LUA_OK) // call and pop function & parameters
+				if (lua_pcall(g_LUAstate, 12, 0, 0) != LUA_OK) // call and pop function & parameters
 				{
 					mlog_in("error call LUA %s, action= %d ", lua_tostring(g_LUAstate, -1), nrAction);
 					lua_pop(g_LUAstate, 1);
@@ -725,6 +726,7 @@ bool selectorTrigger(int nr_selector, double time, int nrDevice, int nrChannel, 
 	//				sid : unique id of the selector ( specified in the creation )
 	//				double time
 	//              bid : unique id of the note which trigger this selector
+	//              type_msg : MIDI type of msg
 	//              channel : channel of the note
 	//				pitch : pitch of the note
 	//              velocity : velocity of the note ( 0 for noteff )
@@ -736,7 +738,10 @@ bool selectorTrigger(int nr_selector, double time, int nrDevice, int nrChannel, 
 	//              sharp : 1 for black key , else 0 
 	//     midior() : for or selector
 	//			parameters :
+	//				sid : unique id of the selector ( specified in the creation )
+	//				double time
 	//              bid : unique id of the note which trigger ths selector
+	//              type_msg : MIDI type of msg
 	//              channel : channel of the note
 	//				pitch : pitch of the note
 	//              velocity : velocity of the note ( 0 for noteff )
@@ -757,7 +762,7 @@ bool selectorTrigger(int nr_selector, double time, int nrDevice, int nrChannel, 
 		{
 			int v = pitch_to_white_key(d1, s->pitch[0], &sharp);
 			int w = pitch_to_white_key(d1, (s->pitch[1] + s->pitch[0]) / 2, &sharp);
-			runAction(s->luaNrAction, time, nr_selector, nrChannel, d1, (type_msg == NOTEOFF) ? 0 : d2, s->param,
+			runAction(s->luaNrAction, time, nr_selector, nrChannel, type_msg, d1, (type_msg == NOTEOFF) ? 0 : d2, s->param,
 				d1 - s->pitch[0] + 1, d1 - (s->pitch[1] + s->pitch[0]) / 2 + 1,
 				v, w, sharp);
 			found = true;
@@ -771,7 +776,7 @@ bool selectorTrigger(int nr_selector, double time, int nrDevice, int nrChannel, 
 		{
 			if (d1 == s->pitch[m])
 			{
-				runAction(s->luaNrAction, time, nr_selector, nrChannel, d1, d2, s->param,
+				runAction(s->luaNrAction, time, nr_selector, nrChannel, type_msg, d1, d2, s->param,
 					m + 1, 0,
 					0, 0, 0);
 				//mlog_in("selectorSearch #%d found or", nr_selector);

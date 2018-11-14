@@ -197,21 +197,21 @@ function openVi(dll)
   luabass.outTrackOpenVi(1,1,"",dll);
 end
 
-function onNoteOn(device,t,channel,pitch,velocity)
+function onNoteOn(device,t,channel,typemsg, pitch,velocity)
   print("LUA noteon",device,t,channel,pitch,velocity,"echo=",myDelay,"ms")
   luabass.outNoteOn(pitch,velocity,pitch)
   if myDelay > 0 then
 	  luabass.outNoteOn(pitch + 12,velocity,pitch+128,myDelay)
   end
 end
-function onNoteOff(device,t,channel,pitch,velocity)
+function onNoteOff(device,t,channel,typemsg, pitch,velocity)
   print("LUA noteoff",device,t,channel,pitch,velocity)
   luabass.outNoteOff(pitch,0,pitch)
   if myDelay > 0 then
 	  luabass.outNoteOff(pitch + 12,0,pitch+128)
   end
 end
- function onControl(device,t,channel,nrControl,value)
+ function onControl(device,t,channel,typemsg, nrControl,value)
    print("LUA control",device,t,channel,nrControl,value)
  myDelay = 2 * value ;
  end

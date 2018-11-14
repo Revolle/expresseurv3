@@ -772,28 +772,28 @@ function legato(track,velocity,param)
       offPedal(track)
   end
 end
-function E.pedalScale(time,bid,ch,nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+function E.pedalScale(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   legato("scale",velocity,param)
 end
-function E.pedalBackground(time,bid,ch,nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+function E.pedalBackground(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   legato("background",velocity,param)
 end
-function E.pedalChord(time,bid,ch,nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+function E.pedalChord(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   legato("chord",velocity,param)
 end
-function E.pedalBass(time,bid,ch,nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+function E.pedalBass(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   legato("bass",velocity,param)
 end
-function E.octaveScale(time,bid,ch,nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+function E.octaveScale(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   E.trackOctave["scale"] = 12 * (tonumber(parameter) or (E.trackOctave["scale"] / 12 ))
 end
-function E.octaveBackground(time,bid,ch,nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+function E.octaveBackground(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   E.trackOctave["background"] = 12 * (tonumber(parameter) or (E.trackOctave["background"] / 12 ))
 end
-function E.octaveChord(time,bid,ch,nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+function E.octaveChord(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   E.trackOctave["chord"] = 12 * (tonumber(parameter) or (E.trackOctave["chord"] / 12 ))
 end
-function E.octaveBass(time,bid,ch,nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+function E.octaveBass(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   E.trackOctave["bass"] = 12 * (tonumber(parameter) or (E.trackOctave["bass"] / 12 ))
 end
 
@@ -848,26 +848,26 @@ function E.playPitches(bid,velocity,index,black,scale,track,pstart,pend,delay,de
      end
   end
 end
-function E.playScaleChord(time,bid,ch,nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+function E.playScaleChord(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   E.playPitches(bid,velocity,whitemediane,black,"chord","scale",1,-1,values["scale delay"],values["scale decay"])
 end
-function E.playScalePenta(time,bid,ch,nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+function E.playScalePenta(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   E.playPitches(bid,velocity,whitemediane,black,"penta","scale",1,-1,values["scale delay"],values["scale decay"])
 end
-function E.playChordUp(time,bid,ch,nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+function E.playChordUp(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   E.playPitches(bid,velocity,0,0,"chord","chord",-1,1,values["chord delay"],values["chord decay"])
 end
-function E.playChordDown(time,bid,ch,nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+function E.playChordDown(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   E.playPitches(bid,velocity,0,0,"chord","chord",1,-1,values["chord delay"],values["chord decay"])
 end
-function E.playBackground(time,bid,ch,nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+function E.playBackground(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   E.playPitches(bid,velocity,0,0,"chord","background",1,-1,0,45)
   E.playPitches(bid,velocity,1,0,"bass","bass",1,1,0,0)
 end
-function E.playBass(time,bid,ch,nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+function E.playBass(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   E.playPitches(bid,velocity,1,0,"bass","bass",1,1,0,0)
 end
-function E.playWalkingBass(time,bid,ch,nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+function E.playWalkingBass(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   E.playPitches(bid,velocity,whiteindex,black,"bass","bass",1,1,0,0)
 end
 function E.changeChord()
@@ -878,20 +878,20 @@ function E.changeChord()
   offPedal("scale")
   E.nextChord()
 end
-function E.changeChordOn(time,bid,ch,nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+function E.changeChordOn(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   -- change to next chord on noteOn
   if E.isRestart() or (velocity == 0) then
  	return
   end
   E.changeChord()
 end
-function E.changeChordOff(time,bid,ch,nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+function E.changeChordOff(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   -- change to next chord on noteOff ( for anticipation )
   if velocity == 0 then
     E.changeChord()
   end
 end
-function E.alternateChord(time,bid,ch,nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+function E.alternateChord(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   -- change to next chord when alternate white <=> black
   if E.isRestart() then 
     previousBlack = black
