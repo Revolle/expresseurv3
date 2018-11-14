@@ -2274,11 +2274,9 @@ VALIDATE THE GOOD QUALITY OF SOUND\n");
 	topsizer_playscore->Add(new wxStaticBitmap(pwizard_playscore,wxID_ANY,wxBitmap("wizard_playscore.jpg", wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
 	wxString splayscore = _("\
 To play a score : open a musicXML\n\
-file, and play with F2 to B2 keys\n\
-on your MIDI keyboard, or with 'azqw'\n\
-keys on your computer.\n\n\
-To come back at the beginning of the\n\
-score, use C#2 ( or CTRL-UP).\n\
+file, and play on your \n\
+MIDI keyboard under B2\n\
+or with ALT-O on your computer.\n\n\
 Some example of musicXML files have\n\
 been installed.");
 	topsizer_playscore->Add(new wxStaticText(pwizard_playscore, wxID_ANY, splayscore), sizerFlagMaximumPlace);
@@ -2292,15 +2290,10 @@ been installed.");
 	wxString simprovise = _("\
 To improvise on a grid : open a\n\
 chord file, improvise with pitches\n\
-in the chord using F3 to A4 white\n\
-keys , and black keys for pithes\n\
-out of the chords ( or respectively\n\
-'sdfghjkl' and 'rtyuio' on the\n\
-computer keyboard). \n\
-Move to next chord with D#3, or 'x'.\n\n\
-To come back at the beginning of \n\
-the score, use C#2 ( or CTRL-UP).\n\
-To switch-off sounds, use E3 ( or BACK )\n\n\
+in the chord using white keys over E3\n\
+and black keys for pithes\n\
+out of the chords.\n\
+Move to next chord with D3.\n\n\
 Some example of text files with \n\
 chords have been installed.");
 	topsizer_improvise->Add(new wxStaticText(pwizard_improvise, wxID_ANY, simprovise), sizerFlagMaximumPlace);
