@@ -342,12 +342,12 @@ musicxmlscore::~musicxmlscore()
 }
 void musicxmlscore::cleanTmp()
 {
-	wxDir dir(wxFileName::GetTempDir());
+	wxDir dir(mxconf::getTmpDir());
 	if (dir.IsOpened())
 	{
 		wxString filename;
 		wxFileName ft;
-		ft.SetPath(wxFileName::GetTempDir());
+		ft.SetPath(mxconf::getTmpDir());
 		bool cont = dir.GetFirst(&filename, "expresseur*.png", wxDIR_FILES);
 		while (cont)
 		{
@@ -359,14 +359,14 @@ void musicxmlscore::cleanTmp()
 }
 void musicxmlscore::cleanCache(int nbDayCache)
 {
-	wxDir dir(wxFileName::GetTempDir());
+	wxDir dir(mxconf::getTmpDir());
 	if (dir.IsOpened())
 	{
 		wxDateTime mlimitdate = wxDateTime::Now();
 		mlimitdate.Subtract(wxDateSpan(0, 0, 0, nbDayCache));
 		wxString filename;
 		wxFileName ft;
-		ft.SetPath(wxFileName::GetTempDir());
+		ft.SetPath(mxconf::getTmpDir());
 		wxString sn;
 		sn.Printf("%s*.*", PREFIX_CACHE);
 		bool cont = dir.GetFirst(&filename, sn , wxDIR_FILES);
@@ -407,7 +407,7 @@ bool musicxmlscore::setFile(const wxFileName &lfilename)
 	xmlCompile = new musicxmlcompile();
 
 	wxFileName fm;
-	fm.SetPath(wxFileName::GetTempDir());
+	fm.SetPath(mxconf::getTmpDir());
 	fm.SetFullName("expresseur_in.xml");
 	xmlCompile->music_xml_complete_file = fm.GetFullPath();
 
@@ -909,7 +909,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	// clena useless temp files
 	cleanTmp();
 
-	fm.SetPath(wxFileName::GetTempDir());
+	fm.SetPath(mxconf::getTmpDir());
 
 	// prepare the musicXml file to display
 	fm.SetFullName("expresseur_out.xml");
@@ -1050,7 +1050,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		char bufMuseScoreBatch[1024];
 		strcpy(bufMuseScoreBatch,command.c_str());
 		mlog_in("musicxmlscore newLayout musescore-batch : %s",bufMuseScoreBatch);
-		wxFileName::SetCwd(wxFileName::GetTempDir());
+		wxFileName::SetCwd(mxconf::getTmpDir());
 		long lexec = wxExecute(command, wxEXEC_SYNC | wxEXEC_HIDE_CONSOLE);
 		if (lexec < 0)
 		{

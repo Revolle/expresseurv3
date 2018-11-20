@@ -163,12 +163,9 @@ void luafile::reset(mxconf* mConf, bool all, int timerDt)
 	}
 	wxString slua = f.GetFullPath();
 
-	wxFileName flog;
-	flog.SetPath(wxFileName::GetTempDir());
-	flog.SetName("expresseur_log");
-	wxString slog = flog.GetFullPath();
-	//wxMessageBox(slog,"log");
-	// on Mac , something like : /var/folders/zf/1359b_kn2mnb0h26_4p5w04r0000gn/T/expresseur_log
+	wxFileName dtmp(mxconf::getTmpDir());
+	dtmp.SetName("expresseur_log");
+	wxString slog = dtmp.GetFullPath();
 	wxFileName::SetCwd(mxconf::getCwdDir()) ;
 	basslua_open(slua.c_str(), luascriptparameter.c_str(), all, dd, functioncallback, slog.c_str(),true, timerDt);
 }

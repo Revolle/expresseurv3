@@ -48,6 +48,7 @@
 
 wxString appDir ;
 wxString cwdDir ;
+wxString tmpDir ;
 
 mxconf::mxconf()
 {
@@ -77,6 +78,13 @@ void mxconf::setDir()
 		fd.RemoveLastDir();
 #endif
 		appDir = fd.GetFullPath();
+		wxFileName dtmp;
+		wxString stmp = wxFileName::GetTempDir() ;
+		dtmp.AssignDir(stmp);
+		dtmp.AppendDir(APP_NAME);
+		tmpDir = dtmp.GetFullPath() ;
+		if ( dtmp.IsDir() == false )
+			wxFileName::Mkdir(tmpDir);	
 	}
 }
 wxString mxconf::getAppDir()
@@ -88,6 +96,11 @@ wxString mxconf::getCwdDir()
 {
 	setDir();
 	return cwdDir ;
+}
+wxString mxconf::getTmpDir()
+{
+	setDir();
+	return tmpDir ;
 }
 
 wxConfig *mxconf::getConfig()

@@ -323,7 +323,6 @@ bool MyApp::OnInit()
     frame->SetStatusText("",1);
 #endif
 
-	// wxMessageBox(wxFileName::GetTempDir(), "TempDir");
 
   return true;
 }
@@ -1956,7 +1955,7 @@ void Expresseur::OnSettingSaveas(wxCommandEvent& WXUNUSED(event))
 void Expresseur::OnAbout(wxCommandEvent& WXUNUSED(event)) 
 {	
 	wxString s;
-	s.Printf("Expresseur 3.%d\n(C) 2017 REVOLLE Franck <franck.revolle@orange.fr>\n\ntemp directory = <%s>", VERSION_EXPRESSEUR,wxFileName::GetTempDir());
+	s.Printf("Expresseur 3.%d\n(C) 2017 REVOLLE Franck <franck.revolle@orange.fr>\n\ntemp directory = <%s>", VERSION_EXPRESSEUR,mxconf::getTmpDir());
  	wxMessageBox(s,"about");
 }
 void Expresseur::OnHelp(wxCommandEvent& WXUNUSED(event)) 
