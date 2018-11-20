@@ -38,6 +38,11 @@ void mlogpush(const char * format, ...)
 }
 void mlogflush(char *mfile)
 {
+	if (firstuse)
+		return ;
+	if ((g_logindex == 0) && (g_turnindex == false))
+		return ;
+	
 	FILE * pFile = NULL ; 
 	if ( mfile != NULL )
 		pFile = fopen(mfile, "w");;
