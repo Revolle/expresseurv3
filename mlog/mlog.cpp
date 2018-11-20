@@ -16,6 +16,11 @@ struct timeval g_clockprevious , g_clock ;
 
 void mlogpush(const char * format, ...)
 {
+	if (firstuse )
+	{
+		for(unsigned int i = 0 ; i < MAXNBLOG ; i ++ )
+			g_logstack[i][0] = '\0' ;
+	}
 	va_list args;
 	va_start(args, format);
 	vsprintf(g_logstack[g_logindex], format, args);
@@ -42,7 +47,7 @@ void mlogflush(char *mfile)
 		return ;
 	if ((g_logindex == 0) && (g_turnindex == false))
 		return ;
-	
+
 	FILE * pFile = NULL ; 
 	if ( mfile != NULL )
 		pFile = fopen(mfile, "w");;
