@@ -46,6 +46,7 @@
 #include "luabass.h"
 #include "mxconf.h"
 
+bool todoDir = true;
 wxString appDir ;
 wxString cwdDir ;
 wxString tmpDir ;
@@ -66,8 +67,9 @@ mxconf::~mxconf()
 }
 void mxconf::setDir()
 {
-	if ( appDir.IsEmpty() )
+	if ( todoDir )
 	{
+		todoDir = false ;
 		wxFileName fd(wxStandardPaths::Get().GetExecutablePath());
 		fd.SetName("");
 		fd.SetExt("");
@@ -78,13 +80,19 @@ void mxconf::setDir()
 		fd.RemoveLastDir();
 #endif
 		appDir = fd.GetFullPath();
+
 		wxFileName dtmp;
 		wxString stmp = wxFileName::GetTempDir() ;
 		dtmp.AssignDir(stmp);
 		dtmp.AppendDir(APP_NAME);
 		tmpDir = dtmp.GetFullPath() ;
-		if ( dtmp.IsDir() == false )
-			wxFileName::Mkdir(tmpDir);	
+		if ( dtmp.DirExists() == false )
+		{
+			if ( ! wxFileName::Mkdir(tmpDir) )
+				wxMessageBox(tmpDir,"Directory temp not created");
+		}
+		if ( dtmp.DirExists() == false )
+			wxMessageBox(tmpDir , "Directory temp error");	
 	}
 }
 wxString mxconf::getAppDir()
