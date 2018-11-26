@@ -13,7 +13,6 @@ public:
 	musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* config );
 	~musicxmlscore();
 
-	void onIdle(wxIdleEvent& event);
 	void onPaint(wxPaintEvent& event);
 	void OnLeftDown(wxMouseEvent& event);
 	bool isOk();
@@ -37,7 +36,7 @@ public:
 	virtual bool setFile(const wxFileName &lfilename);
 	virtual int getTrackCount();
 	virtual wxString getTrackName(int trackNr);
-	virtual bool setPosition(int pos, bool playing, bool quick);
+	virtual void setPosition(int pos, bool playing);
 	virtual void zoom(int zoom);
 	virtual void gotoPosition();
 	virtual void gotoNextPage(bool forward);
@@ -49,7 +48,7 @@ private:
 	musicxmlcompile *xmlCompile = NULL;
 	bool xmlExtractXml(wxFileName f);
 	bool newLayout(wxSize sizeClient);
-	
+	void refresh(wxDC& dc, int pos, bool playing);
 	wxString musescoreexe, musescorescript , musescorepng , musescorepos;
 
 	bool docOK = false ;
@@ -62,17 +61,18 @@ private:
 	float inch = 25.4;
 	bool musescore_def_xml = true ;
 
-	int newPos = 0 ;
-	bool newPlaying = false ;
-	bool newQuick = false ;
+	int prevPaintPos = -1;
+	bool prevPaintPlaying = true;
+	int newPaintPos = -1;
+	bool newPaintPlaying = true;
+	int prevPos = -1;
+	bool prevPlaying = true;
 
 	int totalMeasures = 0;
 	int totalStaves = 0;
 	int totalPages = 0;;
 	int currentNrEvent = 0;
 	wxBitmap currentBitmap;
-	int prevPos = -1;
-	bool prevPlaying = true;
 	wxRect rectPrevPos;
 	wxBrush originalBackground;
 	bool setCursor(int nrEvent,bool red, wxDC& dc);

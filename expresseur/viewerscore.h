@@ -13,7 +13,7 @@ public:
 	virtual bool displayFile(wxSize clientSize) = 0;
 	virtual int getTrackCount() = 0;
 	virtual wxString getTrackName(int trackNr) = 0;
-	virtual bool setPosition(int pos, bool playing, bool quick) = 0;
+	virtual void setPosition(int pos, bool playing) = 0;
 	virtual void zoom(int zoom) = 0;
 	virtual void gotoPosition() = 0;
 	virtual void gotoNextPage(bool forward) = 0;

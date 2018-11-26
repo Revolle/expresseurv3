@@ -60,6 +60,7 @@ bitmapscore::bitmapscore(wxWindow *parent, wxWindowID id, mxconf* lMxconf)
 	mParent = parent;
 	mConf = lMxconf;
 	mImage = NULL;
+	mBitmap = NULL;
 	mPointStart = wxDefaultPosition;
 	alertSetRect = true;
 	selectedRect.SetWidth(0);
@@ -80,10 +81,13 @@ bitmapscore::~bitmapscore()
 {
 	if ( mImage )
 		delete mImage;
+	if ( mBitmap )
+		delete mBitmap ;
+
 }
 bool bitmapscore::isOk()
 {
-	return(mImage != NULL);
+	return((mImage != NULL) && (mBitmap != NULL));
 }
 bool bitmapscore::setFile(const wxFileName &lfilename)
 {
@@ -114,6 +118,7 @@ bool bitmapscore::setFile(const wxFileName &lfilename)
 			delete mImage;
 		mImage = NULL;
 	}
+	newLayout() ;
 	newBitmap = true ;
 	return retcode;
 }
@@ -132,63 +137,84 @@ wxString bitmapscore::getTrackName(int WXUNUSED(trackNr))
 }
 void bitmapscore::newLayout()
 {
-	newBitmap = true ;
-}
-void bitmapscore::onPaint(wxPaintEvent& WXUNUSED(event))
-{
-	newBitmap = true ;
-	newNrChord = nrChord ;
-}
-void bitmapscore::onIdle(wxIdleEvent& WXUNUSED(event))
-{
-	wxClientDC dc(this);
-
 	if (mImage == NULL)
-		return;
-
-	if ( newBitmap )
 	{
-		// mlog_in("bitmapscore / onIdle / newBitmap");
-		wxSize sizeClient = dc.GetSize();
-		wxSize sizeImage = mImage->GetSize();
-		wxSize sizeDisplay;
-
-		sizeDisplay.SetWidth(sizeClient.GetWidth());
-		sizeDisplay.SetHeight((sizeImage.GetHeight()*sizeClient.GetWidth()) / sizeImage.GetWidth());
-		if (sizeDisplay.GetHeight() > sizeClient.GetHeight())
-		{
-			sizeDisplay.SetHeight(sizeClient.GetHeight());
-			sizeDisplay.SetWidth((sizeImage.GetWidth()*sizeClient.GetHeight()) / sizeImage.GetHeight());
-		}
-		xScale = (double)(sizeDisplay.GetWidth()) / (double)(sizeImage.GetWidth());
-		yScale = (double)(sizeDisplay.GetHeight()) / (double)(sizeImage.GetHeight());
-		wxImage lImage = mImage->Scale(sizeDisplay.GetWidth(), sizeDisplay.GetHeight(), wxIMAGE_QUALITY_HIGH);
-		wxBitmap mBitmap(lImage);
-		dc.DrawBitmap(mBitmap,0,0);
-		prevNrChord = -1;
-		nrChord = -1;
-		newNrChord = -1 ;
+		return ;
 	}
-	newBitmap = false; 
-	if ( newNrChord >= 0 )
+	if ( mBitmap )
+		delete mBitmap ;
+	mBitmap = NULL ;
+	wxClientDC dc(this) ;
+	wxSize sizeClient = dc.GetSize();
+	wxSize sizeImage = mImage->GetSize();
+	wxSize sizeDisplay;
+
+	sizeDisplay.SetWidth(sizeClient.GetWidth());
+	sizeDisplay.SetHeight((sizeImage.GetHeight()*sizeClient.GetWidth()) / sizeImage.GetWidth());
+	if (sizeDisplay.GetHeight() > sizeClient.GetHeight())
 	{
-			// mlog_in("bitmapscore / onIdle / newNrChord");
+		sizeDisplay.SetHeight(sizeClient.GetHeight());
+		sizeDisplay.SetWidth((sizeImage.GetWidth()*sizeClient.GetHeight()) / sizeImage.GetHeight());
+	}
+	xScale = (double)(sizeDisplay.GetWidth()) / (double)(sizeImage.GetWidth());
+	yScale = (double)(sizeDisplay.GetHeight()) / (double)(sizeImage.GetHeight());
+	wxImage lImage = mImage->Scale(sizeDisplay.GetWidth(), sizeDisplay.GetHeight(), wxIMAGE_QUALITY_HIGH);
+	mBitmap = new wxBitmap(lImage);
+	newBitmap = (mBitmap != NULL) ;
+	Refresh() ;
+}
+void bitmapscore::refresh(wxDC& dc)
+{
+	if (! isOk() )
+	{
+		return ;
+	}
+	dc.DrawBitmap(*mBitmap,0,0);
+	newBitmap = false; 
+	if (false) // ( newNrChord >= 0 )
+	{
 			dc.SetUserScale(xScale, yScale);
 			dc.SetPen(wxNullPen);
 			dc.SetBrush(*wxWHITE_BRUSH);
 			dc.SetLogicalFunction(wxXOR);
 			if ((prevNrChord != -1) && (!rectChord[prevNrChord].IsEmpty()))
 			{
-				dc.DrawRectangle(rectChord[prevNrChord]);
+	 			wxDCClipper clip(dc, rectChord[prevNrChord]);
+				dc.DrawBitmap(*mBitmap,0,0);
 				prevNrChord = -1 ;
 			}
 			if (!rectChord[newNrChord].IsEmpty())// && ( nrChord != prevNrChord))
 			{
-				dc.DrawRectangle(rectChord[newNrChord]);
+	 			wxDCClipper clip(dc, rectChord[newNrChord]);
+				dc.DrawBitmap(*mBitmap,0,0);
 			}
 			prevNrChord = newNrChord;
 	}
 	newNrChord = -1 ;
+}
+void bitmapscore::onPaint(wxPaintEvent& WXUNUSED(event))
+{
+	wxPaintDC dc(this);
+#ifdef RUN_MAC
+	refresh(dc);
+#else
+	newBitmap = true ;
+	newNrChord = nrChord ;
+#endif
+}
+void bitmapscore::onIdle(wxIdleEvent& WXUNUSED(event))
+{
+	if (! isOk() )
+		return ;
+	if (( ! newBitmap ) && ( newNrChord < 0))
+		return ;
+#ifdef RUN_MAC
+	Refresh() ;
+#else
+	wxClientDC dc(this);
+	refresh(dc);
+#endif
+
 }
 void bitmapscore::OnLeftDown(wxMouseEvent& event)
 {
@@ -371,17 +397,16 @@ void bitmapscore::writeRectChord()
 	tfile.Write();
 	tfile.Close();
 }
-bool bitmapscore::setPosition(int pos, bool WXUNUSED( playing), bool WXUNUSED(quick))
+void bitmapscore::setPosition(int pos, bool WXUNUSED( playing))
 {
 	if ((pos < 0) || (pos > MAX_RECTCHORD))
-		return false;
+		return;
 
 	if (nrChord != pos)
 	{
 		nrChord = pos;
 		newNrChord = pos;
 	}
-	return true ;
 }
 void bitmapscore::zoom(int WXUNUSED(dzoom))
 {

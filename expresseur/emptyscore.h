@@ -16,7 +16,7 @@ public:
 	virtual bool isOk();
 	virtual bool setFile(const wxFileName &lfilename);
 	virtual bool displayFile(wxSize sizeClient);
-	virtual bool setPosition(int pos, bool playing, bool quick);
+	virtual void setPosition(int pos, bool playing);
 	virtual int getTrackCount();
 	virtual void zoom(int dzoom);
 	virtual wxString getTrackName(int trackNr);

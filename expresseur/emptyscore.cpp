@@ -87,7 +87,7 @@ bool emptyscore::setFile(const wxFileName & WXUNUSED(lfilename))
 			break;
 		}
 	}
-	return true;
+	return true ;
 }
 bool emptyscore::displayFile(wxSize WXUNUSED(sizeClient))
 {
@@ -113,9 +113,8 @@ void emptyscore::onPaint(wxPaintEvent& WXUNUSED(event))
 	dc.Clear();
 	dc.DrawText(_("No image score"), 20, 20);
 }
-bool emptyscore::setPosition(int WXUNUSED(pos), bool WXUNUSED(playing), bool WXUNUSED(wuick))
+void emptyscore::setPosition(int WXUNUSED(pos), bool WXUNUSED(playing))
 {
-return false ;
 }
 void emptyscore::newLayout()
 {

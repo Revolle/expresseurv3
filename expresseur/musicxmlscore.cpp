@@ -220,7 +220,6 @@ enum
 
 wxBEGIN_EVENT_TABLE(musicxmlscore, wxPanel)
 EVT_LEFT_DOWN(musicxmlscore::OnLeftDown)
-EVT_IDLE(musicxmlscore::onIdle)
 EVT_PAINT(musicxmlscore::onPaint)
 wxEND_EVENT_TABLE()
 
@@ -228,6 +227,7 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 : viewerscore(parent, id)
 {
 	crc_generate_table();
+
 
 	mParent = parent;
 	mConf = lconf;
@@ -400,6 +400,7 @@ bool musicxmlscore::setFile(const wxFileName &lfilename)
 
 	currentPageNrFull = 0;
 	currentPageNrPartial = 0;
+	mlog_in("setfile");
 	prevPos = -1;
 
 	if (xmlCompile != NULL)
@@ -599,6 +600,7 @@ bool musicxmlscore::drawpage(int ipageNr,wxDC& dc , int full)
 			if (!fp.IsFileReadable())
 			{
 				// page does not exist ????
+				mlog_in("error isFileReadable drawpage %s\n",(const char*)(fp.GetFullPath().c_str()));
 				return false;
 			}
 		}
@@ -613,6 +615,11 @@ bool musicxmlscore::drawpage(int ipageNr,wxDC& dc , int full)
 		{
 			dc.Clear();
 			dc.DrawBitmap(currentBitmap, wxPoint(0, 0));
+			mlog_in("drawbitmap 0/2 drawpage %s\n",(const char*)(fn.c_str()));
+		}
+		else
+		{
+			mlog_in("error urrentBitmap.IsOk( drawpage %s\n",(const char*)(fn.c_str()));
 		}
 		break;
 	case 1 :
@@ -709,7 +716,6 @@ bool musicxmlscore::setCursor(int nrEvent,bool setRed , wxDC& dc)
 
 #ifndef RUN_MAC
 	// "undo" the previous colorization
-	//if ((rectPrevPos.GetWidth() != 0) && (bitmapPrevPos.IsOk()))
 	if (rectPrevPos.GetWidth() != 0) 
 	{
 		returnCode = true ;
@@ -761,15 +767,64 @@ bool musicxmlscore::setCursor(int nrEvent,bool setRed , wxDC& dc)
 	dc.DrawBitmap(currentBitmap,0,0);
 	return returnCode ;
 }
-bool musicxmlscore::setPosition(int pos, bool playing, bool quick)
+void musicxmlscore::setPosition(int pos, bool playing)
 {
-	if ((pos == prevPos) && (playing == prevPlaying))
-		return false;
-	newPos = pos ;
-	newPlaying = playing ;
-	newQuick = quick ;
-	return true ;
+	newPaintPos = pos ;
+	newPaintPlaying = playing ;
+	if ((pos != prevPos) || (playing != prevPlaying))
+	{
+		wxClientDC dc(this);
+		refresh(dc,pos,playing);
+		prevPos = pos ;
+		prevPlaying = playing ;
+	}
 }
+void musicxmlscore::onPaint(wxPaintEvent& WXUNUSED(event))
+{
+	if ((newPaintPos != prevPaintPos) || (newPaintPlaying != prevPaintPlaying))
+	{
+		wxPaintDC dc(this);
+		refresh(dc,newPaintPos,newPaintPlaying);
+		prevPaintPos = newPaintPos ;
+		prevPaintPlaying = newPaintPlaying ;
+	}
+}
+void musicxmlscore::refresh(wxDC& dc, int pos, bool playing)
+{
+	dc.Clear() ;
+	if (playing )
+		dc.SetBrush(*wxRED_BRUSH);
+	else
+		dc.SetBrush(*wxGREEN_BRUSH);
+	dc.DrawRectangle(10*pos,10*pos,5,5);
+	return;
+	/*
+	if ((!docOK) || (!isOk()) )
+	{
+		newPos = -1 ;
+		return;
+	}
+	if (newPlaying)
+	{
+		mlog_in("playing refresh\n");
+		setCursor(newPos - 1, true,dc);
+		prevPos = newPos;
+		prevPlaying = newPlaying;
+	}
+	else
+	{
+		if ( !newQuick)
+		{
+			mlog_in("newquick refresh\n");
+			setCursor(newPos - 1,  false ,dc);
+			prevPos = newPos;
+			prevPlaying = newPlaying;
+		}
+	}
+	newPos = -1 ;
+	*/
+}
+
 void musicxmlscore::gotoNextPage(bool forward)
 {
 	int pageNr = currentPageNrFull;
@@ -793,6 +848,7 @@ void musicxmlscore::OnLeftDown(wxMouseEvent& event)
 		nrEvent = xmlCompile->pageToEventNr(nrPage);
 		if (nrEvent == -1)
 			return;
+		mlog_in("OnLeftDown\n");
 		prevPos = -1;
 		prevPlaying = -1;
 		basslua_call(moduleScore, functionScoreGotoNrEvent, "i", nrEvent + 1);
@@ -805,6 +861,7 @@ void musicxmlscore::OnLeftDown(wxMouseEvent& event)
 	nrEvent = xmlCompile->pointToEventNr(mpage , mPoint);
 	if (nrEvent == -1)
 		return;
+	mlog_in("OnLeftDown\n");
 	prevPos = -1;
 	prevPlaying = -1;
 	basslua_call(moduleScore, functionScoreGotoNrEvent, "i", nrEvent + 1);
@@ -1115,9 +1172,9 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		
 	currentPageNrFull = -1;
 	currentPageNrPartial = -1;
-	newPos = prevPos ;
-	prevPos = -1;
 	rectPrevPos.SetWidth(0);
+	prevPos = -1 ;
+	prevPlaying = true ;
 	return true ;
 }
 bool musicxmlscore::readPos()
@@ -1255,39 +1312,6 @@ bool musicxmlscore::readPos()
 		xmlCompile->setMeasureTurnEvent(nrMeasureTurn);
 	}
 	return returnCode;
-}
-void musicxmlscore::onPaint(wxPaintEvent& WXUNUSED(event))
-{
-	if ((!docOK) || (!isOk()))
-		return;
-	currentPageNrFull = -1;
-	currentPageNrPartial = -1;
-	newPos = prevPos ;
-	prevPos = -1;
-	rectPrevPos.SetWidth(0);
-}
-void musicxmlscore::onIdle(wxIdleEvent& WXUNUSED(event))
-{
-	if ((!docOK) || (newPos == -1) || (!isOk()) )
-		return;
-	if (newPlaying)
-	{
-		wxClientDC dc(this) ;
-		setCursor(newPos - 1, true,dc);
-		prevPos = newPos;
-		prevPlaying = newPlaying;
-	}
-	else
-	{
-		if ( !newQuick)
-		{
-			wxClientDC dc(this) ;
-			setCursor(newPos - 1,  false ,dc);
-			prevPos = newPos;
-			prevPlaying = newPlaying;
-		}
-	}
-	newPos = -1 ;
 }
 void musicxmlscore::initRecordPlayback()
 {

@@ -34,8 +34,10 @@ ifeq ($(PLATFORM),Darwin)
 
 		LUABASS_LIBS :=  -L$(BASSDIR) -lbass -lbassmidi -lbassmix -framework CoreFoundation -framework CoreAudio -framework CoreMIDI
 		BASSLUA_LIBS := $(LUABASS_LIBS) -L$(LUADIR) -lluafr 
+		WXWIDGESTLIB = $(shell $(WX_CONFIG) --libs base,net,core,adv,xml)
 		EXPRESSCMD_LIBS := 
-		EXPRESSEUR_LIBS := $(shell $(WX_CONFIG) --libs base,net,core,adv,xml) $(EXPRESSCMD_LIBS) 
+		EXPRESSEUR_LIBS := $(WXWIDGESTLIB) $(EXPRESSCMD_LIBS) 
+		TEST_LIBS := $(WXWIDGESTLIB) 
 		EXPRESSEURCONTENT := $(EXPRESSEURAPP)/Contents/MacOS
 		EXPRESSEURRESOURCES := $(EXPRESSEURAPP)/Contents/Resources
 else
@@ -81,6 +83,10 @@ EXPRESSEUR := expresseur/expresseur
 EXPRESSEUR_OBJECTS := $(patsubst %.cpp,%.o,$(wildcard expresseur/*.cpp))
 $(EXPRESSEUR_OBJECTS): CPPFLAGS += $(shell $(WX_CONFIG) --cxxflags)
 
+TEST := test/test
+TEST_OBJECTS := $(patsubst %.cpp,%.o,$(wildcard test/*.cpp))
+$(TEST_OBJECTS): CPPFLAGS += $(shell $(WX_CONFIG) --cxxflags)
+
 EXPRESSCMD := expresscmd/expresscmd
 EXPRESSCMDEXE := expresscmd/expresscmd.exe
 EXPRESSCMD_OBJECTS := $(patsubst %.cpp,%.o,$(wildcard expresscmd/*.cpp))
@@ -100,7 +106,8 @@ CPPFLAGS += -Ibasslua -Iluabass -Iexpresseur -I$(BASSDIR) -I$(VSTDIR) -I$(LUADIR
 print-%  : ; @echo $* = $($*)
 
 ifeq ($(PLATFORM),Darwin)
-all: $(LIBBASSLUA) $(LIBLUABASS) $(EXPRESSCMDEXE) $(EXPRESSEURAPP) 
+all: $(LIBBASSLUA) $(LIBLUABASS) $(EXPRESSCMDEXE) $(EXPRESSEURAPP) $(TEST)
+
 
 $(EXPRESSEURAPP): $(EXPRESSEUR) $(LUA_OBJECTS) expresseur/Info.plist
 	-mkdir -p $(EXPRESSEURRESOURCES)
@@ -169,14 +176,18 @@ $(LIBBASSLUA): $(LIBBASSLUA_OBJECTS) $(RTMIDI_OBJECTS) $(MLOG_OBJECTS)
 $(LIBLUABASS): $(LIBLUABASS_OBJECTS) $(RTMIDI_OBJECTS) $(MLOG_OBJECTS)
 	$(CXX) $(CXXFLAGS) $(SHAREDLIB_LDFLAGS) -o $@ $^ $(LUABASS_LIBS)
 
+$(TEST): $(TEST_OBJECTS)  
+	$(CXX) $(LDFLAGS) -o $@ $^ $(TEST_LIBS)
+
 clean:
 	-$(RM) -r $(EXPRESSEURAPP)
 	$(RM) $(EXPRESSEUR_OBJECTS:.o=.d) $(EXPRESSEUR_OBJECTS) $(EXPRESSEUR) \
 	    $(EXPRESSCMD_OBJECTS:.o=.d) $(EXPRESSCMD_OBJECTS) $(EXPRESSCMD) \
 	    $(LIBBASSLUA_OBJECTS:.o=.d) $(LIBBASSLUA_OBJECTS) $(LIBBASSLUA) \
+	    $(TEST_OBJECTS:.o=.d) $(TEST_OBJECTS) $(TEST) \
 	    $(LIBLUABASS_OBJECTS:.o=.d) $(LIBLUABASS_OBJECTS) $(LIBLUABASS)
 
 .PHONY: all clean
 
--include $(EXPRESSEUR_OBJECTS:.o=.d) $(EXPRESSCMD_OBJECTS:.o=.d) $(LIBBASSLUA_OBJECTS:.o=.d) $(LIBLUABASS_OBJECTS:.o=.d)
+-include $(EXPRESSEUR_OBJECTS:.o=.d) $(EXPRESSCMD_OBJECTS:.o=.d) $(LIBBASSLUA_OBJECTS:.o=.d) $(LIBLUABASS_OBJECTS:.o=.d) $(TEST_OBJECTS:.o=.d)
 

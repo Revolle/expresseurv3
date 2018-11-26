@@ -94,6 +94,7 @@ public:
 	//bool OnKeyDown(wxChar k);
 	bool OnLeft(wxPoint p, wxSize s , bool down);
 
+	void OnIdle(wxIdleEvent& event);
 	void OnTimer(wxTimerEvent& event);
 	void OnSize(wxSizeEvent& event);
 	bool timerTask(bool compile , bool longwait );

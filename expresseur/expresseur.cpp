@@ -263,6 +263,7 @@ EVT_COMMAND_SCROLL_THUMBRELEASE(ID_MAIN_SCROLL_HORIZONTAL, Expresseur::OnHorizon
 EVT_COMMAND_SCROLL_THUMBRELEASE(ID_MAIN_SCROLL_VERTICAL, Expresseur::OnVerticalScroll)
 
 EVT_TIMER(ID_MAIN_TIMER, Expresseur::OnTimer)
+EVT_IDLE(Expresseur::OnIdle)
 EVT_SIZE(Expresseur::OnSize)
 wxEND_EVENT_TABLE()
 
@@ -462,7 +463,7 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	settingMenu->Append(ID_MAIN_FIRSTUSE, _("Reset configuration"));
 
 	wxMenu *helpMenu = new wxMenu;
-	helpMenu->Append(wxID_HELP, _("Web help"));
+	// helpMenu->Append(ID_MAIN_TEST, _("test"));
 	helpMenu->Append(wxID_ABOUT, _("About"));
 	helpMenu->Append(ID_MAIN_UPDATE, _("Check update"));
 
@@ -794,7 +795,7 @@ bool Expresseur::timerTask(bool compile, bool refreshScreen)
 		{
 			// scan the current position given by LUA module, according to MID events
 			int nrChord = mTextscore->scanPosition(editMode);
-			mViewerscore->setPosition(nrChord, true, quick);
+			mViewerscore->setPosition(nrChord, true);
 		}
 
 		break;
@@ -817,9 +818,6 @@ bool Expresseur::timerTask(bool compile, bool refreshScreen)
 					((musicxmlscore *)(mViewerscore))->recordPlayback(time, nr_device, type_msg, channel, value1, value2);
 				} while ( luafile::isCalledback(&time, &nr_device, &type_msg, &channel, &value1, &value2, &isProcessed) );
 			}
-			int nrEvent, playing;
-			basslua_call(moduleScore, functionScoreGetPosition, ">ii", &nrEvent, &playing);
-			mViewerscore->setPosition(nrEvent, (playing>0) , quick);
 			int absolute_measure_nr, measure_nr, repeat , beat, t ;
 			bool retPos = ((musicxmlscore *)(mViewerscore))->getScorePosition(&absolute_measure_nr, &measure_nr, &repeat , &beat, &t) ;
 			if ( retPos && ( absolute_measure_nr != prev_absolute_measure_nr ))
@@ -885,11 +883,17 @@ bool Expresseur::timerTask(bool compile, bool refreshScreen)
 	{
 		image_right = mViewerscore->GetClientSize();
 		Layout();
-		//mlog_in("Expresseur / timerTask / refreshScreen : displayFile");
 		mViewerscore->displayFile(image_right);
 	}
 
 	return quick;
+}
+void Expresseur::OnIdle(wxIdleEvent& evt)
+{ 
+	int nrEvent, playing;
+	basslua_call(moduleScore, functionScoreGetPosition, ">ii", &nrEvent, &playing);
+	mViewerscore->setPosition(nrEvent, (playing>0));
+	evt.RequestMore();
 }
 void Expresseur::OnTimer(wxTimerEvent& WXUNUSED(event))
 {
@@ -1767,7 +1771,7 @@ bool Expresseur::settingReset(bool all)
 		wxString ext = fileName.GetExt();
 		if ((ext == SUFFIXE_MUSICXML) || (ext == SUFFIXE_MUSICMXL))
 		{
-			newViewerscore = new musicxmlscore(this, wxID_ANY, mConf/*, musicxmlDll*/);
+			newViewerscore = new musicxmlscore(this, wxID_ANY, mConf);
 			if (newViewerscore->setFile(fileName))
 			{
 				typeViewer = MUSICXMLVIEWER;
