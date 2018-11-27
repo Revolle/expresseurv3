@@ -12,7 +12,6 @@ public:
 	bitmapscore(wxWindow *parent, wxWindowID id, mxconf* lMxconf);
 	~bitmapscore();
 	void onPaint(wxPaintEvent& event);
-	void onIdle(wxIdleEvent& event);
 	void OnLeftDown(wxMouseEvent& event);
 	void OnLeftUp(wxMouseEvent& event);
 	void OnMouse(wxMouseEvent& event);
@@ -27,7 +26,7 @@ public:
 	virtual void gotoNextPage(bool forward);
 
 private:
-	void refresh(wxDC& dc);
+	void refresh(wxDC& dc, int pos);
 	wxWindow *mParent;
 	wxImage *mImage;
 	wxBitmap *mBitmap;
@@ -39,17 +38,18 @@ private:
 
 	wxPoint mPointStart, mPointEnd;
 	wxRect prevRect , selectedRect ;
+	int prevPos =1 ;
+	int prevPaintPos = -1 ;
+	int newPaintPos = -1 ;
 	bool alertSetRect;
 	wxRect highlight(bool on, wxPoint start, wxPoint end, wxDC& dc);
 	wxRect rectChord[MAX_RECTCHORD];
 	int nbRectChord;
 	int nrChord;
-	int prevNrChord=-1;
-	int newNrChord=-1;
 	wxFileName fileRectChord;
 	void readRectChord();
 	void writeRectChord();
-	bool newBitmap = false ;
+
 	wxDECLARE_EVENT_TABLE();
 
 };

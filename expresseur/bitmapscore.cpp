@@ -48,7 +48,6 @@
 
 wxBEGIN_EVENT_TABLE(bitmapscore, wxPanel)
 EVT_PAINT(bitmapscore::onPaint)
-EVT_IDLE(bitmapscore::onIdle)
 EVT_LEFT_DOWN(bitmapscore::OnLeftDown)
 EVT_LEFT_UP(bitmapscore::OnLeftUp)
 EVT_MOUSE_EVENTS(bitmapscore::OnMouse)
@@ -66,7 +65,6 @@ bitmapscore::bitmapscore(wxWindow *parent, wxWindowID id, mxconf* lMxconf)
 	selectedRect.SetWidth(0);
 	nbRectChord = 0;
 	nrChord = -1; 
-	prevNrChord = -1;
 	for (int i = 0; i < MAX_RECTCHORD; i++)
 	{
 		rectChord[i].SetX(0);
@@ -119,12 +117,12 @@ bool bitmapscore::setFile(const wxFileName &lfilename)
 		mImage = NULL;
 	}
 	newLayout() ;
-	newBitmap = true ;
 	return retcode;
 }
 bool bitmapscore::displayFile(wxSize WXUNUSED(sizeClient))
 {
-	newBitmap = true ;
+	prevPos =1 ;
+	prevPaintPos = -1 ;
 	return true;
 }
 int bitmapscore::getTrackCount()
@@ -160,61 +158,45 @@ void bitmapscore::newLayout()
 	yScale = (double)(sizeDisplay.GetHeight()) / (double)(sizeImage.GetHeight());
 	wxImage lImage = mImage->Scale(sizeDisplay.GetWidth(), sizeDisplay.GetHeight(), wxIMAGE_QUALITY_HIGH);
 	mBitmap = new wxBitmap(lImage);
-	newBitmap = (mBitmap != NULL) ;
-	Refresh() ;
 }
-void bitmapscore::refresh(wxDC& dc)
+void bitmapscore::refresh(wxDC& dc, int pos)
 {
-	if (! isOk() )
-	{
-		return ;
-	}
+	if (! isOk() ) return ;
+
+	// redraw the page
+	dc.Clear();
 	dc.DrawBitmap(*mBitmap,0,0);
-	newBitmap = false; 
-	if (false) // ( newNrChord >= 0 )
+
+	// draw the cursor
+	if (!rectChord[pos].IsEmpty())
 	{
-			dc.SetUserScale(xScale, yScale);
-			dc.SetPen(wxNullPen);
-			dc.SetBrush(*wxWHITE_BRUSH);
-			dc.SetLogicalFunction(wxXOR);
-			if ((prevNrChord != -1) && (!rectChord[prevNrChord].IsEmpty()))
-			{
-	 			wxDCClipper clip(dc, rectChord[prevNrChord]);
-				dc.DrawBitmap(*mBitmap,0,0);
-				prevNrChord = -1 ;
-			}
-			if (!rectChord[newNrChord].IsEmpty())// && ( nrChord != prevNrChord))
-			{
-	 			wxDCClipper clip(dc, rectChord[newNrChord]);
-				dc.DrawBitmap(*mBitmap,0,0);
-			}
-			prevNrChord = newNrChord;
+		wxDCClipper clip(dc, rectChord[pos]);
+		dc.SetUserScale(xScale, yScale);
+		dc.SetPen(wxNullPen);
+		dc.SetBrush(*wxWHITE_BRUSH);
+		dc.SetLogicalFunction(wxXOR);
+		dc.DrawBitmap(*mBitmap,0,0);
 	}
-	newNrChord = -1 ;
+}
+void bitmapscore::setPosition(int pos, bool WXUNUSED( playing))
+{
+	// onIdle : set the current pos
+	newPaintPos = pos ;
+	if (pos != prevPos)
+	{
+		wxClientDC dc(this);
+		refresh(dc,pos);
+		prevPos = pos ;
+	}
 }
 void bitmapscore::onPaint(wxPaintEvent& WXUNUSED(event))
 {
 	wxPaintDC dc(this);
-#ifdef RUN_MAC
-	refresh(dc);
-#else
-	newBitmap = true ;
-	newNrChord = nrChord ;
-#endif
-}
-void bitmapscore::onIdle(wxIdleEvent& WXUNUSED(event))
-{
-	if (! isOk() )
-		return ;
-	if (( ! newBitmap ) && ( newNrChord < 0))
-		return ;
-#ifdef RUN_MAC
-	Refresh() ;
-#else
-	wxClientDC dc(this);
-	refresh(dc);
-#endif
-
+	if (newPaintPos != prevPaintPos)
+	{
+		refresh(dc,newPaintPos);
+		prevPaintPos = newPaintPos ;
+	}
 }
 void bitmapscore::OnLeftDown(wxMouseEvent& event)
 {
@@ -396,17 +378,6 @@ void bitmapscore::writeRectChord()
 	}
 	tfile.Write();
 	tfile.Close();
-}
-void bitmapscore::setPosition(int pos, bool WXUNUSED( playing))
-{
-	if ((pos < 0) || (pos > MAX_RECTCHORD))
-		return;
-
-	if (nrChord != pos)
-	{
-		nrChord = pos;
-		newNrChord = pos;
-	}
 }
 void bitmapscore::zoom(int WXUNUSED(dzoom))
 {

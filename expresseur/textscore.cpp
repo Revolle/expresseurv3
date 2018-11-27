@@ -72,10 +72,6 @@
 
 wxBEGIN_EVENT_TABLE(textscore, wxPanel)
 EVT_SIZE(textscore::OnSize)
-//EVT_KEY_DOWN(textscore::OnKeyDown)
-//EVT_KEY_UP(textscore::OnKeyUp)
-EVT_LEFT_DOWN(textscore::OnLeftDown)
-EVT_LEFT_UP(textscore::OnLeftUp)
 wxEND_EVENT_TABLE()
 
 textscore::textscore(wxWindow *parent, wxWindowID id, mxconf* lMxconf)
@@ -166,33 +162,6 @@ int textscore::scanPosition(bool editmode)
 	if (! userModification)
 		DiscardEdits();
 	return nrChord;
-}
-/*
-void textscore::OnKeyUp(wxKeyEvent& event)
-{
-	bool toskip = ((Expresseur*)(GetParent()))->OnKeyUp(event.GetUnicodeKey());
-	event.Skip(toskip);
-}
-void textscore::OnKeyDown(wxKeyEvent& event)
-{
-	bool toskip = ((Expresseur*)(GetParent()))->OnKeyDown(event.GetUnicodeKey());
-	event.Skip(toskip);
-}
-*/
-void textscore::OnLeftDown(wxMouseEvent& event)
-{
-	wxClientDC dc(this);
-	wxPoint mPoint = event.GetLogicalPosition(dc);
-	wxSize mSize = GetClientSize();
-	bool toskip = ((Expresseur*)(GetParent()))->OnLeft(mPoint,mSize , true);
-	event.Skip(toskip);
-}
-void textscore::OnLeftUp(wxMouseEvent& event)
-{
-	wxPoint mPoint(0,0);
-	wxSize mSize(0,0);
-	bool toskip = ((Expresseur*)(GetParent()))->OnLeft(mPoint,mSize, false);
-	event.Skip(toskip);
 }
 int textscore::getInsertionPoint()
 {

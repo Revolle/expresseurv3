@@ -57,6 +57,7 @@
 #include "wx/dir.h"
 #include "wx/dynlib.h"
 #include "wx/statbmp.h"
+#include "wx/stopwatch.h"
 
 #include "global.h"
 #include "basslua.h"
@@ -705,98 +706,38 @@ void Expresseur::OnSize(wxSizeEvent& WXUNUSED(event))
 	waitToRefresh = periodRefresh / timerDt;
 	Layout();
 }
-/*
-bool Expresseur::OnKeyUp(wxChar keycode)
-{
-	if (editMode)
-	{
-		waitToCompile = periodCompile / timerDt;
-		return(true);
-	}
-	if ((keycode != WXK_NONE) && (keycode >= 32))
-		mMidishortcut->hitkey(keycode, false , this);
-	return(false);
-}
-bool Expresseur::OnKeyDown(wxChar keycode)
-{
-	if (editMode)
-	{
-		waitToCompile = periodCompile / timerDt;
-		return(true);
-	}
-	if ((keycode != WXK_NONE) && (keycode >= 32))
-		mMidishortcut->hitkey(keycode, true , this);
-	return(false);
-}
-*/
-bool Expresseur::OnLeft(wxPoint p, wxSize s ,  bool down)
-{
-	if (editMode)
-		return(true);
+void Expresseur::OnIdle(wxIdleEvent& evt)
+{ 
+	if (firstTimer) return ;
+
 	switch (mode)
 	{
-	case modeChord:
-		{
-			if ( down )
-			{
-				int pos = mTextscore->getInsertionPoint();
-				basslua_call(moduleChord, functionChordSetPosition, "i", pos);
-			}
-		}
-		break;
-	case modeScore:
-		{
-			if ( down )
-			{
-				// play score on
-				int v ;
-				if ( posScrollVertical == 50 ) // right/left split
-					v = 64 + (40 * p.y ) / s.GetHeight() ;
-				else // up/down split
-					v = 64 + (40 * p.x ) / s.GetWidth() ;
-				if ( playScoreOn )
-					basslua_call(moduleScore, functionScorePlay, "iiiii", 0,0,10,126,0);
-				playScoreOn = true ;
-				basslua_call(moduleScore, functionScorePlay, "iiiii", 0,0,10,126,v);
-			}
-			else
-			{
-				// play score off 
-				playScoreOn = false ;
-				basslua_call(moduleScore, functionScorePlay, "iiiii", 0,0,10,126,0);
-			}
-		}
-		break ;
-	default:
-		break;
+	case modeChord: if ( mTextscore  == NULL ) return ;
+	case modeScore:	if ( mViewerscore == NULL ) return ;
+	default : return;
 	}
-	return(false);
-}
-bool Expresseur::timerTask(bool compile, bool refreshScreen)
-{
-	// trigger external timer for luabass and basslua
-	basslua_external_timer();
-	wxLongLong time ;
+
+
 	int nr_device , type_msg , channel , value1 , value2 ;
 	bool isProcessed ;
+	wxLongLong time ;
 	bool calledBack = luafile::isCalledback(&time, &nr_device, &type_msg, &channel, &value1, &value2, &isProcessed);
-	bool quick = false ;
-	if (calledBack )
-		quick = isProcessed ;
+
 	switch (mode)
 	{
 	case modeChord:
 	{
 		// compile the text of chords
-		if (compile)
-			mTextscore->compileText();
-
-		if ((quick) || (refreshScreen))
+		if (waitToCompile < 1 )
 		{
-			// scan the current position given by LUA module, according to MID events
-			int nrChord = mTextscore->scanPosition(editMode);
-			mViewerscore->setPosition(nrChord, true);
+			mTextscore->compileText();
+			waitToCompile = periodCompile / timerDt;
 		}
+
+
+		// scan the current position given by LUA module, according to MID events
+		int nrChord = mTextscore->scanPosition(editMode);
+		mViewerscore->setPosition(nrChord, true);
 
 		break;
 	}
@@ -810,40 +751,43 @@ bool Expresseur::timerTask(bool compile, bool refreshScreen)
 				playback = false;
 			}
 		}
-		if ((quick) || (refreshScreen))
+
+		if ( recordPlayback && calledBack )
 		{
-			if ( recordPlayback && calledBack )
+			do {
+				((musicxmlscore *)(mViewerscore))->recordPlayback(time, nr_device, type_msg, channel, value1, value2);
+			} while ( luafile::isCalledback(&time, &nr_device, &type_msg, &channel, &value1, &value2, &isProcessed) );
+		}
+
+		int nrEvent, playing;
+		basslua_call(moduleScore, functionScoreGetPosition, ">ii", &nrEvent, &playing);
+		mViewerscore->setPosition(nrEvent, (playing>0));
+
+		int absolute_measure_nr, measure_nr, repeat , beat, t ;
+		bool retPos = ((musicxmlscore *)(mViewerscore))->getScorePosition(&absolute_measure_nr, &measure_nr, &repeat , &beat, &t) ;
+		if ( retPos && ( absolute_measure_nr != prev_absolute_measure_nr ))
+		{
+			prev_absolute_measure_nr = absolute_measure_nr ;
+			wxString spos ;
+			switch ( repeat )
 			{
-				do {
-					((musicxmlscore *)(mViewerscore))->recordPlayback(time, nr_device, type_msg, channel, value1, value2);
-				} while ( luafile::isCalledback(&time, &nr_device, &type_msg, &channel, &value1, &value2, &isProcessed) );
+			case -1 :
+			case NULL_INT :
+				break ;
+			case 0 :
+				spos.Printf(_("Expresseur measure %d / Score measure %d"), absolute_measure_nr, measure_nr);
+				break ;
+			case 1 :
+				spos.Printf(_("Expresseur measure %d / Score measure %d (2nd time)"), absolute_measure_nr, measure_nr);
+				break ;
+			case 2 :
+				spos.Printf(_("Expresseur measure %d / Score measure %d (3rd time)"), absolute_measure_nr, measure_nr );
+				break ;
+			default :
+				spos.Printf(_("Expresseur measure %d / Score measure %d (%dth time)"), absolute_measure_nr, measure_nr , repeat + 1);
+				break ;
 			}
-			int absolute_measure_nr, measure_nr, repeat , beat, t ;
-			bool retPos = ((musicxmlscore *)(mViewerscore))->getScorePosition(&absolute_measure_nr, &measure_nr, &repeat , &beat, &t) ;
-			if ( retPos && ( absolute_measure_nr != prev_absolute_measure_nr ))
-			{
-				prev_absolute_measure_nr = absolute_measure_nr ;
-				wxString spos ;
-				switch ( repeat )
-				{
-				case -1 :
-				case NULL_INT :
-					break ;
-				case 0 :
-					spos.Printf(_("Expresseur measure %d / Score measure %d"), absolute_measure_nr, measure_nr);
-					break ;
-				case 1 :
-					spos.Printf(_("Expresseur measure %d / Score measure %d (2nd time)"), absolute_measure_nr, measure_nr);
-					break ;
-				case 2 :
-					spos.Printf(_("Expresseur measure %d / Score measure %d (3rd time)"), absolute_measure_nr, measure_nr );
-					break ;
-				default :
-					spos.Printf(_("Expresseur measure %d / Score measure %d (%dth time)"), absolute_measure_nr, measure_nr , repeat + 1);
-					break ;
-				}
-				SetStatusText(spos, 0);
-			}
+			SetStatusText(spos, 0);
 		}
 		break;
 	}
@@ -859,8 +803,9 @@ bool Expresseur::timerTask(bool compile, bool refreshScreen)
 			mLog->scanLog(); // updates any log from LUA to the window of this GUI
 	}
 
-	if ((quick) || (refreshScreen))
+	if ( waitToRefresh < 1 )
 	{
+		waitToRefresh = periodRefresh / timerDt;
 		// scan pendings useful events from LUA
 		if (mMixer && (mMixer->IsVisible()))
 			mMixer->scanVolume(); // updates the volume of the mixer of thuis GUI, with the values in LUA
@@ -877,22 +822,14 @@ bool Expresseur::timerTask(bool compile, bool refreshScreen)
 		if ((basslua_table(moduleGlobal, tableInfo, -1, fieldValue, ch, NULL, tableGetKeyValue | tableNilKeyValue) & tableGetKeyValue) == tableGetKeyValue)
 			SetStatusText(ch, 1);
 
+		if ((mode = modeScore) && (image_right != mViewerscore->GetClientSize()))
+		{
+			image_right = mViewerscore->GetClientSize();
+			Layout();
+			mViewerscore->displayFile(image_right);
+		}
 	}
 
-	if ((refreshScreen) && (mViewerscore->isOk() ) && (image_right != mViewerscore->GetClientSize()))
-	{
-		image_right = mViewerscore->GetClientSize();
-		Layout();
-		mViewerscore->displayFile(image_right);
-	}
-
-	return quick;
-}
-void Expresseur::OnIdle(wxIdleEvent& evt)
-{ 
-	int nrEvent, playing;
-	basslua_call(moduleScore, functionScoreGetPosition, ">ii", &nrEvent, &playing);
-	mViewerscore->setPosition(nrEvent, (playing>0));
 	evt.RequestMore();
 }
 void Expresseur::OnTimer(wxTimerEvent& WXUNUSED(event))
@@ -903,13 +840,10 @@ void Expresseur::OnTimer(wxTimerEvent& WXUNUSED(event))
 		firstTimer = false;
 		return;
 	}
-	bool quick = timerTask(waitToCompile == 1, waitToRefresh == 1);
-	if (waitToCompile > 0)
-		waitToCompile--;
-	if ((waitToRefresh > 0) && ( !quick ))
-		waitToRefresh--;
-	else
-		waitToRefresh = periodRefresh / timerDt;
+	// trigger external timer for luabass and basslua
+	basslua_external_timer();
+	waitToCompile--;
+	waitToRefresh--;
 }
 void Expresseur::setWindowsTitle()
 {

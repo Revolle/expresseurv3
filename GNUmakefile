@@ -67,8 +67,10 @@ ifeq ($(PLATFORM),Linux)
 
 		LUABASS_LIBS := -L$(BASSDIR) -lbass -lbassmidi -lbassmix -lrt -lm -ldl -lasound -lpthread $(EXPRESS_LIBPATH)
 		BASSLUA_LIBS := $(LUABASS_LIBS)  -L$(LUADIR) -llua $(EXPRESS_LIBPATH)
+		WXWIDGESTLIB = $(shell $(WX_CONFIG) --libs base,net,core,adv,xml)
 		EXPRESSCMD_LIBS := -lrt -lm -ldl $(EXPRESS_LIBPATH)
-		EXPRESSEUR_LIBS := $(shell $(WX_CONFIG) --libs base,net,core,adv,xml) $(EXPRESSCMD_LIBS) 
+		EXPRESSEUR_LIBS := $(WXWIDGESTLIB)  $(EXPRESSCMD_LIBS) 
+		TEST_LIBS := $(WXWIDGESTLIB) 
 		EXPRESSEURCONTENT := $(EXPRESSEURAPP)/Contents/Linux
 		EXPRESSEURRESOURCES := $(EXPRESSEURAPP)/Contents/Resources
 else

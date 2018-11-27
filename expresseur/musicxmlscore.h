@@ -49,6 +49,7 @@ private:
 	bool xmlExtractXml(wxFileName f);
 	bool newLayout(wxSize sizeClient);
 	void refresh(wxDC& dc, int pos, bool playing);
+	wxString getNamePage(wxFileName fp , int pageNr);
 	wxString musescoreexe, musescorescript , musescorepng , musescorepos;
 
 	bool docOK = false ;
@@ -71,19 +72,19 @@ private:
 	int totalMeasures = 0;
 	int totalStaves = 0;
 	int totalPages = 0;;
-	int currentNrEvent = 0;
-	wxBitmap currentBitmap;
-	wxRect rectPrevPos;
-	wxBrush originalBackground;
-	bool setCursor(int nrEvent,bool red, wxDC& dc);
-	bool readPos();
-	bool setPage(int pageNr, bool turnPage, wxDC& dc);
-	bool drawpage(int pageNr,wxDC& dc , int full = 0);
-	void setPageNr(int ipageNr, wxDC& dc);
-	int currentPageNrFull = 0;
-	int currentPageNrPartial = 0;
+	int currentPos = 0;
+
+	wxBitmap *currentBitmap;
+	wxMemoryDC *currentDC ;
 	wxSize sizePage;
 	wxRect buttonPage;
+	int currentPageNr = 0 ;
+	int currentPageNrPartial = -1 ;
+	int currentTurnPage = true ;
+
+	bool setCursor(wxDC& dc , int nrEvent,bool red);
+	bool readPos();
+	bool setPage(int pos , wxRect *rectPos);
 
 	void crc_init();
 	wxULongLong crc_cumulate_file(wxString fname);
