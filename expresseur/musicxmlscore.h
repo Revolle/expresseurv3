@@ -74,13 +74,12 @@ private:
 	int totalPages = 0;;
 	int currentPos = 0;
 
-	wxBitmap *currentBitmap;
 	wxMemoryDC *currentDC ;
 	wxSize sizePage;
 	wxRect buttonPage;
 	int currentPageNr = 0 ;
 	int currentPageNrPartial = -1 ;
-	int currentTurnPage = true ;
+	bool currentTurnPage = true ;
 
 	bool setCursor(wxDC& dc , int nrEvent,bool red);
 	bool readPos();

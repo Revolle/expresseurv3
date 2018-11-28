@@ -74,6 +74,7 @@
 #endif
 
 #define PREFIX_CACHE "CACHE_EXPRESSEUR"
+#define WIDTH_SEPARATOR_PAGE 10
 
 // CRC tool to optimize calcualtion of MuseScore pages
 
@@ -239,7 +240,6 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 
 	docOK = false;
 	xmlCompile = NULL;
-	currentBitmap = NULL ;
 	currentDC = NULL ;
 
 	// locate the musescore exe for the rendering of the musial score
@@ -339,9 +339,6 @@ musicxmlscore::~musicxmlscore()
 	if (xmlCompile != NULL)
 		delete xmlCompile;
 	xmlCompile = NULL;
-	if ( currentBitmap)
-		delete currentBitmap;
-	currentBitmap = NULL ;
 	if ( currentDC)
 		delete currentDC;
 	currentDC = NULL ;
@@ -584,7 +581,7 @@ bool musicxmlscore::getScorePosition(int *absolute_measure_nr, int *measure_nr, 
 }
 bool musicxmlscore::setPage(int pos , wxRect *rectPos )
 {
-	if (!isOk() || !docOK || (currentBitmap == NULL) || (pos < 0))	return false;
+	if (!isOk() || !docOK || (pos < 0))	return false;
 
 	currentPos = pos ;
 
@@ -602,31 +599,55 @@ bool musicxmlscore::setPage(int pos , wxRect *rectPos )
 	currentPageNr = pageNr ;
 	currentTurnPage = turnPage ;
 
+	wxBitmap emptyBitmap(sizePage);
 	if ( currentDC )
 		delete currentDC ;
-	currentDC = new wxMemoryDC(*currentBitmap);
+	currentDC = new wxMemoryDC(emptyBitmap);
+	if (!currentDC->IsOk())
+	{
+		delete currentDC;
+		return false;
+	}
 
-	wxFileName fp(musescorepng) ;
-	wxString fn = getNamePage(fp,pageNr);
-	if (fn.IsEmpty()) return false ;
+	wxFileName fp(musescorepng);
+	wxString fn = getNamePage(fp, pageNr);
+	if (fn.IsEmpty()) return false;
+	wxBitmap fnbitmap(fn, wxBITMAP_TYPE_PNG);
 
-	// draw the curretn page
-	wxBitmap fnbitmap(fn,wxBITMAP_TYPE_PNG);
-	currentDC->DrawBitmap(fnbitmap,0,0);
+
 	currentPageNrPartial = -1 ;
 
 	if (turnPage)
 	{
-		// anticipate the next page
-	 	wxDCClipper clipTurnPage(*currentDC, wxRect(0,0,sizePage.GetWidth()/2 + sizePage.GetWidth() / 9,sizePage.GetHeight()));
-		wxString fnturn = getNamePage(fp,pageNr + 1);
-		if (! fnturn.IsEmpty()) 
 		{
-			wxBitmap fnturnbitmap(fnturn,wxBITMAP_TYPE_PNG);
-			currentDC->DrawBitmap(fnturnbitmap,0,0);
-			currentDC->GradientFillLinear(wxRect(sizePage.GetWidth() / 2, 0, sizePage.GetWidth() / 9, sizePage.GetHeight()), *wxBLACK, *wxWHITE, wxRIGHT);
-			currentPageNrPartial = pageNr + 1 ;
+			// half page on right
+			wxDCClipper clipTurnPage(*currentDC, wxRect(sizePage.GetWidth() / 2 + sizePage.GetWidth() / WIDTH_SEPARATOR_PAGE, 0, sizePage.GetWidth() / 2 - sizePage.GetWidth() / WIDTH_SEPARATOR_PAGE, sizePage.GetHeight()));
+			currentDC->SetBackground(this->GetBackgroundColour());
+			currentDC->Clear();
+			currentDC->DrawBitmap(fnbitmap, 0, 0);
 		}
+		{
+			// anticipate half of the next page
+			wxDCClipper clipTurnPage(*currentDC, wxRect(0, 0, sizePage.GetWidth() / 2 + sizePage.GetWidth() / WIDTH_SEPARATOR_PAGE, sizePage.GetHeight()));
+			wxString fnturn = getNamePage(fp, pageNr + 1);
+			if (!fnturn.IsEmpty())
+			{
+				wxBitmap fnturnbitmap(fnturn, wxBITMAP_TYPE_PNG);
+				currentDC->SetBackground(this->GetBackgroundColour());
+				currentDC->Clear();
+				currentDC->DrawBitmap(fnturnbitmap, 0, 0);
+				currentDC->GradientFillLinear(wxRect(sizePage.GetWidth() / 2, 0, sizePage.GetWidth() / (WIDTH_SEPARATOR_PAGE * 2), sizePage.GetHeight()), this->GetBackgroundColour(), *wxWHITE, wxRIGHT);
+				currentDC->GradientFillLinear(wxRect(sizePage.GetWidth() / 2 + sizePage.GetWidth() / (WIDTH_SEPARATOR_PAGE * 2), 0, sizePage.GetWidth() / (WIDTH_SEPARATOR_PAGE * 2), sizePage.GetHeight()), this->GetBackgroundColour(), *wxWHITE, wxLEFT);
+				currentPageNrPartial = pageNr + 1;
+			}
+		}
+	}
+	else
+	{
+		// full page
+		currentDC->SetBackground(this->GetBackgroundColour());
+		currentDC->Clear();
+		currentDC->DrawBitmap(fnbitmap, 0, 0);
 	}
 
 	if (totalPages > 0)
@@ -638,6 +659,11 @@ bool musicxmlscore::setPage(int pos , wxRect *rectPos )
 		buttonPage.SetX(0);
 		buttonPage.SetWidth(sizePage.GetWidth());
 		int widthNrPage = sizePage.GetWidth() / totalPages;
+		wxDCClipper clipPageNr(*currentDC, buttonPage);
+		currentDC->SetBackground(this->GetBackgroundColour());
+		currentDC->Clear();
+		currentDC->SetTextForeground(*wxBLACK);
+		//currentDC->SetTextBackground(*wxWHITE);
 		for (int nrPage = 0; nrPage < totalPages; nrPage++)
 		{
 			wxString spage;
@@ -650,12 +676,11 @@ bool musicxmlscore::setPage(int pos , wxRect *rectPos )
 			currentDC->DrawText(spage, xsPage, buttonPage.y);
 		}
 	}
-
 	return true;
 }
 bool musicxmlscore::setCursor(wxDC& dc , int pos,bool red )
 {
-	if (!isOk() || !docOK || (currentBitmap == NULL) || (pos < 0))	return false;
+	if (!isOk() || !docOK || (pos < 0))	return false;
 
 	wxRect rectPos ;
 
@@ -742,7 +767,7 @@ void musicxmlscore::OnLeftDown(wxMouseEvent& event)
 		return;
 	}
 	int mpage = currentPageNr;
-	if ((currentPageNrPartial != -1) && (mPoint.y < sizePage.GetHeight() / 3))
+	if (currentPageNrPartial != -1)
 		mpage = currentPageNrPartial;
 	int nrEvent;
 	nrEvent = xmlCompile->pointToEventNr(mpage , mPoint);
@@ -750,7 +775,7 @@ void musicxmlscore::OnLeftDown(wxMouseEvent& event)
 		return;
 	prevPos = -1;
 	prevPlaying = -1;
-	basslua_call(moduleScore, functionScoreGotoNrEvent, "i", nrEvent + 1);
+	basslua_call(moduleScore, functionScoreGotoNrEvent, "i", nrEvent + 1 );
 }
 void musicxmlscore::gotoPosition()
 {
@@ -819,10 +844,6 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 
 	sizePage.SetWidth( sizeClient.GetX() );
 	sizePage.SetHeight( sizeClient.GetY() );
-
-	if ( currentBitmap)
-		delete currentBitmap;
-	currentBitmap = new wxBitmap(sizePage);
 
 	resolution_dpi = 100.0;
 	tenths = 40.0;

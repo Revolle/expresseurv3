@@ -712,8 +712,15 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 
 	switch (mode)
 	{
-	case modeChord: if ( mTextscore  == NULL ) return ;
-	case modeScore:	if ( mViewerscore == NULL ) return ;
+	case modeChord: 
+		if (mTextscore == NULL) 
+			return; 
+		else break;
+	case modeScore:	
+		if ( mViewerscore == NULL ) 
+			return ; 
+		else 
+			break;
 	default : return;
 	}
 
@@ -761,7 +768,7 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 
 		int nrEvent, playing;
 		basslua_call(moduleScore, functionScoreGetPosition, ">ii", &nrEvent, &playing);
-		mViewerscore->setPosition(nrEvent, (playing>0));
+		mViewerscore->setPosition(nrEvent - 1, (playing>0));
 
 		int absolute_measure_nr, measure_nr, repeat , beat, t ;
 		bool retPos = ((musicxmlscore *)(mViewerscore))->getScorePosition(&absolute_measure_nr, &measure_nr, &repeat , &beat, &t) ;
@@ -822,7 +829,7 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 		if ((basslua_table(moduleGlobal, tableInfo, -1, fieldValue, ch, NULL, tableGetKeyValue | tableNilKeyValue) & tableGetKeyValue) == tableGetKeyValue)
 			SetStatusText(ch, 1);
 
-		if ((mode = modeScore) && (image_right != mViewerscore->GetClientSize()))
+		if ((mode == modeScore) && (image_right != mViewerscore->GetClientSize()))
 		{
 			image_right = mViewerscore->GetClientSize();
 			Layout();
