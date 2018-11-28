@@ -48,7 +48,6 @@ private:
 	musicxmlcompile *xmlCompile = NULL;
 	bool xmlExtractXml(wxFileName f);
 	bool newLayout(wxSize sizeClient);
-	void refresh(wxDC& dc, int pos, bool playing);
 	wxString getNamePage(wxFileName fp , int pageNr);
 	wxString musescoreexe, musescorescript , musescorepng , musescorepos;
 

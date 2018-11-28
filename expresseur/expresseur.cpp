@@ -829,7 +829,7 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 		if ((basslua_table(moduleGlobal, tableInfo, -1, fieldValue, ch, NULL, tableGetKeyValue | tableNilKeyValue) & tableGetKeyValue) == tableGetKeyValue)
 			SetStatusText(ch, 1);
 
-		if ((mode == modeScore) && (image_right != mViewerscore->GetClientSize()))
+		if (image_right != mViewerscore->GetClientSize())
 		{
 			image_right = mViewerscore->GetClientSize();
 			Layout();

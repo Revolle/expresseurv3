@@ -28,10 +28,17 @@ public:
 private:
 	void refresh(wxDC& dc, int pos);
 	wxWindow *mParent;
-	wxImage *mImage;
-	wxBitmap *mBitmap;
 	mxconf *mConf;
-	void newLayout();
+	
+	wxFileName filename;
+	wxFileName fileInDC;
+	wxFileName fileRectChord;
+	wxSize sizePage;
+	wxMemoryDC *currentDC;
+
+	bool newLayout(wxSize sizeClient);
+	bool setPage();
+	void setCursor(wxDC& dc, int pos);
 
 	double xScale, yScale;
 
@@ -46,7 +53,6 @@ private:
 	wxRect rectChord[MAX_RECTCHORD];
 	int nbRectChord;
 	int nrChord;
-	wxFileName fileRectChord;
 	void readRectChord();
 	void writeRectChord();
 

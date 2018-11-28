@@ -680,8 +680,6 @@ bool musicxmlscore::setPage(int pos , wxRect *rectPos )
 }
 bool musicxmlscore::setCursor(wxDC& dc , int pos,bool red )
 {
-	if (!isOk() || !docOK || (pos < 0))	return false;
-
 	wxRect rectPos ;
 
 	if ( ! setPage(pos,&rectPos ) ) return false ;
@@ -705,35 +703,41 @@ bool musicxmlscore::setCursor(wxDC& dc , int pos,bool red )
 }
 void musicxmlscore::setPosition(int pos, bool playing)
 {
+	if (!isOk() || !docOK || (pos < 0))	return ;
+
 	// onIdle : set the current pos
 	newPaintPos = pos ;
 	newPaintPlaying = playing ;
 	if ((pos != prevPos) || (playing != prevPlaying))
 	{
 		wxClientDC dc(this);
-		refresh(dc,pos,playing);
+		setCursor(dc,pos,playing);
 		prevPos = pos ;
 		prevPlaying = playing ;
+		/*
+		wxDCClipper cursorclip(dc, 5, 5, 5, 5);
+		dc.SetBackground(*wxGREEN_BRUSH);
+		dc.Clear();
+		*/
 	}
 }
 void musicxmlscore::onPaint(wxPaintEvent& WXUNUSED(event))
 {
 	// onPaint
 	wxPaintDC dc(this);
+	if (!isOk() || !docOK )	return;
+
 	if ((newPaintPos != prevPaintPos) || (newPaintPlaying != prevPaintPlaying))
 	{
-		refresh(dc,newPaintPos,newPaintPlaying);
+		setCursor(dc,newPaintPos,newPaintPlaying);
 		prevPaintPos = newPaintPos ;
 		prevPaintPlaying = newPaintPlaying ;
 	}
-}
-void musicxmlscore::refresh(wxDC& dc, int pos, bool playing)
-{
-	// draw the cursor n the right page
-
-	if ((!docOK) || (!isOk()) ) return ;
-
-	setCursor(dc , pos, playing);
+	/*
+	wxDCClipper cursorclip(dc, 1,1,5,5);
+	dc.SetBackground(*wxRED_BRUSH);
+	dc.Clear();
+	*/
 }
 
 void musicxmlscore::gotoNextPage(bool forward)
@@ -767,7 +771,7 @@ void musicxmlscore::OnLeftDown(wxMouseEvent& event)
 		return;
 	}
 	int mpage = currentPageNr;
-	if (currentPageNrPartial != -1)
+	if ((currentPageNrPartial != -1) && (mPoint.x < sizePage.GetWidth()/2))
 		mpage = currentPageNrPartial;
 	int nrEvent;
 	nrEvent = xmlCompile->pointToEventNr(mpage , mPoint);
