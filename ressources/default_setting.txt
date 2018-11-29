@@ -1,6 +1,6 @@
 Configuration ExpresseurV3
 /shortcut/midifunction=
-/shortcut/selectornb=11
+/shortcut/selectornb=12
 /shortcut/name/0=play score
 /shortcut/action/0=score/play
 /shortcut/key/0=O
@@ -48,7 +48,7 @@ Configuration ExpresseurV3
 /shortcut/channel/4=All channels
 /shortcut/event/4=note-on&off
 /shortcut/min/4=52
-/shortcut/max/4=126
+/shortcut/max/4=87
 /shortcut/stoponmatch/4=stop
 /shortcut/param/4=
 /shortcut/name/5=track1 forte
@@ -111,3 +111,13 @@ Configuration ExpresseurV3
 /shortcut/max/10=
 /shortcut/stoponmatch/10=stop
 /shortcut/param/10=20 2
+/shortcut/name/11=midi thru
+/shortcut/action/11=global/play note
+/shortcut/key/11=
+/shortcut/devicename/11=all Midi-In
+/shortcut/channel/11=All channels
+/shortcut/event/11=note-on&off
+/shortcut/min/11=88
+/shortcut/max/11=127
+/shortcut/stoponmatch/11=stop
+/shortcut/param/11=
