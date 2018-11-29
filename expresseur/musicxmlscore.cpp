@@ -1095,6 +1095,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	currentPageNr = -1;
 	currentPageNrPartial = -1;
 	prevPos = -1 ;
+	prevPaintPos = -1 ;
 	prevPlaying = true ;
 	return true ;
 }
