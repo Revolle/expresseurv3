@@ -403,7 +403,10 @@ void bitmapscore::readRectChord()
 				token.ToLong(&l);
 				rectChord[nbRectChord].SetHeight(l);
 			}
-			nbRectChord++;
+			if ((nbRectChord == 0) && (rectChord[nbRectChord].GetX() == 0) && (rectChord[nbRectChord].GetY() == 0) && (rectChord[nbRectChord].GetWidth() == 0) && (rectChord[nbRectChord].GetHeight() == 0))
+				nbRectChord = 0 ; // problem compatibilite bug V3.0
+			else
+				nbRectChord++;
 			str = tfile.GetNextLine();
 		}
 		tfile.Close();
