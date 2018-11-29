@@ -98,6 +98,7 @@ textscore::textscore(wxWindow *parent, wxWindowID id, mxconf* lMxconf)
 	oldchordEnd = -1;
 	oldsectionStart = -1;
 	oldsectionEnd = -1;
+	prevInsertionPoint = -1;
 }
 textscore::~textscore()
 {
@@ -119,8 +120,10 @@ void textscore::compileText()
 	basslua_call(moduleChord, functionChordGetRecognizedScore, ">ii", &start, &end);
 	while (start >= 0)
 	{
-		if (( start > 0 ) && (end > 0))
+		if ((start > 0) && (end > 0))
+		{
 			SetStyle(start - 1, end, textAttrRecognized);
+		}
 		basslua_call(moduleChord, functionChordGetRecognizedScore, ">ii", &start, &end);
 	}
 	if (!userModification)
@@ -163,22 +166,12 @@ int textscore::scanPosition(bool editmode)
 		DiscardEdits();
 	return nrChord;
 }
-int textscore::getInsertionPoint()
+void textscore::scanTextPosition()
 {
-	return GetInsertionPoint();
-}
-int textscore::getInsertionLine()
-{
-	int point = GetInsertionPoint();
-	int lineNr = 0 ;
-	wxMessageBox(GetRange(point,point+1),"getInsertionLine");
-	while (point >= 0 )
-	{
-		if ( GetRange(point,point+1) == "\n")
-			lineNr ++ ;
-		point -- ;
-	}
-	return lineNr ;
+	int insertionPoint = GetInsertionPoint();
+	if ( insertionPoint != prevInsertionPoint)
+		basslua_call(moduleChord, functionChordSetPosition, "i", insertionPoint);
+	prevInsertionPoint = insertionPoint;
 }
 bool textscore::setFile(const wxFileName &filename)
 {

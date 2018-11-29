@@ -45,14 +45,14 @@ private:
 
 	wxPoint mPointStart, mPointEnd;
 	wxRect prevRect , selectedRect ;
-	int prevPos =1 ;
-	int prevPaintPos = -1 ;
-	int newPaintPos = -1 ;
+	int prevNrChord =1 ;
+	int prevPaintNrChord = -1 ;
+	int newPaintNrChord = -1 ;
 	bool alertSetRect;
 	wxRect highlight(bool on, wxPoint start, wxPoint end, wxDC& dc);
 	wxRect rectChord[MAX_RECTCHORD];
 	int nbRectChord;
-	int nrChord;
+	int nrChord = -1;
 	void readRectChord();
 	void writeRectChord();
 

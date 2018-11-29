@@ -73,8 +73,8 @@ bitmapscore::bitmapscore(wxWindow *parent, wxWindowID id, mxconf* lMxconf)
 	}
 	xScale = 1.0;
 	yScale = 1.0;
-	prevPos = -1;
-	prevPaintPos = -1;
+	prevNrChord = -1;
+	prevPaintNrChord = -1;
 }
 bitmapscore::~bitmapscore()
 {
@@ -124,8 +124,8 @@ bool bitmapscore::newLayout(wxSize sizeClient)
 	// load the rect linked to the chords
 	readRectChord();
 
-	prevPos = -1;
-	prevPaintPos = -1;
+	prevNrChord = -1;
+	prevPaintNrChord = -1;
 	return true;
 
 }
@@ -133,6 +133,11 @@ bool bitmapscore::setPage()
 {
 	if (fileInDC == filename)
 		return true;
+
+	sizePage = this->GetSize();
+
+	if ((sizePage.GetHeight() < 100) || (sizePage.GetWidth() < 100))
+		return false;
 
 	wxImage mImage(filename.GetFullPath(), wxBITMAP_TYPE_PNG);
 	if (!mImage.IsOk()) return false;
@@ -174,8 +179,8 @@ bool bitmapscore::setPage()
 	}
 
 	fileInDC = filename;
-	prevPos = -1;
-	prevPaintPos = -1;
+	prevNrChord = -1;
+	prevPaintNrChord = -1;
 
 	return true;
 }
@@ -194,27 +199,33 @@ void bitmapscore::setCursor(wxDC& dc, int pos)
 	{
 		wxRect mrect , nrect;
 		nrect = rectChord[pos];
+		// scale the rectangle
 		mrect.SetX(nrect.GetX() * xScale);
 		mrect.SetY(nrect.GetY() * yScale);
 		mrect.SetWidth(nrect.GetWidth() * xScale);
 		mrect.SetHeight(nrect.GetHeight() * yScale);
+		// underscore of the rectangle
+		mrect.SetY(mrect.GetY() + mrect.GetHeight());
+		mrect.SetHeight(5);
+		// clip on the underscore and clear(paint)
 		wxDCClipper clip(dc, mrect);
 		dc.SetBackground(*wxRED_BRUSH);
 		dc.Clear();
-		//dc.Blit(0, 0, sizePage.GetWidth(), sizePage.GetHeight(), currentDC, 0, 0);
 	}
 }
 void bitmapscore::setPosition(int pos, bool WXUNUSED( playing))
 {
 	if (!isOk()) return;
 
+	nrChord = pos - 1 ;
+
 	// onIdle : set the current pos
-	newPaintPos = pos ;
-	if (pos != prevPos)
+	newPaintNrChord = nrChord;
+	if (nrChord != prevNrChord)
 	{
 		wxClientDC dc(this);
-		setCursor(dc,pos);
-		prevPos = pos ;
+		setCursor(dc, nrChord);
+		prevNrChord = nrChord;
 		
 		/*
 		wxDCClipper cursorclip(dc, 5, 5, 5, 5);
@@ -229,10 +240,10 @@ void bitmapscore::onPaint(wxPaintEvent& WXUNUSED(event))
 	wxPaintDC dc(this);
 	if (!isOk()) return;
 
-	if (newPaintPos != prevPaintPos) 
+	if (newPaintNrChord != prevPaintNrChord) 
 	{
-		setCursor(dc, newPaintPos);
-		prevPaintPos = newPaintPos;
+		setCursor(dc, newPaintNrChord);
+		prevPaintNrChord = newPaintNrChord;
 	}
 	
 	/*
@@ -254,19 +265,38 @@ void bitmapscore::OnLeftUp(wxMouseEvent& event)
 	mPointEnd = event.GetLogicalPosition(mDC);
 	selectedRect = highlight(false, mPointStart, mPointEnd, mDC);
 	mPointStart = wxDefaultPosition;
-	if (((selectedRect.GetWidth() < 10) && (selectedRect.GetHeight() < 10)) || (nrChord == -1))
+	if (((selectedRect.GetWidth() < 5) && (selectedRect.GetHeight() < 5)) || (nrChord == -1))
 	{
 		selectedRect.SetWidth(10);
 		selectedRect.SetHeight(10);
 		wxRect r;
+		int dmax = 100000;
+		int bestrect = -1;
 		for (int nrRectChord = 0; nrRectChord < nbRectChord; nrRectChord++)
 		{
 			r = rectChord[nrRectChord] * selectedRect;
 			if (!r.IsEmpty())
 			{
-				basslua_call(moduleChord, functionChordSetNrEvent, "i", nrRectChord);
+				bestrect = nrRectChord;
 				break;
 			}
+			int dx = rectChord[nrRectChord].GetX() - selectedRect.GetX();
+			dx *= dx;
+			int dy = rectChord[nrRectChord].GetY() - selectedRect.GetY();
+			dy *= dy;
+			int d = dx;
+			if (d < dy)
+				d = dy;
+			if (d < dmax)
+			{
+				bestrect = nrRectChord;
+				dmax = d;
+			}
+		}
+		if (bestrect != -1)
+		{
+			basslua_call(moduleChord, functionChordSetNrEvent, "i", bestrect + 1);
+			nrChord = bestrect;
 		}
 	}
 	else
@@ -277,12 +307,9 @@ void bitmapscore::OnLeftUp(wxMouseEvent& event)
 			mDialog->SetYesNoCancelLabels(_("Always link"), _("Link now"), _("Cancel"));
 			switch (mDialog->ShowModal())
 			{
-			case wxID_YES:
-				alertSetRect = false;
-			case wxID_NO:
-				break;
-			default:
-				return;
+			case wxID_YES:	alertSetRect = false; break;
+			case wxID_NO:	break;	
+			default: return;
 			}
 			delete mDialog;
 		}

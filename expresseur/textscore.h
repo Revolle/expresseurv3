@@ -12,6 +12,7 @@ public:
 	~textscore();
 
 	void OnSize(wxSizeEvent& event);
+	void OnLeftDown(wxMouseEvent& event);
 
 	bool setFile(const wxFileName &lfilename);
 	void saveFile(const wxFileName &filename);
@@ -19,8 +20,7 @@ public:
 	void setEditMode(bool editMode);
 	void compileText();
 	int scanPosition(bool editMode);
-	int getInsertionPoint();
-	int getInsertionLine();
+	void scanTextPosition();
 	bool needToSave();
 	void noNeedToSave();
 	void zoom(int z);
@@ -36,10 +36,10 @@ private:
 
 	int oldchordStart, oldchordEnd;
 	int oldsectionStart, oldsectionEnd;
+	int prevInsertionPoint = -1;
 	wxTextAttr textAttrRecognized;
 	wxTextAttr textAttrNormal;
 	wxTextAttr textAttrPosition;
-	
 	wxString oldText;
 
 
