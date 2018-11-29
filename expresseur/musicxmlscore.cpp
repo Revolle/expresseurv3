@@ -1016,8 +1016,13 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 			pp++;
 		}
 	}
-	if ( ! alreadyAvailable)
+	if ( alreadyAvailable)
+	{ 
+		((wxFrame *)mParent)->SetStatusText("Score pages : read from cache",1);
+	}
+	else
 	{
+		((wxFrame *)mParent)->SetStatusText("Score pages : computation by MuseScore in progress", 1);
 		// run the MuseScore batch to build he pages and the positions
 		char bufMuseScoreBatch[1024];
 		strcpy(bufMuseScoreBatch,command.c_str());
@@ -1036,6 +1041,8 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 				break ;
 			wxSleep(1);
 		}
+
+		((wxFrame *)mParent)->SetStatusText("Score pages : stored in cache", 1);
 
 		// cache this result for potential reuse
 		fm.SetName( prefix_cache + fnMusescorepos.GetName()) ;
