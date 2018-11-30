@@ -584,8 +584,6 @@ bool musicxmlscore::setPage(int pos , wxRect *rectPos )
 {
 	if (!isOk() || !docOK || (pos < 0))	return false;
 
-	currentPos = pos ;
-
 	// get the pagenr adn misc info
 	int pageNr;
 	bool turnPage;
@@ -717,6 +715,7 @@ void musicxmlscore::setPosition(int pos, bool playing)
 		{
 			prevPos = pos;
 			prevPlaying = playing;
+			currentPos = pos;
 		}
 		// nbSetPosition ++ ;
 	}
@@ -733,6 +732,7 @@ void musicxmlscore::onPaint(wxPaintEvent& WXUNUSED(event))
 		{
 			prevPaintPos = newPaintPos;
 			prevPaintPlaying = newPaintPlaying;
+			currentPos = newPaintPos;
 		}
 		//nbPaint ++ ;
 	}
