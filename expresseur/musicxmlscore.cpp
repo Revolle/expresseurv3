@@ -335,7 +335,7 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 }
 musicxmlscore::~musicxmlscore()
 {
-	basslua_call(moduleScore, functionScoreInitScore, "" );
+	//basslua_call(moduleScore, functionScoreInitScore, "" );
 	if (xmlCompile != NULL)
 		delete xmlCompile;
 	xmlCompile = NULL;
