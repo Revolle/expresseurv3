@@ -464,7 +464,7 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	settingMenu->Append(ID_MAIN_FIRSTUSE, _("Reset configuration"));
 
 	wxMenu *helpMenu = new wxMenu;
-	// helpMenu->Append(ID_MAIN_TEST, _("test"));
+	//helpMenu->Append(ID_MAIN_TEST, _("test"));
 	helpMenu->Append(wxID_ABOUT, _("About"));
 	helpMenu->Append(ID_MAIN_UPDATE, _("Check update"));
 
@@ -2461,6 +2461,11 @@ void Expresseur::OnResetConfiguration(wxCommandEvent& WXUNUSED(event))
 }
 void Expresseur::OnTest(wxCommandEvent& WXUNUSED(event))
 {
+	int nbPaint = ((bitmapscore *)mViewerscore)->getNbPaint();
+	int nbSetPosition = ((bitmapscore *)mViewerscore)->getNbSetPosition();
+	wxString s ;
+	s.Printf("NbPaint=%d nbSetPosition=%d",nbPaint,nbSetPosition);
+	wxMessageBox(s);
 }
 void Expresseur::OnRecentFile(wxCommandEvent& event)
 {

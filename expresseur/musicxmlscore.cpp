@@ -714,11 +714,7 @@ void musicxmlscore::setPosition(int pos, bool playing)
 		setCursor(dc,pos,playing);
 		prevPos = pos ;
 		prevPlaying = playing ;
-		/*
-		wxDCClipper cursorclip(dc, 5, 5, 5, 5);
-		dc.SetBackground(*wxGREEN_BRUSH);
-		dc.Clear();
-		*/
+		// nbSetPosition ++ ;
 	}
 }
 void musicxmlscore::onPaint(wxPaintEvent& WXUNUSED(event))
@@ -732,14 +728,21 @@ void musicxmlscore::onPaint(wxPaintEvent& WXUNUSED(event))
 		setCursor(dc,newPaintPos,newPaintPlaying);
 		prevPaintPos = newPaintPos ;
 		prevPaintPlaying = newPaintPlaying ;
+		//nbPaint ++ ;
 	}
-	/*
-	wxDCClipper cursorclip(dc, 1,1,5,5);
-	dc.SetBackground(*wxRED_BRUSH);
-	dc.Clear();
-	*/
 }
-
+int musicxmlscore::getNbPaint()
+{
+	int i = nbPaint ;
+	nbPaint = 0 ;
+	return i;
+}
+int musicxmlscore::getNbSetPosition()
+{
+	int i =  nbSetPosition;
+	nbSetPosition = 0 ;
+	return i ;
+}
 void musicxmlscore::gotoNextPage(bool forward)
 {
 	int pageNr = currentPageNr;

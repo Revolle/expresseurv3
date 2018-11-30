@@ -226,12 +226,7 @@ void bitmapscore::setPosition(int pos, bool WXUNUSED( playing))
 		wxClientDC dc(this);
 		setCursor(dc, nrChord);
 		prevNrChord = nrChord;
-		
-		/*
-		wxDCClipper cursorclip(dc, 5, 5, 5, 5);
-		dc.SetBackground(*wxGREEN_BRUSH);
-		dc.Clear();
-		*/
+		// nbSetPosition ++ ;
 	}
 }
 void bitmapscore::onPaint(wxPaintEvent& WXUNUSED(event))
@@ -244,14 +239,22 @@ void bitmapscore::onPaint(wxPaintEvent& WXUNUSED(event))
 	{
 		setCursor(dc, newPaintNrChord);
 		prevPaintNrChord = newPaintNrChord;
+		// nbPaint ++ ;
 	}
-	
-	/*
-	wxDCClipper cursorclip(dc, 1,1,5,5);
-	dc.SetBackground(*wxRED_BRUSH);
-	dc.Clear();
-	*/
 }
+int bitmapscore::getNbPaint()
+{
+	int i = nbPaint ;
+	nbPaint = 0 ;
+	return i;
+}
+int bitmapscore::getNbSetPosition()
+{
+	int i =  nbSetPosition;
+	nbSetPosition = 0 ;
+	return i ;
+}
+
 void bitmapscore::OnLeftDown(wxMouseEvent& event)
 {
 	wxClientDC mDC(this);

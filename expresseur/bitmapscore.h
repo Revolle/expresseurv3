@@ -15,6 +15,10 @@ public:
 	void OnLeftDown(wxMouseEvent& event);
 	void OnLeftUp(wxMouseEvent& event);
 	void OnMouse(wxMouseEvent& event);
+
+	int getNbPaint();
+	int getNbSetPosition() ;
+
 	virtual bool isOk();
 	virtual bool setFile(const wxFileName &lfilename);
 	virtual bool displayFile(wxSize sizeClient);
@@ -41,6 +45,10 @@ private:
 	void setCursor(wxDC& dc, int pos);
 
 	double xScale, yScale;
+
+	int nbPaint = 0 ;
+	int nbSetPosition = 0 ;
+	
 
 
 	wxPoint mPointStart, mPointEnd;

@@ -31,6 +31,9 @@ public:
 	void recordPlayback(wxLongLong time, int nr_device, int type_msg, int channel, int value1, int value2);
 	bool playback();
 	wxString getPlayback();
+	
+	int getNbPaint();
+	int getNbSetPosition() ;
 
 	virtual bool displayFile(wxSize sizeClient);
 	virtual bool setFile(const wxFileName &lfilename);
@@ -73,6 +76,9 @@ private:
 	int totalPages = 0;;
 	int currentPos = 0;
 
+	int nbPaint = 0 ;
+	int nbSetPosition = 0 ;
+	
 	wxMemoryDC *currentDC ;
 	wxSize sizePage;
 	wxRect buttonPage;
