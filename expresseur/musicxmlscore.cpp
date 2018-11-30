@@ -233,6 +233,8 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 	mConf = lconf;
 	nrChord = -1;
 	xmlName.Clear();
+	
+	basslua_call(moduleScore, functionScoreInitScore, "" );
 
 	inch = (float)(DEF_INCH) * ((float)(mConf->get(CONFIG_CORRECTINCH, 1000))/1000.0) / 1000.0;
 	musescore_def_xml = (bool)(MUSE_SCORE_DEF_XML) ;
@@ -330,12 +332,10 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 
 	cleanTmp();
 	zoom(mConf->get(CONFIG_ZOOM_MUSICXML, 0));
-
-
 }
 musicxmlscore::~musicxmlscore()
 {
-	basslua_call(moduleScore, functionScoreGotoNrEvent, "i", 1 );
+	basslua_call(moduleScore, functionScoreInitScore, "" );
 	if (xmlCompile != NULL)
 		delete xmlCompile;
 	xmlCompile = NULL;
@@ -717,16 +717,16 @@ void musicxmlscore::setPosition(int pos, bool playing)
 			prevPlaying = playing;
 			currentPos = pos;
 		}
-		// nbSetPosition ++ ;
+		nbSetPosition ++ ;
 	}
 }
 void musicxmlscore::onPaint(wxPaintEvent& WXUNUSED(event))
 {
 	// onPaint
 	wxPaintDC dc(this);
-	if (!isOk() || !docOK )	return;
+	if (!isOk() || !docOK  || (newPaintPos < 0))	return;
 
-	if ((newPaintPos != prevPaintPos) || (newPaintPlaying != prevPaintPlaying))
+	if (true) // ((newPaintPos != prevPaintPos) || (newPaintPlaying != prevPaintPlaying))
 	{
 		if (setCursor(dc, newPaintPos, newPaintPlaying))
 		{
@@ -734,7 +734,7 @@ void musicxmlscore::onPaint(wxPaintEvent& WXUNUSED(event))
 			prevPaintPlaying = newPaintPlaying;
 			currentPos = newPaintPos;
 		}
-		//nbPaint ++ ;
+		nbPaint ++ ;
 	}
 }
 int musicxmlscore::getNbPaint()

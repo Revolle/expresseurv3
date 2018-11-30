@@ -237,7 +237,7 @@ void bitmapscore::onPaint(wxPaintEvent& WXUNUSED(event))
 	wxPaintDC dc(this);
 	if (!isOk()) return;
 
-	if (newPaintNrChord != prevPaintNrChord) 
+	if (true) // (newPaintNrChord != prevPaintNrChord) 
 	{
 		if ( setCursor(dc, newPaintNrChord) )
 			prevPaintNrChord = newPaintNrChord;

@@ -575,11 +575,13 @@ function E.gotoNrEvent(nrEvent)
 end
 function E.getPosition()
   -- return the next ebvent to play, or the event playing
+  if nb_events == 0 then
+  	return -1 , 0
+  end
   if c_nrEvent_playing then
     return c_nrEvent_playing[2] , 1
-  else
-     return c_nrEvent_noteOn , 0
   end
+  return c_nrEvent_noteOn , 0
   -- memPos()
 end
 
@@ -767,7 +769,6 @@ function E.finishScore()
 
   E.firstPart()
 end
-
 
 
 
