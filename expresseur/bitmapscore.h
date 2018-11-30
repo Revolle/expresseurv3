@@ -42,7 +42,7 @@ private:
 
 	bool newLayout(wxSize sizeClient);
 	bool setPage();
-	void setCursor(wxDC& dc, int pos);
+	bool setCursor(wxDC& dc, int pos);
 
 	double xScale, yScale;
 

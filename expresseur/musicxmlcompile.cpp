@@ -3164,11 +3164,6 @@ void musicxmlcompile::buildMeasures()
 					}
 				}
 			}
-			if (measure->original_number == 25)
-			{
-				int i;
-				i = 0;
-			}
 			c_measure *newMeasure = new c_measure(*measure);
 			measure->repeat++;
 
@@ -3324,11 +3319,6 @@ void musicxmlcompile::compileExpresseurPart()
 			breath_mark = true;
 		if (musicxmlevent_from->fermata)
 			fermata = true;
-		if (musicxmlevent_from->nr == 2507)
-		{
-			int i;
-			i = 0;
-		}
 		if ((musicxmlevent_from->visible == false) || (musicxmlevent_from->starts.IsEmpty()))
 			continue;
 		wxASSERT(musicxmlevent_from->duration >= 0);

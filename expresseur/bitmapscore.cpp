@@ -184,15 +184,16 @@ bool bitmapscore::setPage()
 
 	return true;
 }
-void bitmapscore::setCursor(wxDC& dc, int pos)
+bool bitmapscore::setCursor(wxDC& dc, int pos)
 {
 	sizePage = this->GetSize();
 	
-	if ( ! setPage()) return ;
+	if ( ! setPage()) return false ;
 
 	// redraw the page(s)
 	dc.Clear();
-	dc.Blit(0, 0, sizePage.GetWidth(), sizePage.GetHeight(), currentDC, 0, 0);
+	if (! dc.Blit(0, 0, sizePage.GetWidth(), sizePage.GetHeight(), currentDC, 0, 0))
+		return false;
 
 	// draw the cursor
 	if (!rectChord[pos].IsEmpty())
@@ -212,6 +213,7 @@ void bitmapscore::setCursor(wxDC& dc, int pos)
 		dc.SetBackground(*wxRED_BRUSH);
 		dc.Clear();
 	}
+	return true;
 }
 void bitmapscore::setPosition(int pos, bool WXUNUSED( playing))
 {
@@ -224,8 +226,8 @@ void bitmapscore::setPosition(int pos, bool WXUNUSED( playing))
 	if (nrChord != prevNrChord)
 	{
 		wxClientDC dc(this);
-		setCursor(dc, nrChord);
-		prevNrChord = nrChord;
+		if ( setCursor(dc, nrChord) )
+			prevNrChord = nrChord;
 		// nbSetPosition ++ ;
 	}
 }
@@ -237,8 +239,8 @@ void bitmapscore::onPaint(wxPaintEvent& WXUNUSED(event))
 
 	if (newPaintNrChord != prevPaintNrChord) 
 	{
-		setCursor(dc, newPaintNrChord);
-		prevPaintNrChord = newPaintNrChord;
+		if ( setCursor(dc, newPaintNrChord) )
+			prevPaintNrChord = newPaintNrChord;
 		// nbPaint ++ ;
 	}
 }

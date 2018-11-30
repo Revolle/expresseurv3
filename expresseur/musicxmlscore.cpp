@@ -132,7 +132,6 @@ void crc_generate_table()
     			crc >>= 1;
             }
     	}
-    
         crc_table[i] = crc;
     }
 }
@@ -688,7 +687,8 @@ bool musicxmlscore::setCursor(wxDC& dc , int pos,bool red )
 
 	// redraw the page(s)
 	dc.Clear() ;
-	dc.Blit(0,0,sizePage.GetWidth(),sizePage.GetHeight(),currentDC, 0,0);
+	if (!dc.Blit(0, 0, sizePage.GetWidth(), sizePage.GetHeight(), currentDC, 0, 0))
+		return false;
 
 	// draw the cursor
 	rectPos.y += rectPos.height + 1 ;
@@ -713,9 +713,11 @@ void musicxmlscore::setPosition(int pos, bool playing)
 	if ((pos != prevPos) || (playing != prevPlaying))
 	{
 		wxClientDC dc(this);
-		setCursor(dc,pos,playing);
-		prevPos = pos ;
-		prevPlaying = playing ;
+		if (setCursor(dc, pos, playing))
+		{
+			prevPos = pos;
+			prevPlaying = playing;
+		}
 		// nbSetPosition ++ ;
 	}
 }
@@ -727,9 +729,11 @@ void musicxmlscore::onPaint(wxPaintEvent& WXUNUSED(event))
 
 	if ((newPaintPos != prevPaintPos) || (newPaintPlaying != prevPaintPlaying))
 	{
-		setCursor(dc,newPaintPos,newPaintPlaying);
-		prevPaintPos = newPaintPos ;
-		prevPaintPlaying = newPaintPlaying ;
+		if (setCursor(dc, newPaintPos, newPaintPlaying))
+		{
+			prevPaintPos = newPaintPos;
+			prevPaintPlaying = newPaintPlaying;
+		}
 		//nbPaint ++ ;
 	}
 }
