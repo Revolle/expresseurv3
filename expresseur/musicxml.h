@@ -565,7 +565,7 @@ class c_measure_sequence
 {
 public:
 	c_measure_sequence();
-	c_measure_sequence(const c_measure_sequence & measure_sequence);
+	c_measure_sequence(const c_measure_sequence & measure_sequence, bool withContent = true);
 	c_measure_sequence(void *pt, int type);
 	~c_measure_sequence();
 	void compile(int partNr , bool twelved , c_measure *measure);

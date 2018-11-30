@@ -714,7 +714,7 @@ void musicxmlcompile::analyseMeasureMarks()
 							mark = true;
 							measureMark->name = ((c_rehearsal*)(direction_type->pt))->value;
 							measureMark->rehearsal = true;
-							break;
+						break;
 						case t_wedge:
 						{
 							c_wedge *current_wedge = (c_wedge*)(direction_type->pt);
@@ -728,13 +728,28 @@ void musicxmlcompile::analyseMeasureMarks()
 								lOrnaments.Append(new c_ornament(o_diminuendo, measure->original_number, timeMeasure, partNr, -1, -1 , false, ""));
 							}
 						}
-							break;
+						break;
 						case t_pedal:
 						{
 							c_pedal *pedal = (c_pedal*)(direction_type->pt);
 							wxString s = pedal->type.Lower();
 							if (s == "start")
 								lOrnaments.Append(new c_ornament(o_pedal, measure->original_number, timeMeasure, partNr, -1, -1, false, ""));
+						}
+						break;
+						case t_dynamics:
+						{
+							c_dynamics *dynamics = (c_dynamics*)(direction_type->pt);
+							wxString s = dynamics->dynamic.Lower();
+							int o = -1;
+							if (s == "pp") o = o_pianissimo;
+							else if (s == "p") o = o_piano;
+							else if (s == "mp") o = o_mesopiano;
+							else if (s == "mf") o = o_mesoforte;
+							else if (s == "f") o = o_forte;
+							else if (s == "ff") o = o_fortissimo;
+							if ( o != -1 )
+								lOrnaments.Append(new c_ornament(o, measure->original_number, timeMeasure, partNr, -1, -1, false, ""));
 						}
 						default: break;
 						}
@@ -3149,6 +3164,11 @@ void musicxmlcompile::buildMeasures()
 					}
 				}
 			}
+			if (measure->original_number == 25)
+			{
+				int i;
+				i = 0;
+			}
 			c_measure *newMeasure = new c_measure(*measure);
 			measure->repeat++;
 
@@ -3304,6 +3324,11 @@ void musicxmlcompile::compileExpresseurPart()
 			breath_mark = true;
 		if (musicxmlevent_from->fermata)
 			fermata = true;
+		if (musicxmlevent_from->nr == 2507)
+		{
+			int i;
+			i = 0;
+		}
 		if ((musicxmlevent_from->visible == false) || (musicxmlevent_from->starts.IsEmpty()))
 			continue;
 		wxASSERT(musicxmlevent_from->duration >= 0);

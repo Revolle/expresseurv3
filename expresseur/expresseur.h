@@ -69,6 +69,7 @@ public:
 	void OnExpression(wxCommandEvent& WXUNUSED(event));
 	void OnLuafile(wxCommandEvent& WXUNUSED(event));
 	void OnReset(wxCommandEvent& WXUNUSED(event));
+	void OnDeleteCache(wxCommandEvent& WXUNUSED(event));
 	void OnLog(wxCommandEvent& WXUNUSED(event));
 	void OnSettingOpen(wxCommandEvent& WXUNUSED(event));
 	void OnSettingSave(wxCommandEvent& WXUNUSED(event));

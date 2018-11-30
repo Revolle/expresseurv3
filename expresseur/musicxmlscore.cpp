@@ -336,6 +336,7 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 }
 musicxmlscore::~musicxmlscore()
 {
+	basslua_call(moduleScore, functionScoreGotoNrEvent, "i", 1 );
 	if (xmlCompile != NULL)
 		delete xmlCompile;
 	xmlCompile = NULL;
@@ -363,11 +364,12 @@ void musicxmlscore::cleanTmp()
 }
 void musicxmlscore::cleanCache(int nbDayCache)
 {
-	wxDir dir(mxconf::getTmpDir());
+		wxDir dir(mxconf::getTmpDir());
 	if (dir.IsOpened())
 	{
 		wxDateTime mlimitdate = wxDateTime::Now();
-		mlimitdate.Subtract(wxDateSpan(0, 0, 0, nbDayCache));
+		if ( nbDayCache > 0 )
+			mlimitdate.Subtract(wxDateSpan(0, 0, 0, nbDayCache));
 		wxString filename;
 		wxFileName ft;
 		ft.SetPath(mxconf::getTmpDir());
@@ -378,7 +380,7 @@ void musicxmlscore::cleanCache(int nbDayCache)
 		{
 			ft.SetFullName(filename);
 			wxDateTime dateFile = ft.GetModificationTime();
-			if ( dateFile.IsEarlierThan(mlimitdate))
+			if ((nbDayCache == -1 ) || ( dateFile.IsEarlierThan(mlimitdate)))
 			{
 				wxRemoveFile(ft.GetFullPath());
 			}

@@ -102,6 +102,7 @@ textscore::textscore(wxWindow *parent, wxWindowID id, mxconf* lMxconf)
 }
 textscore::~textscore()
 {
+	basslua_call(moduleChord, functionChordSetPosition, "i", 1);
 }
 void textscore::compileText()
 {

@@ -473,25 +473,25 @@ c_attributes::~c_attributes()
 }
 c_attributes::c_attributes(const c_attributes & attributes, bool withContent)
 {
-	divisions = attributes.divisions;
-	staves = attributes.staves;
-	if ((attributes.key != NULL) && (withContent))
-		key = new c_key(*(attributes.key));
 	if (attributes.mtime != NULL)
 		mtime = new c_time(*(attributes.mtime));
 	if (withContent)
 	{
+		divisions = attributes.divisions;
+		staves = attributes.staves;
+		if ((attributes.key != NULL) && (withContent))
+			key = new c_key(*(attributes.key));
 		l_clef::const_iterator iter;
 		for (iter = attributes.clefs.begin(); iter != attributes.clefs.end(); ++iter)
 		{
 			c_clef *current = *iter;
 			clefs.Append(new c_clef(*current));
 		}
+		if (attributes.staff_details != NULL)
+			staff_details = new c_staff_details(*(attributes.staff_details));
+		if (attributes.transpose != NULL)
+			transpose = new c_transpose(*(attributes.transpose));
 	}
-	if (attributes.staff_details != NULL)
-		staff_details = new c_staff_details(*(attributes.staff_details));
-	if (attributes.transpose != NULL)
-		transpose = new c_transpose(*(attributes.transpose));
 }
 void c_attributes::write(wxFFile *f)
 {
@@ -1903,7 +1903,7 @@ c_octave_shift::c_octave_shift(const c_octave_shift &octave_shift) :c_default_xy
 }
 void c_octave_shift::write(wxFFile *f)
 {
-	f->Write(wxString::Format("<octave_shift "));
+	f->Write(wxString::Format("<octave-shift "));
 	write_xy(f);
 	if (type != NULL_STRING)
 		f->Write(wxString::Format("type=\"%s\" ", type));
@@ -2238,7 +2238,7 @@ c_measure_sequence::~c_measure_sequence()
 	default: wxASSERT(false);  break;
 	}
 }
-c_measure_sequence::c_measure_sequence(const c_measure_sequence & measure_sequence)
+c_measure_sequence::c_measure_sequence(const c_measure_sequence & measure_sequence, bool withContent)
 {
 	type = measure_sequence.type;
 	switch (type)
@@ -2249,7 +2249,7 @@ c_measure_sequence::c_measure_sequence(const c_measure_sequence & measure_sequen
 	case t_forward: pt = (void *)(new c_forward(*((c_forward*)(measure_sequence.pt)))); break;
 	case t_barline: pt = (void *)(new c_barline(*((c_barline*)(measure_sequence.pt)))); break;
 	case t_direction: pt = (void *)(new c_direction(*((c_direction*)(measure_sequence.pt)))); break;
-	case t_attributes: pt = (void *)(new c_attributes(*((c_attributes*)(measure_sequence.pt)))); break;
+	case t_attributes: pt = (void *)(new c_attributes(*((c_attributes*)(measure_sequence.pt)), withContent)); break;
 	default:wxASSERT(false);   break;
 	}
 }
@@ -2345,13 +2345,21 @@ c_measure::c_measure(const c_measure &measure , bool withContent)
 	original_number = measure.original_number;
 	repeat = measure.repeat;
 	key_fifths = measure.key_fifths;
-	if (withContent)
+	l_measure_sequence::const_iterator iter;
+	for (iter = measure.measure_sequences.begin(); iter != measure.measure_sequences.end(); ++iter)
 	{
-		l_measure_sequence::const_iterator iter;
-		for (iter = measure.measure_sequences.begin(); iter != measure.measure_sequences.end(); ++iter)
+		c_measure_sequence *current = *iter;
+		int type = current->type;
+		switch (type)
 		{
-			c_measure_sequence *current = *iter;
-			measure_sequences.Append(new c_measure_sequence(*current));
+		//case t_note: ((c_note*)(pt))->compile(partNr, twelved); break;
+		//case t_harmony: ((c_harmony*)(pt))->compile(twelved); break;
+		//case t_backup: ((c_backup*)(pt))->compile(twelved); break;
+		//case t_forward: ((c_forward*)(pt))->compile(twelved); break;
+		//case t_barline: ((c_barline*)(pt))->compile(twelved); break;
+		//case t_direction: ((c_direction*)(pt))->compile(twelved); break;
+		case t_attributes: measure_sequences.Append(new c_measure_sequence(*current,withContent)); break;
+		default: if (withContent) measure_sequences.Append(new c_measure_sequence(*current, true));  break;
 		}
 	}
 }

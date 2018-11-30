@@ -176,6 +176,7 @@ enum
 	ID_MAIN_TIMER,
 
 	ID_MAIN_TEST,
+	ID_MAIN_DELETE_CACHE,
 
 	ID_MAIN_LOCAL_OFF,
 	ID_MAIN_AUDIO_SETTING,
@@ -246,6 +247,7 @@ EVT_MENU(ID_MAIN_MIDISHORTCUT, Expresseur::OnMidishortcut)
 EVT_MENU(ID_MAIN_EXPRESSION, Expresseur::OnExpression)
 EVT_MENU(ID_MAIN_LUAFILE, Expresseur::OnLuafile)
 EVT_MENU(ID_MAIN_RESET, Expresseur::OnReset)
+EVT_MENU(ID_MAIN_DELETE_CACHE, Expresseur::OnDeleteCache)
 EVT_MENU(ID_MAIN_LOG, Expresseur::OnLog)
 EVT_MENU(ID_MAIN_SETTING_OPEN, Expresseur::OnSettingOpen)
 EVT_MENU(ID_MAIN_SETTING_SAVE, Expresseur::OnSettingSave)
@@ -450,7 +452,8 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	settingMenu->Append(ID_MAIN_MIDISHORTCUT, _("Shortcut"));
 	settingMenu->Append(ID_MAIN_EXPRESSION, _("LUA setting"));
 	settingMenu->AppendSeparator();
-	settingMenu->Append(ID_MAIN_RESET, _("Reset"),_("Reset the audio/midi configuration"));
+	settingMenu->Append(ID_MAIN_RESET, _("Reset"), _("Reset the audio/midi configuration"));
+	settingMenu->Append(ID_MAIN_DELETE_CACHE, _("Delete cache"), _("Delete the MuseScore pages, kept in cache to save computing"));
 	settingMenu->Append(ID_MAIN_AUDIO_SETTING, _("Audio..."), _("Audio settings, to decrease latency, and to select the default audio output"));
 	settingMenu->Append(ID_MAIN_LUAFILE, _("LUA Files..."));
 	// settingMenu->Append(ID_MAIN_LOG, _("Log"));
@@ -1850,6 +1853,10 @@ void Expresseur::OnReset(wxCommandEvent& WXUNUSED(event))
 {
 	end_ok = true;
 	settingReset(true);
+}
+void Expresseur::OnDeleteCache(wxCommandEvent& WXUNUSED(event))
+{
+	musicxmlscore::cleanCache(-1);
 }
 void Expresseur::OnLog(wxCommandEvent& WXUNUSED(event))
 {
