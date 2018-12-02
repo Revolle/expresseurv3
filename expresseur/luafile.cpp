@@ -54,7 +54,7 @@ wxCriticalSection g_CriticalSection ;
 bool c_eventMidi::OneIsProcessed = false ;
 c_eventMidi::c_eventMidi(	wxLongLong itime , int inr_device, int itype_msg, int ichannel, int ivalue1, int ivalue2, bool iisProcessed)
 { 
-	time=itime ; nr_device=inr_device;  type_msg=itype_msg; channel=ichannel; value1=ivalue1;  value2=ivalue2;
+	time = itime; nr_device = inr_device;  type_msg = itype_msg; channel = ichannel; value1 = ivalue1;  value2 = ivalue2; isProcessed = iisProcessed;
 	if ( iisProcessed )
 		OneIsProcessed = true; 
 }
@@ -186,7 +186,7 @@ void luafile::functioncallback(double time , int nr_device , int type_msg , int 
 	wxCriticalSectionLocker locker(g_CriticalSection);
 	g_lEventMidis.Append(new c_eventMidi((wxLongLong)(time*1000.0) ,  nr_device ,  type_msg ,  channel ,  value1 ,  value2 ,  isProcessed));
 }
-bool luafile::isCalledback(wxLongLong *time , int *nr_device , int *type_msg , int *channel , int *value1 , int *value2 , bool *isProcessed )
+bool luafile::isCalledback(wxLongLong *time , int *nr_device , int *type_msg , int *channel , int *value1 , int *value2 , bool *isProcessed , bool *oneIsProcessed )
 {
 	wxCriticalSectionLocker locker(g_CriticalSection);
 	if (g_lEventMidis.IsEmpty())
@@ -200,7 +200,8 @@ bool luafile::isCalledback(wxLongLong *time , int *nr_device , int *type_msg , i
 	*channel = m_eventMidi->channel ;
 	*value1 = m_eventMidi->value1 ; 
 	*value2 = m_eventMidi->value2 ;
-	*isProcessed = c_eventMidi::OneIsProcessed ;
+	*isProcessed = m_eventMidi->isProcessed;
+	*oneIsProcessed = c_eventMidi::OneIsProcessed;
 	g_lEventMidis.DeleteContents(true) 	;
 	g_lEventMidis.pop_front();
 	if (g_lEventMidis.IsEmpty())

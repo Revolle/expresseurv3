@@ -711,6 +711,7 @@ void Expresseur::OnSize(wxSizeEvent& WXUNUSED(event))
 }
 void Expresseur::OnIdle(wxIdleEvent& evt)
 { 
+	static int endCalledBack = 0;
 	if (firstTimer) return ;
 
 	switch (mode)
@@ -729,38 +730,50 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 
 
 	int nr_device , type_msg , channel , value1 , value2 ;
-	bool isProcessed ;
+	bool isProcessed , oneIsProcessed ;
 	wxLongLong time ;
-	bool calledBack = luafile::isCalledback(&time, &nr_device, &type_msg, &channel, &value1, &value2, &isProcessed);
+	bool calledBack = luafile::isCalledback(&time, &nr_device, &type_msg, &channel, &value1, &value2, &isProcessed , &oneIsProcessed);
 	if ( calledBack )
 	{
+		endCalledBack = 10000;
 		switch(type_msg)
 		{
 		case NOTEON : 
-			if ( isProcessed )
-				SetStatusText("NOTE ON",1);
-			else
-				SetStatusText("note on",1);
-			break ;
+			if (value2 > 0)
+			{
+				if (isProcessed)
+					SetStatusText("note on !", 1);
+				else
+					SetStatusText("note on ?", 1);
+				break;
+			}
 		case NOTEOFF : 
 			if ( isProcessed )
-				SetStatusText("NOTE OFF",1);
+				SetStatusText("note off !",1);
 			else
-				SetStatusText("note off",1);
+				SetStatusText("note off ?",1);
 			break ;
 		case PROGRAM : 
 			if ( isProcessed )
-				SetStatusText("PROGRAM",1);
+				SetStatusText("program !",1);
+			else
+				SetStatusText("program ?", 1);
 			break ;
 		case CONTROL : 
 			if ( isProcessed )
-				SetStatusText("CONTROL",1);
+				SetStatusText("control !",1);
 			break ;
 		default : 
 			if ( isProcessed )
-				SetStatusText("MIDI-MSG",1);
+				SetStatusText("midi msg !",1);
 			break ;
 		}
+	}
+	if (endCalledBack)
+	{
+		endCalledBack--;
+		if (endCalledBack == 0)
+			SetStatusText("", 1);
 	}
 	switch (mode)
 	{
@@ -796,7 +809,7 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 		{
 			do {
 				((musicxmlscore *)(mViewerscore))->recordPlayback(time, nr_device, type_msg, channel, value1, value2);
-			} while ( luafile::isCalledback(&time, &nr_device, &type_msg, &channel, &value1, &value2, &isProcessed) );
+			} while ( luafile::isCalledback(&time, &nr_device, &type_msg, &channel, &value1, &value2, &isProcessed , &oneIsProcessed) );
 		}
 
 		int nrEvent, playing;
@@ -870,7 +883,7 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 		}
 	}
 
-	evt.RequestMore();
+	evt.RequestMore(); 
 }
 void Expresseur::OnTimer(wxTimerEvent& WXUNUSED(event))
 {

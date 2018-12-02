@@ -751,7 +751,6 @@ bool selectorTrigger(int nr_selector, double time, int nrDevice, int nrChannel, 
 	//              0
 	//              0
 	//              0
-	bool found = false;
 	T_selector *s = &(g_selectors[nr_selector]);
 	int sharp;
 	switch (s->op)
@@ -765,10 +764,8 @@ bool selectorTrigger(int nr_selector, double time, int nrDevice, int nrChannel, 
 			runAction(s->luaNrAction, time, nr_selector, nrChannel, type_msg, d1, (type_msg == NOTEOFF) ? 0 : d2, s->param,
 				d1 - s->pitch[0] + 1, d1 - (s->pitch[1] + s->pitch[0]) / 2 + 1,
 				v, w, sharp);
-			found = true;
 			//mlog_in("selectorSearch #%d found between", nr_selector);
-			if (s->stopOnMatch)
-				return found;
+			return true;
 		}
 		break;
 	case 'o': //or
@@ -780,16 +777,14 @@ bool selectorTrigger(int nr_selector, double time, int nrDevice, int nrChannel, 
 					m + 1, 0,
 					0, 0, 0);
 				//mlog_in("selectorSearch #%d found or", nr_selector);
-				found = true;
-				if (s->stopOnMatch)
-					return found;
+				return true;
 			}
 		}
 		break;
 	default:
 		break;
 	}
-	return found;
+	return false;
 }
 bool selectorSearch(double time, int nrDevice, int nrChannel, int type_msg, int d1, int d2)
 {
@@ -806,7 +801,12 @@ bool selectorSearch(double time, int nrDevice, int nrChannel, int type_msg, int 
 			&& ((s->nrChannel == -1) || (s->nrChannel == nrChannel))
 			)
 		{
-			found = selectorTrigger(nr_selector, time, nrDevice, nrChannel, type_msg, d1, d2);
+			if (selectorTrigger(nr_selector, time, nrDevice, nrChannel, type_msg, d1, d2))
+			{
+				found = true;
+				if (g_selectors[nr_selector].stopOnMatch)
+					return true;
+			}
 		}
 	}
 	return found ;

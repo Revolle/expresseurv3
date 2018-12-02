@@ -3761,14 +3761,16 @@ static int LoutSystem(lua_State *L)
     // parameter #1 : byte 1
     // parameter #2 : byte 2
     // parameter #3 : byte 3
-   // parameter #5 : optional integer track ( default 1  )
+   // parameter #4 : optional integer track ( default 1  )
 	lock_mutex_out();
 	
 	T_midioutmsg u;
-	u.midimsg.bData[0] = cap((int)lua_tointeger(L, 1), 0, 128, 0);
+	u.midimsg.bData[0] = cap((int)lua_tointeger(L, 1), 0, 256, 0);
 	u.midimsg.bData[1] = cap((int)lua_tointeger(L, 2), 0, 128, 0);
 	u.midimsg.bData[2] = cap((int)lua_tointeger(L, 3), 0, 128, 0);
 	u.nbbyte = 3;
+	u.dt = 0;
+	u.id = 145341;
 	u.track = cap((int)luaL_optinteger(L, 4, 1), 0, MAXTRACK, 1);
 	lua_pushinteger(L, sendmsgdt(u));
     

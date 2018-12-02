@@ -277,8 +277,9 @@ function onControl(deviceNr ,  timestamp,  channel , typemsg,  controlNr ,  valu
 end
 --]]
 
-function playNote( t, bid, ch, typemsg, d1, d2 )
-	luabass.outSystem(ch + typemsg * 16 , d1, d2)
+function playNote( t, bid, ch, typemsg, d1, d2 , paramString)
+	trackNr = string.match(paramString or "" , "(%d+)")
+	luabass.outSystem((ch - 1 ) + (typemsg * 16 ) , d1, d2 , trackNr or 1)
 end
 function allNoteOff( )
     luabass.outAllNoteOff()
@@ -289,7 +290,7 @@ function mainVolume( t, bid, ch, typemsg, pitch, velo , paramString )
 end
 function trackVolume( t, bid, ch, typemsg, pitch, velo , paramString )
   vol, trackNr = string.match(paramString or "" , "(%d+) (%d+)")
-  luabass.outSetTrackVolume(vol or (velo or 64),trackNr or (ch or 1))
+  luabass.outSetTrackVolume(vol or (velo or 64),trackNr or 1)
 end
 function nextFile( t, bid, ch, typemsg, pitch, velo )
   if ( velo or 64 ) > 0 then info.next = 1 end
