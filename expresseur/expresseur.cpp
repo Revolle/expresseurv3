@@ -732,7 +732,36 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 	bool isProcessed ;
 	wxLongLong time ;
 	bool calledBack = luafile::isCalledback(&time, &nr_device, &type_msg, &channel, &value1, &value2, &isProcessed);
-
+	if ( calledBack )
+	{
+		switch(type_msg)
+		{
+		case NOTEON : 
+			if ( isProcessed )
+				SetStatusText("NOTE ON",1);
+			else
+				SetStatusText("note on",1);
+			break ;
+		case NOTEOFF : 
+			if ( isProcessed )
+				SetStatusText("NOTE OFF",1);
+			else
+				SetStatusText("note off",1);
+			break ;
+		case PROGRAM : 
+			if ( isProcessed )
+				SetStatusText("PROGRAM",1);
+			break ;
+		case CONTROL : 
+			if ( isProcessed )
+				SetStatusText("CONTROL",1);
+			break ;
+		default : 
+			if ( isProcessed )
+				SetStatusText("MIDI-MSG",1);
+			break ;
+		}
+	}
 	switch (mode)
 	{
 	case modeChord:
