@@ -285,7 +285,7 @@ function playEvent(velo_in,t , nrEvent,nbEvent)
   local p = t[ePitch]
   local tr = t[eTrackNr]
   
-  if p <= 0 or p >= 127 or velo < 1 then return end
+  if p <= 0 or p >= 127 or velo < 2 then return end
   
   local min_velo_out = 1
   local max_velo_out = 128 
@@ -392,7 +392,7 @@ end
 function noteOff_Event_All()
 -----------------------------
   
-  -- stop zll the group of events
+  -- stop all the group of events
   for nrBid,nilValue in pairs(noteOffStops) do
 	noteOff_Event(nrBid)
   end

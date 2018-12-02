@@ -511,6 +511,8 @@ void musicxmlcompile::pushLuaMusicxmlevents()
 		int markNr = getMarkNr(m->original_measureNr);
 		int measureNr = getMeasureNr(m->original_measureNr);
 		int measureLength = m->division_measure ;
+		if ( m->cross )
+			m->velocity = 1 ;
 		// push the event itself
 #define pushLUAparameters "iiiiiiiiisiiiiiiiiiii"
 		basslua_call(moduleScore, functionScoreAddEvent, pushLUAparameters,
@@ -1742,7 +1744,10 @@ int musicxmlcompile::compileNote(c_part *part, c_note *note, int measureNr, int 
 	c_musicxmlevent *mmusicxmlevent = new c_musicxmlevent(part->idNr,note->staff, note->voice, measureNr, originalMeasureNr, t, stop_measureNr, stop_t, pitch, division_measure, division_beat, division_quarter, repeat, 0, key_fifths);
 	mmusicxmlevent->chord_order = note->chord_order;
 	if (note->notehead.IsSameAs("x",false))
-		mmusicxmlevent->velocity = 0;
+	{
+		mmusicxmlevent->velocity = 1;
+		mmusicxmlevent->cross = true;
+	}
 
 	lMusicxmlevents.Append(mmusicxmlevent);
 
