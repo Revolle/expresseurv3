@@ -82,6 +82,7 @@ private:
 	wxMemoryDC *currentDC ;
 	wxSize sizePage;
 	wxRect buttonPage;
+	wxRect prevRectPos;
 	int currentPageNr = 0 ;
 	int currentPageNrPartial = -1 ;
 	bool currentTurnPage = true ;

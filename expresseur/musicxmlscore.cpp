@@ -594,6 +594,8 @@ bool musicxmlscore::setPage(int pos , wxRect *rectPos )
 	// already the right page(s)
 	if ((currentPageNr == pageNr) && (currentTurnPage == turnPage))	return true;
 
+	prevRectPos.SetWidth(0);
+
 	// recreate the current memory DC
 	currentPageNr = pageNr ;
 	currentTurnPage = turnPage ;
@@ -684,9 +686,19 @@ bool musicxmlscore::setCursor(wxDC& dc , int pos,bool red )
 	if ( ! setPage(pos,&rectPos ) ) return false ;
 
 	// redraw the page(s)
-	dc.Clear() ;
-	if (!dc.Blit(0, 0, sizePage.GetWidth(), sizePage.GetHeight(), currentDC, 0, 0))
-		return false;
+	if (prevRectPos.GetWidth() > 0)
+	{
+		wxDCClipper cursorclip(dc, prevRectPos);
+		dc.Clear();
+		if (!dc.Blit(0, 0, sizePage.GetWidth(), sizePage.GetHeight(), currentDC, 0, 0))
+			return false;
+	}
+	else
+	{
+		dc.Clear();
+		if (!dc.Blit(0, 0, sizePage.GetWidth(), sizePage.GetHeight(), currentDC, 0, 0))
+			return false;
+	}
 
 	// draw the cursor
 	rectPos.y += rectPos.height + 1 ;
@@ -699,6 +711,7 @@ bool musicxmlscore::setCursor(wxDC& dc , int pos,bool red )
 	else
 		dc.SetBackground(*wxGREEN_BRUSH);
 	dc.Clear();
+	prevRectPos = rectPos;
 	return true;
 }
 void musicxmlscore::setPosition(int pos, bool playing)
@@ -728,6 +741,7 @@ void musicxmlscore::onPaint(wxPaintEvent& WXUNUSED(event))
 
 	if (true) // ((newPaintPos != prevPaintPos) || (newPaintPlaying != prevPaintPlaying))
 	{
+		prevRectPos.SetWidth(0);
 		if (setCursor(dc, newPaintPos, newPaintPlaying))
 		{
 			prevPaintPos = newPaintPos;
