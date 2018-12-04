@@ -51,6 +51,7 @@ private:
 	
 
 
+	wxRect prevRectPos ;
 	wxPoint mPointStart, mPointEnd;
 	wxRect prevRect , selectedRect ;
 	int prevNrChord =1 ;

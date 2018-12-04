@@ -134,6 +134,8 @@ bool bitmapscore::setPage()
 	if (fileInDC == filename)
 		return true;
 
+	prevRectPos.SetWidth(0);
+
 	sizePage = this->GetSize();
 
 	if ((sizePage.GetHeight() < 100) || (sizePage.GetWidth() < 100))
@@ -190,10 +192,21 @@ bool bitmapscore::setCursor(wxDC& dc, int pos)
 	
 	if ( ! setPage()) return false ;
 
-	// redraw the page(s)
-	dc.Clear();
-	if (! dc.Blit(0, 0, sizePage.GetWidth(), sizePage.GetHeight(), currentDC, 0, 0))
-		return false;
+	if (prevRectPos.GetWidth() > 0)
+	{
+		wxDCClipper cursorclip(dc, prevRectPos);
+		// redraw the page(s)
+		dc.Clear();
+		if (! dc.Blit(0, 0, sizePage.GetWidth(), sizePage.GetHeight(), currentDC, 0, 0))
+			return false;
+	}
+	else
+	{
+		// redraw the page(s)
+		dc.Clear();
+		if (! dc.Blit(0, 0, sizePage.GetWidth(), sizePage.GetHeight(), currentDC, 0, 0))
+			return false;
+	}
 
 	// draw the cursor
 	if (!rectChord[pos].IsEmpty())
@@ -212,6 +225,7 @@ bool bitmapscore::setCursor(wxDC& dc, int pos)
 		wxDCClipper clip(dc, mrect);
 		dc.SetBackground(*wxRED_BRUSH);
 		dc.Clear();
+		prevRectPos = mrect;
 	}
 	return true;
 }
@@ -237,12 +251,10 @@ void bitmapscore::onPaint(wxPaintEvent& WXUNUSED(event))
 	wxPaintDC dc(this);
 	if (!isOk()) return;
 
-	if (true) // (newPaintNrChord != prevPaintNrChord) 
-	{
-		if ( setCursor(dc, newPaintNrChord) )
-			prevPaintNrChord = newPaintNrChord;
+	prevRectPos.SetWidth(0);
+	if ( setCursor(dc, newPaintNrChord) )
+		prevPaintNrChord = newPaintNrChord;
 		// nbPaint ++ ;
-	}
 }
 int bitmapscore::getNbPaint()
 {
