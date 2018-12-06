@@ -372,13 +372,15 @@ function noteOff_Event(bid)
   if c_nrEvent_playing and c_nrEvent_playing[1] == bid then
       c_nrEvent_playing =  nil
   end
-  if to_stop_index and to_stop_index > 0 then
+  if to_stop_index and to_stop_index > 0 and score.events[to_stop_index] then
     local list_stop = score.events[to_stop_index][eStops]
     for nilvalue,nrEvent in ipairs(list_stop) do
-      local ts = score.events[nrEvent]
-      stopEvent(ts,nrEvent)
-      --luabass.logmsg("noteOff_Event bid#"..bid.." nrEvent#"..nrEvent)
-      --if trace then trace = string.sub(trace,1,nrEvent - 1) .. "X" .. string.sub(trace,nrEvent + 1) end
+      if score.events[nrEvent] then
+        local ts = score.events[nrEvent]
+        stopEvent(ts,nrEvent)
+        --luabass.logmsg("noteOff_Event bid#"..bid.." nrEvent#"..nrEvent)
+        --if trace then trace = string.sub(trace,1,nrEvent - 1) .. "X" .. string.sub(trace,nrEvent + 1) end
+      end
     end
   end
   
