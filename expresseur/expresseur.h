@@ -120,7 +120,6 @@ private:
 	int timerDt = 20 ;
 
 	mxconf *mConf;
-	bool end_ok = true;
 	wxMenuBar *mMenuBar;
 
 	void setRightDisplay(bool right);

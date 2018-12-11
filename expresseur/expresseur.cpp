@@ -362,10 +362,6 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	for (int i = 0; i < MAX_KEYS; i++)
 		ckeys[i] = 0;
 
-	// check if the last "close expreseur" exits normally
-	end_ok = mConf->get(CONFIG_END_OK, true);
-	mConf->set(CONFIG_END_OK, false);
-
 	if (mConf->get(CONFIG_VERSION_CHECKED, VERSION_EXPRESSEUR) < VERSION_EXPRESSEUR)
 		mConf->set(CONFIG_VERSION_CHECKED, VERSION_EXPRESSEUR);
 
@@ -567,7 +563,6 @@ Expresseur::~Expresseur()
 
 	delete fileHistory;
 
-	mConf->set(CONFIG_END_OK, true);
 	delete mConf;
 
 	basslua_close();
@@ -619,24 +614,12 @@ void Expresseur::postInit()
 	// check if it the first use ( for intialization, wizard, .. )
 	initFirstUse(false);
 
-	if (!end_ok)
-	{
-		end_ok = true;
-		wxMessageBox("\
-		Expresseur has not stopped correctly...\n\
-		Please try to correct the tuning ( score, mixer devices, ... ).\n\
-		Then select menu 'Setting/reset' to restart the system.\n\
-		Sorry for this issue ...\n", "Bug...");
-	}
-	if (end_ok)
-	{
-		// read the list of scores
-		listName.Assign(mConf->get(CONFIG_LISTNAME, ""));
-		if (listName.IsFileReadable())
-			ListOpen();
+	// read the list of scores
+	listName.Assign(mConf->get(CONFIG_LISTNAME, ""));
+	if (listName.IsFileReadable())
+		ListOpen();
 
-		fileName.Assign(mConf->get(CONFIG_FILENAME, ""));
-	}
+	fileName.Assign(mConf->get(CONFIG_FILENAME, ""));
 	// text for the score
 	mTextscore = new textscore(this, ID_MAIN_TEXT_SONG, mConf);
 	mTextscore->SetMinSize(wxSize(0, 0));
@@ -733,48 +716,6 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 	bool isProcessed , oneIsProcessed ;
 	wxLongLong time ;
 	bool calledBack = luafile::isCalledback(&time, &nr_device, &type_msg, &channel, &value1, &value2, &isProcessed , &oneIsProcessed);
-	if ( calledBack )
-	{
-		endCalledBack = 10000;
-		switch(type_msg)
-		{
-		case NOTEON : 
-			if (value2 > 0)
-			{
-				if (isProcessed)
-					SetStatusText("note on !", 1);
-				else
-					SetStatusText("note on ?", 1);
-				break;
-			}
-		case NOTEOFF : 
-			if ( isProcessed )
-				SetStatusText("note off !",1);
-			else
-				SetStatusText("note off ?",1);
-			break ;
-		case PROGRAM : 
-			if ( isProcessed )
-				SetStatusText("program !",1);
-			else
-				SetStatusText("program ?", 1);
-			break ;
-		case CONTROL : 
-			if ( isProcessed )
-				SetStatusText("control !",1);
-			break ;
-		default : 
-			if ( isProcessed )
-				SetStatusText("midi msg !",1);
-			break ;
-		}
-	}
-	if (endCalledBack)
-	{
-		endCalledBack--;
-		if (endCalledBack == 0)
-			SetStatusText("", 1);
-	}
 	switch (mode)
 	{
 	case modeChord:
@@ -854,6 +795,45 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 			mMidishortcut->scanMidi(nr_device, type_msg, channel, value1, value2); // scan midi-in events for the potential shortcuts needed in the definition of the GUI
 		if (mLog && (mLog->IsVisible()))
 			mLog->scanLog(); // updates any log from LUA to the window of this GUI
+		endCalledBack = 10000;
+		switch (type_msg)
+		{
+		case NOTEON:
+			if (value2 > 0)
+			{
+				if (isProcessed)
+					SetStatusText("note on !", 1);
+				else
+					SetStatusText("note on ?", 1);
+				break;
+			}
+		case NOTEOFF:
+			if (isProcessed)
+				SetStatusText("note off !", 1);
+			else
+				SetStatusText("note off ?", 1);
+			break;
+		case PROGRAM:
+			if (isProcessed)
+				SetStatusText("program !", 1);
+			else
+				SetStatusText("program ?", 1);
+			break;
+		case CONTROL:
+			if (isProcessed)
+				SetStatusText("control", 1);
+			break;
+		default:
+			if (isProcessed)
+				SetStatusText("midi msg", 1);
+			break;
+		}
+	}
+	if (endCalledBack)
+	{
+		endCalledBack--;
+		if (endCalledBack == 0)
+			SetStatusText("", 1);
 	}
 
 	if ( waitToRefresh < 1 )
@@ -1874,12 +1854,9 @@ bool Expresseur::settingReset(bool all)
 		mExpression->SetSize(x, y, width, height);
 	mExpression->Show(mConf->get(CONFIG_EXPRESSIONVISIBLE, false));
 
-	if (end_ok)
-	{
-		mMixer->reset(localoff,true);
-		mMidishortcut->reset();
-		mExpression->reset();
-	}
+	mMixer->reset(localoff,true);
+	mMidishortcut->reset();
+	mExpression->reset();
 
 	setZoom();
 
@@ -1893,7 +1870,6 @@ bool Expresseur::settingReset(bool all)
 }
 void Expresseur::OnReset(wxCommandEvent& WXUNUSED(event))
 {
-	end_ok = true;
 	settingReset(true);
 }
 void Expresseur::OnDeleteCache(wxCommandEvent& WXUNUSED(event))

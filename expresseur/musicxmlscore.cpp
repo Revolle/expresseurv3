@@ -73,6 +73,12 @@
 #define DEF_INCH 25578
 #endif
 
+#define FILE_SCORE_PNG "expresseur_score.png"
+#define FILE_POS_TXT "expresseur_pos.txt"
+#define FILE_OUT_XML "expresseur_out.xml"
+#define FILE_IN_XML "expresseur_in.xml"
+#define FILE_SCAN_QML "expresseur_scan.qml"
+
 #define PREFIX_CACHE "CACHE_EXPRESSEUR"
 #define WIDTH_SEPARATOR_PAGE 10
 
@@ -365,6 +371,20 @@ void musicxmlscore::cleanTmp()
 			wxRemoveFile(fileToBeDeleted[i]);
 		}
 	}
+	wxFileName fp;
+	fp.SetPath(mxconf::getTmpDir());
+	fp.SetFullName(FILE_POS_TXT);
+	if (fp.FileExists())
+		wxRemoveFile(fp.GetFullPath());
+	fp.SetFullName(FILE_OUT_XML);
+	if (fp.FileExists())
+		wxRemoveFile(fp.GetFullPath());
+	fp.SetFullName(FILE_SCAN_QML);
+	if (fp.FileExists())
+		wxRemoveFile(fp.GetFullPath());
+	fp.SetFullName(FILE_IN_XML);
+	if (fp.FileExists())
+		wxRemoveFile(fp.GetFullPath());
 }
 void musicxmlscore::cleanCache(int nbDayCache)
 {
@@ -422,7 +442,7 @@ bool musicxmlscore::setFile(const wxFileName &lfilename)
 
 	wxFileName fm;
 	fm.SetPath(mxconf::getTmpDir());
-	fm.SetFullName("expresseur_in.xml");
+	fm.SetFullName(FILE_IN_XML);
 	xmlCompile->music_xml_complete_file = fm.GetFullPath();
 
 	if ((lfilename.GetExt() == SUFFIXE_MUSICXML) || (lfilename.GetExt() == SUFFIXE_MUSICMXL))
@@ -591,7 +611,9 @@ wxString musicxmlscore::getNamePage(wxFileName fp , int pageNr)
 }
 bool musicxmlscore::getScorePosition(int *absolute_measure_nr, int *measure_nr, int *repeat , int *beat, int *t)
 {
-	return xmlCompile->getScorePosition(currentPos , absolute_measure_nr, measure_nr, repeat , beat, t);
+	if (isOk() )
+		return xmlCompile->getScorePosition(currentPos , absolute_measure_nr, measure_nr, repeat , beat, t);
+	return false;
 }
 bool musicxmlscore::setPage(int pos , wxRect *rectPos )
 {
@@ -872,10 +894,6 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	if ((sizeClient.GetWidth() < 200) || (sizeClient.GetHeight() < 100))
 		return false;
 
-	// avoir uselees compilation if there is no change
-	//if ((sizeClient.GetX() == previousSizeClient.GetX() ) && (sizeClient.GetY() == previousSizeClient.GetY() ) && ( ! xmlCompile->isModified ) && ( fzoom == previousZoom))
-	//	return docOK ;
-
 	// calculation for the page layout
 	xmlCompile->isModified = false ;
 
@@ -917,21 +935,21 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	fm.SetPath(mxconf::getTmpDir());
 
 	// prepare the musicXml file to display
-	fm.SetFullName("expresseur_out.xml");
+	fm.SetFullName(FILE_OUT_XML);
 	xmlCompile->music_xml_displayed_file = fm.GetFullPath();
 	xmlCompile->compiled_score->write(xmlCompile->music_xml_displayed_file, true);
 
 	// the file to store position of notes
-	fm.SetFullName("expresseur_pos.txt");
+	fm.SetFullName(FILE_POS_TXT);
 	musescorepos = fm.GetFullPath();
 
 	// the file to store position of notes
-	fm.SetFullName("expresseur_score.png");
+	fm.SetFullName(FILE_SCORE_PNG);
 	musescorepng = fm.GetFullPath();
 
 
 	// prepare the script for MuseScore
-	fm.SetFullName("expresseur_scan.qml");
+	fm.SetFullName(FILE_SCAN_QML);
 	musescorescript = fm.GetFullPath();
 	wxTextFile fin, fout;
 	wxFileName fm2;

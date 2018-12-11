@@ -1,6 +1,6 @@
 // Entries of the configuration parameters :
 
-#define VERSION_EXPRESSEUR 22
+#define VERSION_EXPRESSEUR 23
 
 #ifdef _MSC_VER
 #pragma warning(disable: 4800) //  'int' : forcing value to bool 'true' or 'false' (performance warning)
@@ -19,7 +19,6 @@
 #define CONFIG_DAYCACHE "/daycache"
 
 #define CONFIG_VERSION_CHECKED "/versionchecked"
-#define CONFIG_END_OK "/end_ok"
 #define CONFIG_BEGINNER "/beginner"
 #define CONFIG_INITIALIZED "/initialized"
 #define CONFIG_HARDWARE "/hardware"
