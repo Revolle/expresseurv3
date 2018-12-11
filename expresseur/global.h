@@ -25,7 +25,6 @@
 #define CONFIG_HARDWARE "/hardware"
 #define CONFIG_HARDWARE_LIST "/hardware/list"
 #define CONFIG_DEFAULT_AUDIO "/default_audio"
-#define CONFIG_DIR_RESSOURCE "/dir_instruments"
 
 #define CONFIG_AUDIO_UPDATE "/audio/update"
 #define CONFIG_AUDIO_BUFFER "/audio/buffer"
@@ -147,6 +146,10 @@
 #define SET_RATIO "speed="
 #define SET_PARTS "PARTS"
 #define COMMENT_EXPRESSEUR "--"
+
+
+#define DIR_RESOURCES "ressources"
+#define DIR_EXAMPLE "example"
 
 #define ExpresseurId "ExpresseurMusicXMLPartId"
 #define MINSCALEBAR 0.2

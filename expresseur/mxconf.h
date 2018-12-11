@@ -31,6 +31,8 @@ public:
 	static wxString getAppDir();
 	static wxString getCwdDir();
 	static wxString getTmpDir();
+	static wxString getResourceDir();
+	static wxString getUserDir();
 	
 private:
 	static void setDir() ;

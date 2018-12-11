@@ -1977,18 +1977,12 @@ void Expresseur::initFirstUse(bool force)
 	
 	// get the user directory in its documents folder
 	wxFileName finstruments;
-	wxStandardPaths mpath = wxStandardPaths::Get();
-	finstruments.AssignDir(mpath.GetAppDocumentsDir());
-	if (finstruments.GetFullPath().Contains(APP_NAME) == false)
-		finstruments.AppendDir(APP_NAME);
-	if ( ! finstruments.IsDirReadable() )
-		finstruments.Mkdir(wxS_DIR_DEFAULT,wxPATH_MKDIR_FULL);
-	//wxMessageBox(finstruments.GetFullPath(),"user dir");
+	finstruments.AssignDir(mxconf::getResourceDir());
 
 	// copy examples from example-folder in documents/expresseurV3-folder
 	wxFileName fdirExample;
 	fdirExample.Assign(mxconf::getCwdDir());
-	fdirExample.AppendDir("example");
+	fdirExample.AppendDir(DIR_EXAMPLE);
 	wxString sExample = fdirExample.GetFullPath() ;
 	//wxMessageBox(sExample,"example dir");
 	wxDir dirExample(sExample);
@@ -2002,7 +1996,7 @@ void Expresseur::initFirstUse(bool force)
 			wxFileName ffile2(file1);
 			ffile1.SetPath(fdirExample.GetPath());
 			file1 = ffile1.GetFullPath();
-			ffile2.SetPath(finstruments.GetPath());
+			ffile2.SetPath(mxconf::getUserDir());
 			file2 = ffile2.GetFullPath();
 			//wxMessageBox(file1 + " to " + file2 , "copy example");
 			wxCopyFile(file1,file2);
@@ -2012,25 +2006,17 @@ void Expresseur::initFirstUse(bool force)
 
 	// get the first score as example
 	wxString sfirst;
-	sfirst = wxDir::FindFirst(finstruments.GetFullPath(), "*.txt");
+	sfirst = wxDir::FindFirst(mxconf::getUserDir(), "*.txt");
 	finstruments.SetFullName(sfirst);
 	wxString defScore = finstruments.GetFullPath();
 	mConf->set(CONFIG_FILENAME, defScore);
 	finstruments.SetFullName("");
 
-	// set the directory of ressources
-	finstruments.AppendDir("ressources");
-	wxString sinstruments = finstruments.GetPath();
-	mConf->set(CONFIG_DIR_RESSOURCE, sinstruments);
-	if ( ! finstruments.IsDirReadable() )
-		finstruments.Mkdir(wxS_DIR_DEFAULT,wxPATH_MKDIR_FULL);
-	//wxMessageBox(finstruments.GetFullPath(),"user instrument dir");
-
 	// copy instruments-ressources from ressources-folder in documents/expresseurV3/ressources-folder
 	wxFileName fdirRessources;
 	fdirRessources.Assign(mxconf::getCwdDir());
-	fdirRessources.AppendDir("ressources");
-	wxString sRessources = fdirRessources.GetFullPath() ;
+	fdirRessources.AppendDir(DIR_RESOURCES);
+	wxString sRessources = fdirRessources.GetFullPath()  ;
 	//wxMessageBox(sRessources,"ressources dir");
 	wxDir dirRessources(sRessources);
 	if ( dirRessources.IsOpened())
@@ -2043,7 +2029,7 @@ void Expresseur::initFirstUse(bool force)
 			wxFileName ffile2(file1);
 			ffile1.SetPath(fdirRessources.GetPath());
 			file1 = ffile1.GetFullPath();
-			ffile2.SetPath(finstruments.GetPath());
+			ffile2.SetPath(mxconf::getResourceDir());
 			file2 = ffile2.GetFullPath();
 			//wxMessageBox(file1 + " to " + file2 , "copy ressource");
 			wxCopyFile(file1,file2);
@@ -2069,9 +2055,8 @@ void Expresseur::initFirstUse(bool force)
 	mMixer = new mixer(this, wxID_ANY, _("mixer"), mConf, mViewerscore);
 
 	// load the dfautl setting for the shorcuts, ...
-	settingName.AssignDir(mConf->get(CONFIG_DIR_RESSOURCE, ""));
+	settingName.AssignDir(mxconf::getResourceDir());
 	settingName.SetFullName("default_setting.txt");
-	//wxMessageBox(settingName.GetFullPath(),"default setting");
 	settingOpen();
 
 	if (mMixer != NULL) delete mMixer;
@@ -2405,7 +2390,7 @@ void Expresseur::OnAudioTest(wxCommandEvent& WXUNUSED(event))
 	setAudioDefault();
 	
 	wxFileName fsound;
-	fsound.AssignDir(mConf->get(CONFIG_DIR_RESSOURCE, ""));
+	fsound.AssignDir(mxconf::getResourceDir());
 	fsound.SetFullName("test.wav");
 	char buff[MAXBUFCHAR];
 	wxString fs = fsound.GetFullPath();

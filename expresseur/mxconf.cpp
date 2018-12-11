@@ -50,6 +50,8 @@ bool todoDir = true;
 wxString appDir ;
 wxString cwdDir ;
 wxString tmpDir ;
+wxString userDir ;
+wxString resourceDir ;
 
 mxconf::mxconf()
 {
@@ -81,18 +83,39 @@ void mxconf::setDir()
 #endif
 		appDir = fd.GetFullPath();
 
-		wxFileName dtmp;
-		wxString stmp = wxFileName::GetTempDir() ;
-		dtmp.AssignDir(stmp);
-		dtmp.AppendDir(APP_NAME);
-		tmpDir = dtmp.GetFullPath() ;
-		if ( dtmp.DirExists() == false )
-		{
-			if ( ! wxFileName::Mkdir(tmpDir) )
-				wxMessageBox(tmpDir,"Directory temp not created");
-		}
-		if ( dtmp.DirExists() == false )
-			wxMessageBox(tmpDir , "Directory temp error");	
+		wxStandardPaths mpath = wxStandardPaths::Get();
+		wxFileName fuserDir;
+		fuserDir.AssignDir(mpath.GetAppDocumentsDir());
+		if (fuserDir.GetFullPath().Contains(APP_NAME) == false)
+			fuserDir.AppendDir(APP_NAME);
+		userDir = fuserDir.GetFullPath() ;
+		if ( ! fuserDir.DirExists() )
+			wxFileName::Mkdir(userDir) ;
+		if ( ! fuserDir.DirExists() )
+			wxMessageBox(userDir , "Directory user error");	
+
+		wxFileName fresourcesDir;
+		fresourcesDir.AssignDir(userDir);
+		fresourcesDir.AppendDir(DIR_RESOURCES);
+		resourceDir = fresourcesDir.GetFullPath() ;
+		if ( ! fresourcesDir.DirExists() )
+			wxFileName::Mkdir(resourceDir) ;
+		if ( ! fresourcesDir.DirExists() )
+			wxMessageBox(resourceDir , "Directory ressource error");	
+
+		//wxFileName dtmp;
+		//wxString stmp = wxFileName::GetTempDir() ;
+		//dtmp.AssignDir(stmp);
+		//dtmp.AppendDir(APP_NAME);
+		wxFileName ftmpDir;
+		ftmpDir.AssignDir(resourceDir);
+		ftmpDir.AppendDir("tmp");
+		tmpDir = ftmpDir.GetFullPath() ;
+		if ( ! ftmpDir.DirExists() )
+			wxFileName::Mkdir(tmpDir) ;
+		if ( ! ftmpDir.DirExists() )
+			wxMessageBox(tmpDir , "Directory tmp error");	
+
 	}
 }
 wxString mxconf::getAppDir()
@@ -109,6 +132,16 @@ wxString mxconf::getTmpDir()
 {
 	setDir();
 	return tmpDir ;
+}
+wxString mxconf::getUserDir()
+{
+	setDir();
+	return userDir ;
+}
+wxString mxconf::getResourceDir()
+{
+	setDir();
+	return resourceDir ;
 }
 
 wxConfig *mxconf::getConfig()

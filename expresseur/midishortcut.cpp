@@ -142,7 +142,7 @@ midishortcut::midishortcut(wxFrame *parent, wxWindowID id, const wxString &title
 	wxString current_preconfig = mConf->get(CONFIG_MIDIFUNCTION, "");
 	int nr_preconfig = wxNOT_FOUND;
 	wxFileName fn;
-	fn.AssignDir(mConf->get(CONFIG_DIR_RESSOURCE, ""));
+	fn.AssignDir(mxconf::getResourceDir());
 	wxDir dir;
 	dir.Open(fn.GetFullPath());
 	if (dir.IsOpened())
@@ -463,7 +463,7 @@ void midishortcut::OnDescriptionFunctionMidi(wxCommandEvent& WXUNUSED(event))
 		return;
 	wxString f = listFunctionMidi->GetString(listFunctionMidi->GetSelection());
 	wxFileName fn;
-	fn.AssignDir(mConf->get(CONFIG_DIR_RESSOURCE, ""));
+	fn.AssignDir(mxconf::getResourceDir());
 
 	fn.SetFullName(f);
 	wxString s = fn.GetFullPath();
@@ -557,7 +557,7 @@ void midishortcut::reset()
 	if (preconfig.EndsWith(SUFFIXE_PRECONFIG))
 	{
 		wxFileName fn;
-		fn.AssignDir(mConf->get(CONFIG_DIR_RESSOURCE, ""));
+		fn.AssignDir(mxconf::getResourceDir());
 		fn.SetFullName(preconfig);
 		fn.SetExt("");
 		wxString sfn = fn.GetFullPath();

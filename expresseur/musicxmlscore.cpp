@@ -352,38 +352,51 @@ void musicxmlscore::cleanTmp()
 		wxString filename;
 		wxFileName ft;
 		ft.SetPath(mxconf::getTmpDir());
+		wxArrayString fileToBeDeleted ;
 		bool cont = dir.GetFirst(&filename, "expresseur*.png", wxDIR_FILES);
 		while (cont)
 		{
 			ft.SetFullName(filename);
-			wxRemoveFile(ft.GetFullPath());
+			fileToBeDeleted.Add(ft.GetFullPath());
 			cont = dir.GetNext(&filename);
+		}
+		for(unsigned int i = 0 ; i < fileToBeDeleted.GetCount() ; i ++ )
+		{
+			wxRemoveFile(fileToBeDeleted[i]);
 		}
 	}
 }
 void musicxmlscore::cleanCache(int nbDayCache)
 {
-		wxDir dir(mxconf::getTmpDir());
+	wxDir dir(mxconf::getTmpDir());
 	if (dir.IsOpened())
 	{
 		wxDateTime mlimitdate = wxDateTime::Now();
 		if ( nbDayCache > 0 )
+		{
 			mlimitdate.Subtract(wxDateSpan(0, 0, 0, nbDayCache));
+		}
 		wxString filename;
 		wxFileName ft;
 		ft.SetPath(mxconf::getTmpDir());
 		wxString sn;
 		sn.Printf("%s*.*", PREFIX_CACHE);
+		wxArrayString fileToBeDeleted ;
 		bool cont = dir.GetFirst(&filename, sn , wxDIR_FILES);
 		while (cont)
 		{
 			ft.SetFullName(filename);
 			wxDateTime dateFile = ft.GetModificationTime();
+			//wxMessageBox(mlimitdate.FormatDate() + ">?" + dateFile.FormatDate()  + " " + ft.GetName(),"Date expiration cache");
 			if ((nbDayCache == -1 ) || ( dateFile.IsEarlierThan(mlimitdate)))
 			{
-				wxRemoveFile(ft.GetFullPath());
+				fileToBeDeleted.Add(ft.GetFullPath());
 			}
 			cont = dir.GetNext(&filename);
+		}
+		for(unsigned int i = 0 ; i < fileToBeDeleted.GetCount() ; i ++ )
+		{
+			wxRemoveFile(fileToBeDeleted[i]);
 		}
 	}
 }
@@ -985,14 +998,13 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	wxString prefix_cache ;
 	prefix_cache.Printf("%s_%s_",PREFIX_CACHE , crc_this.ToString());
 
-	wxFileName fnMusescorepos(musescorepos);
-	fm.SetName( prefix_cache + fnMusescorepos.GetName() );
-	fm.SetExt(fnMusescorepos.GetExt());
-	if ( fm.FileExists())
+	wxFileName cacheMusescorepos(musescorepos);
+	cacheMusescorepos.SetName( prefix_cache + cacheMusescorepos.GetName() );
+	if ( cacheMusescorepos.FileExists())
 	{
 		// MuseScore result already available in cache. Let's reuse it
 		alreadyAvailable = true ;
-		if ( ! wxCopyFile(fm.GetFullPath(), fnMusescorepos.GetFullPath()) ) alreadyAvailable = false ;
+		if ( ! wxCopyFile(cacheMusescorepos.GetFullPath(), musescorepos) ) alreadyAvailable = false ;
 		readPos();
 		// copy pages
 		wxFileName fmodele(musescorepng);
@@ -1065,10 +1077,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		((wxFrame *)mParent)->SetStatusText("Score pages : stored in cache", 1);
 
 		// cache this result for potential reuse
-		fm.SetName( prefix_cache + fnMusescorepos.GetName()) ;
-		fm.SetExt(fnMusescorepos.GetExt());
-
-		if ( ! wxCopyFile(musescorepos,fm.GetFullPath()) ) alreadyAvailable = false ;
+		wxCopyFile(musescorepos,cacheMusescorepos.GetFullPath())  ;
 
 		wxFileName fdest(musescorepng);
 		wxFileName fsource(musescorepng);

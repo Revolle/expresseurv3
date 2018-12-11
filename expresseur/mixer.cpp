@@ -411,7 +411,7 @@ void mixer::getMidioutDevices()
 	wxString firstDeviceDefault;
 
 	wxArrayString filesVI;
-	wxString sdir = mConf->get(CONFIG_DIR_RESSOURCE, "");
+	wxString sdir = mxconf::getResourceDir() ;
 	wxFileName fvi;
 	fvi.AssignDir(sdir);
 	wxDir::GetAllFiles(sdir, &filesVI, "*.sf2", wxDIR_DEFAULT);
@@ -441,7 +441,7 @@ bool mixer::createViList(wxString fileVI , wxString ext)
 {
 	// create if necessary the list of programs inside the VI. It is stored int the text file with same name than the VI
 	wxFileName flist;
-	flist.AssignDir(mConf->get(CONFIG_DIR_RESSOURCE, ""));
+	flist.AssignDir(mxconf::getResourceDir());
 	flist.SetName(fileVI);
 	flist.SetExt(ext);
 	int retCode;
@@ -464,7 +464,7 @@ void mixer::getListMidioutDevice(wxString fileName , int nrDevice)
 	fname = fname.BeforeFirst('@');
 
 	wxFileName flist;
-	flist.AssignDir(mConf->get(CONFIG_DIR_RESSOURCE, ""));
+	flist.AssignDir(mxconf::getResourceDir());
 	flist.SetName(fname);
 	flist.SetExt("txt");
 
@@ -726,7 +726,7 @@ void mixer::reset(bool localoff ,bool doreset)
 			strcpy(bufInstrument, instrument[nrTrack].c_str());
 			char bufNameVi[MAXBUFCHAR];
 			wxFileName fvi;
-			fvi.AssignDir(mConf->get(CONFIG_DIR_RESSOURCE, ""));
+			fvi.AssignDir(mxconf::getResourceDir());
 			fvi.SetFullName(nameVi[nrTrack]);
 			wxString svi = fvi.GetFullPath();
 			strcpy(bufNameVi, svi.c_str());
