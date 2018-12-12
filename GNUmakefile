@@ -5,8 +5,8 @@
 EXPRESSEURAPP := expresseur/Expresseur.app
 
 PLATFORM := $(shell uname)
-CPPFLAGS := -Wall -MD -MP -g
-#CPPFLAGS := -Wall -MD -MP
+CPPFLAGS := -Wall -MD -MP
+CPPFLAGS := $(CPPFLAGS) -g
 CXXFLAGS := -std=c++11 
 LDFLAGS  :=
 

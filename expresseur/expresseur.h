@@ -72,8 +72,8 @@ public:
 	void OnDeleteCache(wxCommandEvent& WXUNUSED(event));
 	void OnLog(wxCommandEvent& WXUNUSED(event));
 	void OnSettingOpen(wxCommandEvent& WXUNUSED(event));
-	void OnSettingSave(wxCommandEvent& WXUNUSED(event));
 	void OnSettingSaveas(wxCommandEvent& WXUNUSED(event));
+	void OnCheckConfig(wxCommandEvent& WXUNUSED(event));
 
 	void OnAudioChoice(wxCommandEvent& event);
 	void OnMidioutChoice(wxCommandEvent& event);
@@ -131,7 +131,7 @@ private:
 	void FileOpen(bool all = false);
 	void FileSave();
 	void setWindowsTitle();
-	void checkUpdate();
+	void checkUpdate(bool interactive = false);
 
 	// management of the file list
 	void ListClearMenu();
@@ -182,6 +182,8 @@ private:
 	void setAudioChoice(int nrDevice);
 
 	void setPlayView(wxString s);
+	bool checkConfig();
+	wxString checkFile(wxString dir, wxString fullname);
 
 	wxChar  ckeychar, ckeys[MAX_KEYS];
 	int typeViewer;

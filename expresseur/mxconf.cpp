@@ -241,7 +241,7 @@ long mxconf::writeFile(wxTextFile *lfile, wxString key, long defaultvalue, bool 
 {
 	wxString s, v;
 	long l = this->get(key, defaultvalue, prefix, name);
-	s.Printf("%s=%d", prefixKey( key , false, name), l);
+	s.Printf("%s=%ld", prefixKey( key , false, name), l);
 	lfile->AddLine(s);
 	return l;
 }

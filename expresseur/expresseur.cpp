@@ -163,7 +163,6 @@ enum
 	ID_MAIN_EXPRESSION,
 	ID_MAIN_LUAFILE,
 	ID_MAIN_SETTING_OPEN,
-	ID_MAIN_SETTING_SAVE,
 	ID_MAIN_SETTING_SAVEAS,
 	ID_MAIN_RESET,
 	ID_MAIN_LOG,
@@ -176,6 +175,7 @@ enum
 	ID_MAIN_TIMER,
 
 	ID_MAIN_TEST,
+	ID_MAIN_CHECK_CONFIG,
 	ID_MAIN_DELETE_CACHE,
 
 	ID_MAIN_LOCAL_OFF,
@@ -250,8 +250,8 @@ EVT_MENU(ID_MAIN_RESET, Expresseur::OnReset)
 EVT_MENU(ID_MAIN_DELETE_CACHE, Expresseur::OnDeleteCache)
 EVT_MENU(ID_MAIN_LOG, Expresseur::OnLog)
 EVT_MENU(ID_MAIN_SETTING_OPEN, Expresseur::OnSettingOpen)
-EVT_MENU(ID_MAIN_SETTING_SAVE, Expresseur::OnSettingSave)
 EVT_MENU(ID_MAIN_SETTING_SAVEAS, Expresseur::OnSettingSaveas)
+EVT_MENU(ID_MAIN_CHECK_CONFIG, Expresseur::OnCheckConfig)
 
 EVT_MENU(ID_MAIN_RECORD_PLAYBACK, Expresseur::OnRecordPlayback)
 EVT_MENU(ID_MAIN_SAVE_PLAYBACK, Expresseur::OnSavePlayback)
@@ -457,10 +457,10 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	settingMenu->AppendCheckItem(ID_MAIN_LOCAL_OFF, _("Send MIDI local-off"), _("Send local-off on MIDI-out opening, i.e. to unlink keyboard and soud-generator on electronic piano"));
 	settingMenu->AppendSeparator();
 	settingMenu->Append(ID_MAIN_SETTING_OPEN, _("Import setting..."));
-	settingMenu->Append(ID_MAIN_SETTING_SAVE, _("Export setting"));
 	settingMenu->Append(ID_MAIN_SETTING_SAVEAS, _("Export setting as..."));
 	settingMenu->AppendSeparator();
 	settingMenu->Append(ID_MAIN_FIRSTUSE, _("Reset configuration"));
+	settingMenu->Append(ID_MAIN_CHECK_CONFIG, _("Check config"));
 
 	wxMenu *helpMenu = new wxMenu;
 	helpMenu->Append(ID_MAIN_TEST, _("test"));
@@ -566,6 +566,76 @@ Expresseur::~Expresseur()
 	delete mConf;
 
 	basslua_close();
+}
+wxString Expresseur::checkFile(wxString dir, wxString fullName)
+{
+	wxFileName f;
+	f.AssignDir(dir);
+	f.SetFullName(fullName);
+	if ( ! f.FileExists())
+		return (f.GetFullPath() + " does not exist\n") ;
+	if ( ! f.IsFileReadable())
+		return (f.GetFullPath() + " exists but not readable\n") ;
+	return wxEmptyString ;
+}
+bool Expresseur::checkConfig()
+{
+	wxString merrors ;
+	merrors += checkFile(mxconf::getCwdDir(),"test.wav");
+	merrors += checkFile(mxconf::getCwdDir(),"scan_position.qml");
+	merrors += checkFile(mxconf::getCwdDir(),"wizard_audio.jpg");
+	merrors += checkFile(mxconf::getCwdDir(),"wizard_end.jpg");
+	merrors += checkFile(mxconf::getCwdDir(),"wizard_improvise.jpg");
+	merrors += checkFile(mxconf::getCwdDir(),"wizard_playscore.jpg");
+	merrors += checkFile(mxconf::getCwdDir(),"wizard_midi_in.jpg");
+	merrors += checkFile(mxconf::getCwdDir(),"wizard_midi_out.jpg");
+	merrors += checkFile(mxconf::getCwdDir(),"wizard_welcome.jpg");
+	merrors += checkFile(mxconf::getCwdDir(),"all_note_off.png");
+	merrors += checkFile(mxconf::getCwdDir(),"edit.png");
+	merrors += checkFile(mxconf::getCwdDir(),"exit.png");
+	merrors += checkFile(mxconf::getCwdDir(),"expresseur.png");
+	merrors += checkFile(mxconf::getCwdDir(),"first_part.png");
+	merrors += checkFile(mxconf::getCwdDir(),"goto.png");
+	merrors += checkFile(mxconf::getCwdDir(),"help.png");
+	merrors += checkFile(mxconf::getCwdDir(),"last_part.png");
+	merrors += checkFile(mxconf::getCwdDir(),"mixer.png");
+	merrors += checkFile(mxconf::getCwdDir(),"next_chord.png");
+	merrors += checkFile(mxconf::getCwdDir(),"next_file.png");
+	merrors += checkFile(mxconf::getCwdDir(),"next_part.png");
+	merrors += checkFile(mxconf::getCwdDir(),"next_section.png");
+	merrors += checkFile(mxconf::getCwdDir(),"open.png");
+	merrors += checkFile(mxconf::getCwdDir(),"previous_chord.png");
+	merrors += checkFile(mxconf::getCwdDir(),"previous_move.png");
+	merrors += checkFile(mxconf::getCwdDir(),"previous_part.png");
+	merrors += checkFile(mxconf::getCwdDir(),"previous_section.png");
+	merrors += checkFile(mxconf::getCwdDir(),"save.png");
+	merrors += checkFile(mxconf::getCwdDir(),"expresscmd.lua");
+	merrors += checkFile(mxconf::getCwdDir(),"expresseur.lua");
+	merrors += checkFile(mxconf::getCwdDir(),"luachord.lua");
+	merrors += checkFile(mxconf::getCwdDir(),"luascore.lua");
+	merrors += checkFile(mxconf::getCwdDir(),"texttochord.lua");
+	merrors += checkFile(mxconf::getResourceDir(),"default_piano.SF2");
+	merrors += checkFile(mxconf::getResourceDir(),"guitare.sf2");
+	merrors += checkFile(mxconf::getResourceDir(),"default_piano.txt");
+	merrors += checkFile(mxconf::getResourceDir(),"default_setting.txt");
+	merrors += checkFile(mxconf::getResourceDir(),"gm.txt");
+	merrors += checkFile(mxconf::getResourceDir(),"guitare.txt");
+	merrors += checkFile(mxconf::getUserDir(),"A_la_claire_fontaine.txt");
+	merrors += checkFile(mxconf::getUserDir(),"A_la_claire_fontaine.mxl");
+	merrors += checkFile(mxconf::getUserDir(),"fairy_chords.txb");
+	merrors += checkFile(mxconf::getUserDir(),"fairy_chords.txt");
+	merrors += checkFile(mxconf::getUserDir(),"fairy_chords.png");
+	if (merrors.IsEmpty())
+	{
+		wxMessageBox("Config check : OK");
+		return true ;
+	}
+		wxMessageBox(merrors,"Config check : fail");
+	return false ;
+}
+void Expresseur::OnCheckConfig(wxCommandEvent& event)
+{
+	checkConfig() ;
 }
 void Expresseur::preClose()
 {
@@ -1631,10 +1701,12 @@ void Expresseur::settingSave()
 	wxTextFile tfile;
 	if (settingName.IsFileWritable() == false)
 		tfile.Create(settingName.GetFullPath());
-	fileHistory->AddFileToHistory(settingName.GetFullPath());
 	tfile.Open(settingName.GetFullPath());
 	if (tfile.IsOpened() == false)
+	{
+		wxMessageBox("error opening file for write");
 		return;
+	}
 	
 	tfile.Clear();
 
@@ -1646,15 +1718,13 @@ void Expresseur::settingSave()
 		{
 		case 0: mMixer->write(&tfile); break;
 		case 1: mExpression->write(&tfile); break;
-		case 2:mMidishortcut->write(&tfile); break;
+		case 2:mMidishortcut->write(&tfile);break;
 		case 3: luafile::write(mConf, &tfile); break;
 		default: break;
 		}
 	}
-
 	tfile.Write();
 	tfile.Close();
-	fileHistory->AddFileToHistory(settingName.GetFullPath());
 }
 void Expresseur::settingOpen()
 {
@@ -1900,19 +1970,6 @@ void Expresseur::OnSettingOpen(wxCommandEvent& WXUNUSED(event))
 	settingReset(true);
 
 }
-void Expresseur::OnSettingSave(wxCommandEvent& WXUNUSED(event))
-{
-	if (settingName.IsFileWritable() == false)
-	{
-		wxFileDialog
-			openFileDialog(this, _("Save setting file"), "", "",
-			"setting files (*.txt)|*.txt", wxFD_SAVE);
-		if (openFileDialog.ShowModal() == wxID_CANCEL)
-			return; // the user changed idea...
-		settingName.Assign(openFileDialog.GetPath());
-	}
-	settingSave();
-}
 void Expresseur::OnSettingSaveas(wxCommandEvent& WXUNUSED(event))
 {
 	wxFileDialog
@@ -1921,6 +1978,7 @@ void Expresseur::OnSettingSaveas(wxCommandEvent& WXUNUSED(event))
 	if (openFileDialog.ShowModal() == wxID_CANCEL)
 		return; // the user changed idea...
 	settingName.Assign(openFileDialog.GetPath());
+	settingName.SetExt("txt");
 	settingSave();
 }
 void Expresseur::OnAbout(wxCommandEvent& WXUNUSED(event)) 
@@ -2052,6 +2110,10 @@ void Expresseur::OnAudioSetting(wxCommandEvent& WXUNUSED(event))
 }
 void Expresseur::wizard(bool audio_only)
 {
+	wxFileName fWizardJpeg ;
+	fWizardJpeg.AssignDir(mxconf::getCwdDir());
+	fWizardJpeg.SetExt("jpg");
+
 	wxSizerFlags sizerFlagMinimumPlace;
 	wxSizerFlags sizerFlagMaximumPlace;
 	//sizerFlagMaximumPlace.Proportion(1);
@@ -2078,15 +2140,17 @@ Next screens will hep you to setup\n\
 MIDI and audio devices.\n\
 Last screens will describe the default\n\
 basic tunings to play.\n");
-	topsizer_welcome->Add(new wxStaticBitmap(pwizard_welcome,wxID_ANY,wxBitmap("wizard_welcome.jpg", wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
+	fWizardJpeg.SetName("wizard_welcome");
+	topsizer_welcome->Add(new wxStaticBitmap(pwizard_welcome,wxID_ANY,wxBitmap(fWizardJpeg.GetFullPath(), wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
 	topsizer_welcome->Add(new wxStaticText(pwizard_welcome, wxID_ANY,sstart ), sizerFlagMaximumPlace);
 	pwizard_welcome->SetSizerAndFit(topsizer_welcome);
 
 	///// Midi-in
 
+	fWizardJpeg.SetName("wizard_midi_in");
 	wxWizardPageSimple *pwizard_midi_in = new wxWizardPageSimple(mwizard);
 	wxBoxSizer *topsizer_midi_in = new wxBoxSizer(wxVERTICAL);
-	topsizer_midi_in->Add(new wxStaticBitmap(pwizard_midi_in,wxID_ANY,wxBitmap("wizard_midi_in.jpg", wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
+	topsizer_midi_in->Add(new wxStaticBitmap(pwizard_midi_in,wxID_ANY,wxBitmap(fWizardJpeg.GetFullPath(), wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
 	wxString smidi_in;
 	wxArrayString nameMidiInDevices;
 	int nrMidiInDevice = 0;
@@ -2132,7 +2196,8 @@ play music, adding sensivity and velocity.\n\n");
 
 	wxWizardPageSimple *pwizard_midi_out = new wxWizardPageSimple(mwizard);
 	wxBoxSizer *topsizer_midi_out = new wxBoxSizer(wxVERTICAL);
-	topsizer_midi_out->Add(new wxStaticBitmap(pwizard_midi_out,wxID_ANY,wxBitmap("wizard_midi_out.jpg", wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
+	fWizardJpeg.SetName("wizard_midi_out");
+	topsizer_midi_out->Add(new wxStaticBitmap(pwizard_midi_out,wxID_ANY,wxBitmap(fWizardJpeg.GetFullPath(), wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
 	wxString smidi_out;
 	nameMidiOutDevices.Clear();
 	int nrMidiOutDevice = 0;
@@ -2186,7 +2251,8 @@ on the virtual midi-out cable.\n")), sizerFlagMaximumPlace);
 
 	wxWizardPageSimple *pwizard_audio = new wxWizardPageSimple(mwizard);
 	wxBoxSizer *topsizer_audio = new wxBoxSizer(wxVERTICAL);
-	topsizer_audio->Add(new wxStaticBitmap(pwizard_audio,wxID_ANY,wxBitmap("wizard_audio.jpg", wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
+	fWizardJpeg.SetName("wizard_audio");
+	topsizer_audio->Add(new wxStaticBitmap(pwizard_audio,wxID_ANY,wxBitmap(fWizardJpeg.GetFullPath(), wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
 	getListAudio();
 	int defaultNrDevice = setAudioDefault();
 	wxString saudio = _("\
@@ -2227,7 +2293,8 @@ VALIDATE THE GOOD QUALITY OF SOUND\n");
 
 	wxWizardPageSimple *pwizard_playscore = new wxWizardPageSimple(mwizard);
 	wxBoxSizer *topsizer_playscore = new wxBoxSizer(wxVERTICAL);
-	topsizer_playscore->Add(new wxStaticBitmap(pwizard_playscore,wxID_ANY,wxBitmap("wizard_playscore.jpg", wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
+	fWizardJpeg.SetName("wizard_playscore");
+	topsizer_playscore->Add(new wxStaticBitmap(pwizard_playscore,wxID_ANY,wxBitmap(fWizardJpeg.GetFullPath(), wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
 	wxString splayscore = _("\
 To play a score : open a musicXML\n\
 file, and play on your \n\
@@ -2242,7 +2309,8 @@ been installed.");
 
 	wxWizardPageSimple *pwizard_improvise = new wxWizardPageSimple(mwizard);
 	wxBoxSizer *topsizer_improvise = new wxBoxSizer(wxVERTICAL);
-	topsizer_improvise->Add(new wxStaticBitmap(pwizard_improvise,wxID_ANY,wxBitmap("wizard_improvise.jpg", wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
+	fWizardJpeg.SetName("wizard_improvise");
+	topsizer_improvise->Add(new wxStaticBitmap(pwizard_improvise,wxID_ANY,wxBitmap(fWizardJpeg.GetFullPath(), wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
 	wxString simprovise = _("\
 To improvise on a grid : open a\n\
 chord file, improvise with pitches\n\
@@ -2257,7 +2325,8 @@ chords have been installed.");
 
 	wxWizardPageSimple *pwizard_end = new wxWizardPageSimple(mwizard);
 	wxBoxSizer *topsizer_end = new wxBoxSizer(wxVERTICAL);
-	topsizer_end->Add(new wxStaticBitmap(pwizard_end,wxID_ANY,wxBitmap("wizard_end.jpg", wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
+	fWizardJpeg.SetName("wizard_end");
+	topsizer_end->Add(new wxStaticBitmap(pwizard_end,wxID_ANY,wxBitmap(fWizardJpeg.GetFullPath(), wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
 	wxString send = _("\
 Please consult the web help, to benefit\n\
 all the features, or to change the \n\
@@ -2366,7 +2435,7 @@ void Expresseur::OnAudioTest(wxCommandEvent& WXUNUSED(event))
 	setAudioDefault();
 	
 	wxFileName fsound;
-	fsound.AssignDir(mxconf::getResourceDir());
+	fsound.AssignDir(mxconf::getCwdDir());
 	fsound.SetFullName("test.wav");
 	char buff[MAXBUFCHAR];
 	wxString fs = fsound.GetFullPath();
@@ -2399,27 +2468,32 @@ int Expresseur::setAudioDefault()
 }
 void Expresseur::OnUpdate(wxCommandEvent& WXUNUSED(event))
 {
-	checkUpdate();;
+	checkUpdate(true);;
 }
-void Expresseur::checkUpdate()
+void Expresseur::checkUpdate(bool interactive)
 {
 	wxHTTP get;
-	get.SetHeader(_T("Content-type"), _T("text/html; charset=utf-8"));
-	get.SetTimeout(3);
-
-	// this will wait until the user connects to the internet. It is important in case of dialup (or ADSL) connections
-	if (!get.Connect(_T("www.expresseur.com")))
+	wxInputStream *httpStream ;
 	{
-		get.Close();
-		return;// only the server, no pages here yet ...
+		wxBusyCursor wait;
+
+		get.SetHeader(_T("Content-type"), _T("text/html; charset=utf-8"));
+		get.SetTimeout(2);
+
+		// this will wait until the user connects to the internet. It is important in case of dialup (or ADSL) connections
+		if (!get.Connect(_T("www.expresseur.com")))
+		{
+			get.Close();
+			return;// only the server, no pages here yet ...
+		}
+
+		wxApp::IsMainLoopRunning(); // should return true
+
+		// use _T("/") for index.html, index.php, default.asp, etc.
+		httpStream = get.GetInputStream(_T("/update/"));
+
+		// wxLogVerbose( wxString(_T(" GetInputStream: ")) << get.GetResponse() << _T("-") << ((resStream)? _T("OK ") : _T("FAILURE ")) << get.GetError() );
 	}
-
-	wxApp::IsMainLoopRunning(); // should return true
-
-	// use _T("/") for index.html, index.php, default.asp, etc.
-	wxInputStream *httpStream = get.GetInputStream(_T("/update/"));
-
-	// wxLogVerbose( wxString(_T(" GetInputStream: ")) << get.GetResponse() << _T("-") << ((resStream)? _T("OK ") : _T("FAILURE ")) << get.GetError() );
 
 	if (get.GetError() == wxPROTO_NOERR)
 	{
@@ -2452,8 +2526,23 @@ void Expresseur::checkUpdate()
 						return;
 					}
 				}
+				else
+				{
+					if ( interactive )
+						wxMessageBox("this version is up to date");
+				}
 			}
 		}
+		else
+		{
+			if ( interactive )
+				wxMessageBox("error : no version available on www.expresseur.com/update/");
+		}
+	}
+	else
+	{
+		if ( interactive )
+		wxMessageBox("www.expresseur.com not acessible");
 	}
 	wxDELETE(httpStream);
 	get.Close();
