@@ -461,11 +461,11 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	settingMenu->AppendSeparator();
 	settingMenu->Append(ID_MAIN_FIRSTUSE, _("Reset configuration"));
 	settingMenu->Append(ID_MAIN_CHECK_CONFIG, _("Check config"));
+	settingMenu->Append(ID_MAIN_UPDATE, _("Check update"));
 
 	wxMenu *helpMenu = new wxMenu;
-	helpMenu->Append(ID_MAIN_TEST, _("test"));
+	helpMenu->Append(wxID_HELP, _("help"));
 	helpMenu->Append(wxID_ABOUT, _("About"));
-	helpMenu->Append(ID_MAIN_UPDATE, _("Check update"));
 
     mMenuBar = new wxMenuBar( wxMB_DOCKABLE );
 
@@ -691,9 +691,13 @@ void Expresseur::postInit()
 
 	fileName.Assign(mConf->get(CONFIG_FILENAME, ""));
 	// text for the score
+	if (mTextscore)
+		delete mTextscore;
 	mTextscore = new textscore(this, ID_MAIN_TEXT_SONG, mConf);
 	mTextscore->SetMinSize(wxSize(0, 0));
 	// empty viewer for the score
+	if (mViewerscore)
+		delete mViewerscore;
 	mViewerscore = new emptyscore(this, wxID_ANY, mConf);
 	setOrientation(posScrollVertical, posScrollHorizontal);
 
@@ -2010,8 +2014,8 @@ void Expresseur::initFirstUse(bool force)
 	mConf->setPrefix();
 	
 	// get the user directory in its documents folder
-	wxFileName finstruments;
-	finstruments.AssignDir(mxconf::getResourceDir());
+	wxFileName fname;
+	fname.AssignDir(mxconf::getResourceDir());
 
 	// copy examples from example-folder in documents/expresseurV3-folder
 	wxFileName fdirExample;
@@ -2019,6 +2023,7 @@ void Expresseur::initFirstUse(bool force)
 	fdirExample.AppendDir(DIR_EXAMPLE);
 	wxString sExample = fdirExample.GetFullPath() ;
 	//wxMessageBox(sExample,"example dir");
+	bool firstExample = true;
 	wxDir dirExample(sExample);
 	if ( dirExample.IsOpened() )
 	{
@@ -2034,17 +2039,14 @@ void Expresseur::initFirstUse(bool force)
 			file2 = ffile2.GetFullPath();
 			//wxMessageBox(file1 + " to " + file2 , "copy example");
 			wxCopyFile(file1,file2);
-		  cont = dirExample.GetNext(&file1);
+			if (firstExample)
+			{
+				mConf->set(CONFIG_FILENAME, file2);
+				firstExample = false;
+			}
+			cont = dirExample.GetNext(&file1);
 		}
 	}
-
-	// get the first score as example
-	wxString sfirst;
-	sfirst = wxDir::FindFirst(mxconf::getUserDir(), "*.txt");
-	finstruments.SetFullName(sfirst);
-	wxString defScore = finstruments.GetFullPath();
-	mConf->set(CONFIG_FILENAME, defScore);
-	finstruments.SetFullName("");
 
 	// copy instruments-ressources from ressources-folder in documents/expresseurV3/ressources-folder
 	wxFileName fdirRessources;
