@@ -36,9 +36,9 @@
 
 
 #define CONFIG_MAINMAXIMIZED "/main/maximized"
-#define CONFIG_MAINX "/main/x"
-#define CONFIG_MAINY "/main/y"
 #define CONFIG_MAINWIDTH "/main/width"
+#define CONFIG_MAINDELTAHEIGHT "/main/deltaheight"
+#define CONFIG_MAINDELTAWIDTH "/main/deltawidth"
 #define CONFIG_MAINHEIGHT "/main/height"
 #define CONFIG_MAIN_SCROLLHORIZONTAL "/main/sashhorizontal"
 #define CONFIG_MAIN_SCROLLVERTICAL "/main/sashvertical"

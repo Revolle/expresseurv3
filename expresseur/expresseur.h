@@ -193,7 +193,9 @@ private:
 	bool editMode;
 	bool localoff;
 	wxToolBar *toolBar;
-
+	
+	wxSize sizeFrame ;
+	
 	int prev_absolute_measure_nr= NULL_INT ;
 	bool playback = false;
 	bool recordPlayback = false ;

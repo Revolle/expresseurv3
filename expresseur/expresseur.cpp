@@ -281,8 +281,6 @@ wxEND_EVENT_TABLE()
 IMPLEMENT_APP(MyApp)
 
 Expresseur *frame = NULL;
-wxRect rectFrame;
-bool tobeMaximized = false;
  
 // The `main program' equivalent, creating the windows and returning the
 // main frame
@@ -311,21 +309,10 @@ bool MyApp::OnInit()
 	//frame->SetIcon(wxIcon("expresseur.ico",wxBITMAP_TYPE_ICON));
 #endif
 
-	// resize the main frame
-	if (rectFrame.GetWidth() < 600)
-		rectFrame.SetWidth(600);
-	if (rectFrame.GetHeight() < 400)
-		rectFrame.SetHeight(400);
-	frame->SetSize(rectFrame);
-	if (tobeMaximized)
-		frame->Maximize(true);
-	else
-		frame->CenterOnScreen();
-	frame->Show(true);
-
 #if wxUSE_STATUSBAR
     frame->SetStatusText("",1);
 #endif
+
 
 
   return true;
@@ -498,12 +485,6 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	mScrollVertical->SetScrollbar(posScrollVertical, 1, 100, 1, false);
 	mScrollVertical->SetToolTip(_("split vertically the text and the image of the Score"));
 
-	rectFrame.SetX(mConf->get(CONFIG_MAINX, 10));
-	rectFrame.SetY(mConf->get(CONFIG_MAINY, 10));
-	rectFrame.SetWidth(mConf->get(CONFIG_MAINWIDTH, 1010));
-	rectFrame.SetHeight(mConf->get(CONFIG_MAINHEIGHT, 780));
-	tobeMaximized = mConf->get(CONFIG_MAINMAXIMIZED, false);
-
 
 	waitToCompile = 1 ;
 	waitToRefresh = 1 ;
@@ -521,6 +502,8 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	topSizer->Add(sizer_scroll_vertical, wxSizerFlags().Expand().Proportion(1));
 	SetSizer(topSizer);
 
+	image_right.SetWidth(0);
+	
 	// start to propose something to the user ( wizard, bug managmnt, new hardware config .. )
 	mtimer = new wxTimer(this, ID_MAIN_TIMER);
 	mtimer->Start(500);
@@ -547,11 +530,9 @@ Expresseur::~Expresseur()
 	mConf->set(CONFIG_MAINMAXIMIZED, IsMaximized());
 	if (!IsMaximized())
 	{
-		wxRect mrect = GetRect();
-		mConf->set(CONFIG_MAINWIDTH, mrect.GetWidth());
-		mConf->set(CONFIG_MAINHEIGHT, mrect.GetHeight());
-		mConf->set(CONFIG_MAINX, mrect.GetX());
-		mConf->set(CONFIG_MAINY, mrect.GetY());
+		wxSize msize = GetSize() ;
+		mConf->set(CONFIG_MAINWIDTH, msize.GetWidth());
+		mConf->set(CONFIG_MAINHEIGHT, msize.GetHeight());
 	}
 
 	mConf->set(CONFIG_MAIN_SCROLLHORIZONTAL, posScrollHorizontal);
@@ -680,6 +661,26 @@ void Expresseur::preClose()
 void Expresseur::postInit()
 {
 	//preClose();
+	
+	// resize the main frame
+	bool tobeMaximized = false;
+	sizeFrame.SetWidth(mConf->get(CONFIG_MAINWIDTH, 1010) );
+	sizeFrame.SetHeight(mConf->get(CONFIG_MAINHEIGHT, 780) );
+	tobeMaximized = mConf->get(CONFIG_MAINMAXIMIZED, false);
+	if (sizeFrame.GetWidth() < 600)
+		sizeFrame.SetWidth(600);
+	if (sizeFrame.GetHeight() < 400)
+		sizeFrame.SetHeight(400);
+	wxRect sizeToSet;
+	sizeToSet.SetWidth(sizeFrame.GetWidth() - mConf->get(CONFIG_MAINDELTAWIDTH, 0));
+	sizeToSet.SetHeight(sizeFrame.GetHeight() - mConf->get(CONFIG_MAINDELTAHEIGHT, 0));
+	frame->SetSize(sizeToSet);
+	
+	if (tobeMaximized)
+		frame->Maximize(true);
+	else
+		frame->CenterOnScreen();
+	frame->Show(true);
 
 	// check if it the first use ( for intialization, wizard, .. )
 	initFirstUse(false);
@@ -931,8 +932,18 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 
 		if (image_right != mViewerscore->GetClientSize())
 		{
-			image_right = mViewerscore->GetClientSize();
+			if ( image_right.GetWidth() == 0)
+			{
+				wxSize sizeResult = GetSize() ;
+				if (( sizeResult.GetWidth() != sizeFrame.GetWidth()) || ( sizeResult.GetHeight() != sizeFrame.GetHeight()))
+				{
+					mConf->set(CONFIG_MAINDELTAWIDTH, sizeResult.GetWidth() - sizeFrame.GetWidth());
+					mConf->set(CONFIG_MAINDELTAHEIGHT, sizeResult.GetHeight() - sizeFrame.GetHeight());
+					frame->SetSize(sizeFrame);
+				}
+			}
 			Layout();
+			image_right = mViewerscore->GetClientSize();
 			mViewerscore->displayFile(image_right);
 		}
 	}
@@ -943,6 +954,7 @@ void Expresseur::OnTimer(wxTimerEvent& WXUNUSED(event))
 {
 	if (firstTimer)
 	{
+
 		postInit();
 		firstTimer = false;
 		return;
