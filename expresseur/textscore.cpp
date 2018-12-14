@@ -72,7 +72,7 @@
 
 wxBEGIN_EVENT_TABLE(textscore, wxPanel)
 EVT_SIZE(textscore::OnSize)
-wxEND_EVENT_TABLE()
+END_EVENT_TABLE()
 
 textscore::textscore(wxWindow *parent, wxWindowID id, mxconf* lMxconf)
 : wxTextCtrl(parent, id, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxSUNKEN_BORDER | wxTE_RICH | wxTE_DONTWRAP)
@@ -222,12 +222,15 @@ void textscore::OnSize(wxSizeEvent& WXUNUSED(event))
 {
 	Refresh();
 }
-void textscore::setEditMode(bool editMode)
+void textscore::setEditMode(bool ieditMode)
 {
+	editMode = ieditMode ;
+
 	if (editMode)
 		SetBackgroundColour(*wxWHITE);
 	else
 		SetBackgroundColour(wxColour(220, 220, 220, wxALPHA_OPAQUE));
+	Enable(editMode);
 }
 void textscore::setFontSize(int s)
 {

@@ -189,7 +189,9 @@ enum
 	ID_MAIN_ACTION = ID_MAIN_LIST_FILE_END + 1, // large range for actions
 	ID_MAIN_ACTION_END = ID_MAIN_ACTION + 99 , // large range for actions
 	ID_MAIN_KEY_SHORTCUT = ID_MAIN_ACTION_END + 1, // large range for shortcuts
-	ID_MAIN_KEY_SHORTCUT_END = ID_MAIN_KEY_SHORTCUT + 99 // large range for shortcuts
+	ID_MAIN_KEY_SHORTCUT_END = ID_MAIN_KEY_SHORTCUT + 99 , // large range for shortcuts
+	ID_MAIN_SETTINGS_FILE = ID_MAIN_KEY_SHORTCUT_END + 1 , // large range for confgi presets
+	ID_MAIN_SETTINGS_FILE_END = ID_MAIN_SETTINGS_FILE + 99
 };
 
 // ----------------------------------------------------------------------------
@@ -240,6 +242,7 @@ EVT_MENU_RANGE(ID_MAIN_LIST_FILE, ID_MAIN_LIST_FILE_END, Expresseur::OnListFile)
 
 EVT_MENU_RANGE(ID_MAIN_ACTION, ID_MAIN_ACTION_END, Expresseur::OnMenuAction)
 EVT_MENU_RANGE(ID_MAIN_KEY_SHORTCUT, ID_MAIN_KEY_SHORTCUT_END, Expresseur::OnMenuShortcut)
+EVT_MENU_RANGE(ID_MAIN_SETTINGS_FILE, ID_MAIN_SETTINGS_FILE_END, Expresseur::OnMenuSettings)
 
 EVT_MENU(ID_MAIN_MIXER, Expresseur::OnMixer)
 EVT_MENU(ID_MAIN_GOTO, Expresseur::OnGoto)
@@ -377,6 +380,10 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	editMenu->Append(wxID_PASTE, _("Paste\tCtrl+V"));
 	editMenu->AppendSeparator();
 	menuEditMode = editMenu->AppendCheckItem(wxID_EDIT, _("Edit\tCtrl+E"), _("Allow text change. Else, keystrokes are used for shortcuts"));
+	editMenu->AppendSeparator();
+	editMenu->Append(ID_MAIN_MIXER, _("Mixer\tCTRL+M"));
+	editMenu->Append(ID_MAIN_EXPRESSION, _("LUA setting"));
+	editMenu->AppendSeparator();
 	editMenu->Append(ID_MAIN_GOTO, _("Goto measure...\tCTRL+G"), _("Goto a measure in the score"));
 	editMenu->Append(ID_MAIN_PREVIOUS_PAGE, _("Previous page\tSHIFT+CTRL+UP"), _("Goto previous page of the score"));
 	editMenu->Append(ID_MAIN_NEXT_PAGE, _("Next Page\tSHIFT+CTRL+DOWN"), _("Goto next page of the score"));
@@ -430,25 +437,34 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	listMenu->Append(ID_MAIN_LIST_PREVIOUS_FILE, _("Previous file\tCTRL+LEFT"));
 	listMenu->Append(ID_MAIN_LIST_NEXT_FILE, _("Next file\tCTRL+RIGHT"));
 
+	listSettingMenu = new wxMenu;
+	readListSettings();
+	for(unsigned int i = 0 ; i < listSettings.GetCount(); i ++ )
+	{
+		wxString s = listSettings[i] ;
+		if ( s.Contains("|"))
+		{
+			wxString f = s.Left(s.Find('|'));
+			wxString h = s.Mid(s.Find('|') + 1) ;
+			listSettingMenu->Append(ID_MAIN_SETTINGS_FILE + i ,f,h);
+		}
+	}
+
+
 	wxMenu *settingMenu = new wxMenu;
-	settingMenu->Append(ID_MAIN_MIXER, _("Mixer\tCTRL+M"));
-	settingMenu->Append(ID_MAIN_MIDISHORTCUT, _("Shortcut"));
-	settingMenu->Append(ID_MAIN_EXPRESSION, _("LUA setting"));
-	settingMenu->AppendSeparator();
-	settingMenu->Append(ID_MAIN_RESET, _("Reset"), _("Reset the audio/midi configuration"));
-	settingMenu->Append(ID_MAIN_DELETE_CACHE, _("Delete cache"), _("Delete the MuseScore pages, kept in cache to save computing"));
-	settingMenu->Append(ID_MAIN_AUDIO_SETTING, _("Audio..."), _("Audio settings, to decrease latency, and to select the default audio output"));
-	settingMenu->Append(ID_MAIN_LUAFILE, _("LUA Files..."));
-	// settingMenu->Append(ID_MAIN_LOG, _("Log"));
-	settingMenu->AppendSeparator();
-	settingMenu->AppendCheckItem(ID_MAIN_LOCAL_OFF, _("Send MIDI local-off"), _("Send local-off on MIDI-out opening, i.e. to unlink keyboard and soud-generator on electronic piano"));
-	settingMenu->AppendSeparator();
+	settingMenu->Append(ID_MAIN_MIDISHORTCUT, _("MIDI/keyboard config") , _("Configure interaction from MIDI or keyboard"));
+	settingMenu->AppendSubMenu(listSettingMenu,_("MIDI/keyboard presets"), _("list of MIDI/keyboard configs already available in the Expresseur/Resource directory"));
 	settingMenu->Append(ID_MAIN_SETTING_OPEN, _("Import setting..."));
 	settingMenu->Append(ID_MAIN_SETTING_SAVEAS, _("Export setting as..."));
 	settingMenu->AppendSeparator();
-	settingMenu->Append(ID_MAIN_FIRSTUSE, _("Reset configuration"));
-	settingMenu->Append(ID_MAIN_CHECK_CONFIG, _("Check config"));
-	settingMenu->Append(ID_MAIN_UPDATE, _("Check update"));
+	settingMenu->AppendCheckItem(ID_MAIN_LOCAL_OFF, _("Send MIDI local-off"), _("Send local-off on MIDI-out opening, i.e. to unlink keyboard and soud-generator on electronic piano"));
+	settingMenu->Append(ID_MAIN_AUDIO_SETTING, _("Audio..."), _("Audio settings, to decrease latency, and to select the default audio output"));
+	settingMenu->Append(ID_MAIN_LUAFILE, _("LUA Files..."));
+	settingMenu->Append(ID_MAIN_UPDATE, _("Check update") , _("check if an update is available on the www.expresseur.com web site"));
+	settingMenu->Append(ID_MAIN_RESET, _("Reset audio/midi"), _("Reset the audio/midi configuration"));
+	settingMenu->Append(ID_MAIN_DELETE_CACHE, _("Delete cache"), _("Delete the MuseScore pages, kept in cache to save computing"));
+	settingMenu->Append(ID_MAIN_FIRSTUSE, _("Reset configuration"), _("Restart the initialization wizard"));
+	settingMenu->Append(ID_MAIN_CHECK_CONFIG, _("Check config"), _("Check the configuration (files, .. )"));
 
 	wxMenu *helpMenu = new wxMenu;
 	helpMenu->Append(wxID_HELP, _("help"));
@@ -656,7 +672,6 @@ void Expresseur::preClose()
 	if ( mViewerscore)
 		delete mViewerscore;
 	mViewerscore=NULL;
-
 }
 void Expresseur::postInit()
 {
@@ -1165,6 +1180,23 @@ void Expresseur::OnMenuShortcut(wxCommandEvent& event)
 		return ;
 	mMidishortcut->onShortcut(nrShortcut);
 }
+void Expresseur::OnMenuSettings(wxCommandEvent& event)
+{
+	unsigned int nrSetting = event.GetId() - ID_MAIN_SETTINGS_FILE;
+	if ((nrSetting < 0 ) || (nrSetting >= listSettings.GetCount()))
+		return;
+	wxString s = listSettings[nrSetting] ;
+	if ( ! s.Contains("|"))
+		return ;
+	wxString f = s.Left(s.Find('|'));
+	wxFileName fn ;
+	fn.AssignDir(mxconf::getResourceDir());
+	fn.SetName(f);
+	fn.SetExt("txt");
+	settingName.Assign(fn.GetFullPath());
+	settingOpen();
+	settingReset(true);
+}
 void Expresseur::OnRecordPlayback(wxCommandEvent& event)
 {
 	// start recording for future playback
@@ -1426,6 +1458,41 @@ void Expresseur::OnNextPage(wxCommandEvent& WXUNUSED(event))
 	if (mViewerscore == NULL)
 		return;
 	mViewerscore->gotoNextPage(true);
+}
+void Expresseur::readListSettings()
+{
+	// reads settings available in resources
+	listSettings.Clear() ;
+	wxDir dirSettings(mxconf::getResourceDir());
+	if ( dirSettings.IsOpened() )
+	{
+		wxString filename  ;
+		bool cont = dirSettings.GetFirst(&filename, "*.txt", wxDIR_FILES);
+		while ( cont )
+		{
+			wxFileName ffilename;
+			ffilename.AssignDir(mxconf::getResourceDir());
+			ffilename.SetFullName(filename);
+			wxTextFile tfile;	
+			tfile.Open(ffilename.GetFullPath());
+			if (tfile.IsOpened())
+			{
+				wxString str = tfile.GetFirstLine();
+				if (str == CONFIG_FILE)
+				{
+					str = tfile.GetNextLine() ;
+					if (str.StartsWith("--"))
+					{
+						wxString sf ;
+						sf = ffilename.GetName() + "|" + str.Mid(2) ;
+						listSettings.Add(sf);
+					}
+				}
+				tfile.Close();
+			}
+			cont = dirSettings.GetNext(&filename);
+		}
+	}
 }
 void Expresseur::ListClearMenu()
 {
@@ -1707,10 +1774,35 @@ void Expresseur::settingSave()
 	lChoice.Add(_("Expression"));
 	lChoice.Add(_("Shortcuts"));
 	lChoice.Add(_("Lua Files"));
-	wxMultiChoiceDialog mChoice(this, _("Select the settings to save"), _("Savec setting"), lChoice, wxOK);
-	if (mChoice.ShowModal() != wxID_OK)
-		return;
-	wxArrayInt listToSave = mChoice.GetSelections();
+	wxArrayInt listToSave ;
+	do 
+	{
+		wxMultiChoiceDialog mChoice(this, _("Select the settings to save"), _("Savec setting"), lChoice, wxOK | wxCANCEL);
+		if (mChoice.ShowModal() != wxID_OK)
+			return;
+		listToSave.Clear() ;
+		listToSave = mChoice.GetSelections() ;
+	} while (listToSave.GetCount() < 1) ;
+
+	wxFileName ff ;
+	ff.Assign(settingName);
+	wxString ffname = ff.GetName();
+	wxString defValue ;
+	for(unsigned int i = 0 ; i < listSettings.GetCount(); i ++ )
+	{
+		wxString s = listSettings[i] ;
+		if ( s.Contains("|"))
+		{
+			wxString f = s.Left(s.Find('|'));
+			wxString h = s.Mid(s.Find('|')+1) ;
+			if ( f ==  ffname)
+			{
+				defValue = h ;
+				break ;
+			}
+		}
+	}
+	wxString comment = wxGetTextFromUser ("Setting comment", _("Comment") , defValue);
 
 	wxString s;
 	wxFileName f;
@@ -1727,6 +1819,8 @@ void Expresseur::settingSave()
 	tfile.Clear();
 
 	tfile.AddLine(CONFIG_FILE);
+	if ( !comment.IsEmpty() )
+		tfile.AddLine("--" + comment);
 
 	for (unsigned int i = 0; i < listToSave.GetCount(); i++)
 	{

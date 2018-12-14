@@ -59,6 +59,7 @@ public:
 	void OnListFile(wxCommandEvent& event);
 	void OnMenuAction(wxCommandEvent& event);
 	void OnMenuShortcut(wxCommandEvent& event);
+	void OnMenuSettings(wxCommandEvent& event);
 	void OnRecordPlayback(wxCommandEvent& event);
 	void OnSavePlayback(wxCommandEvent& WXUNUSED(event));
 	void OnPlayback(wxCommandEvent& event);
@@ -147,6 +148,10 @@ private:
 	wxArrayString listFiles;
 	wxFileName listName;
 	int listSelection;
+
+	wxMenu *listSettingMenu;
+	void readListSettings();
+	wxArrayString listSettings ; 
 
 	wxArrayString nameAction;
 	wxArrayString nameValue;

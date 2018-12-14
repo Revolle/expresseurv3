@@ -24,13 +24,12 @@ public:
 	bool needToSave();
 	void noNeedToSave();
 	void zoom(int z);
-
 	void savePlayback(wxString f);
 
 private:
 	wxWindow *mParent;
 	mxconf *mConf;
-
+	bool editMode = false ;
 	void setFontSize(int t);
 	int sizeFont;
 
