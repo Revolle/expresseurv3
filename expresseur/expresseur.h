@@ -175,6 +175,8 @@ private:
 
 	void Open(wxString s);
 	void wizard(bool audio_only = false);
+	int GetListMidiIn(wxArrayString *listMidiIn);
+	int GetListMidiOut(wxArrayString *listMidiOut);
 	void initFirstUse(bool force);
 	wxSpinCtrl *mupdatems , *mbufferms;
 	wxButton *mAsioSet;

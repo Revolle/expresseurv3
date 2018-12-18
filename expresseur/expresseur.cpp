@@ -58,6 +58,7 @@
 #include "wx/dynlib.h"
 #include "wx/statbmp.h"
 #include "wx/stopwatch.h"
+#include "wx/tokenzr.h"
 
 #include "global.h"
 #include "basslua.h"
@@ -622,15 +623,71 @@ bool Expresseur::checkConfig()
 	merrors += checkFile(mxconf::getUserDir(),"fairy_chords.txb");
 	merrors += checkFile(mxconf::getUserDir(),"fairy_chords.txt");
 	merrors += checkFile(mxconf::getUserDir(),"fairy_chords.png");
+	wxString msg;
+	bool ret = true;
 	if (merrors.IsEmpty())
 	{
-		wxMessageBox("Config check : OK");
-		return true ;
+		msg = "check files : OK\n";
 	}
-		wxMessageBox(merrors,"Config check : fail");
-	return false ;
+	else
+	{
+		msg = "check files : FAIL\n";
+		msg += merrors;
+		ret = false;
+	}
+	wxArrayString listMidiin;
+	int nbIn = GetListMidiIn(&listMidiin);
+	if (nbIn == 0)
+	{
+		msg += "No valid MIDI-in\n";
+	}
+	else
+	{
+		wxString sv;
+		sv.Printf("%d valid Midi-in\n", nbIn);
+		msg += sv;
+	}
+	for (unsigned int i = 0; i < listMidiin.GetCount(); i++)
+	{
+		msg += "    - " + listMidiin[i] + "\n";
+	}
+	wxArrayString listMidiout;
+	int nbOut = GetListMidiOut(&listMidiout);
+	if (nbOut == 0)
+	{
+		msg += "No valid MIDI-out\n";
+	}
+	else
+	{
+		wxString sv;
+		sv.Printf("%d valid Midi-out\n", nbOut);
+		msg += sv;
+	}
+	for (unsigned int i = 0; i < listMidiout.GetCount(); i++)
+	{
+		msg += "    - " + listMidiout[i] + "\n";
+	}
+
+	int nbAudio = getListAudio();
+	if (nbAudio == 0)
+	{
+		msg += "No valid Audio output\n";
+	}
+	else
+	{
+		wxString sv;
+		sv.Printf("%d valid Audio output\n", nbAudio);
+		msg += sv;
+	}
+	for (unsigned int i = 0; i < nameaudioDevices.GetCount(); i++)
+	{
+		msg += "    - " + nameaudioDevices[i] + "\n";
+	}
+
+	wxMessageBox(msg,"Config check");
+	return ret ;
 }
-void Expresseur::OnCheckConfig(wxCommandEvent& event)
+void Expresseur::OnCheckConfig(wxCommandEvent& WXUNUSED(event))
 {
 	checkConfig() ;
 }
@@ -1784,28 +1841,7 @@ void Expresseur::settingSave()
 		listToSave = mChoice.GetSelections() ;
 	} while (listToSave.GetCount() < 1) ;
 
-	wxFileName ff ;
-	ff.Assign(settingName);
-	wxString ffname = ff.GetName();
-	wxString defValue ;
-	for(unsigned int i = 0 ; i < listSettings.GetCount(); i ++ )
-	{
-		wxString s = listSettings[i] ;
-		if ( s.Contains("|"))
-		{
-			wxString f = s.Left(s.Find('|'));
-			wxString h = s.Mid(s.Find('|')+1) ;
-			if ( f ==  ffname)
-			{
-				defValue = h ;
-				break ;
-			}
-		}
-	}
-	wxString comment = wxGetTextFromUser ("Setting comment", _("Comment") , defValue);
-
-	wxString s;
-	wxFileName f;
+	wxString str;
 	wxTextFile tfile;
 	if (settingName.IsFileWritable() == false)
 		tfile.Create(settingName.GetFullPath());
@@ -1815,12 +1851,38 @@ void Expresseur::settingSave()
 		wxMessageBox("error opening file for write");
 		return;
 	}
+
+	wxString comment;
+	for (str = tfile.GetFirstLine(); !tfile.Eof(); str = tfile.GetNextLine())
+	{
+		if (str.StartsWith("--"))
+		{
+			comment += str.Mid(2) + "\n";
+		}
+	}
+
+	wxTextEntryDialog *mtextentry = new wxTextEntryDialog ( this, _("description"), _("Setting description"), comment, wxTextEntryDialogStyle | wxTE_MULTILINE ); 
+	if (mtextentry->ShowModal() != wxID_OK)
+	{
+		delete mtextentry;
+		return;
+	}
+	comment = mtextentry->GetValue();
+	delete mtextentry;
+
 	
 	tfile.Clear();
 
 	tfile.AddLine(CONFIG_FILE);
-	if ( !comment.IsEmpty() )
-		tfile.AddLine("--" + comment);
+	if (!comment.IsEmpty())
+	{
+		wxStringTokenizer tokenizer(comment, "\n");
+		while (tokenizer.HasMoreTokens())
+		{
+			wxString token = tokenizer.GetNextToken();
+			tfile.AddLine("--" + token);
+		}
+	}
 
 	for (unsigned int i = 0; i < listToSave.GetCount(); i++)
 	{
@@ -1854,7 +1916,22 @@ void Expresseur::settingOpen()
 		wxMessageDialog(this, "First line of the file is not the expected one", "read setting error", wxICON_ERROR | wxOK );
 		return;
 	}
-
+	wxString comment;
+	for (str = tfile.GetFirstLine(); !tfile.Eof(); str = tfile.GetNextLine())
+	{
+		if (str.StartsWith("--"))
+		{
+			comment += str.Mid(2) + "\n";
+		}
+	}
+	if (!comment.IsEmpty())
+	{
+		if (wxMessageBox(comment, settingName.GetName()) != wxID_OK)
+		{
+			tfile.Close();
+			return;
+		}
+	}
 	if ( mMixer != NULL ) mMixer->read( &tfile);
 	if (mMidishortcut != NULL) mMidishortcut->read( &tfile);
 	if (mExpression != NULL) mExpression->read(&tfile);
@@ -2094,7 +2171,7 @@ void Expresseur::OnSettingSaveas(wxCommandEvent& WXUNUSED(event))
 void Expresseur::OnAbout(wxCommandEvent& WXUNUSED(event)) 
 {	
 	wxString s;
-	s.Printf("Expresseur 3.%d\n(C) 2017 REVOLLE Franck <franck.revolle@orange.fr>\n\ntemp directory = <%s>", VERSION_EXPRESSEUR,mxconf::getTmpDir());
+	s.Printf("Expresseur 3.%d\n(C) 2019 REVOLLE Franck <franck.revolle@orange.fr>", VERSION_EXPRESSEUR);
  	wxMessageBox(s,"about");
 }
 void Expresseur::OnHelp(wxCommandEvent& WXUNUSED(event)) 
@@ -2216,6 +2293,64 @@ void Expresseur::OnAudioSetting(wxCommandEvent& WXUNUSED(event))
 	wizard(true);
 	settingReset();
 }
+int Expresseur::GetListMidiIn(wxArrayString *listMidiIn)
+{
+	listMidiIn->Clear();
+	int nrMidiInDevice = 0;
+	int nbMidiInDevice = 0;
+	char nameMidiInDevice[MAXBUFCHAR];
+	*nameMidiInDevice = '\0';
+	while (true)
+	{
+		basslua_call(moduleLuabass, sinGetMidiName, "i>s", nrMidiInDevice + 1, nameMidiInDevice);
+		if (*nameMidiInDevice == '\0')
+			break;
+		bool valid = false;
+		basslua_call(moduleGlobal, sinMidiIsValid, "s>b", nameMidiInDevice, &valid);
+		if (valid)
+		{
+			listMidiIn->Add(nameMidiInDevice);
+			nbMidiInDevice++;
+		}
+		else
+		{
+			wxString sinv;
+			sinv.Printf("invalid [%s]", nameMidiInDevice);
+			listMidiIn->Add(sinv);
+		}
+		nrMidiInDevice++;
+	}
+	return nbMidiInDevice;
+}
+int Expresseur::GetListMidiOut(wxArrayString *listMidiOut)
+{
+	listMidiOut->Clear();
+	int nrMidiOutDevice = 0;
+	int nbMidiOutDevice = 0;
+	char nameMidiOutDevice[MAXBUFCHAR];
+	*nameMidiOutDevice = '\0';
+	while (true)
+	{
+		basslua_call(moduleLuabass, soutGetMidiName, "i>s", nrMidiOutDevice + 1, nameMidiOutDevice);
+		if (*nameMidiOutDevice == '\0')
+			break;
+		bool valid = false;
+		basslua_call(moduleGlobal, soutMidiIsValid, "s>b", nameMidiOutDevice, &valid);
+		if (valid)
+		{
+			listMidiOut->Add(nameMidiOutDevice);
+			nbMidiOutDevice++;
+		}
+		else
+		{
+			wxString sinv;
+			sinv.Printf("invalid [%s]", nameMidiOutDevice);
+			listMidiOut->Add(sinv);
+		}
+		nrMidiOutDevice++;
+	}
+	return nbMidiOutDevice;
+}
 void Expresseur::wizard(bool audio_only)
 {
 	wxFileName fWizardJpeg ;
@@ -2261,30 +2396,14 @@ basic tunings to play.\n");
 	topsizer_midi_in->Add(new wxStaticBitmap(pwizard_midi_in,wxID_ANY,wxBitmap(fWizardJpeg.GetFullPath(), wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
 	wxString smidi_in;
 	wxArrayString nameMidiInDevices;
-	int nrMidiInDevice = 0;
-	int nbMidiInDevice = 0;
-	char nameMidiInDevice[MAXBUFCHAR];
-	*nameMidiInDevice = '\0';
-	while (true)
-	{
-		basslua_call(moduleLuabass, sinGetMidiName, "i>s", nrMidiInDevice + 1, nameMidiInDevice);
-		if (*nameMidiInDevice == '\0')
-			break;
-		bool valid = false;
-		basslua_call(moduleGlobal, sinMidiIsValid, "s>b", nameMidiInDevice, &valid);
-		if ( valid )
-		{
-			nameMidiInDevices.Add(nameMidiInDevice);
-			nbMidiInDevice ++ ;
-		}
-		nrMidiInDevice++;
-	}
+	int nbMidiInDevice = GetListMidiIn(&nameMidiInDevices);
 	if (nbMidiInDevice == 0)
 	{
 		smidi_in = _("\
-No MIDI-in keyboard connected.\n\
-You can play on the computer\n\
-keyboard with a limited experience.\n\
+No valid MIDI-in keyboard connected.\n\
+You can play a score on the computer\n\
+keyboard with ALT+O.\n\
+It will be a limited experience.\n\
 With a MIDI-in keyboard, it will be\n\
 easier to play music, adding sensivity\n\
 and velocity.\n\n");
@@ -2295,7 +2414,10 @@ and velocity.\n\n");
 		topsizer_midi_in->Add(mlistMidiin, sizerFlagMaximumPlace);
 		smidi_in += _("\
 MIDI-in detected : it can be used to\n\
-play music, adding sensivity and velocity.\n\n");
+play music, adding sensivity and velocity.\n\
+All these MIDI-in will be used.\n\
+Menu Settings/MIDI-keyboard can be used\n\
+to tune Midi-inputs .\n\n");
 	}
 	topsizer_midi_in->Add(new wxStaticText(pwizard_midi_in, wxID_ANY, smidi_in), sizerFlagMaximumPlace);
 	pwizard_midi_in->SetSizerAndFit(topsizer_midi_in);
@@ -2307,31 +2429,13 @@ play music, adding sensivity and velocity.\n\n");
 	fWizardJpeg.SetName("wizard_midi_out");
 	topsizer_midi_out->Add(new wxStaticBitmap(pwizard_midi_out,wxID_ANY,wxBitmap(fWizardJpeg.GetFullPath(), wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
 	wxString smidi_out;
-	nameMidiOutDevices.Clear();
-	int nrMidiOutDevice = 0;
-	int nbMidiOutDevice = 0;
-	char nameMidiOutDevice[MAXBUFCHAR];
-	*nameMidiOutDevice = '\0';
-	while (true)
-	{
-		basslua_call(moduleLuabass, soutGetMidiName, "i>s", nrMidiOutDevice + 1, nameMidiOutDevice);
-		if (*nameMidiOutDevice == '\0')
-			break;
-		bool valid = false;
-		basslua_call(moduleGlobal, soutMidiIsValid, "s>b", nameMidiOutDevice, &valid);
-		if ( valid )
-		{
-			nameMidiOutDevices.Add(nameMidiOutDevice);
-			nbMidiOutDevice ++ ;
-		}
-		nrMidiOutDevice++;
-	}
+	int nbMidiOutDevice = GetListMidiOut(&nameMidiOutDevices) ;
 	if (nbMidiOutDevice == 0)
 	{
 		smidi_out = _("\
-No MIDI-out sound expander.\n\
+No valid MIDI-out sound expander.\n\
 To generate music sound, you will have\n\
-to use the SF2 with the sound-card.\n\
+to use the basic SF2 on your sound-card.\n\
 Next screen will help you for the tuning.\n\n");
 	}
 	else
@@ -2348,7 +2452,7 @@ sound expander\n\n");
 	topsizer_midi_out->Add(new wxStaticText(pwizard_midi_out, wxID_ANY, smidi_out + _("\
 With an electronic piano, you will\n\
 add the possibility to play the sound\n\
-of this piano, with a good quality.\n\n\
+of this piano, with a good reactivity.\n\n\
 If you have a software instrument (e.g.\n\
 Pianoteq ), connect it on the virtual\n\
 midi-in cable, and connect Expresseur\n\
@@ -2406,8 +2510,8 @@ VALIDATE THE GOOD QUALITY OF SOUND\n");
 	wxString splayscore = _("\
 To play a score : open a musicXML\n\
 file, and play on your \n\
-MIDI keyboard under B2\n\
-or with ALT-O on your computer.\n\n\
+MIDI keyboard, or with ALT-O\n\
+on your computer.\n\n\
 Some example of musicXML files have\n\
 been installed.");
 	topsizer_playscore->Add(new wxStaticText(pwizard_playscore, wxID_ANY, splayscore), sizerFlagMaximumPlace);
@@ -2420,12 +2524,14 @@ been installed.");
 	fWizardJpeg.SetName("wizard_improvise");
 	topsizer_improvise->Add(new wxStaticBitmap(pwizard_improvise,wxID_ANY,wxBitmap(fWizardJpeg.GetFullPath(), wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
 	wxString simprovise = _("\
-To improvise on a grid : open a\n\
-chord file, improvise with pitches\n\
-in the chord using white keys over E3\n\
+To improvise on a grid : \n\
+  - select a MIDI-keyboard\n\
+    preset in the setting menu.\n\
+  - open a chord file or image\n\
+Then, improvise with pitches\n\
+in the chord using white keys\n\
 and black keys for pithes\n\
 out of the chords.\n\
-Move to next chord with D3.\n\n\
 Some example of text files with \n\
 chords have been installed.");
 	topsizer_improvise->Add(new wxStaticText(pwizard_improvise, wxID_ANY, simprovise), sizerFlagMaximumPlace);
