@@ -330,10 +330,11 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	CreateStatusBar(2);
 #endif
 
-	mxconf::getAppDir();
-
 	// configuration object ( with memory of all parameters
 	mConf = new mxconf();
+
+	mxconf::getAppDir();
+	CreateExpresseurV3();
 
 	mode = modeNil;
 	listChanged = false;
@@ -2178,6 +2179,75 @@ void Expresseur::OnHelp(wxCommandEvent& WXUNUSED(event))
 {
 	wxLaunchDefaultBrowser("http://www.expresseur.com");
 }
+void Expresseur::CreateExpresseurV3()
+{
+	// get the user directory in its documents folder
+	wxFileName fname;
+	fname.AssignDir(mxconf::getResourceDir());
+
+	fname.SetFullName("default_setting.txt");
+	if (fname.FileExists())
+		return;
+	
+	fname.Mkdir(wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
+
+	// copy examples from example-folder in documents/expresseurV3-folder
+	wxFileName fdirExample;
+	fdirExample.Assign(mxconf::getCwdDir());
+	fdirExample.AppendDir(DIR_EXAMPLE);
+	wxString sExample = fdirExample.GetFullPath();
+	//wxMessageBox(sExample,"example dir");
+	bool firstExample = true;
+	wxDir dirExample(sExample);
+	if (dirExample.IsOpened())
+	{
+		wxString file1, file2;
+		bool cont = dirExample.GetFirst(&file1, "*.*", wxDIR_FILES);
+		while (cont)
+		{
+			wxFileName ffile1(file1);
+			wxFileName ffile2(file1);
+			ffile1.SetPath(fdirExample.GetPath());
+			file1 = ffile1.GetFullPath();
+			ffile2.SetPath(mxconf::getUserDir());
+			file2 = ffile2.GetFullPath();
+			//wxMessageBox(file1 + " to " + file2 , "copy example");
+			wxCopyFile(file1, file2);
+			if (firstExample)
+			{
+				mConf->set(CONFIG_FILENAME, file2);
+				firstExample = false;
+			}
+			cont = dirExample.GetNext(&file1);
+		}
+	}
+
+	// copy instruments-ressources from ressources-folder in documents/expresseurV3/ressources-folder
+	wxFileName fdirRessources;
+	fdirRessources.Assign(mxconf::getCwdDir());
+	fdirRessources.AppendDir(DIR_RESOURCES);
+	wxString sRessources = fdirRessources.GetFullPath();
+	//wxMessageBox(sRessources,"ressources dir");
+	wxDir dirRessources(sRessources);
+	if (dirRessources.IsOpened())
+	{
+		wxString file1, file2;
+		bool cont = dirRessources.GetFirst(&file1, "*.*", wxDIR_FILES);
+		while (cont)
+		{
+			wxFileName ffile1(file1);
+			wxFileName ffile2(file1);
+			ffile1.SetPath(fdirRessources.GetPath());
+			file1 = ffile1.GetFullPath();
+			ffile2.SetPath(mxconf::getResourceDir());
+			file2 = ffile2.GetFullPath();
+			//wxMessageBox(file1 + " to " + file2 , "copy ressource");
+			wxCopyFile(file1, file2);
+			cont = dirRessources.GetNext(&file1);
+		}
+	}
+
+}
 void Expresseur::initFirstUse(bool force)
 {
 	// is is the first time the Expresseur start ?
@@ -2196,65 +2266,6 @@ void Expresseur::initFirstUse(bool force)
 	// set a prefix on the actual Midi config
 	mConf->setPrefix();
 	
-	// get the user directory in its documents folder
-	wxFileName fname;
-	fname.AssignDir(mxconf::getResourceDir());
-
-	// copy examples from example-folder in documents/expresseurV3-folder
-	wxFileName fdirExample;
-	fdirExample.Assign(mxconf::getCwdDir());
-	fdirExample.AppendDir(DIR_EXAMPLE);
-	wxString sExample = fdirExample.GetFullPath() ;
-	//wxMessageBox(sExample,"example dir");
-	bool firstExample = true;
-	wxDir dirExample(sExample);
-	if ( dirExample.IsOpened() )
-	{
-		wxString file1 , file2 ;
-		bool cont = dirExample.GetFirst(&file1, "*.*", wxDIR_FILES);
-		while ( cont )
-		{
-			wxFileName ffile1(file1);
-			wxFileName ffile2(file1);
-			ffile1.SetPath(fdirExample.GetPath());
-			file1 = ffile1.GetFullPath();
-			ffile2.SetPath(mxconf::getUserDir());
-			file2 = ffile2.GetFullPath();
-			//wxMessageBox(file1 + " to " + file2 , "copy example");
-			wxCopyFile(file1,file2);
-			if (firstExample)
-			{
-				mConf->set(CONFIG_FILENAME, file2);
-				firstExample = false;
-			}
-			cont = dirExample.GetNext(&file1);
-		}
-	}
-
-	// copy instruments-ressources from ressources-folder in documents/expresseurV3/ressources-folder
-	wxFileName fdirRessources;
-	fdirRessources.Assign(mxconf::getCwdDir());
-	fdirRessources.AppendDir(DIR_RESOURCES);
-	wxString sRessources = fdirRessources.GetFullPath()  ;
-	//wxMessageBox(sRessources,"ressources dir");
-	wxDir dirRessources(sRessources);
-	if ( dirRessources.IsOpened())
-	{
-		wxString file1 , file2 ;
-		bool cont = dirRessources.GetFirst(&file1, "*.*", wxDIR_FILES);
-		while ( cont )
-		{
-			wxFileName ffile1(file1);
-			wxFileName ffile2(file1);
-			ffile1.SetPath(fdirRessources.GetPath());
-			file1 = ffile1.GetFullPath();
-			ffile2.SetPath(mxconf::getResourceDir());
-			file2 = ffile2.GetFullPath();
-			//wxMessageBox(file1 + " to " + file2 , "copy ressource");
-			wxCopyFile(file1,file2);
-		  cont = dirRessources.GetNext(&file1);
-		}
-	}
 	// get the actions from the LUA script
 	getLuaAction(false, NULL);
 

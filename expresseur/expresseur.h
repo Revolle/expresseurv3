@@ -178,6 +178,7 @@ private:
 	int GetListMidiIn(wxArrayString *listMidiIn);
 	int GetListMidiOut(wxArrayString *listMidiOut);
 	void initFirstUse(bool force);
+	void CreateExpresseurV3();
 	wxSpinCtrl *mupdatems , *mbufferms;
 	wxButton *mAsioSet;
 	wxListBox *mlistAudio;
