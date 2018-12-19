@@ -93,7 +93,6 @@
 
 // start and initialize the LUA thread, using the LUA script fname 
 typedef void(*voidcallback) (double time , int nr_device , int type_msg , int channel , int value1 , int value2 , bool isProcessed );
-void basslua_addMidiFunction(const char* prefixe_device );
 bool basslua_open(const char* fname, const char* param, bool reset, long datefname, voidcallback fcallback , const char *logpath, bool external_timer , int timerDt);
 // stop and close the LUA thread
 void basslua_close();

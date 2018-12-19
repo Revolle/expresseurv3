@@ -57,15 +57,12 @@ int main(int argc, char* argv[])
 	// define the default lua-script and its empty parameter
 	char fname[1024] = "expresscmd.lua";
 	char param[1024] = "--preopen_midiout";
-	char prefixe_device[1024] = "";
 	char line_read[1024] ;
 
 	// use arguments of the command-line to change the lua-scipt and its parameters
 	if (argc > 1)
 		strcpy_s(fname, argv[1]);
 	if (argc > 2)
-		strcpy_s(prefixe_device, argv[2]);
-	if (argc > 3)
 		strcpy_s(param, argv[2]);
 
 	// starts the basslua module with the lua-scipt
@@ -81,11 +78,6 @@ int main(int argc, char* argv[])
 	bool retCode = basslua_open(fname, param, true, 0, NULL ,"expresscmd_log",false,20);
 	fprintf(stderr,"Return basslua_open =%s\n", retCode?"OK":"Error");
 
-	if (*prefixe_device != '\0')
-	{
-		fprintf(stderr, "basslua_setDevice <%s>\n", prefixe_device);
-		basslua_addMidiFunction(prefixe_device);
-	}
 	// print the usage of this command-line tool
 	printf(sUsage);
 

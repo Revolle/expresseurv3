@@ -130,43 +130,6 @@ midishortcut::midishortcut(wxFrame *parent, wxWindowID id, const wxString &title
 	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_CLOSE, _("Close")), sizerFlagMinimumPlace.Border(wxALL, 10));
 	topsizer->Add(button_sizer, sizerFlagMaximumPlace);
 
-	/*
-	wxBoxSizer *device_sizer = new wxBoxSizer(wxHORIZONTAL);
-	wxArrayString arrayDeviceShort;
-	wxString maskPreconfig;
-	// These text files decribe the preconfigurations. 
-	// The name of these files is used to load the lua script files : <name>_<onEventMidi>.lua
-	// where <onEventMidi> can be OnControl, onNoteOn, onProgram ... 
-	maskPreconfig.Printf("*.%s", SUFFIXE_PRECONFIG);
-	arrayDeviceShort.Add(_("none"));
-	wxString current_preconfig = mConf->get(CONFIG_MIDIFUNCTION, "");
-	int nr_preconfig = wxNOT_FOUND;
-	wxFileName fn;
-	fn.AssignDir(mxconf::getResourceDir());
-	wxDir dir;
-	dir.Open(fn.GetFullPath());
-	if (dir.IsOpened())
-	{
-		int nr = 1;
-		wxString filename;
-		bool cont = dir.GetFirst(&filename, maskPreconfig, wxDIR_FILES);
-		while (cont)
-		{
-			if (current_preconfig == filename)
-				nr_preconfig = nr;
-			arrayDeviceShort.Add(filename);
-			cont = dir.GetNext(&filename);
-			nr++;
-		}
-	}
-	listFunctionMidi = new wxChoice(this, IDM_MIDISHORTCUT_PRECONFIG, wxDefaultPosition, wxDefaultSize, arrayDeviceShort);
-	listFunctionMidi->SetSelection(nr_preconfig);
-	device_sizer->Add(new wxStaticText(this, wxID_ANY , _("Pre-configuration : ")), sizerFlagMinimumPlace.Border(wxALL, 10));
-	device_sizer->Add(listFunctionMidi, sizerFlagMinimumPlace.Border(wxALL, 10));
-	device_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_DESCRIPTION_DEVICE, _("Description")), sizerFlagMinimumPlace.Border(wxALL, 10));
-	topsizer->Add(device_sizer, sizerFlagMaximumPlace);
-	*/
-
 	loadShortcut();
 
 	// resize all the frame and components
@@ -253,7 +216,6 @@ void midishortcut::loadShortcut()
 }
 void midishortcut::saveShortcut()
 {
-	//mConf->set(CONFIG_MIDIFUNCTION, (listFunctionMidi->GetSelection() != wxNOT_FOUND)?listFunctionMidi->GetString(listFunctionMidi->GetSelection()):"", false);
 	wxString s;
 	wxString name, action, key;
 	wxString sdevice, event, schannel, smin, smax, stopOnMatch , param;
@@ -552,19 +514,6 @@ void midishortcut::scanMidi(int nr_device, int type_msg, int channel, int value1
 void midishortcut::reset()
 {
 	wxBusyCursor wait;
-	// reset the preconfiguration
-	wxString preconfig = mConf->get(CONFIG_MIDIFUNCTION, "");
-	if (preconfig.EndsWith(SUFFIXE_PRECONFIG))
-	{
-		wxFileName fn;
-		fn.AssignDir(mxconf::getResourceDir());
-		fn.SetFullName(preconfig);
-		fn.SetExt("");
-		wxString sfn = fn.GetFullPath();
-		char buffn[MAXBUFCHAR];
-		strcpy(buffn, sfn.c_str());
-		basslua_addMidiFunction(buffn);
-	}
 	// reset the selectors
 	basslua_setSelector(0, -1, 'x', 0, 0, 0, NULL, 0, false , NULL);
 	// set the selectors
@@ -662,7 +611,6 @@ void midishortcut::openMidiIn( bool allValid)
 }
 void midishortcut::write(wxTextFile *lfile)
 {
-	mConf->writeFile(lfile, CONFIG_MIDIFUNCTION, "" );
 	mConf->writeFile(lfile, CONFIG_SHORTCUTNB, 0);
 	long nbSelector = mConf->get(CONFIG_SHORTCUTNB, 0, false);
 	for (int nrSelector = 0; nrSelector < nbSelector; nrSelector++)
@@ -681,7 +629,6 @@ void midishortcut::write(wxTextFile *lfile)
 }
 void midishortcut::read(wxTextFile *lfile)
 {
-	mConf->readFile(lfile, CONFIG_MIDIFUNCTION, "");
 	if (mConf->readFile(lfile, CONFIG_SHORTCUTNB, 0))
 	{
 		long nbSelector = mConf->get(CONFIG_SHORTCUTNB, 0, false);

@@ -1592,37 +1592,6 @@ bool basslua_openMidiIn(int *nrDevices, int nbDevices)
 	return (retCode);
 }
 
-void addMidiFunction(const char* prefixe_device, const char* luaf)
-{
-	char fname_device[1024];
-	sprintf(fname_device, "%s_%s.lua", prefixe_device, luaf);
-	if (luaL_loadfile(g_LUAstate, fname_device) == LUA_OK)
-	{
-		if (lua_isfunction(g_LUAstate, -1) == 1)
-		{
-			lua_setglobal(g_LUAstate, luaf);
-			mlog_in("basslua_open OK : lua_setglobal <%s> from file <%s>", luaf, fname_device);
-		}
-	}
-}
-void basslua_addMidiFunction(const char* prefixe_device)
-{
-	addMidiFunction(prefixe_device, LUAFunctionMidi);
-	addMidiFunction(prefixe_device, LUAFunctionSysex);
-	addMidiFunction(prefixe_device, LUAFunctionActive);
-	addMidiFunction(prefixe_device, LUAFunctionClock);
-	addMidiFunction(prefixe_device, LUAFunctionChannelPressure);
-	addMidiFunction(prefixe_device, LUAFunctionKeyPressure);
-	addMidiFunction(prefixe_device, LUAFunctionControl);
-	addMidiFunction(prefixe_device, LUAFunctionSystemCommon);
-	addMidiFunction(prefixe_device, LUAFunctionProgram);
-	addMidiFunction(prefixe_device, LUAFunctionNoteOff);
-	addMidiFunction(prefixe_device, LUAFunctionNoteOn);
-	addMidiFunction(prefixe_device, LUAFunctionPitchBend);
-	addMidiFunction(prefixe_device, LUAFunctionTimer);
-	filter_in_set();
-}
-
 void basslua_external_timer()
 {
 	lock_mutex_in();	

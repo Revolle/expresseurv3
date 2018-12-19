@@ -63,7 +63,6 @@
 #define CONFIG_MIXERCURVENAME "/mixer/curvename"
 #define CONFIG_MIXERINSTRUMENT "/mixer/instrument"
 
-#define CONFIG_MIDIFUNCTION "/shortcut/midifunction"
 #define CONFIG_SHORTCUTNB "/shortcut/selectornb"
 #define CONFIG_SHORTCUTCHANNEL "/shortcut/channel"
 #define CONFIG_SHORTCUTDEVICENAME "/shortcut/devicename"
