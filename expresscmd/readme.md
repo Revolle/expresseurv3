@@ -12,5 +12,8 @@ EXPRESSCMD loads basslua library, which loads :
   * luascore.lua : LUA script to compile-interpret a pre-compiled score 
   * luabass : library to manage MIDI-outputs and Sound-outputs
 
+After the basslua loading, it proposes a command line interface.  
+The command accepted are the LUA functions available in the script.  
+
 Dependencies :
   * basslua library
