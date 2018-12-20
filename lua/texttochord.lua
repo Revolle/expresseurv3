@@ -62,7 +62,7 @@ local modes = { -- specify the modes
   { degree = { 1,0,2,0,3,0,4,5,0,6,7,0} , names = {"modemiv","lydien b7", "bartok", "vaschaspati"}},
   { degree = { 1,0,2,0,3,4,0,5,6,0,7,0} , names = {"modemv","mixolydien b13"}},
   { degree = { 1,0,2,3,0,4,5,0,6,0,7,0} , names = {"modemvi","locrien #9" , "eolien b5"}},
-  { degree = { 1,2,0,3,1,0,4,0,5,0,7,0} , names = {"modemvii","altered","altere", "super locrien"}},
+  { degree = { 1,2,0,3,4,0,5,0,6,0,7,0} , names = {"modemvii","altered","altere", "super locrien"}},
   -- mineur harmonique (mh)
   { degree = { 1,0,2,3,0,4,0,5,6,0,0,7} , names = {"modehi","minor harmonic","mineur harmonique"}},
   { degree = { 1,2,0,3,0,4,5,0,0,6,7,0} , names = {"modehii","locrien naturel","locrien natural"}},
@@ -74,8 +74,8 @@ local modes = { -- specify the modes
   -- exotic
   { degree = { 1,2,0,3,0,4,0,5,6,0,0,7} , names = {"balkan"}},
   { degree = { 1,2,0,0,3,4,0,5,6,0,7,0} , names = {"andalou"}},
-  { degree = { 1,0,2,3,0,0,7,5,6,0,0,7} , names = {"tzigane"}},
-  { degree = { 1,2,0,0,3,7,0,5,6,0,0,7} , names = {"oriental"}},
+  { degree = { 1,0,2,3,0,0,4,5,6,0,0,7} , names = {"tzigane"}},
+  { degree = { 1,2,0,0,3,4,0,5,6,0,0,7} , names = {"oriental"}},
   --specific
   { degree = { 1,0,2,3,0,4,5,0,6,7,0,8} , names = {"diminue","diminished", "tondemiton", "tonehalftone", "bertha"}},
   { degree = { 1,2,0,3,4,0,5,6,0,7,8,0} , names = {"demitonton","halftonetone"}},
@@ -1217,4 +1217,49 @@ function E.stringToChord(isChord , isNextChord)
   return interpretedChord
 end
 
-return E -- to export the function to the parent module
+
+return E -- to export the functions
+
+--[[]
+-- test this module
+
+local mchords={"C[!.ionien]","C[.!dorien]","G7","Dm", "C[_!balkan]", "F" }
+for i, mchord in ipairs(mchords) do
+  local minterpretedChord = E.stringToChord(mchord , nil)
+  
+  print("mode courant", modeCurrent.names[1] , table.concat(modeCurrent.degree))
+  
+  local tpitch={}
+  local spitch=""
+  for i = -10 , 10 , 1 do
+    tpitch[i]=minterpretedChord.pitch["chord"][i][0][1]
+    spitch = spitch .. " " .. E.ptos(tpitch[i])
+  end
+  print("chord" , mchord, spitch , table.concat(tpitch,",") )
+  print()
+  
+  tpitch={}
+  spitch=""
+  for i = -10 , 10 , 1 do
+    tpitch[i]=minterpretedChord.pitch["penta"][i][0][1]
+    spitch = spitch .. " " .. E.ptos(tpitch[i])
+  end
+  print("penta" , mchord, spitch , table.concat(tpitch,",") )
+  print()
+
+  tpitch={}
+  spitch=""
+  for i = -10 , 10 , 1 do
+    tpitch[i]=minterpretedChord.pitch["scale"][i][0][1]
+    spitch = spitch .. " " .. E.ptos(tpitch[i])
+  end
+  print("scale" , mchord, spitch , table.concat(tpitch,",") )
+  print()
+
+  E.dumpPitch(minterpretedChord.pitch,"chord")
+  E.dumpPitch(minterpretedChord.pitch,"penta")
+  E.dumpPitch(minterpretedChord.pitch,"scale")
+  print()
+
+end
+]]--

@@ -1454,6 +1454,12 @@ static void mixer_init()
 		if (g_audio_first_list)
 			mlog_out("Information : Audio interface #%d <%s>", g_nb_audio_bass_device + 1, name_audio);
 		g_nb_audio_bass_device++;
+		if ( g_nb_audio_bass_device >= MAX_AUDIO_DEVICE)
+		{
+			mlog_out("mixer_init : only first %d audio are managed", MAX_AUDIO_DEVICE);
+			g_nb_audio_bass_device = MAX_AUDIO_DEVICE - 1 ;
+			break ;
+		}
 	}
 
 	// list of asio device
@@ -2648,7 +2654,7 @@ static void track_init()
 	}
 	for (int nrTrack = 0; nrTrack < MAXTRACK; nrTrack++)
 	{
-		if ((g_tracks[nrTrack].device >= 0) && (g_tracks[nrTrack].channel> 0) && (g_tracks[nrTrack].channel < MAXCHANNEL))
+		if ((g_tracks[nrTrack].device >= 0) && (g_tracks[nrTrack].device < OUT_MAX_DEVICE) && (g_tracks[nrTrack].channel> 0) && (g_tracks[nrTrack].channel < MAXCHANNEL))
 		{
 			if (channelUsed[g_tracks[nrTrack].device][g_tracks[nrTrack].channel] == false)
 			{
@@ -2678,12 +2684,17 @@ static void midi_out_init()
 	g_midiout_max_nr_device =  0;
 
 	// pre-count/names of midiout
-	RtMidiOut g_ls_midiout_rt;// list of midiout
-	g_nb_midi_out = g_ls_midiout_rt.getPortCount() ;
+	RtMidiOut ls_midiout_rt;// list of midiout
+	g_nb_midi_out = ls_midiout_rt.getPortCount() ;
+	if ( g_nb_midi_out >= MIDIOUT_MAX)
+	{
+		g_nb_midi_out = MIDIOUT_MAX - 1 ;
+		mlog_out("midi_out_init : only first %d Midi-out are managed",MIDIOUT_MAX);
+	}
 	for(int nr_device = 0 ; nr_device < g_nb_midi_out ; nr_device ++)
 	{
 		std::string portName;
-		portName = g_ls_midiout_rt.getPortName(nr_device) ;
+		portName = ls_midiout_rt.getPortName(nr_device) ;
 		strcpy(g_name_midi_out[nr_device],portName.c_str());
 
 		// delete the index nr added at the end of the name by rtmidiout
@@ -2716,7 +2727,6 @@ static void midi_out_init()
 		}
 		mlog_out("Information : midiout#%d <%s> ", nr_device + 1, g_name_midi_out[nr_device]);
 	}
-	
 	for (int n = 0; n < MIDIIN_MAX; n++)
 	{
 		g_name_midi_in[n][0] = '\0';
@@ -2728,6 +2738,11 @@ static void midi_out_init()
 		strcpy(g_name_midi_in[g_nb_midi_in],info.name);
 		mlog_out("Information : midiin#%d <%s>", g_nb_midi_in + 1, g_name_midi_in[g_nb_midi_in]);
 		g_nb_midi_in++;
+		if ( g_nb_midi_in >= MIDIIN_MAX )
+		{
+			g_nb_midi_in = MIDIIN_MAX - 1 ;
+			mlog_out("midi_out_init : only first %d Midi-in are managed",MIDIIN_MAX);
+		}
 	}
 }
 static void midi_out_pre_open()
@@ -2959,7 +2974,7 @@ static void init_out(const char *fname, bool externalTimer , int timerDt)
 	channel_extended_init();
 	track_init();
 	curve_init();
-	if (!externalTimer)
+	if (!externalTimer) // external process protects conflicts with its own mutex
 		mutex_out_init();
 	timer_out_init(externalTimer, timerDt);
 	mixer_init();

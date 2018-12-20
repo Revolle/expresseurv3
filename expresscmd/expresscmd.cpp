@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
 	//          - luachord ( to play chords )
 	//        The lua-scriptstarts the lua-function onStart(parameters) :
 	fprintf(stderr,"basslua_open <%s> param=<%s>\n",fname, param);
-	bool retCode = basslua_open(fname, param, true, 0, NULL ,"expresscmd_log",false,20);
+	bool retCode = basslua_open(fname, param, true, 0, NULL ,"expresscmd_log",true/*external timer*/,20);
 	fprintf(stderr,"Return basslua_open =%s\n", retCode?"OK":"Error");
 
 	// print the usage of this command-line tool
@@ -85,11 +85,7 @@ int main(int argc, char* argv[])
 	while (true)
 	{
 		char *ret_fgets = fgets(line_read , 1000 , stdin );
-		if ( ret_fgets == NULL )
-		{
-			fprintf(stderr,"fgets return NULL\n");
-		}
-		else
+		if (( ret_fgets != NULL ) && (strlen(line_read) > 0))
 		{
 			line_read[strlen(line_read) - 1] = '\0' ;
 			// read user's command, and forward it to the LUA script through the basslua module
@@ -107,8 +103,11 @@ int main(int argc, char* argv[])
 				nb = 1;
 				while ((pt[nb] = strtok(NULL, " ")) != NULL) nb ++;
 				char *f[2];
+				f[0]=NULL;
+				f[1]=NULL;
 				f[0] = strtok(pt[0], ".");
-				f[1] = strtok(NULL, ".");
+				if ( f[0] != NULL)
+					f[1] = strtok(NULL, ".");
 				char module[256];
 				char function[256];
 				if (f[1] == NULL)

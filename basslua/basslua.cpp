@@ -135,7 +135,7 @@
 #endif
 
 
-static char pparam[512] = "";
+static char pparam[1024] = "";
 static char pfname[1024] = "";
 static long pdatefname = 0;
 
@@ -1640,27 +1640,6 @@ bool basslua_open(const char* fname, const char* param, bool reset, long datefna
 	//mlog_in("debug basslua_open OK : lua_loadfile <%s>",fname);
 
 
-/*
-    char bcur_path[512];
-	lua_getglobal( g_LUAstate, "package" );
-
-    lua_getfield( g_LUAstate, -1, "path" ); // get field "path" from table at top of stack (-1)
-    strcpy(bcur_path,lua_tostring( g_LUAstate, -1 ));// grab path string from top of stack
-    strcat(bcur_path,";./Expresseur.app/Contents/MacOS/?.lua");
-    lua_pop( g_LUAstate, 1 ); // get rid of the string on the stack we just pushed on line 5
-    lua_pushstring( g_LUAstate, bcur_path ); // push the new one
-    lua_setfield( g_LUAstate, -2, "path" ); // set the field "path" in table at -2 with value at top of stack
-    
-    lua_getfield( g_LUAstate, -1, "cpath" ); // get field "path" from table at top of stack (-1)
-    strcpy(bcur_path,lua_tostring( g_LUAstate, -1 ));// grab path string from top of stack
-    strcat(bcur_path,";./Expresseur.app/Contents/MacOS/?.so");
-    lua_pop( g_LUAstate, 1 ); // get rid of the string on the stack we just pushed on line 5
-    lua_pushstring( g_LUAstate, bcur_path ); // push the new one
-    lua_setfield( g_LUAstate, -2, "cpath" ); // set the field "path" in table at -2 with value at top of stack
-    
-    lua_pop( g_LUAstate, 1 ); // get rid of package table from top of stack
-*/
-
 	// require the "luabass" module for Midi-out
 	lua_getglobal(g_LUAstate, "require");
 	lua_pushstring(g_LUAstate, moduleLuabass);
@@ -1750,7 +1729,7 @@ bool basslua_open(const char* fname, const char* param, bool reset, long datefna
 	// mlog_in("debug basslua_open OK : %s %s",fname,sonStart);
 
 	// init the static variable of this dll
-	init_in(externalTimer, timerDt);
+	init_in(false /*externalTimer*/, timerDt);
 	// mlog_in("debug basslua_open OK : init");
 
 	// mlog_in("debug basslua_open(%s) ended succesfully", fname);
