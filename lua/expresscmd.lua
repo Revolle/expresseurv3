@@ -131,11 +131,11 @@ function dump(o)
    end
 end
 function chord(c)
-	print("try to compile chord(" ..c.. ")")
+	print("try to compile chord(" ..c.. ")" .. " mem="..collectgarbage("count"))
   local mChord = luachord.setChord(c)
-	print("chord compiled by luachord.setChord(" ..c.. ")")
+	print("chord compiled by luachord.setChord(" ..c.. ")" .. " mem="..collectgarbage("count"))
   local tpitch = luachord.getIndexPitches("chord",0,0)
-  print("chord contains chord(" .. c .. ") = "..table.concat(tpitch,","))
+  print("chord contains chord(" .. c .. ") = "..table.concat(tpitch,",") .. " mem="..collectgarbage("count"))
   local id = luabass.outChordSet(-1,0,0,30,1,-1,table.unpack(tpitch))
   if id > 0 then
     luabass.outChordOn(id,64)

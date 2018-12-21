@@ -56,10 +56,11 @@
 // POSIX
 #endif
 
-#if defined(V_PC) || defined(V_MAC)
+/*
+#if defined(V_PC)
 #define V_VST 1
 #endif
-
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
