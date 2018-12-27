@@ -134,15 +134,47 @@ function chord(c)
 	print("try to compile chord(" ..c.. ")" .. " mem="..collectgarbage("count"))
   local mChord = luachord.setChord(c)
 	print("chord compiled by luachord.setChord(" ..c.. ")" .. " mem="..collectgarbage("count"))
-  local tpitch = luachord.getIndexPitches("chord",0,0)
-  print("chord contains chord(" .. c .. ") = "..table.concat(tpitch,",") .. " mem="..collectgarbage("count"))
-  local id = luabass.outChordSet(-1,0,0,30,1,-1,table.unpack(tpitch))
-  if id > 0 then
-    luabass.outChordOn(id,64)
-    luabass.outChordOff(id,0,1000)
-  else
-    print("error setting chord #"..id)
+
+  local chordduration=1000
+  local pentaduration=300
+
+  local tpitchchord = luachord.getIndexPitches("chord",0,0)
+  local pitches = ""
+  local dpitches = ""
+  for k,v in pairs(tpitchchord) do
+    pitches = pitches .. dpitches .. luachord.pitchToString(v)
+    dpitches = ","
   end
+  print("chord(" .. c .. ") contains "..table.concat(tpitchchord,",") .. " = " .. pitches .. " mem="..collectgarbage("count"))
+ local idchord = luabass.outChordSet(-1,0,100,30,1,-1,table.unpack(tpitchchord))
+  if idchord > 0 then
+    luabass.outChordOn(idchord,64)
+    luabass.outChordOff(idchord,0,chordduration)
+  else
+    print("error setting chord #"..idchord)
+  end
+print ("penta scale")
+ local tpitchpenta = {}
+ for i = 1 , 6 do
+  local tpitch = luachord.getIndexPitches("penta",i-1,0)
+  tpitchpenta[i]=tpitch[1]
+ end
+ pitches = ""
+ dpitches = ""
+  for k,v in pairs(tpitchpenta) do
+    pitches = pitches .. dpitches .. luachord.pitchToString(v)
+    dpitches = ","
+  end
+  print("penta(" .. c .. ") contains "..table.concat(tpitchpenta,",") .. " = " .. pitches .. " mem="..collectgarbage("count"))
+ for k,v in pairs(tpitchpenta) do
+  local idpenta = luabass.outChordSet(-1,0,0,50,1,-1,v)
+  if idpenta > 0 then
+    luabass.outChordOn(idpenta,64, chordduration+pentaduration*k)
+    luabass.outChordOff(idpenta,0,chordduration+pentaduration*k+pentaduration)
+  else
+    print("error setting chord #"..idpenta)
+  end
+ end
 end
 
 function sound(wavfile)

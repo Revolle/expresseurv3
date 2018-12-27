@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
 	//          - luachord ( to play chords )
 	//        The lua-scriptstarts the lua-function onStart(parameters) :
 	fprintf(stderr,"basslua_open <%s> param=<%s>\n",fname, param);
-	bool retCode = basslua_open(fname, param, true, 0, NULL ,"expresscmd_log",true/*external timer*/,20);
+	bool retCode = basslua_open(fname, param, true, 0, NULL ,"expresscmd_log",false/*external timer*/,20);
 	fprintf(stderr,"Return code basslua_open =%s\n", retCode?"OK":"Error");
 
 	// print the usage of this command-line tool

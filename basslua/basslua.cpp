@@ -257,6 +257,7 @@ static pthread_t g_loop_in_run_thread ;
 static pthread_mutex_t g_mutex_in;
 #endif
 #ifdef V_LINUX
+static pthread_t g_loop_in_run_thread ;
 static timer_t g_timer_in_id;
 #define MTIMERSIGNALIN (SIGRTMIN+0)
 static pthread_mutex_t g_mutex_in;
@@ -368,6 +369,18 @@ static void lock_mutex_in()
 #endif
 #ifdef V_LINUX
   pthread_mutex_lock(&g_mutex_in);
+#endif
+}
+static bool try_lock_mutex_in()
+{
+#ifdef V_PC
+	return(WaitForSingleObject(g_mutex_in, 0 ) == WAIT_OBJECT_0);
+#endif
+#ifdef V_MAC
+  return (pthread_mutex_trylock(&g_mutex_in) == 0 );
+#endif
+#ifdef V_LINUX
+  return ( pthread_mutex_trylock(&g_mutex_in) == 0 );
 #endif
 }
 static void unlock_mutex_in()
@@ -1349,17 +1362,23 @@ static void process_in_timer()
 #ifdef V_PC
 VOID CALLBACK timer_in_callback(PVOID lpParam, BOOLEAN TimerOrWaitFired)
 {
-	lock_mutex_in();
-	process_in_timer();
-	unlock_mutex_in();
+	if ( try_lock_mutex_in())
+	{
+		process_in_timer();
+		unlock_mutex_in();
+	}	
+}
 }
 #endif
 #ifdef V_MAC
 void timer_in_callback(CFRunLoopTimerRef timer, void *info)
 {
-    lock_mutex_in();
-    process_in_timer();
-    unlock_mutex_in();
+	if ( try_lock_mutex_in())
+	{
+		process_in_timer();
+		unlock_mutex_in();
+	}	
+}
 }
 void *loop_in_run(void *void_ptr)
 {
@@ -1379,9 +1398,52 @@ void *loop_in_run(void *void_ptr)
 #ifdef V_LINUX
 static void timer_in_callback(int sig, siginfo_t *si, void *uc)
 {
-		lock_mutex_in();	
+	if ( try_lock_mutex_in())
+	{
 		process_in_timer();
 		unlock_mutex_in();
+	}	
+}
+void *loop_in_run(void *void_ptr)
+{
+	struct sigaction msigaction;
+    msigaction.sa_flags = SA_SIGINFO | SA_RESTART ;
+    msigaction.sa_sigaction = timer_in_callback;
+    sigemptyset(&(msigaction.sa_mask));
+    if (sigaction(MTIMERSIGNALIN, &msigaction, NULL) == -1)
+	{
+		mlog_in("timer_in_init : sigaction error=%d",errno);
+		g_timer_in_ok = false ;
+	}
+	else
+	{
+	 	struct sigevent msigevent;
+		msigevent.sigev_notify = SIGEV_SIGNAL;
+		msigevent.sigev_signo = MTIMERSIGNALIN;
+		msigevent.sigev_value.sival_ptr = &g_timer_in_id;
+		if (timer_create(CLOCK_REALTIME, &msigevent, &g_timer_in_id) == -1)
+		{
+			mlog_in("timer_in_init : timer_create error=%d",errno);
+		    g_timer_in_ok = false ;
+		}
+		else
+		{
+			 //mlog_in("debug timer_in_init : timer_create OK");
+	 		 struct itimerspec mitimerspec;
+			 mitimerspec.it_value.tv_sec =  g_timer_in_dt / 1000;
+			 mitimerspec.it_value.tv_nsec =  (g_timer_in_dt % 1000 )* 1000000;
+			 mitimerspec.it_interval.tv_sec = mitimerspec.it_value.tv_sec;
+			 mitimerspec.it_interval.tv_nsec = mitimerspec.it_value.tv_nsec;
+			 if (timer_settime(g_timer_in_id, 0, &mitimerspec, NULL) == -1)
+			 {
+				mlog_in("timer_in_init : timer_settime error=%d",errno);
+				g_timer_in_ok = false ;
+			 }
+			 else
+			 	mlog_in("Information : timer_in_init.timer_settime OK");
+	   }
+	}
+	return NULL ;
 }
 #endif
 static void timer_in_init(bool externalTimer , int timerDt)
@@ -1414,45 +1476,11 @@ static void timer_in_init(bool externalTimer , int timerDt)
 	}
 #endif
 #ifdef V_LINUX
-	 //return;
- 	 struct sigaction msigaction;
-   msigaction.sa_flags = SA_SIGINFO | SA_RESTART ;
-   msigaction.sa_sigaction = timer_in_callback;
-   sigemptyset(&(msigaction.sa_mask));
-   if (sigaction(MTIMERSIGNALIN, &msigaction, NULL) == -1)
-	 {
-			mlog_in("timer_in_init : sigaction error=%d",errno);
-		 g_timer_in_ok = false ;
-	 }
-	 else
-	 {
-		 //mlog_in("debug timer_in_init : sigaction OK");
-	 	 struct sigevent msigevent;
-		 msigevent.sigev_notify = SIGEV_SIGNAL;
-		 msigevent.sigev_signo = MTIMERSIGNALIN;
-		 msigevent.sigev_value.sival_ptr = &g_timer_in_id;
-		 if (timer_create(CLOCK_REALTIME, &msigevent, &g_timer_in_id) == -1)
-		 {
-		 		mlog_in("timer_in_init : timer_create error=%d",errno);
-			  g_timer_in_ok = false ;
-		 }
-		 else
-		 {
-		 	 //mlog_in("debug timer_in_init : timer_create OK");
-	 		 struct itimerspec mitimerspec;
-			 mitimerspec.it_value.tv_sec =  g_timer_in_dt / 1000;
-			 mitimerspec.it_value.tv_nsec =  (g_timer_in_dt % 1000 )* 1000000;
-			 mitimerspec.it_interval.tv_sec = mitimerspec.it_value.tv_sec;
-			 mitimerspec.it_interval.tv_nsec = mitimerspec.it_value.tv_nsec;
-			 if (timer_settime(g_timer_in_id, 0, &mitimerspec, NULL) == -1)
-			 {
-					mlog_in("timer_in_init : timer_settime error=%d",errno);
-				 g_timer_in_ok = false ;
-			 }
-			 //else
-			 	 //mlog_in("debug timer_in_init : timer_settime OK");
-	   }
-	 }
+	if ( pthread_create(&g_loop_in_run_thread, NULL, loop_in_run, NULL)) 
+	{
+		mlog_in("timer_in_init : pthread_create error");
+		g_timer_in_ok = false ;
+	}
 #endif
 }
 static void timer_in_free()
@@ -1468,6 +1496,7 @@ static void timer_in_free()
 #endif
 #ifdef V_LINUX
 	timer_delete(g_timer_in_id);
+	pthread_cancel(g_loop_in_run_thread);
 #endif
 }
 static void init_in(bool externalTimer , int timerDt)
@@ -1730,7 +1759,7 @@ bool basslua_open(const char* fname, const char* param, bool reset, long datefna
 	// mlog_in("debug basslua_open OK : %s %s",fname,sonStart);
 
 	// init the static variable of this dll
-	init_in(false /*externalTimer*/, timerDt);
+	init_in(externalTimer, timerDt);
 	// mlog_in("debug basslua_open OK : init");
 
 	// mlog_in("debug basslua_open(%s) ended succesfully", fname);
