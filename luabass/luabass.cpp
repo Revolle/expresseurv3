@@ -3390,7 +3390,8 @@ static int LoutChordOn(lua_State *L)
 			int v = (int)lua_tointeger(L, 2);
 			if (g_chordCompensation != 0)
 				v = ((200 - (g_chordCompensation * (chord->nbPitch - 1))) * v) / 200;
-			u.dt = (int)luaL_optinteger(L, 3, 0);
+			int initialdt = (int)luaL_optinteger(L, 3, 0); ;
+			u.dt = initialdt ;
 			u.track = cap((int)luaL_optinteger(L, 4, 1), 0, MAXTRACK, 1);
 			//mlog_out("chordon,  u.track %d \n", u.track);
 			if (u.track >= 0)
@@ -3423,7 +3424,7 @@ static int LoutChordOn(lua_State *L)
 					}
 					if (chord->dv == 0)
 						break;
-					u.dt = c * chord->dt;
+					u.dt = initialdt + c * chord->dt;
 					if (g_randomDelay != 0)
 						u.dt += (g_randomDelay * rand()) / RAND_MAX;
 					if (chord->dv != 64)

@@ -1379,7 +1379,6 @@ void timer_in_callback(CFRunLoopTimerRef timer, void *info)
 		unlock_mutex_in();
 	}	
 }
-}
 void *loop_in_run(void *void_ptr)
 {
 	int n;

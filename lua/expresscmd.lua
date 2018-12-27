@@ -28,7 +28,7 @@ function midiInIsValid(midiin_name)
   -- return -1 if the midiin is not valid for the GUI
   local s = string.lower(midiin_name)
   local valid = { "sd%-50 midi" }
-  local invalid = { "iac" , "loop" , "sd%-50" , "through" }
+  local invalid = { "iac" , "loop" , "sd%-50" , "through" , "bus" }
   for i,v in ipairs(valid) do
     if ( string.find(s,v ) ~= nil) then
       return true ;
@@ -136,14 +136,14 @@ function chord(c)
   local mChord = luachord.setChord(c)
 	print("chord compiled by luachord.setChord(" ..c.. ") " )
 
-  local bassduration=300
+  local bassduration=900
   local chordduration=900
   local pentaduration=300
 
   local pitchbass = luachord.getIndexPitches("bass",1,0)
   local pitches = luachord.pitchToString(pitchbass[1])
   print("bass(" .. c .. ") is ".. pitchbass[1] .. " = " .. pitches )
-  local idbass = luabass.outChordSet(-1,0,100,50,1,-1,pitchbass[1])
+  local idbass = luabass.outChordSet(-1,12,100,50,1,-1,pitchbass[1])
   if idbass > 0 then
     luabass.outChordOn(idbass,64)
     luabass.outChordOff(idbass,0,bassduration)
@@ -159,7 +159,7 @@ function chord(c)
     dpitches = ","
   end
   print("chord(" .. c .. ") contains "..table.concat(tpitchchord,",") .. " = " .. pitches )
-  local idchord = luabass.outChordSet(-1,0,100,30,1,-1,table.unpack(tpitchchord))
+  local idchord = luabass.outChordSet(-1,0,0,30,1,-1,table.unpack(tpitchchord))
   if idchord > 0 then
     luabass.outChordOn(idchord,64,bassduration)
     luabass.outChordOff(idchord,0,chordduration+bassduration)
@@ -188,6 +188,7 @@ function chord(c)
     print("error setting chord #"..idpenta)
   end
  end
+ 
 end
 
 function sound(wavfile)
