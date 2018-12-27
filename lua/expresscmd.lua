@@ -130,30 +130,43 @@ function dump(o)
       return tostring(o)
    end
 end
+
 function chord(c)
 	print("try to compile chord(" ..c.. ")" .. " mem="..collectgarbage("count"))
   local mChord = luachord.setChord(c)
-	print("chord compiled by luachord.setChord(" ..c.. ")" .. " mem="..collectgarbage("count"))
+	print("chord compiled by luachord.setChord(" ..c.. ") " )
 
-  local chordduration=1000
+  local bassduration=300
+  local chordduration=900
   local pentaduration=300
 
+  local pitchbass = luachord.getIndexPitches("bass",1,0)
+  local pitches = luachord.pitchToString(pitchbass[1])
+  print("bass(" .. c .. ") is ".. pitchbass[1] .. " = " .. pitches )
+  local idbass = luabass.outChordSet(-1,0,100,50,1,-1,pitchbass[1])
+  if idbass > 0 then
+    luabass.outChordOn(idbass,64)
+    luabass.outChordOff(idbass,0,bassduration)
+  else
+    print("error setting bass #"..idbass)
+  end
+
   local tpitchchord = luachord.getIndexPitches("chord",0,0)
-  local pitches = ""
+  pitches = ""
   local dpitches = ""
   for k,v in pairs(tpitchchord) do
     pitches = pitches .. dpitches .. luachord.pitchToString(v)
     dpitches = ","
   end
-  print("chord(" .. c .. ") contains "..table.concat(tpitchchord,",") .. " = " .. pitches .. " mem="..collectgarbage("count"))
- local idchord = luabass.outChordSet(-1,0,100,30,1,-1,table.unpack(tpitchchord))
+  print("chord(" .. c .. ") contains "..table.concat(tpitchchord,",") .. " = " .. pitches )
+  local idchord = luabass.outChordSet(-1,0,100,30,1,-1,table.unpack(tpitchchord))
   if idchord > 0 then
-    luabass.outChordOn(idchord,64)
-    luabass.outChordOff(idchord,0,chordduration)
+    luabass.outChordOn(idchord,64,bassduration)
+    luabass.outChordOff(idchord,0,chordduration+bassduration)
   else
     print("error setting chord #"..idchord)
   end
-print ("penta scale")
+
  local tpitchpenta = {}
  for i = 1 , 6 do
   local tpitch = luachord.getIndexPitches("penta",i-1,0)
@@ -165,12 +178,12 @@ print ("penta scale")
     pitches = pitches .. dpitches .. luachord.pitchToString(v)
     dpitches = ","
   end
-  print("penta(" .. c .. ") contains "..table.concat(tpitchpenta,",") .. " = " .. pitches .. " mem="..collectgarbage("count"))
+  print("penta(" .. c .. ") contains "..table.concat(tpitchpenta,",") .. " = " .. pitches )
  for k,v in pairs(tpitchpenta) do
   local idpenta = luabass.outChordSet(-1,0,0,50,1,-1,v)
   if idpenta > 0 then
-    luabass.outChordOn(idpenta,64, chordduration+pentaduration*k)
-    luabass.outChordOff(idpenta,0,chordduration+pentaduration*k+pentaduration)
+    luabass.outChordOn(idpenta,64, bassduration+chordduration+pentaduration*k)
+    luabass.outChordOff(idpenta,0, bassduration+chordduration+pentaduration*k+pentaduration)
   else
     print("error setting chord #"..idpenta)
   end
