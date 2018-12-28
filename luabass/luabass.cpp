@@ -4219,9 +4219,11 @@ static int Linit(lua_State *L)
 static int LexternalTimer(lua_State *L)
 {
 	// external timer.
-	lock_mutex_out();
-	process_timer_out();
-	unlock_mutex_out();
+	if ( try_lock_mutex_out())
+	{
+		process_timer_out();
+		unlock_mutex_out();
+	}
 	return (0);
 }
 static int Lfree(lua_State *L)

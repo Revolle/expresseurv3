@@ -1623,9 +1623,11 @@ bool basslua_openMidiIn(int *nrDevices, int nbDevices)
 
 void basslua_external_timer()
 {
-	lock_mutex_in();	
-	process_in_timer();
-	unlock_mutex_in();
+	if ( try_lock_mutex_in())
+	{
+		process_in_timer();
+		unlock_mutex_in();
+	}	
 }
 
 /**
