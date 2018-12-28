@@ -1927,7 +1927,8 @@ void Expresseur::settingOpen()
 	}
 	if (!comment.IsEmpty())
 	{
-		if (wxMessageBox(comment, settingName.GetName()) != wxID_OK)
+		int retcode = wxMessageBox(comment, settingName.GetName(), wxCANCEL | wxOK );
+		if (retcode != wxOK)
 		{
 			tfile.Close();
 			return;

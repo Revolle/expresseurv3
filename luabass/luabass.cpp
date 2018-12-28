@@ -463,7 +463,7 @@ static void lock_mutex_out()
 static bool try_lock_mutex_out()
 {
 	if ( ! g_mutex_out_ok )
-		return false;
+		return true;
 #ifdef V_PC
 	return(WaitForSingleObject(g_mutex_out, 0 ) == WAIT_OBJECT_0);
 #endif
@@ -3006,8 +3006,8 @@ static void init_out(const char *fname, bool externalTimer , int timerDt)
 	channel_extended_init();
 	track_init();
 	curve_init();
-	if (!externalTimer) // external process protects conflicts with its own mutex
-		mutex_out_init();
+	//if (!externalTimer) // external process protects conflicts with its own mutex
+	mutex_out_init();
 	timer_out_init(externalTimer, timerDt);
 	mixer_init();
 	g_LUAoutState = NULL;

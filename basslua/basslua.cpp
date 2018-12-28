@@ -1368,7 +1368,6 @@ VOID CALLBACK timer_in_callback(PVOID lpParam, BOOLEAN TimerOrWaitFired)
 		unlock_mutex_in();
 	}	
 }
-}
 #endif
 #ifdef V_MAC
 void timer_in_callback(CFRunLoopTimerRef timer, void *info)
