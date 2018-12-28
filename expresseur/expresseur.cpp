@@ -300,7 +300,7 @@ bool MyApp::OnInit()
 	wxInitAllImageHandlers();
 
     // Create the main frame window
-	frame = new Expresseur(NULL, wxID_ANY, APP_NAME, wxPoint(0, 0), wxSize(500, 400), wxDEFAULT_FRAME_STYLE);
+	frame = new Expresseur(NULL, wxID_ANY, APP_NAME, wxPoint(0, 0), wxSize(500, 400), wxMINIMIZE_BOX | wxRESIZE_BORDER | wxSYSTEM_MENU | wxCAPTION | wxCLOSE_BOX | wxCLIP_CHILDREN);
 
 	// Give it an icon (this is ignored in MDI mode: uses resources)
 #ifdef RUN_WIN
@@ -736,10 +736,10 @@ void Expresseur::postInit()
 	//preClose();
 	
 	// resize the main frame
-	bool tobeMaximized = false;
+	//bool tobeMaximized = false;
 	sizeFrame.SetWidth(mConf->get(CONFIG_MAINWIDTH, 1010) );
 	sizeFrame.SetHeight(mConf->get(CONFIG_MAINHEIGHT, 780) );
-	tobeMaximized = mConf->get(CONFIG_MAINMAXIMIZED, false);
+	//tobeMaximized = mConf->get(CONFIG_MAINMAXIMIZED, false);
 	if (sizeFrame.GetWidth() < 600)
 		sizeFrame.SetWidth(600);
 	if (sizeFrame.GetHeight() < 400)
@@ -749,10 +749,11 @@ void Expresseur::postInit()
 	sizeToSet.SetHeight(sizeFrame.GetHeight() - mConf->get(CONFIG_MAINDELTAHEIGHT, 0));
 	frame->SetSize(sizeToSet);
 	
-	if (tobeMaximized)
-		frame->Maximize(true);
-	else
-		frame->CenterOnScreen();
+	//if (tobeMaximized)
+	//	frame->Maximize(true);
+	//else
+	frame->Maximize(false);
+	frame->CenterOnScreen();
 	frame->Show(true);
 
 	// check if it the first use ( for intialization, wizard, .. )
