@@ -151,8 +151,12 @@ void midishortcut::savePos()
 }
 void midishortcut::close()
 {
+#ifdef RUN_MAC
+	EndModal(wxOK);
+#else
 	if ( IsModal() )
 		EndModal(wxOK);
+#endif
 }
 void midishortcut::OnClose(wxCloseEvent& event)
 {
