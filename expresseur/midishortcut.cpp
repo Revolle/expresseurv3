@@ -151,6 +151,7 @@ void midishortcut::savePos()
 }
 void midishortcut::close()
 {
+	EndModal(wxOK);
 }
 void midishortcut::OnClose(wxCloseEvent& event)
 {
