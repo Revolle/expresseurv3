@@ -1886,7 +1886,7 @@ static bool processPostMidiOut(T_midioutmsg midioutmsg)
 				break;
 			case 'C':
 			case 'c':
-				if (strlen(stype) > 6)
+				if (strlen(stype) > 7)
 				{
 					midioutpostmsg.midimsg.bData[0] = (L_MIDI_CHANNELPRESSURE << 4);
 				}
