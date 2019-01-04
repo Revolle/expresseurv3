@@ -2213,8 +2213,14 @@ void Expresseur::CreateExpresseurV3()
 			file1 = ffile1.GetFullPath();
 			ffile2.SetPath(mxconf::getResourceDir());
 			file2 = ffile2.GetFullPath();
+			wxString ext = ffile1.GetExt();
+			ext.MakeLower();
+			bool tocopy = true;
+			if ((ext == "sf2") && (ffile2.FileExists()) && (ffile1.GetSize() == ffile2.GetSize()))
+					tocopy = false;
 			//wxMessageBox(file1 + " to " + file2 , "copy ressource");
-			wxCopyFile(file1, file2);
+			if (tocopy)
+				wxCopyFile(file1, file2);
 			cont = dirRessources.GetNext(&file1);
 		}
 	}
