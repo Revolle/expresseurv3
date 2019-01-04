@@ -1439,7 +1439,7 @@ void Expresseur::ornamentAdd(bool absolute)
 		return;
 	int absolute_measure_nr, measure_nr, repeatNr , beat, t;
 	bool ret = ((musicxmlscore *)(mViewerscore))->getScorePosition(&absolute_measure_nr, &measure_nr, &repeatNr , &beat, &t);
-	if (!ret)
+	if (ret)
 		return;
 	wxArrayString list_ornament = musicxmlcompile::getListOrnament();
 	wxString ornament = wxGetSingleChoice("Select ornament", "Add ornament", list_ornament, this);
@@ -2161,11 +2161,6 @@ void Expresseur::CreateExpresseurV3()
 	// get the user directory in its documents folder
 	wxFileName fname;
 	fname.AssignDir(mxconf::getResourceDir());
-
-	fname.SetFullName("default_setting.txt");
-	if (fname.FileExists())
-		return;
-	
 	fname.Mkdir(wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
 
 	// copy examples from example-folder in documents/expresseurV3-folder

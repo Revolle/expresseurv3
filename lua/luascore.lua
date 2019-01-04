@@ -225,7 +225,6 @@ function nextGroupEvent()
   --    end of events
   --    start of a measure
   --    start of a part
-  luabass.logmsg("nextGroupEvent start c_nrEvent_noteOn="..c_nrEvent_noteOn.."/nb_events="..nb_events)
   c_nrEvent_noteOn = c_nrEvent_noteOn + 1
   if c_nrEvent_noteOn < 1 then
     c_nrEvent_noteOn = 1
@@ -233,21 +232,16 @@ function nextGroupEvent()
   if c_nrEvent_noteOn > nb_events then
     c_nrEvent_noteOn = nb_events
   end
-  luabass.logmsg("nextGroupEvent step1 c_nrEvent_noteOn="..c_nrEvent_noteOn.."/nb_events="..nb_events)
   while ( c_nrEvent_noteOn < nb_events ) and  (#(score.events[c_nrEvent_noteOn][eStarts]) ==  0 ) 
   do
     c_nrEvent_noteOn = c_nrEvent_noteOn + 1
   end
-  luabass.logmsg("nextGroupEvent step2 c_nrEvent_noteOn="..c_nrEvent_noteOn.."/nb_events="..nb_events)
   end_score =  ( c_nrEvent_noteOn >= nb_events  ) 
   local t = score.events[c_nrEvent_noteOn]
   if t == nil then 
 	end_score= true
-    luabass.logmsg("nextGroupEvent nil c_nrEvent_noteOn="..c_nrEvent_noteOn.."/nb_events="..nb_events)
 	return 
   end
-  luabass.logmsg("nextGroupEvent end c_nrEvent_noteOn="..c_nrEvent_noteOn.."/nb_events="..nb_events)
-
   new_measure = ( t[eMeasureNr] ~= c_measureNr )
   new_part = ( t[ePartNr]  ~= c_partNr )
   c_measureNr = t[eMeasureNr] 

@@ -1632,9 +1632,12 @@ void musicxmlcompile::readMarks(bool full)
 	for (int line_nr = 0; line_nr < line_nb; line_nr++)
 	{
 		line = f.GetLine(line_nr);
+		int posComment = line.Find(COMMENT_EXPRESSEUR);
+		if (posComment != wxNOT_FOUND)
+			line.Truncate(posComment);
 		wxString s = line.Upper().Trim();
 		// ret_code = true;
-		if ((s.IsEmpty() == false ) && (s.StartsWith(COMMENT_EXPRESSEUR) == false))
+		if (s.IsEmpty() == false )
 		{
 			if (s.StartsWith(SET_MUSICXML_FILE))
 			{
@@ -4125,31 +4128,31 @@ wxArrayString  musicxmlcompile::getListOrnament()
 		wxString s = ornamentName[i];
 		switch (i)
 		{
-		case o_dynamic: s = s + "=128 full range , 0 for no dynamic"; break;
-		case o_random_delay: s = s + "=t in ms"; break;
-		case o_pedal_bar: s = s + "/ 64 by default, =value to add a pedal on each bar ( 0=none, 127=full)"; break;
-		case o_pedal: s = s + "/ 64 by default, =value to add a pedal(127=full)"; break;
-		case o_lua: s = s + "=special commands like tuning, scale, ..."; break;
-		case o_text: s = s + "=my text"; break;
-		case o_pianissimo: break ;
-		case o_piano: break ;
-		case o_mesopiano: break ;
-		case o_mesoforte: break ;
-		case o_forte: break ;
-		case o_fortissimo: break ;
-		case o_crescendo: break ;
-		case o_diminuendo: break ;
-		case o_tenuto: break ;
-		case o_staccato: s = s + " / 1/2 by default, or =3/4 or 1/3 or 2/3 or display"; break;
-		case o_accent: s = s + " / 20  by defaut, or =+-value to add velocity ( max = 127 )"; break;
-		case o_grace: s = s + " / up by defaut, or =inverted or=list of pitches like C4/E4,G4"; break;
-		case o_mordent: s = s + " / normal by defaut, or =inverted";  break;
-		case o_turn: s = s + " / normal by defaut, or =inverted";  break;
-		case o_btrill: s = s + " / 2 by defaut, or =nb trills";  break;
-		case o_trill: s = s + " / 2 by defaut, or =nb trills";  break;
-		case o_arpeggiate: s = s + " / up by defaut, or =down";  break;
-		case o_transpose: s = s + "=+/-half-tone"; break;
-		case o_delay: s = s + "=t in ms"; break;
+		case o_dynamic: s = s + "=127 -- (=0 .. =127)"; break;
+		case o_random_delay: s = s + "=50 -- in ms"; break;
+		case o_pedal_bar: s = s + "=64 -- add a pedal on each bar (=0 .. =127)"; break;
+		case o_pedal: s = s + "=64 -- add a pedal (=0 .. =127)"; break;
+		case o_lua: s = s + "=chord G7 -- =instrument piano(P1) =tune 415 =bendrange 2 =gm 2 =scale just G =scale arabian ..."; break;
+		case o_text: s = s + "=remark -- text added in Expresseur part"; break;
+		case o_pianissimo: s = s + " -- pianissimo on part(s)"; break;
+		case o_piano:  s = s + " -- pianio on part(s)"; break ;
+		case o_mesopiano: s = s + " -- mesopiano on part(s)";  break ;
+		case o_mesoforte: s = s + " -- mesoforte on part(s)";  break ;
+		case o_forte: s = s + " -- forte on part(s)";  break ;
+		case o_fortissimo: s = s + " -- fortissimo on part(s)";  break ;
+		case o_crescendo: s = s + " -- creschendo between two nuances";  break ;
+		case o_diminuendo: s = s + " -- diminuendo between two nuances";  break ;
+		case o_tenuto: s = s + " -- tenuto up to the next note";  break ;
+		case o_staccato: s = s + "=1/2 -- (=1/2, =3/4, =1/3, =2/3, =display)"; break;
+		case o_accent: s = s + "=20 --  (=-127 .. =127)"; break;
+		case o_grace: s = s + "=up -- (=up, =inverted, list of pitches like =C4/E4,G4)"; break;
+		case o_mordent: s = s + "=normal -- (=normal, =inverted)";  break;
+		case o_turn: s = s + "=normal -- (=normal, =inverted)";  break;
+		case o_btrill: s = s + "=2 -- =nb bemol trills";  break;
+		case o_trill: s = s + " =2 -- =nb trills";  break;
+		case o_arpeggiate: s = s + "=up -- (=up , =down)";  break;
+		case o_transpose: s = s + "=0 -- (=-24 .. =24 half-tone)"; break;
+		case o_delay: s = s + "=100 -- in ms"; break;
 		case o_before:  s.Empty() ;break ;
 		case o_after:  s.Empty() ;break ;
 		case o_flagend : s.Empty() ;break ;
