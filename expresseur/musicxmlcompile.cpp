@@ -2903,7 +2903,7 @@ void musicxmlcompile::compileMusicxmlevents(bool second_time)
 				for (iter_musicxmlevent_visible = lmusicxmlevents_visible.begin() ; iter_musicxmlevent_visible != lmusicxmlevents_visible.end(); iter_musicxmlevent_visible++  )
 				{
 					c_musicxmlevent *current_musicxmlevent_visible = *iter_musicxmlevent_visible;
-					current_musicxmlevent_visible->nb_ornaments = nb_order_start_blind;
+					current_musicxmlevent_visible->nb_ornaments = nb_order_start_blind - 1;
 				}
 				nb_order_start_blind = 0;
 				lmusicxmlevents_visible.DeleteContents(false);
@@ -2912,16 +2912,16 @@ void musicxmlcompile::compileMusicxmlevents(bool second_time)
 			prev_start_t = current_musicxmlevent->start_t;
 			prev_start_measureNr = current_musicxmlevent->start_measureNr;
 		}
-		if (current_musicxmlevent->visible)
-			lmusicxmlevents_visible.Append(current_musicxmlevent);
-		else
+		//if (current_musicxmlevent->visible)
+		lmusicxmlevents_visible.Append(current_musicxmlevent);
+		//else
+		//{
+		if (current_musicxmlevent->starts.GetCount() > 0)
 		{
-			if (current_musicxmlevent->starts.GetCount() > 0)
-			{
-				nb_order_start_blind++;
-				current_musicxmlevent->nr_ornament = nb_order_start_blind;
-			}
+			current_musicxmlevent->nr_ornament = nb_order_start_blind;
+			nb_order_start_blind++;
 		}
+		//}
 	}
 }
 void musicxmlcompile::removeExpresseurPart()
@@ -3948,7 +3948,6 @@ void musicxmlcompile::calculateDuration(int duration, int division_quarter, bool
 }
 bool musicxmlcompile::getPosEvent(int nrEvent, int *pageNr, wxRect *rect , bool *turn , int *nr_ornament )
 {
-	static int nbOrnaments = -1 ;
 	*nr_ornament = -1; 
 	if ((nrEvent < 0) || (nrEvent >= nbEvents))
 	{
@@ -3969,18 +3968,7 @@ bool musicxmlcompile::getPosEvent(int nrEvent, int *pageNr, wxRect *rect , bool 
 	*turn = m->turnPage;
 	if (m->nb_ornaments > 0)
 	{
-		nbOrnaments = m->nb_ornaments;
-		*nr_ornament = nbOrnaments;
-	}
-	else
-	{
-		if (m->nr_ornament > 0)
-			*nr_ornament = nbOrnaments - m->nr_ornament;
-		else
-		{
-			*nr_ornament = -1 ;
-			nbOrnaments = -1 ;
-		}
+		*nr_ornament = m->nb_ornaments - m->nr_ornament;
 	}
 	return (m->pageNr > 0);
 }
