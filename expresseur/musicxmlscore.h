@@ -79,17 +79,19 @@ private:
 	int nbPaint = 0 ;
 	int nbSetPosition = 0 ;
 	
-	wxMemoryDC *currentDC ;
 	wxSize sizePage;
 	wxRect buttonPage;
 	wxRect prevRectPos;
+	bool prevNrOrnament = false ;
 	int currentPageNr = 0 ;
 	int currentPageNrPartial = -1 ;
 	bool currentTurnPage = true ;
 
-	bool setCursor(wxDC& dc , int nrEvent,bool red);
+	void setCursor(wxDC& dc , int nrEvent,bool playing);
 	bool readPos();
-	bool setPage(int pos , wxRect *rectPos);
+	bool setPage(wxDC& dc, int pos, wxRect *rectPos , bool playing ); //, wxBitmap **bitmapCursor);
+
+	int prev_absolute_measure_nr = NULL_INT;
 
 	void crc_init();
 	wxULongLong crc_cumulate_file(wxString fname);

@@ -1377,7 +1377,10 @@ c_note::c_note(wxXmlNode *xmlnode) : c_default_xy(xmlnode)
 		else if (name == "stem")
 			stem = child->GetNodeContent();
 		else if (name == "notehead")
+		{
 			notehead = child->GetNodeContent();
+			notecolor = GetStringAttribute(child,"color");
+		}
 		else if (name == "accidental")
 			accidental = child->GetNodeContent();
 		else if (name == "staff")
@@ -1441,6 +1444,7 @@ c_note::c_note(const c_note & note) : c_default_xy(note)
 	mtype = note.mtype;
 	stem = note.stem;
 	notehead = note.notehead;
+	notecolor = note.notecolor;
 	accidental = note.accidental;
 	staff = note.staff;
 	chord = note.chord;
@@ -1486,7 +1490,12 @@ void c_note::write(wxFFile *f)
 	if (stem != NULL_STRING)
 		f->Write(wxString::Format("<stem>%s</stem>\n", stem));
 	if (notehead != NULL_STRING)
-		f->Write(wxString::Format("<notehead>%s</notehead>\n", notehead));
+	{
+		if ( notecolor == NULL_STRING)
+			f->Write(wxString::Format("<notehead>%s</notehead>\n", notehead));
+		else
+			f->Write(wxString::Format("<notehead color=\"%s\">%s</notehead>\n", notecolor, notehead));
+	}
 	if (staff != NULL_INT)
 		f->Write(wxString::Format("<staff>%d</staff>\n", staff));
 	l_beam::iterator iter_beam;

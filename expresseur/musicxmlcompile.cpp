@@ -52,6 +52,7 @@ WX_DEFINE_LIST(l_arpeggiate_toapply);
 WX_DEFINE_LIST(l_pedal_bar_toapply);
 WX_DEFINE_LIST(l_eventPlayback);
 
+int c_musicxmlevent::guid = 0 ; // generator uid
 
 enum ornamentType
 {
@@ -2693,6 +2694,7 @@ void musicxmlcompile::compileMusicxmlevents(bool second_time)
 		last_musicxmlevent->stop_measureNr = last_musicxmlevent->start_measureNr;
 		last_musicxmlevent->start_t = 0;
 		last_musicxmlevent->stop_t = 0;
+		last_musicxmlevent->end_score = true;
 		lMusicxmlevents.Append(last_musicxmlevent);
 	}
 
@@ -2895,7 +2897,7 @@ void musicxmlcompile::compileMusicxmlevents(bool second_time)
 			if (lmusicxmlevents_visible.GetCount() > 0)
 			{
 				l_musicxmlevent::iterator iter_musicxmlevent_visible;
-				for (iter_musicxmlevent_visible = lmusicxmlevents_visible.begin(); iter_musicxmlevent_visible != lmusicxmlevents_visible.end(); iter_musicxmlevent_visible++)
+				for (iter_musicxmlevent_visible = lmusicxmlevents_visible.begin() ; iter_musicxmlevent_visible != lmusicxmlevents_visible.end(); iter_musicxmlevent_visible++  )
 				{
 					c_musicxmlevent *current_musicxmlevent_visible = *iter_musicxmlevent_visible;
 					current_musicxmlevent_visible->nb_ornaments = nb_order_start_blind;
@@ -2912,7 +2914,10 @@ void musicxmlcompile::compileMusicxmlevents(bool second_time)
 		else
 		{
 			if (current_musicxmlevent->starts.GetCount() > 0)
+			{
 				nb_order_start_blind++;
+				current_musicxmlevent->nr_ornament = nb_order_start_blind;
+			}
 		}
 	}
 }
@@ -3278,7 +3283,7 @@ void musicxmlcompile::compileScore()
 					current_t += current_forward->duration;
 				}
 					break;
-				case t_barline:
+				case t_barline: 
 					break;
 				case t_direction:
 					break;
@@ -3938,8 +3943,10 @@ void musicxmlcompile::calculateDuration(int duration, int division_quarter, bool
 	*durationDone = duration;
 	*typeNote = "";
 }
-bool musicxmlcompile::getPosEvent(int nrEvent, int *pageNr, wxRect *rect , bool *turn)
+bool musicxmlcompile::getPosEvent(int nrEvent, int *pageNr, wxRect *rect , bool *turn , int *nr_ornament )
 {
+	static int nbOrnaments = -1 ;
+	*nr_ornament = -1; 
 	if ((nrEvent < 0) || (nrEvent >= nbEvents))
 	{
 		*pageNr = 0 ;
@@ -3957,9 +3964,24 @@ bool musicxmlcompile::getPosEvent(int nrEvent, int *pageNr, wxRect *rect , bool 
 	rect->width = m->rect.width;
 	rect->height = m->rect.height;
 	*turn = m->turnPage;
-	return (*pageNr > 0);
+	if (m->nb_ornaments > 0)
+	{
+		nbOrnaments = m->nb_ornaments;
+		*nr_ornament = nbOrnaments;
+	}
+	else
+	{
+		if (m->nr_ornament > 0)
+			*nr_ornament = nbOrnaments - m->nr_ornament;
+		else
+		{
+			*nr_ornament = -1 ;
+			nbOrnaments = -1 ;
+		}
+	}
+	return (m->pageNr > 0);
 }
-void musicxmlcompile::setPosEvent(int nrMeasure, int t480, int pageNr, wxRect rect)
+void musicxmlcompile::setPosEvent(int nrMeasure, int t480, int pageNr, wxRect rect ) //, wxBitmap *mbitmap)
 {
 	l_musicxmlevent::iterator iter_musicxmlevent;
 	for (iter_musicxmlevent = lMusicxmlevents.begin(); iter_musicxmlevent != lMusicxmlevents.end(); iter_musicxmlevent++)
@@ -3971,6 +3993,12 @@ void musicxmlcompile::setPosEvent(int nrMeasure, int t480, int pageNr, wxRect re
 			{
 				musicxmlevent->pageNr = pageNr;
 				musicxmlevent->rect = rect;
+				/*
+				if (( mbitmap != NULL) && (mbitmap->IsOk()))
+					musicxmlevent->mbitmap = mbitmap;
+				else
+					musicxmlevent->mbitmap = NULL;
+				*/
 			}
 		}
 		if (musicxmlevent->start_measureNr > nrMeasure)
@@ -4066,17 +4094,28 @@ int musicxmlcompile::stringToEventNr(wxString s)
 	}
 	return -1;
 }
-bool musicxmlcompile::getScorePosition(int nrEvent , int *absolute_measure_nr, int *measure_nr, int *repeat , int *beat, int *t)
+bool musicxmlcompile::getScorePosition(int nrEvent , int *absolute_measure_nr, int *measure_nr, int *repeat , int *beat, int *t , int *uid)
 {
 	if ((nrEvent < 0) || (nrEvent >= nbEvents))
-		return false;
+	{
+		*absolute_measure_nr = 0;
+		*measure_nr = 0;
+		*repeat = 0;
+		*beat = 0;
+		*t = 0;
+		*uid = -1;
+		return true;
+	}
 	c_musicxmlevent *m = lMusicxmlevents[nrEvent];
 	*absolute_measure_nr = m->start_measureNr;
 	*measure_nr = m->original_measureNr;
 	*repeat = m->repeat ;
 	*beat = m->start_t / m->division_beat;
 	*t = m->start_t % m->division_beat  ;
-	return true;
+	*uid = m->uid;
+	if (m->end_score)
+		return true;
+	return false ;
 }
 wxArrayString  musicxmlcompile::getListOrnament()
 {

@@ -325,10 +325,10 @@ bool MyApp::OnInit()
 Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const wxPoint& pos,const wxSize& size,long style)
  :wxFrame(parent, id, title, pos, size, style)
 {
-#if wxUSE_STATUSBAR
     // Give it a status line
-	CreateStatusBar(2);
-#endif
+	wxStatusBar *mStatusBar = CreateStatusBar(3);
+	int proportionStatusBar[3] = { -10,-10,-1 };
+	mStatusBar->SetStatusWidths(3, proportionStatusBar);
 
 	// configuration object ( with memory of all parameters
 	mConf = new mxconf();
@@ -904,36 +904,9 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 
 		int nrEvent, playing;
 		basslua_call(moduleScore, functionScoreGetPosition, ">ii", &nrEvent, &playing);
-		mViewerscore->setPosition(nrEvent - 1, (playing>0));
-
-		int absolute_measure_nr, measure_nr, repeat , beat, t ;
-		bool retPos = ((musicxmlscore *)(mViewerscore))->getScorePosition(&absolute_measure_nr, &measure_nr, &repeat , &beat, &t) ;
-		if ( retPos && ( absolute_measure_nr != prev_absolute_measure_nr ))
-		{
-			prev_absolute_measure_nr = absolute_measure_nr ;
-			wxString spos ;
-			switch ( repeat )
-			{
-			case -1 :
-			case NULL_INT :
-				break ;
-			case 0 :
-				spos.Printf(_("Expresseur measure %d / Score measure %d"), absolute_measure_nr, measure_nr);
-				break ;
-			case 1 :
-				spos.Printf(_("Expresseur measure %d / Score measure %d (2nd time)"), absolute_measure_nr, measure_nr);
-				break ;
-			case 2 :
-				spos.Printf(_("Expresseur measure %d / Score measure %d (3rd time)"), absolute_measure_nr, measure_nr );
-				break ;
-			default :
-				spos.Printf(_("Expresseur measure %d / Score measure %d (%dth time)"), absolute_measure_nr, measure_nr , repeat + 1);
-				break ;
-			}
-			SetStatusText(spos, 0);
-		}
-		break;
+		mViewerscore->setPosition(nrEvent - 1, (playing>0) );
 	}
+	break;
 	default:
 		break;
 	}
@@ -945,6 +918,7 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 		if (mLog && (mLog->IsVisible()))
 			mLog->scanLog(); // updates any log from LUA to the window of this GUI
 		endCalledBack = 10000;
+		/*
 		switch (type_msg)
 		{
 		case NOTEON:
@@ -977,6 +951,7 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 				SetStatusText("midi msg", 1);
 			break;
 		}
+		*/
 	}
 	if (endCalledBack)
 	{

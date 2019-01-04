@@ -551,6 +551,7 @@ public:
 	wxString stem = NULL_STRING ;
 	wxString accidental = NULL_STRING;
 	wxString notehead = NULL_STRING;
+	wxString notecolor = NULL_STRING;
 	int staff = NULL_INT ;
 	int partNr = 0;
 	bool chord = false;

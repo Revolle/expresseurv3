@@ -101,9 +101,16 @@ WX_DECLARE_LIST(c_ornament, l_ornament);
 class c_musicxmlevent
 {
 public:
-	c_musicxmlevent() {}
+	static int guid; // generator uid
+	c_musicxmlevent()
+	{
+		uid = guid;
+		guid++;
+	}
 	c_musicxmlevent(const c_musicxmlevent &musicxmlevent)
 	{
+		uid = guid;
+		guid++;
 		partNr = musicxmlevent.partNr;
 		staffNr = musicxmlevent.staffNr;
 		voice = musicxmlevent.voice;
@@ -126,6 +133,8 @@ public:
 	}
 	c_musicxmlevent(int ipartNr, int istaffNr, int ivoice, int istart_measureNr, int ioriginal_measureNr, int istart_t, int istop_measureNr, int istop_t, int ipitch, int idivision_measure, int idivision_beat, int idivision_quarter, int irepeat, int iorder, int ififths)
 	{
+		uid = guid;
+		guid ++;
 		partNr = ipartNr;
 		staffNr = istaffNr;
 		voice = ivoice;
@@ -144,6 +153,8 @@ public:
 		fifths = ififths;
 	}
 	int nr = 0; // index sorted
+	int uid; // technial unique id
+
 	int partNr = 0;
 	int staffNr = 0;
 	int original_measureNr = 1;
@@ -188,6 +199,7 @@ public:
 	wxString lua;
 	int fifths = 0;
 	int nb_ornaments = 0;
+	int nr_ornament = 0;
 	bool cross = false;
 	bool staccato = false; // for display usage
 	bool fermata = false; // for display usage
@@ -197,6 +209,7 @@ public:
 	int pageNr = 0;
 	wxRect rect;
 	bool turnPage = false;
+	bool end_score = false;
 };
 WX_DECLARE_LIST(c_musicxmlevent, l_musicxmlevent);
 
@@ -262,14 +275,14 @@ public:
 	wxFileName getNameXmlFile();
 	bool loadXmlFile(wxString xmlfilein,bool useMarkFile = true);
 	bool isOk(bool compiled_score = false);
-	bool getPosEvent(int nrEvent, int *pageNr, wxRect *rect , bool *turn );
-	void setPosEvent(int nrMeasure, int t480, int pageNr, wxRect rect);
+	bool getPosEvent(int nrEvent, int *pageNr, wxRect *rect, bool *turn, int *nr_ornament); // , wxBitmap **mbitmap);
+	void setPosEvent(int nrMeasure, int t480, int pageNr, wxRect rect); //  , wxBitmap *mbitmap);
 	void setMeasureTurnEvent(int nrMeasure, bool clean = false);
 	int getPartNr(wxString spart, int *partNb = NULL);
 	int pageToEventNr(int pageNr);
 	int pointToEventNr(int pageNr , wxPoint p);
 	int stringToEventNr(wxString s);
-	bool getScorePosition( int nrEvent , int *absolute_measure_nr , int *measure_nr, int *repeat , int *beat, int *t );
+	bool getScorePosition( int nrEvent , int *absolute_measure_nr , int *measure_nr, int *repeat , int *beat, int *t , int *uid);
 	bool getTrackDisplay(int nrTrack);
 	bool getTrackPlay(int nrTrack);
 	wxArrayInt getTracksPlay();

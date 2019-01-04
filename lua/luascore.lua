@@ -71,6 +71,9 @@ local tPedal = 4
 local currentEventStarts  = {}
 local currentEventStops  = {}
 
+local new_measure = false 
+local new_part = false 
+local end_score = false
 
 -- list of note-off triggers 
 local noteOffStops = {}
@@ -218,10 +221,11 @@ end
 
 function nextGroupEvent()
   -- adjust the position on the next playable event
-  -- return these booleans :
+  -- set these booleans :
   --    end of events
   --    start of a measure
   --    start of a part
+  luabass.logmsg("nextGroupEvent start c_nrEvent_noteOn="..c_nrEvent_noteOn.."/nb_events="..nb_events)
   c_nrEvent_noteOn = c_nrEvent_noteOn + 1
   if c_nrEvent_noteOn < 1 then
     c_nrEvent_noteOn = 1
@@ -229,18 +233,25 @@ function nextGroupEvent()
   if c_nrEvent_noteOn > nb_events then
     c_nrEvent_noteOn = nb_events
   end
-  while ( c_nrEvent_noteOn < (nb_events - 1) ) and  (#(score.events[c_nrEvent_noteOn][eStarts]) ==  0 ) 
+  luabass.logmsg("nextGroupEvent step1 c_nrEvent_noteOn="..c_nrEvent_noteOn.."/nb_events="..nb_events)
+  while ( c_nrEvent_noteOn < nb_events ) and  (#(score.events[c_nrEvent_noteOn][eStarts]) ==  0 ) 
   do
     c_nrEvent_noteOn = c_nrEvent_noteOn + 1
   end
-  local end_score =  ( c_nrEvent_noteOn >= nb_events )
+  luabass.logmsg("nextGroupEvent step2 c_nrEvent_noteOn="..c_nrEvent_noteOn.."/nb_events="..nb_events)
+  end_score =  ( c_nrEvent_noteOn >= nb_events  ) 
   local t = score.events[c_nrEvent_noteOn]
-  if t == nil then return end
-  local new_measure = ( t[eMeasureNr] ~= c_measureNr )
-  local new_part = ( t[ePartNr]  ~= c_partNr )
+  if t == nil then 
+	end_score= true
+    luabass.logmsg("nextGroupEvent nil c_nrEvent_noteOn="..c_nrEvent_noteOn.."/nb_events="..nb_events)
+	return 
+  end
+  luabass.logmsg("nextGroupEvent end c_nrEvent_noteOn="..c_nrEvent_noteOn.."/nb_events="..nb_events)
+
+  new_measure = ( t[eMeasureNr] ~= c_measureNr )
+  new_part = ( t[ePartNr]  ~= c_partNr )
   c_measureNr = t[eMeasureNr] 
   c_partNr = t[ePartNr] 
-  return end_score , new_measure , new_part
 end
 
 
@@ -578,12 +589,12 @@ end
 function E.getPosition()
   -- return the next ebvent to play, or the event playing
   if nb_events == 0 then
-  	return -1 , 0
+  	return -1 , 0 
   end
   if c_nrEvent_playing then
-    return c_nrEvent_playing[2] , 1
+    return c_nrEvent_playing[2] , 1 
   end
-  return c_nrEvent_noteOn , 0
+  return c_nrEvent_noteOn , 0 
   -- memPos()
 end
 
