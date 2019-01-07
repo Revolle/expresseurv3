@@ -64,10 +64,8 @@ private:
 	float inch = 25.4;
 	bool musescore_def_xml = true ;
 
-	int prevPaintPos = -1;
-	bool prevPaintPlaying = true;
+	int newPaintPlaying = -1;
 	int newPaintPos = -1;
-	bool newPaintPlaying = true;
 	int prevPos = -1;
 	bool prevPlaying = true;
 

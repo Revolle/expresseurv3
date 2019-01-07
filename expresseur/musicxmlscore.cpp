@@ -732,6 +732,44 @@ void musicxmlscore::setCursor(wxDC& dc , int pos,bool playing )
 	wxRect rectPos ;
 
 	bool cont = setPage(dc, pos, &rectPos , playing );
+	
+	// nbSetPosition ++ ;
+	int absolute_measure_nr, measure_nr, repeat, beat, t , uid;
+	bool end_score = xmlCompile->getScorePosition(pos, &absolute_measure_nr, &measure_nr, &repeat, &beat, &t, &uid);
+	/*
+	wxString sid;
+	sid.Printf("uid=%d", uid);
+	((wxFrame *)mParent)->SetStatusText(sid, 1);
+	*/
+	if (absolute_measure_nr != prev_absolute_measure_nr)
+	{
+		prev_absolute_measure_nr = absolute_measure_nr;
+		wxString spos;
+		if (end_score)
+			spos = _("end");
+		else
+		{
+			switch (repeat)
+			{
+			case -1:
+			case NULL_INT:
+				break;
+			case 0:
+				spos.Printf(_("Expresseur measure %d / Score measure %d"), absolute_measure_nr, measure_nr);
+				break;
+			case 1:
+				spos.Printf(_("Expresseur measure %d / Score measure %d (2nd time)"), absolute_measure_nr, measure_nr);
+				break;
+			case 2:
+				spos.Printf(_("Expresseur measure %d / Score measure %d (3rd time)"), absolute_measure_nr, measure_nr);
+				break;
+			default:
+				spos.Printf(_("Expresseur measure %d / Score measure %d (%dth time)"), absolute_measure_nr, measure_nr, repeat + 1);
+				break;
+			}
+		}
+		((wxFrame *)mParent)->SetStatusText(spos, 0);
+	}
 
 	// redraw the previous picture behind the cursor)
 	if (prevRectPos.GetWidth() > 0)
@@ -764,48 +802,20 @@ void musicxmlscore::setPosition(int pos, bool playing )
 	newPaintPlaying = playing ;
 	if ((pos != prevPos) || (playing != prevPlaying))
 	{
+#ifdef RUN_MAC
+		Refresh(false);
+		Update();
+#else
+		//wxString sl ;
+		//sl.Printf("setPosition pos=%d prevPos = %d newPaintPos=%d",pos,prevPos,newPaintPos);
+		//mlog_in(sl);
+		
 		wxClientDC dc(this);
 		setCursor(dc, pos, playing);
+		currentPos = pos;
+#endif
 		prevPos = pos;
 		prevPlaying = playing;
-		currentPos = pos;
-		// nbSetPosition ++ ;
-		int absolute_measure_nr, measure_nr, repeat, beat, t , uid;
-		bool end_score = xmlCompile->getScorePosition(pos, &absolute_measure_nr, &measure_nr, &repeat, &beat, &t, &uid);
-		/*
-		wxString sid;
-		sid.Printf("uid=%d", uid);
-		((wxFrame *)mParent)->SetStatusText(sid, 1);
-		*/
-		if (absolute_measure_nr != prev_absolute_measure_nr)
-		{
-			prev_absolute_measure_nr = absolute_measure_nr;
-			wxString spos;
-			if (end_score)
-				spos = _("end");
-			else
-			{
-				switch (repeat)
-				{
-				case -1:
-				case NULL_INT:
-					break;
-				case 0:
-					spos.Printf(_("Expresseur measure %d / Score measure %d"), absolute_measure_nr, measure_nr);
-					break;
-				case 1:
-					spos.Printf(_("Expresseur measure %d / Score measure %d (2nd time)"), absolute_measure_nr, measure_nr);
-					break;
-				case 2:
-					spos.Printf(_("Expresseur measure %d / Score measure %d (3rd time)"), absolute_measure_nr, measure_nr);
-					break;
-				default:
-					spos.Printf(_("Expresseur measure %d / Score measure %d (%dth time)"), absolute_measure_nr, measure_nr, repeat + 1);
-					break;
-				}
-			}
-			((wxFrame *)mParent)->SetStatusText(spos, 0);
-		}
 	}
 }
 void musicxmlscore::onPaint(wxPaintEvent& WXUNUSED(event))
@@ -813,11 +823,15 @@ void musicxmlscore::onPaint(wxPaintEvent& WXUNUSED(event))
 	// onPaint
 	wxPaintDC dc(this);
 	if (!isOk() || !docOK  || (newPaintPos < 0))	return;
-
+		
+	currentPageNr = -1 ;
 	prevRectPos.SetWidth(0);
+	
+	//wxString sl ;
+	//sl.Printf("onpaint prevPos = %d newPaintPos=%d",prevPos,newPaintPos);
+	//mlog_in(sl);
+	
 	setCursor(dc, newPaintPos, newPaintPlaying);
-	prevPaintPos = newPaintPos;
-	prevPaintPlaying = newPaintPlaying;
 	currentPos = newPaintPos;
 	// nbPaint ++ ;
 }
@@ -858,8 +872,6 @@ void musicxmlscore::OnLeftDown(wxMouseEvent& event)
 			return;
 		prevPos = -1;
 		prevPlaying = true;
-		prevPaintPos = -1;
-		prevPaintPlaying = true;
 		basslua_call(moduleScore, functionScoreGotoNrEvent, "i", nrEvent + 1);
 		return;
 	}
@@ -1180,7 +1192,6 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	currentPageNr = -1;
 	currentPageNrPartial = -1;
 	prevPos = -1 ;
-	prevPaintPos = -1 ;
 	prevPlaying = true ;
 	return true ;
 }
