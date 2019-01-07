@@ -801,6 +801,10 @@ void Expresseur::setOrientation(int v, int h )
 {
 	if (v == 50)
 	{
+		if ( h < 20 )
+			h = 20 ;
+		if ( h > 80 )
+			h = 80 ;
 		sizer_text_viewer->SetOrientation(wxHORIZONTAL);
 		setRightDisplay(h > 50);
 		sizer_A->SetProportion(h);
@@ -808,6 +812,10 @@ void Expresseur::setOrientation(int v, int h )
 	}
 	else
 	{
+		if ( v < 20 )
+			v = 20 ;
+		if ( v  > 80 )
+			v = 80 ;
 		sizer_text_viewer->SetOrientation(wxVERTICAL);
 		setRightDisplay(v > 50);
 		sizer_A->SetProportion(v);
@@ -2024,7 +2032,7 @@ bool Expresseur::settingReset(bool all)
 		// empty viewer for the score
 		newViewerscore = new emptyscore(this, wxID_ANY, mConf);
 		v = 50;
-		h = 100;
+		h = 50;
 	}
 
 	basslua_setMode(mode);
@@ -2169,7 +2177,7 @@ void Expresseur::CreateExpresseurV3()
 	fdirExample.AppendDir(DIR_EXAMPLE);
 	wxString sExample = fdirExample.GetFullPath();
 	//wxMessageBox(sExample,"example dir");
-	bool firstExample = true;
+	bool firstExample = true ;
 	wxDir dirExample(sExample);
 	if (dirExample.IsOpened())
 	{
@@ -2183,13 +2191,13 @@ void Expresseur::CreateExpresseurV3()
 			file1 = ffile1.GetFullPath();
 			ffile2.SetPath(mxconf::getUserDir());
 			file2 = ffile2.GetFullPath();
-			//wxMessageBox(file1 + " to " + file2 , "copy example");
-			wxCopyFile(file1, file2);
-			if (firstExample)
+			if (( ! ffile2.FileExists() ) && (firstExample))
 			{
 				mConf->set(CONFIG_FILENAME, file2);
 				firstExample = false;
 			}
+			//wxMessageBox(file1 + " to " + file2 , "copy example");
+			wxCopyFile(file1, file2);
 			cont = dirExample.GetNext(&file1);
 		}
 	}

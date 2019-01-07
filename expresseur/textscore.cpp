@@ -169,9 +169,16 @@ int textscore::scanPosition(bool editmode)
 }
 void textscore::scanTextPosition()
 {
+	if ( editMode )  return ;
+
 	int insertionPoint = GetInsertionPoint();
 	if ( insertionPoint != prevInsertionPoint)
+	{
+		wxString sl ;
+		sl.Printf("textscore::scanTextPosition %d %d",insertionPoint,prevInsertionPoint);
+		mlog_in(sl);
 		basslua_call(moduleChord, functionChordSetPosition, "i", insertionPoint);
+	}
 	prevInsertionPoint = insertionPoint;
 }
 bool textscore::setFile(const wxFileName &filename)
@@ -230,7 +237,12 @@ void textscore::setEditMode(bool ieditMode)
 		SetBackgroundColour(*wxWHITE);
 	else
 		SetBackgroundColour(wxColour(220, 220, 220, wxALPHA_OPAQUE));
-	Enable(editMode);
+	// Enable(editMode);
+	if ( editMode)
+		SetExtraStyle(! wxTE_READONLY) ;	
+	else
+		SetExtraStyle(wxTE_READONLY) ;	
+
 }
 void textscore::setFontSize(int s)
 {
