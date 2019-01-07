@@ -772,11 +772,6 @@ void musicxmlscore::setPosition(int pos, bool playing )
 		// nbSetPosition ++ ;
 		int absolute_measure_nr, measure_nr, repeat, beat, t , uid;
 		bool end_score = xmlCompile->getScorePosition(pos, &absolute_measure_nr, &measure_nr, &repeat, &beat, &t, &uid);
-		if (end_score)
-		{
-			int j;
-			j = 1;
-		}
 		/*
 		wxString sid;
 		sid.Printf("uid=%d", uid);
