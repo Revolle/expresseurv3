@@ -2198,9 +2198,6 @@ void musicxmlcompile::addOrnament(c_ornament *ornament, c_musicxmlevent *musicxm
 		musicxmlevent->transpose = v;
 		break;
 	}
-	case o_lua:
-		musicxmlevent->lua = ornament->value;
-		break;
 	case o_pianissimo:
 		musicxmlevent->nuance = 10;
 		break;
@@ -2407,6 +2404,16 @@ void musicxmlcompile::addOrnament(c_ornament *ornament, c_musicxmlevent *musicxm
 		if (ornament->value.ToLong(&l))
 			v = l;
 		m->pedal = v;
+		lOrnamentsMusicxmlevents.Append(m);
+		break;
+	}
+	case o_lua:
+	{
+		c_musicxmlevent *m = new c_musicxmlevent(*musicxmlevent);
+		m->played = false;
+		m->visible = false;
+		m->start_order = -128;
+		m->lua = ornament->value;
 		lOrnamentsMusicxmlevents.Append(m);
 		break;
 	}

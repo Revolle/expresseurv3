@@ -1,4 +1,3 @@
--- update : 03/12/2016 18:00
 -- LUA script started by "basslua.dll"
 -- "basslua.dll" manages input ( GUI, MIDI-In, timer ) up to LUA
 -- the module "luabass.dll" is loaded by default
@@ -10,6 +9,7 @@
 
 instruments = { piano = 0 , accordeon = 21 , guitare = 24 }
 local myDelay = 0 ;
+myThrough = false ;
 
 function midiOutIsValid(midiout_name)
   -------================
@@ -195,8 +195,19 @@ function sound(wavfile)
   luabass.outSoundPlay(wavfile)
 end
 
+function through(d)
+  if d then
+    if d == "on" then
+      myThrough = true
+    else
+      myThrough = false
+    end
+  else
+    myThrough =  true
+  end
+end
 function echo(d)
-  myDelay =  tonumber(d)
+  myDelay =  tonumber(d or 0)
 end
 
 function help()
@@ -205,6 +216,7 @@ function help()
   print("openout <name or #>" )
   print("listin")
   print("listout")
+  print("through on|off")
   print("echo delay ( in ms )")
   print("chord <chordname> ( e.g. C , G7, Dm )" )
   for i,v in pairs(instruments) do
@@ -228,7 +240,13 @@ function onStart(param)
   print()
   listout()
 	if ( string.find(param,"--preopen_midiout") ~= nil) then
-  	luabass.outPreOpenMidi() -- pre-open valid midi-out, to avoid later conflict 
+    io.write(">>\n")
+    io.write(">>\n")
+    io.write("preopen midiout ? (y/n) ")
+    local retCode = io.read()
+    if retCode == "y" then
+    	luabass.outPreOpenMidi() -- pre-open valid midi-out, to avoid later conflict 
+    end
 	end
   print ()
   help()
@@ -243,23 +261,34 @@ function openVi(dll)
   luabass.outTrackOpenVi(1,1,"",dll);
 end
 
-function onNoteOn(device,t,channel,typemsg, pitch,velocity)
-  print("LUA noteon",device,t,channel,pitch,velocity,"echo=",myDelay,"ms")
-  luabass.outNoteOn(pitch,velocity,pitch)
-  if myDelay > 0 then
-	  luabass.outNoteOn(pitch + 12,velocity,pitch+128,myDelay)
+function onNoteOn(device,t,channel, pitch,velocity)
+  print("LUA noteon mididevice#", device,"t=",t,"channel#",channel,"pitch#",pitch,"velocity=",velocity)
+  if myThrough then
+    print("LUA noteon through")
+    luabass.outNoteOn(pitch,velocity,pitch)
+    if myDelay > 0 then
+      print("LUA noteon echo",myDelay,"ms")
+	    luabass.outNoteOn(pitch + 12,velocity,pitch+128,myDelay)
+    end
   end
 end
-function onNoteOff(device,t,channel,typemsg, pitch,velocity)
-  print("LUA noteoff",device,t,channel,pitch,velocity)
-  luabass.outNoteOff(pitch,0,pitch)
-  if myDelay > 0 then
-	  luabass.outNoteOff(pitch + 12,0,pitch+128)
+function onNoteOff(device,t,channel, pitch,velocity)
+  print("LUA noteoff mididevice#", device,"t=",t,"channel#",channel,"pitch#",pitch,"velocity=",velocity)
+  if myThrough then
+    print("LUA noteoff through")
+    luabass.outNoteOff(pitch,0,pitch)
+    if myDelay > 0 then
+      print("LUA noteoff echo",myDelay,"ms")
+	    luabass.outNoteOff(pitch + 12,0,pitch+128)
+    end
   end
 end
- function onControl(device,t,channel,typemsg, nrControl,value)
-   print("LUA control",device,t,channel,nrControl,value)
- myDelay = 2 * value ;
+ function onControl(device,t,channel, nrControl,value)
+  print("LUA control mididevice#", device,"t=",t,"channel#",channel,"control#",nrControl,"value=",value)
+  myDelay = 2 * value ;
  end
 
+ function onProgram(device,t,channel, nrProgram)
+  print("LUA program mididevice#", device,"t=",t,"channel#",channel,"program#",nrProgram)
+end
 
