@@ -77,16 +77,13 @@ www.expresseur.com
 
    status : Solution 64 bits solution with Visual Studio available and operationnal. GNU Makefile not available.
 
-7. Linux Ubuntu
+7. Linux Ubuntu / Debian
 
    build wxwidgets 64 bits ( used by expresseur GUI ) : 
    * sudo apt-get install gtk2.0
-   * cd
-   * mkdir wxwidgets
-   * cd wxwidgets
-   * git init
    * git clone --recurse-submodules https://github.com/wxWidgets/wxWidgets.git
-    * mkdir buildgtk
+   * cd wxwidgets
+   * mkdir buildgtk
    * cd buildgtk
    * ../configure --with-gtk
    * make
@@ -95,15 +92,15 @@ www.expresseur.com
 
    build lua 64 bits ( used by expresseur GUI ) : 
    * sudo apt-get install libreadline6 libreadline6-dev
+   * ou debian : sudo apt-get install libreadline7 libreadline-dev
    * cd linux/lua-5.3.4
    * make linux
-
-   alsa dev package needed : libasound2-dev
+   alsa dev package
+   * sudo apt-get install libasound2-dev
    
-   rtmidi :
-   https://github.com/thestk/rtmidi.git
+   rtmidi under linux/rtmidi from : https://github.com/thestk/rtmidi.git
    
-   sound & Midi 64 bits libraries from www.un4seen.org : bass , bassmix, bassmidi
+   sound/midi 64 bits lib under linux/bass .h and .so , from www.un4seen.org : bass , bassmix, bassmidi
    
    GNUmakefile builds the epresseur package 
    * make -f GNUmakefile
