@@ -240,8 +240,9 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 	nrChord = -1;
 	xmlName.Clear();
 	prevRectPos.SetWidth(0);
-	// prevCursorBitmap = NULL;
 
+	this->SetBackgroundColour(*wxWHITE);
+	
 	basslua_call(moduleScore, functionScoreInitScore, "" );
 
 	inch = (float)(DEF_INCH) * ((float)(mConf->get(CONFIG_CORRECTINCH, 1000))/1000.0) / 1000.0;
