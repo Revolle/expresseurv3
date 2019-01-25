@@ -678,17 +678,22 @@ bool musicxmlscore::setPage(wxDC& dc, int pos , wxRect *rectPos, bool playing )
 		}
 		{
 			// anticipate half of the next page
-			wxDCClipper clipTurnPage(dc, wxRect(0, 0, sizePage.GetWidth() / 2 + sizePage.GetWidth() / WIDTH_SEPARATOR_PAGE, sizePage.GetHeight()));
-			wxString fnturn = getNamePage(fp, pageNr + 1);
-			if (!fnturn.IsEmpty())
 			{
-				wxBitmap fnturnbitmap(fnturn, wxBITMAP_TYPE_PNG);
+				wxDCClipper clipTurnPage(dc, wxRect(0, 0, sizePage.GetWidth() / 2 , sizePage.GetHeight()));
+				wxString fnturn = getNamePage(fp, pageNr + 1);
+				if (!fnturn.IsEmpty())
+				{
+					wxBitmap fnturnbitmap(fnturn, wxBITMAP_TYPE_PNG);
+					dc.SetBackground(this->GetBackgroundColour());
+					dc.Clear();
+					dc.DrawBitmap(fnturnbitmap, 0, 0);
+					currentPageNrPartial = pageNr + 1;
+				}
+			}
+			{
+				wxDCClipper clipTurnPage(dc, wxRect(sizePage.GetWidth() / 2, 0,  sizePage.GetWidth() / WIDTH_SEPARATOR_PAGE, sizePage.GetHeight()));
 				dc.SetBackground(this->GetBackgroundColour());
 				dc.Clear();
-				dc.DrawBitmap(fnturnbitmap, 0, 0);
-				dc.GradientFillLinear(wxRect(sizePage.GetWidth() / 2, 0, sizePage.GetWidth() / (WIDTH_SEPARATOR_PAGE * 2), sizePage.GetHeight()), this->GetBackgroundColour(), *wxWHITE, wxRIGHT);
-				dc.GradientFillLinear(wxRect(sizePage.GetWidth() / 2 + sizePage.GetWidth() / (WIDTH_SEPARATOR_PAGE * 2), 0, sizePage.GetWidth() / (WIDTH_SEPARATOR_PAGE * 2), sizePage.GetHeight()), this->GetBackgroundColour(), *wxWHITE, wxLEFT);
-				currentPageNrPartial = pageNr + 1;
 			}
 		}
 	}
