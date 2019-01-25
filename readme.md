@@ -107,5 +107,6 @@ www.expresseur.com
    cd expresseur/Expresseur.app/Contents/Linux : 
    * ./expresseur for the GUI, 
    * or ./expresscmd for the command-line
-
+   to create a Gnome icone : sudo mv expresseurv3.desktop /usr/share/applications
+   
   
