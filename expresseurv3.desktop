@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Encoding=UTF-8
+Name=ExpresseurV3
+Comment=ExpresseurV3
+Path=/home/dell/Documents/expresseurv3/expresseur/Expresseur.app/Contents/Linux
+Exec=/home/dell/Documents/expresseurv3/expresseur/Expresseur.app/Contents/Linux/expresseur
+Icon=/home/dell/Documents/expresseurv3/expresseur/Expresseur.app/Contents/Linux/expresseur.png
+Terminal=True
