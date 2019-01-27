@@ -28,7 +28,7 @@ function midiInIsValid(midiin_name)
   -- return -1 if the midiin is not valid for the GUI
   local s = string.lower(midiin_name)
   local valid = { "sd%-50 midi" }
-  local invalid = { "iac" , "loop" , "sd%-50" , "through" , "bus" }
+  local invalid = { "buran" , "iac" , "loop" , "sd%-50" , "through" , "bus" }
   for i,v in ipairs(valid) do
     if ( string.find(s,v ) ~= nil) then
       return true ;

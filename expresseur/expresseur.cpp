@@ -613,7 +613,7 @@ bool Expresseur::checkConfig()
 	merrors += checkFile(mxconf::getCwdDir(),"luachord.lua");
 	merrors += checkFile(mxconf::getCwdDir(),"luascore.lua");
 	merrors += checkFile(mxconf::getCwdDir(),"texttochord.lua");
-	merrors += checkFile(mxconf::getResourceDir(),"default_piano.SF2");
+	merrors += checkFile(mxconf::getResourceDir(),"default_piano.sf2");
 	merrors += checkFile(mxconf::getResourceDir(),"guitare.sf2");
 	merrors += checkFile(mxconf::getResourceDir(),"default_piano.txt");
 	merrors += checkFile(mxconf::getResourceDir(),"default_setting.txt");
@@ -2368,7 +2368,7 @@ void Expresseur::wizard(bool audio_only)
 	else
 		labelWizard = "Wizard Expresseur";
 	wxWizard *mwizard = new wxWizard(this, wxID_ANY, labelWizard);
-	mwizard->SetPageSize(wxSize(400,500));
+	mwizard->SetPageSize(wxSize(400,700));
 
 	////// welcome 
 
@@ -2493,7 +2493,7 @@ VALIDATE THE GOOD QUALITY OF SOUND\n");
 	mTest->Bind(wxEVT_BUTTON, &Expresseur::OnAudioTest, this);
 	msaudio->AddSpacer(5);
 	msaudio->Add(mTest);
-	topsizer_audio->Add(msaudio);
+	topsizer_audio->Add(msaudio, sizerFlagMaximumPlace);
 
 	pwizard_audio->SetSizerAndFit(topsizer_audio);
 	setAudioChoice(defaultNrDevice);
