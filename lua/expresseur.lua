@@ -303,8 +303,26 @@ function mainVolume( t, bid, ch, typemsg, pitch, velo , paramString )
   luabass.outSetVolume(math.tointeger(vol) or ( velo or 64 )) 
 end
 function trackVolume( t, bid, ch, typemsg, pitch, velo , paramString )
+  --parameter form#1 : volume [optional track#]
+  --parameter form#2 : track_name
+  --parameter form#3 : track#
+  local trackNr 
+  local vol 
   vol, trackNr = string.match(paramString or "" , "(%d+) (%d+)")
-  luabass.outSetTrackVolume(math.tointeger(vol) or (velo or 64),trackNr or 1)
+  if vol then
+	  luabass.outSetTrackVolume(math.tointeger(vol) or (velo or 64),trackNr or 1)
+	  return
+  end
+  trackNr = string.match(paramString or "" , "(%d+)")
+  if trackNr then
+	  luabass.outSetTrackVolume(velo or 64,trackNr or 1)
+	  return
+  end
+  if tracks[paramString or "none"] then
+	  luabass.outSetTrackVolume(math.tointeger(velo) or 64,tracks[paramString or "none"] or 1)
+	  return
+  end
+  luabass.logmsg("trackVolume("..paramString.."):unsolved")
 end
 function nextFile( t, bid, ch, typemsg, pitch, velo )
   if ( velo or 64 ) > 0 then info.next = 1 end

@@ -749,6 +749,7 @@ function legato(track,velocity,param)
   -- param contains the status of the pedal : "off"  or "legato" , or "pedal" 
   -- if param is empty : velocity = 0 <=> off , velocity > O <=> pedal
   local v
+  luabass.logmsg("legato "..track.."/"..param)
   if string.len(param) > 0 then
     if string.find(param,"legato") then 
       v = 1
@@ -809,7 +810,7 @@ function E.playPitches(bid,velocity,index,black,scale,track,pstart,pend,delay,de
   
   
   local typeLegato = legatoPlay[track]
-  
+  --luabass.logmsg("playPitches scale="..scale.." track="..track.." velo="..velocity.." legato="..typeLegato.." bid="..bid)
   if velocity == 0 then 
     local playedId = bidPlayed[track][bid]
     if playedId then
@@ -854,16 +855,16 @@ function E.playPitches(bid,velocity,index,black,scale,track,pstart,pend,delay,de
   end
 end
 function E.playScaleChord(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-  E.playPitches(bid,velocity,whitemediane,black,"chord","scale",1,-1,values["scale delay"],values["scale decay"])
+  E.playPitches(bid,velocity,whitemediane,black,"chord","scale",1,-1,values["scale_delay"],values["scale_decay"])
 end
 function E.playScalePenta(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-  E.playPitches(bid,velocity,whitemediane,black,"penta","scale",1,-1,values["scale delay"],values["scale decay"])
+  E.playPitches(bid,velocity,whitemediane,black,"penta","scale",1,-1,values["scale_delay"],values["scale_decay"])
 end
 function E.playChordUp(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-  E.playPitches(bid,velocity,0,0,"chord","chord",-1,1,values["chord delay"],values["chord decay"])
+  E.playPitches(bid,velocity,0,0,"chord","chord",-1,1,values["chord_delay"],values["chord_decay"])
 end
 function E.playChordDown(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-  E.playPitches(bid,velocity,0,0,"chord","chord",1,-1,values["chord delay"],values["chord decay"])
+  E.playPitches(bid,velocity,0,0,"chord","chord",1,-1,values["chord_delay"],values["chord_decay"])
 end
 function E.playBackground(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   E.playPitches(bid,velocity,0,0,"chord","background",1,-1,0,45)
