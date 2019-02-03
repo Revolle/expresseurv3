@@ -21,7 +21,7 @@ public:
 
 	void OnTest(wxCommandEvent& WXUNUSED(event));
 
-	void OnNew(wxCommandEvent& WXUNUSED(event));
+	//void OnNew(wxCommandEvent& WXUNUSED(event));
 	void OnOpen(wxCommandEvent& WXUNUSED(event));
 	void OnSave(wxCommandEvent& WXUNUSED(event));
 	void OnSaveas(wxCommandEvent& WXUNUSED(event));

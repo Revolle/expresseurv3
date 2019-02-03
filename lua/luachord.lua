@@ -341,6 +341,7 @@ local function extractChord()
     local l = 0 
     local pl = 1 
     local endl = false
+	luabass.logmsg("extractChord nrSection="..nrSection)
     -- analyse each line
     while(endl == false) do
       l = string.find(section[nrSection].content,"\n",l+1 )
@@ -361,7 +362,8 @@ local function extractChord()
         while(true) do
           gstart , gend , sg = string.find(sl,"(%g+)", gend + 1 )
           if ( gstart == nil ) then break end
-          if (( sg ~= "[" ) and ( sg ~= "]" ) 
+		   luabass.logmsg("extractChord sg="..sg)
+           if (( sg ~= "[" ) and ( sg ~= "]" ) 
             and ( sg ~= "(" ) and ( sg ~= ")" ) 
             and ( sg ~= "|" ) and ( sg ~= "||" ) and ( sg ~= "/" )) then
             local interpretedChord = texttochord.stringToChord(sg)
@@ -387,8 +389,11 @@ end
 
 
 function analyseScore()
+  luabass.logmsg("analysescore extractParts")
   extractParts()
+  luabass.logmsg("analysescore extractSectionFromPart")
   extractSectionFromPart()
+  luabass.logmsg("analysescore extractChord")
   extractChord()
 end
 

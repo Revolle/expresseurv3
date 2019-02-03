@@ -139,7 +139,7 @@ end
 function onStart(param)
   -- after init of the LUA bass module
 	if ( string.find(param,"--preopen_midiout") ~= nil) then
-  	lOut = luabass.outGetMidiList() -- list of midi-out ports
+  	     lOut = luabass.outGetMidiList() -- list of midi-out ports
   	for i,v in ipairs(lOut) do
     	  luabass.outSetMidiValide(i,midiOutIsValid(v)) -- make midi-out valide or not
   	end
@@ -153,10 +153,10 @@ end
 values = {
   -- callFunction is used by GUI, through basslua. E.G to change MIDI parameters
   -- basslua, will add fields values[valueName]=value
-  { name = "chord delay" , defaultValue=10 , help="Chord improvisation : delay between notes, in ms" },
-  { name = "chord decay" , defaultValue=40 , help="Chord improvisation : decay beween notes, 64 = no decay" },
-  { name = "scale delay" , defaultValue=0 , help="Scale improvisation : delay beween notes of the chord, in ms" },
-  { name = "scale decay" , defaultValue=0 , help="Scale improvisation : decay beween notes of the chord, 64 = no decay" },
+  { name = "chord_delay" , defaultValue=10 , help="Chord improvisation : delay between notes, in ms" },
+  { name = "chord_decay" , defaultValue=40 , help="Chord improvisation : decay beween notes, 64 = no decay" },
+  { name = "scale_delay" , defaultValue=0 , help="Scale improvisation : delay beween notes of the chord, in ms" },
+  { name = "scale_decay" , defaultValue=0 , help="Scale improvisation : decay beween notes of the chord, 64 = no decay" },
 }
 
 -- list of the tracks, for the GUI
@@ -279,18 +279,32 @@ end
 
 function playNote( t, bid, ch, typemsg, d1, d2 , paramString)
 	trackNr = string.match(paramString or "" , "(%d+)")
-	luabass.outSystem((ch - 1 ) + (typemsg * 16 ) , d1, d2 , trackNr or 1)
+	luabass.outSystem((ch - 1 ) + (typemsg * 16 ) , d1, d2 , math.tointeger(trackNr) or 1)
 end
 function allNoteOff( )
     luabass.outAllNoteOff()
 end
+function setLuaValue( t, bid, ch, typemsg, pitch, velo , paramString )
+  local luaparam 
+  local vol 
+  luaparam , vol = string.match(paramString or "" , "(%g+) (%d+)")
+  if luaparam then
+    values[luaparam]=math.tointeger(vol)
+	return
+  end
+  luaparam  = string.match(paramString or "" , "(%g+)")
+  if luaparam and velo then
+    values[luaparam]=velo
+	return
+  end
+end
 function mainVolume( t, bid, ch, typemsg, pitch, velo , paramString )
   vol = string.match(paramString or "" , "(%d+)")
-  luabass.outSetVolume(vol or ( velo or 64 )) 
+  luabass.outSetVolume(math.tointeger(vol) or ( velo or 64 )) 
 end
 function trackVolume( t, bid, ch, typemsg, pitch, velo , paramString )
   vol, trackNr = string.match(paramString or "" , "(%d+) (%d+)")
-  luabass.outSetTrackVolume(vol or (velo or 64),trackNr or 1)
+  luabass.outSetTrackVolume(math.tointeger(vol) or (velo or 64),trackNr or 1)
 end
 function nextFile( t, bid, ch, typemsg, pitch, velo )
   if ( velo or 64 ) > 0 then info.next = 1 end
@@ -321,8 +335,9 @@ end
 actions = { 
   {name="global/all note off", callFunction = allNoteOff ,help="all note off", shortcut = "CTRL+BACK" , icone = "all_note_off" },
   {name="global/play note", callFunction = playNote ,help="play the midi event" },
-  {name="global/main volume", callFunction = mainVolume },
-  {name="global/track volume", callFunction = trackVolume },
+  {name="global/main volume", callFunction = mainVolume  ,help="set main volume from parameter=value, or value from MIDI data-2" },
+  {name="global/track volume", callFunction = trackVolume ,help="set track volume from parameter=track value, or value from MIDI data-2" },
+  {name="global/lua value", callFunction = setLuaValue  ,help="set lua vaue from parameter=luaname value, or value from MIDI data-2"},
   {name="global/previous file",  help="go to previous file of the list", callFunction = previousFile  },
   {name="global/next file", help="go to next file of the list", 
     callFunction = nextFile , shortcut = "CTRL+TAB", icone = "next_file" },

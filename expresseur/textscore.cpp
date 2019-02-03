@@ -106,6 +106,8 @@ textscore::~textscore()
 }
 void textscore::compileText()
 {
+	if (editMode) return;
+
 	if (oldText == GetValue())
 		return;
 

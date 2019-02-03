@@ -203,7 +203,7 @@ wxBEGIN_EVENT_TABLE(Expresseur, wxFrame)
 
 EVT_MENU(ID_MAIN_TEST, Expresseur::OnTest)
 
-EVT_MENU(wxID_NEW, Expresseur::OnNew)
+//EVT_MENU(wxID_NEW, Expresseur::OnNew)
 EVT_MENU(wxID_OPEN, Expresseur::OnOpen)
 EVT_MENU(wxID_SAVE, Expresseur::OnSave)
 EVT_MENU(wxID_SAVEAS, Expresseur::OnSaveas)
@@ -359,7 +359,7 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 
 	// set the menus
 	wxMenu *fileMenu = new wxMenu;
-	fileMenu->Append(wxID_NEW, _("New"));
+	//fileMenu->Append(wxID_NEW, _("New"));
 	fileMenu->Append(wxID_OPEN, _("Open...\tCtrl+O"));
 	fileMenu->Append(wxID_SAVE, _("Save\tCtrl+S"));
 	fileMenu->Append(wxID_SAVEAS, _("Save as..."));
@@ -1276,6 +1276,7 @@ void Expresseur::OnPlayback(wxCommandEvent& event)
 	}
 	playback = new_playback ;
 }
+/*
 void Expresseur::OnNew(wxCommandEvent& WXUNUSED(event)) 
 {
 	if (mTextscore->needToSave())
@@ -1295,6 +1296,7 @@ void Expresseur::OnNew(wxCommandEvent& WXUNUSED(event))
 	Open(fileName.GetFullPath());
 	mTextscore->noNeedToSave();
 }
+*/
 void Expresseur::OnOpen(wxCommandEvent& WXUNUSED(event)) 
 {
 	if (mTextscore->needToSave())

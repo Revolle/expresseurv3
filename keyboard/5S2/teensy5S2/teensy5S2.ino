@@ -35,7 +35,50 @@ byte *midiSysexBuf;
 #define pinLed 13
 elapsedMillis sinceMidi;
 bool statusLed ;
+unsigned int durationled = 0 ;
 
+bool midiTest(byte nrSerial,byte type,byte ch,byte p, byte v)
+{
+byte midiTestBuf[3];
+byte midiTestLen ;
+bool retCode = true ;
+  midiTestBuf[0] = ( midiType << 4 ) | midiChannel ;
+  midiTestBuf[1] = midiData1 ;
+  midiTestBuf[2] = midiData2 ;
+  midiTestLen = (midiType == 4)?2:3 ;
+  switch(nrSerial)
+  {
+    case 0 : 
+      if ( Serial1.write(midiTestBuf, midiTestLen) != midiTestLen) retCode = false ;
+      if ( Serial2.write(midiTestBuf, midiTestLen) != midiTestLen) retCode = false ;
+      if ( Serial3.write(midiTestBuf, midiTestLen) != midiTestLen) retCode = false ;
+      if ( Serial4.write(midiTestBuf, midiTestLen) != midiTestLen) retCode = false ;
+      if ( Serial5.write(midiTestBuf, midiTestLen) != midiTestLen) retCode = false ;
+      break ;
+    case 1 :if ( Serial1.write(midiTestBuf, midiTestLen) != midiTestLen) retCode = false; break;
+    case 2 :if ( Serial2.write(midiTestBuf, midiTestLen) != midiTestLen) retCode = false; break;
+    case 3 :if ( Serial3.write(midiTestBuf, midiTestLen) != midiTestLen) retCode = false; break;
+    case 4 :if ( Serial4.write(midiTestBuf, midiTestLen) != midiTestLen) retCode = false; break;
+    case 5 :if ( Serial5.write(midiTestBuf, midiTestLen) != midiTestLen) retCode = false; break;
+    default : retCode = false ; break ;
+  }
+  return retCode ;
+}
+void midiNoteTest(byte nrSerial)
+{
+  digitalWrite(pinLed,HIGH);
+  if ( ! midiTest(nrSerial,9,0,64,64) )
+  {
+    delay(50) ;
+    digitalWrite(pinLed,LOW);
+    delay (1000);
+    return ;  
+  }
+  delay(500);
+  digitalWrite(pinLed,LOW);
+  midiTest(nrSerial,8,0,64,0);
+  delay(500);
+}
 // send a Midi mesg on the rights S2-midi-expanders 
 void midiSend(byte midiType,byte midiChannel,int midiData1,int midiData2)
 {
@@ -90,7 +133,7 @@ void setup() // of the microcontroller
   statusLed = true ;
 
   for(int i = 0 ; i < 16 ; i ++ )
-     channelToAudio[i] = 1 ; // all channel payed on audio-output 1
+     channelToAudio[i] = 1 ; // all channel played on audio-output 1
   Serial1.begin(31250);
   Serial2.begin(31250);
   Serial3.begin(31250);
@@ -113,11 +156,15 @@ void setup() // of the microcontroller
   digitalWrite(midiReset4,HIGH);
   digitalWrite(midiReset5,HIGH);
 
+  durationled = 500 ;
   sinceMidi = 0;
+  midiNoteTest(0);
 }
 
 void loop() 
 {
+  midiNoteTest(0);
+  return ;
   if ( usbMIDI.read() )
   {
     midiType = usbMIDI.getType() ;
@@ -149,10 +196,19 @@ void loop()
     digitalWrite(pinLed,HIGH);
     sinceMidi = 0;
     statusLed = true ;
+    durationled = 100 ;
   }
-  if (statusLed && ( sinceMidi > 500 ))
+  if (statusLed && ( sinceMidi > durationled ))
   {
     digitalWrite(pinLed,LOW);
     statusLed = false ;
+  }
+  if ( sinceMidi > 6000)
+  {
+    // led alive each 2seconds
+    digitalWrite(pinLed,HIGH);
+    sinceMidi = 0;
+    statusLed = true ;   
+    durationled = 20 ;
   }
 }

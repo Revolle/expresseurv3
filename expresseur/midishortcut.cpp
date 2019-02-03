@@ -692,8 +692,8 @@ void midishortcut::onShortcut(int nrShortcut)
 			basslua_selectorTrigger(prevShortcutNrSelector, nrDevice, nrChannel, NOTEOFF, pitch, 0);
 		}
 	}
-	prevShortcutNrSelector = -1 ;
-	
+	prevShortcutNrSelector = -1 ; 
+ 
 	// on this event
 	int nrSelector = shortcutNrSelector[nrShortcut];
 	int nrDevice = valueDevice[nrSelector];
