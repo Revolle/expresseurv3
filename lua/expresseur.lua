@@ -342,6 +342,7 @@ end
   --   time : float, timestamp
   --   uidKey : integer, unique id of the event ( composed of the selector id ,channel , and picth )
   --   channel[1..16] : integer, channel of the event ( or control nr , or program nr )
+  --   type_msg_MIDI[1..16] of the event
   --   pitch[0..127] : integer, pitch of the event ( or control nr , or program nr )
   --   velocity[0..127] : integer, velocity of the event ( or control value )
   --   paramString : string , pamaeter set in the selector
