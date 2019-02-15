@@ -728,7 +728,7 @@ E.trackOctave = { ["scale"] = 1*12 ; ["background"] = 0*12 ; ["chord"] = 0*12 ; 
 --   0 = no legato
 --   1 = legato up to thext note of the scale
 --   2 = legato up to the next chord
-local legatoPlay = { ["scale"] = 2 ; ["background"] = 1 ; ["chord"] = 1 ; ["bass"] = 1 }
+local legatoPlay = { ["scale"] = 1 ; ["background"] = 1 ; ["chord"] = 1 ; ["bass"] = 1 }
 
 local currentBlack = 0
 local previousBlack = 0
