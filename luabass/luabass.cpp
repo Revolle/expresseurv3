@@ -341,6 +341,7 @@ static int g_chordCompensation = 0; // compensation of velocity for each note in
 static int g_randomDelay = 0; // random delay in seconds for each note of a chord
 static int g_randomVelocity = 0; // random velocity for each note of a chord
 
+static bool g_debug = false;
 static bool g_collectLog = false;
 static int nrOutBufLog = 0;
 static int nrInBufLog = 0;
@@ -1911,7 +1912,7 @@ static bool processPostMidiOut(T_midioutmsg midioutmsg)
 }
 static bool midiout_short_msg(T_midioutmsg midioutmsg, bool first)
 {
-	if (g_collectLog)
+	if (g_debug)
 		mlog_out("midiout_short_msg device=%d msg=%d ch=%d p=%d v=%d", 
 			g_tracks[midioutmsg.track].device, midioutmsg.midimsg.bData[0] >> 4, midioutmsg.midimsg.bData[0] & 0xF, midioutmsg.midimsg.bData[1], midioutmsg.midimsg.bData[2]);
 	int nr_device = g_tracks[midioutmsg.track].device;
@@ -2022,12 +2023,14 @@ static bool sendmidimsg(T_midioutmsg midioutmsg , bool first)
 	case L_MIDI_SYSTEMCOMMON:
 		return(midiout_short_msg(midioutmsg, first));
     default:
+    	//mlog_out("          sendmidimsg default channel=%d",nr_channel+1);
 		for (int c = 0; c < MAXCHANNEL; c++)
 		{
 			// replication of the messages on all extended channels
 			if (g_channels[nr_device][c].extended == nr_channel)
 			{
 				midioutmsg.midimsg.bData[0] = (midioutmsg.midimsg.bData[0] & 0xF0) + (BYTE)c;
+    			//mlog_out("          sendmidimsg default extended channel=%d",c+1);
 				// filter flooding of same [L_MIDI_CONTROL/value] in short period
 				if ((type_msg != L_MIDI_CONTROL ) || (g_miditimecontrol[nr_device][c][midioutmsg.midimsg.bData[1]] < (g_current_out_t - 200)) || (g_midistatuscontrol[nr_device][c][midioutmsg.midimsg.bData[1]] != midioutmsg.midimsg.bData[2]))
 				{
@@ -2046,10 +2049,10 @@ static bool sendmsg(T_midioutmsg midioutmsg)
   // send immediatly the short midioutmsg on the nr_device
 	bool return_code = false;
 	int nr_device = g_tracks[midioutmsg.track].device;
-	//mlog_out("sendmsg track=%d nrdevice=%d", midioutmsg.track, nr_device);
 	if ((nr_device >= 0) && (nr_device < OUT_MAX_DEVICE))
-  {
-    // send to one device
+    {
+ 	  //mlog_out("sendmsg track=%d nrdevice=%d nbByte=%d byte0=%02X byte1=%02X byte2=%02X", midioutmsg.track, nr_device , midioutmsg.nbbyte , midioutmsg.midimsg.bData[0] ,midioutmsg.midimsg.bData[1] ,midioutmsg.midimsg.bData[2] );
+      // send to one device
 		if (nr_device < MIDIOUT_MAX)
     {
 			if (g_midiout_rt[nr_device])
@@ -4176,11 +4179,16 @@ static int LoutTrackOpenMidi(lua_State *L)
 		channel_extended_set(nr_device, nr_channelmidi, nb_extended_midichannel, true);
 		g_tracks[nrTrack].volume = 64;
 		if ( localoff ) 
-			string_to_control(nrTrack, "C122/0");
+			string_to_control(nrTrack, "localoff(C122/0)");
 		string_to_control(nrTrack, tuning);
 		char name_device[MAXBUFCHAR] = "";
 		midiout_name(nr_device, name_device);
-		mlog_out("Information : midiOut open device#%d<%s> for track#%d<%s> %s : OK", nr_device + 1, name_device, nrTrack + 1, trackName,localoff?"with localoff":"");
+		mlog_out("Information : midiOut open device#%d<%s> for track#%d<%s> channel#%d %s : OK", nr_device + 1, name_device, nrTrack + 1, trackName,nr_channelmidi + 1, localoff?"with localoff":"");
+		for (int n = 0; n < MAXCHANNEL; n++)
+		{
+			if (g_channels[nr_device][n].extended == nr_channelmidi)
+				mlog_out("           extended channel#%d", n + 1);
+		}
 	}
 	else
 		mlog_out("Error : midiOut open device#%d for track#%d<%s>", nr_device + 1, nrTrack + 1, trackName);
@@ -4307,6 +4315,14 @@ static int LoutGetLog(lua_State *L)
 
 	return(2);
 }
+static int Llogmidimsg(lua_State *L)
+{
+	lock_mutex_out();
+	g_debug = lua_tointeger(L, 1) ? true : false;
+	unlock_mutex_out();
+
+	return(2);
+}
 
 // publication of functions visible from LUA script
 //////////////////////////////////////////////////
@@ -4323,6 +4339,7 @@ static const struct luaL_Reg luabass[] =
 	{ "setVarMidiOut", LsetVarMidiOut }, // set a global variable in the LUA script for MIDI-out
 
 	{ "logmsg", Llog }, // log a string in mlog_out file
+	{ "logmidimsg", Llogmidimsg }, // log midi_msg in mlog_out file
 	{ soutGetLog, LoutGetLog }, // get log
 
 

@@ -167,6 +167,7 @@ enum
 	ID_MAIN_SETTING_SAVEAS,
 	ID_MAIN_RESET,
 	ID_MAIN_LOG,
+	ID_MAIN_MIDILOG,
 	ID_MAIN_UPDATE,
 	ID_MAIN_FIRSTUSE,
 	ID_MAIN_RECORD_PLAYBACK,
@@ -253,6 +254,7 @@ EVT_MENU(ID_MAIN_LUAFILE, Expresseur::OnLuafile)
 EVT_MENU(ID_MAIN_RESET, Expresseur::OnReset)
 EVT_MENU(ID_MAIN_DELETE_CACHE, Expresseur::OnDeleteCache)
 EVT_MENU(ID_MAIN_LOG, Expresseur::OnLog)
+EVT_MENU(ID_MAIN_MIDILOG, Expresseur::OnMidiLog)
 EVT_MENU(ID_MAIN_SETTING_OPEN, Expresseur::OnSettingOpen)
 EVT_MENU(ID_MAIN_SETTING_SAVEAS, Expresseur::OnSettingSaveas)
 EVT_MENU(ID_MAIN_CHECK_CONFIG, Expresseur::OnCheckConfig)
@@ -466,6 +468,7 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	settingMenu->Append(ID_MAIN_RESET, _("Reset audio/midi"), _("Reset the audio/midi configuration"));
 	settingMenu->Append(ID_MAIN_DELETE_CACHE, _("Delete cache"), _("Delete the MuseScore pages, kept in cache to save computing"));
 	settingMenu->Append(ID_MAIN_FIRSTUSE, _("Reset configuration"), _("Restart the initialization wizard"));
+	settingMenu->AppendCheckItem(ID_MAIN_MIDILOG, _("Log MIDI"), _("log output MIDI messages in log file"));
 	settingMenu->Append(ID_MAIN_CHECK_CONFIG, _("Check config"), _("Check the configuration (files, .. )"));
 
 	wxMenu *helpMenu = new wxMenu;
@@ -489,6 +492,8 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 
 	editMode = false;
 	editMenu->Check(wxID_EDIT, false);
+	logMidiMsg = false;
+	settingMenu->Check(ID_MAIN_MIDILOG, false);
 
 	localoff = (bool)(mConf->get(CONFIG_LOCALOFF, true));
 	settingMenu->Check(ID_MAIN_LOCAL_OFF, localoff);
@@ -2131,6 +2136,11 @@ void Expresseur::OnLog(wxCommandEvent& WXUNUSED(event))
 	mLog = NULL;
 	mLog = new logerror(this, wxID_ANY, _("log !!! timeline bottom->up : last-event is the first-line !!!"));
 	mLog->Show();
+}
+void Expresseur::OnMidiLog(wxCommandEvent& WXUNUSED(event))
+{
+	logMidiMsg = !logMidiMsg;
+	basslua_call(moduleLuabass, "logmidimsg", "i", logMidiMsg?1:0);
 }
 void Expresseur::OnSettingOpen(wxCommandEvent& WXUNUSED(event))
 {

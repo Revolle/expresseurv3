@@ -56,6 +56,9 @@ local texttochord = require("texttochord")
 -- contains the whole score text
 local score = "" 
 
+-- log of improvisation
+local logPlay = {}
+
 -- contains all the structured information about the score
 local section = {} -- sections which contain text + chords   
 local part = {}  -- chains of sections
@@ -180,6 +183,41 @@ print ("position")
 print ("  part#" .. posPart , part[posPart].name )
 print ("     section#" .. posSection , section[part[posPart].section[posSection].nrSection].name )
 print ("         chord#" .. posChord , section[part[posPart].section[posSection].nrSection].chord[posChord].root)
+end
+
+local function logRecord()
+  -- record the log of notes played ( logPlay ) in an muscXML file
+  luabass.logmsg("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
+  luabass.logmsg("<!DOCTYPE score-partwise PUBLIC \"-//Recordare//DTD MusicXML 3.0 Partwise//EN\" \"http://www.musicxml.org/dtds/partwise.dtd\">")
+  luabass.logmsg("<score-partwise> <part-list> <score-part id=\"P1\"><part-name>Piano</part-name> </score-part> </part-list> <part id=\"P1\">")
+  luabass.logmsg("<measure number=\"1\" > <attributes> <divisions>1</divisions> <clef> <sign>G</sign> <line>2</line> </clef> </attributes>")
+  local nrMeasure = 1
+  for i,v in ipairs(logPlay) do
+    if v.chord then
+      nrMeasure = nrMeasure + 1
+      luabass.logmsg("</measure> <measure number=\"" .. nrMeasure .. "\" >")
+    else
+      local mcolor = ""
+      local mpitch = ""
+      local malter = ""
+      local moctave = ""
+      local p = v.pitch
+      local d = (p%12) + 1
+      moctave = math.floor(p/12)
+      local sstep = {"C","C","D","D","E","F","F","G","G","A","A","B"}
+      local salter = {"","#","", "#","", "", "#","", "#","", "#","B"}
+      if v.black then
+        mcolor = "<notehead color=\"#888A85\">normal</notehead>"
+      end
+      if salter[d] == "#" then
+        malter = "<alter>1</alter>"
+      end
+      luabass.logmsg("<note> <pitch> <step>" .. sstep[d] .. "</step>" .. malter .. "<octave>" .. moctave .. "</octave> </pitch> <duration>1</duration>  <type>quarter</type>" .. mcolor .. "</note>" )
+      luabass.logmsg("</note>")
+    end
+  end
+  luabass.logmsg("</measure> </part> </score-partwise>")
+  logPlay = {}
 end
 
 local function extractParts()
@@ -538,6 +576,7 @@ function E.nextSection()
   E.letChord()
 end
 function E.firstPart()
+  logRecord()
   -- go to the beginning of the score
   posPart = 1
   posSection = 1
@@ -845,6 +884,12 @@ function E.playPitches(bid,velocity,index,black,scale,track,pstart,pend,delay,de
   local tpitch = E.getIndexPitches(scale,index,black)
   if tpitch then
     --luabass.logmsg(track.." decay="..decay.." play=>"..table.concat(tpitch,"/"))
+    local logNote
+    if black ~= 0 then
+      logNote.black = true
+    end
+    logNote.pitch = tpitch[1]
+    table.insert(logPlay,logNote)
     local id = luabass.outChordSet(-1,E.trackOctave[track],delay or 0,decay or 64,pstart or 1,pend or -1,table.unpack(tpitch))
     luabass.outChordOn(id,velocity,0,tracks["chord-" .. track])
     if typeLegato == 2 and black == 0 then
@@ -883,6 +928,9 @@ function E.changeChord()
   offPedal("chord")
   offPedal("scale")
   E.nextChord()
+    local logNote
+    logNote.chord = true
+    table.insert(logPlay,logNote)
 end
 function E.changeChordOn(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   -- change to next chord on noteOn

@@ -72,6 +72,7 @@ public:
 	void OnReset(wxCommandEvent& WXUNUSED(event));
 	void OnDeleteCache(wxCommandEvent& WXUNUSED(event));
 	void OnLog(wxCommandEvent& WXUNUSED(event));
+	void OnMidiLog(wxCommandEvent& WXUNUSED(event));
 	void OnSettingOpen(wxCommandEvent& WXUNUSED(event));
 	void OnSettingSaveas(wxCommandEvent& WXUNUSED(event));
 	void OnCheckConfig(wxCommandEvent& WXUNUSED(event));
@@ -199,6 +200,7 @@ private:
 	int mode = modeChord ;
 	bool playScoreOn = false ;
 	bool editMode;
+	bool logMidiMsg;
 	bool localoff;
 	wxToolBar *toolBar;
 	
