@@ -447,6 +447,28 @@ static int mlog_out(const char * format, ...)
 	}
 	return(-1);
 }
+static int mlog_xml(const char * format, ...)
+{
+	char g_path_out_xml[MAXBUFCHAR];
+	char msg[MAXBUFLOGOUT];
+	va_list args;
+	va_start(args, format);
+	vsprintf(msg, format, args);
+	va_end(args);
+	strcpy(g_path_out_xml,g_path_out_error_txt);
+	strcpy(g_path_out_xml+strlen(g_path_out_xml)-4,".xml");
+	FILE * pFile ;
+	if ( strncmp(msg,"<?xml",5) == 0)
+		pFile = fopen(g_path_out_xml, "w");
+	else
+		pFile = fopen(g_path_out_xml, "a");
+	if (pFile != NULL)
+	{
+		fprintf(pFile, "%s",msg);
+		fclose(pFile);
+	}
+	return(0);
+}
 static void lock_mutex_out()
 {
 	if ( ! g_mutex_out_ok )
@@ -4286,11 +4308,19 @@ static int LsetVarMidiOut(lua_State *L)
 	return (0);
 }
 
-static int Llog(lua_State *L)
+static int Llogmsg(lua_State *L)
 {
 	const char* s = lua_tostring(L, 1);
 	lock_mutex_out();
 	mlog_out(s);
+	unlock_mutex_out();
+	return(0);
+}
+static int Llogxml(lua_State *L)
+{
+	const char* s = lua_tostring(L, 1);
+	lock_mutex_out();
+	mlog_xml(s);
 	unlock_mutex_out();
 	return(0);
 }
@@ -4338,8 +4368,9 @@ static const struct luaL_Reg luabass[] =
 	{ "onMidiOut", LonMidiOut }, // set a LUA script for each MIDI-out
 	{ "setVarMidiOut", LsetVarMidiOut }, // set a global variable in the LUA script for MIDI-out
 
-	{ "logmsg", Llog }, // log a string in mlog_out file
-	{ "logmidimsg", Llogmidimsg }, // log midi_msg in mlog_out file
+	{ "logmsg", Llogmsg }, // log a string in mlog_out txt file
+	{ "logxml", Llogxml }, // log a string in mlog_out xml file
+	{ "logmidimsg", Llogmidimsg }, // log midi_msg in mlog_out txt file
 	{ soutGetLog, LoutGetLog }, // get log
 
 

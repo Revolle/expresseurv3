@@ -186,37 +186,52 @@ print ("         chord#" .. posChord , section[part[posPart].section[posSection]
 end
 
 local function logRecord()
-  -- record the log of notes played ( logPlay ) in an muscXML file
-  luabass.logmsg("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
-  luabass.logmsg("<!DOCTYPE score-partwise PUBLIC \"-//Recordare//DTD MusicXML 3.0 Partwise//EN\" \"http://www.musicxml.org/dtds/partwise.dtd\">")
-  luabass.logmsg("<score-partwise> <part-list> <score-part id=\"P1\"><part-name>Piano</part-name> </score-part> </part-list> <part id=\"P1\">")
-  luabass.logmsg("<measure number=\"1\" > <attributes> <divisions>1</divisions> <clef> <sign>G</sign> <line>2</line> </clef> </attributes>")
+  -- record the log of notes played ( logPlay ) in a muscXML file
+  luabass.logxml("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+  luabass.logxml("<!DOCTYPE score-partwise PUBLIC \"-//Recordare//DTD MusicXML 3.0 Partwise//EN\" \"http://www.musicxml.org/dtds/partwise.dtd\">\n")
+  luabass.logxml("<score-partwise> <part-list> <score-part id=\"P1\"><part-name>Piano</part-name> </score-part> </part-list> <part id=\"P1\">\n")
+  luabass.logxml("<measure number=\"1\" > <attributes> <divisions>1</divisions> <clef> <sign>G</sign> <line>2</line> </clef> </attributes>\n")
   local nrMeasure = 1
   for i,v in ipairs(logPlay) do
-    if v.chord then
+    if v.changechord then
       nrMeasure = nrMeasure + 1
-      luabass.logmsg("</measure> <measure number=\"" .. nrMeasure .. "\" >")
+      luabass.logxml("</measure> <measure number=\"" .. nrMeasure .. "\" >\n")
     else
-      local mcolor = ""
-      local mpitch = ""
-      local malter = ""
-      local moctave = ""
-      local p = v.pitch
-      local d = (p%12) + 1
-      moctave = math.floor(p/12)
-      local sstep = {"C","C","D","D","E","F","F","G","G","A","A","B"}
-      local salter = {"","#","", "#","", "", "#","", "#","", "#","B"}
-      if v.black then
-        mcolor = "<notehead color=\"#888A85\">normal</notehead>"
-      end
-      if salter[d] == "#" then
-        malter = "<alter>1</alter>"
-      end
-      luabass.logmsg("<note> <pitch> <step>" .. sstep[d] .. "</step>" .. malter .. "<octave>" .. moctave .. "</octave> </pitch> <duration>1</duration>  <type>quarter</type>" .. mcolor .. "</note>" )
-      luabass.logmsg("</note>")
+	   	for j,p in ipairs(v.chord) do
+	   		if ( j < 2 ) or ( (v.scale or "") == "chord" ) then 
+			  local mcolor = ""
+			  local mpitch = ""
+			  local malter = ""
+			  local moctave = ""
+			  local mchord = ""
+			  local d = (p%12) + 1
+			  moctave = math.floor(p/12)
+			  local sstep = {"C","C","D","E","E","F","F","G","G","A","B","B"}
+			  local salter = {"","#","", "b","", "", "#","", "#","", "b","B"}
+			  if v.scale then
+				if v.scale == "chord" then
+					mcolor = "<notehead color=\"#FC0107\">normal</notehead>"
+				elseif v.scale == "bass" then
+					mcolor = "<notehead color=\"#20FFFF\">normal</notehead>"
+				elseif ( v.black or 0 ) ~= 0 then
+					mcolor = "<notehead color=\"#BFBFBF\">normal</notehead>"
+				end
+			  end
+			  if salter[d] == "#" then
+				malter = "<alter>1</alter>"
+			  elseif salter[d] == "b" then
+				malter = "<alter>-1</alter>"
+			  end
+			  if j > 1 then
+				mchord = "<chord/>"
+			  end
+			  luabass.logxml("<note> " .. mchord .. "<pitch> <step>" .. sstep[d] .. "</step>" .. malter .. "<octave>" .. moctave .. "</octave> </pitch> <duration>1</duration>  <type>quarter</type>" .. mcolor .. "\n" )
+			  luabass.logxml("</note>\n")
+			end
+		end
     end
   end
-  luabass.logmsg("</measure> </part> </score-partwise>")
+  luabass.logxml("</measure> </part> </score-partwise>\n")
   logPlay = {}
 end
 
@@ -884,11 +899,10 @@ function E.playPitches(bid,velocity,index,black,scale,track,pstart,pend,delay,de
   local tpitch = E.getIndexPitches(scale,index,black)
   if tpitch then
     --luabass.logmsg(track.." decay="..decay.." play=>"..table.concat(tpitch,"/"))
-    local logNote
-    if black ~= 0 then
-      logNote.black = true
-    end
-    logNote.pitch = tpitch[1]
+    local logNote = {}
+    logNote.scale = scale
+    logNote.black = black
+  	logNote.chord = tpitch
     table.insert(logPlay,logNote)
     local id = luabass.outChordSet(-1,E.trackOctave[track],delay or 0,decay or 64,pstart or 1,pend or -1,table.unpack(tpitch))
     luabass.outChordOn(id,velocity,0,tracks["chord-" .. track])
@@ -928,8 +942,8 @@ function E.changeChord()
   offPedal("chord")
   offPedal("scale")
   E.nextChord()
-    local logNote
-    logNote.chord = true
+    local logNote = {}
+    logNote.changechord = true
     table.insert(logPlay,logNote)
 end
 function E.changeChordOn(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
