@@ -38,8 +38,8 @@ Configuration ExpresseurV3
 /shortcut/max/2=
 /shortcut/stoponmatch/2=stop
 /shortcut/param/2=
-/shortcut/name/3=next xhord note on
-/shortcut/action/3=chord/change chord on noteon
+/shortcut/name/3=next chord note on
+/shortcut/action/3=chord/change chord
 /shortcut/key/3=O
 /shortcut/devicename/3=all Midi-In
 /shortcut/channel/3=All channels
@@ -47,9 +47,9 @@ Configuration ExpresseurV3
 /shortcut/min/3=32
 /shortcut/max/3=
 /shortcut/stoponmatch/3=stop
-/shortcut/param/3=
+/shortcut/param/3=on
 /shortcut/name/4=next chord note off
-/shortcut/action/4=chord/change chord on noteoff
+/shortcut/action/4=chord/change chord
 /shortcut/key/4=
 /shortcut/devicename/4=all Midi-In
 /shortcut/channel/4=All channels
@@ -57,7 +57,7 @@ Configuration ExpresseurV3
 /shortcut/min/4=34
 /shortcut/max/4=
 /shortcut/stoponmatch/4=stop
-/shortcut/param/4=
+/shortcut/param/4=off
 /shortcut/name/5=Chord background
 /shortcut/action/5=chord/play background
 /shortcut/key/5=
@@ -79,7 +79,7 @@ Configuration ExpresseurV3
 /shortcut/stoponmatch/6=stop
 /shortcut/param/6=
 /shortcut/name/7=chord scale
-/shortcut/action/7=chord/play scale chord
+/shortcut/action/7=chord/play scale
 /shortcut/key/7=
 /shortcut/devicename/7=all Midi-In
 /shortcut/channel/7=All channels
@@ -87,9 +87,9 @@ Configuration ExpresseurV3
 /shortcut/min/7=48
 /shortcut/max/7=72
 /shortcut/stoponmatch/7=stop
-/shortcut/param/7=
+/shortcut/param/7=chord
 /shortcut/name/8=penta scale
-/shortcut/action/8=chord/play scale penta
+/shortcut/action/8=chord/play scale
 /shortcut/key/8=
 /shortcut/devicename/8=all Midi-In
 /shortcut/channel/8=All channels
@@ -97,4 +97,4 @@ Configuration ExpresseurV3
 /shortcut/min/8=72
 /shortcut/max/8=96
 /shortcut/stoponmatch/8=stop
-/shortcut/param/8=
+/shortcut/param/8=penta

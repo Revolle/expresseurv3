@@ -137,7 +137,8 @@ enum
 	ID_MAIN_ZOOM_1,
 	ID_MAIN_ZOOM_2,
 	ID_MAIN_ZOOM_3,
-
+	ID_MAIN_RECORD_IMPRO,
+	ID_MAIN_SAVE_IMPRO,
 	ID_MAIN_PLAYVIEW,
 	ID_MAIN_SOLO0,
 	ID_MAIN_SOLO1,
@@ -218,6 +219,8 @@ EVT_MENU(wxID_CUT, Expresseur::OnCut)
 EVT_MENU(wxID_PASTE, Expresseur::OnPaste)
 EVT_MENU_RANGE(ID_MAIN_SOLO1, ID_MAIN_SOLO9, Expresseur::OnPlayviewSolo)
 EVT_MENU(ID_MAIN_SOLO0, Expresseur::OnPlayviewAll)
+EVT_MENU(ID_MAIN_RECORD_IMPRO, Expresseur::OnRecordImpro)
+EVT_MENU(ID_MAIN_SAVE_IMPRO, Expresseur::OnSaveImpro)
 EVT_MENU(ID_MAIN_PLAYVIEW, Expresseur::OnPlayview)
 EVT_MENU_RANGE(ID_MAIN_UNZOOM_3, ID_MAIN_ZOOM_3, Expresseur::OnZoom)
 EVT_MENU(ID_MAIN_ORNAMENT_ADD_RELATIVE, Expresseur::OnOrnamentAddRelative)
@@ -420,9 +423,14 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	editMenu->AppendSubMenu(viewplayMenu, "View/Play score-tracks");
 
 	editMenu->AppendSeparator();
-	editMenu->AppendCheckItem(ID_MAIN_RECORD_PLAYBACK, _("record playback\tCTRL+R"), _("Start to record score playing"));
-	editMenu->Append(ID_MAIN_SAVE_PLAYBACK, _("save playback\tCTRL+T"), _("Save score playing in PLAYBACK section"));
-	editMenu->AppendCheckItem(ID_MAIN_PLAYBACK, _("playback\tCTRL+P") , _("Playback the score as described in PLAYBACK section"));
+	editMenu->AppendCheckItem(ID_MAIN_RECORD_PLAYBACK, _("record score playback\tCTRL+R"), _("Start to record score playing"));
+	editMenu->Append(ID_MAIN_SAVE_PLAYBACK, _("save score playback\tCTRL+T"), _("Save score playing in PLAYBACK section"));
+	editMenu->AppendCheckItem(ID_MAIN_PLAYBACK, _("score playback\tCTRL+P"), _("Playback the score as described in PLAYBACK section"));
+	editMenu->AppendSeparator();
+	editMenu->Append(ID_MAIN_RECORD_IMPRO, "record improvisation", "start recording improvisation");
+	editMenu->Append(ID_MAIN_SAVE_IMPRO, "save improvisation", "save improvisation in musicxml file, within tmp directory");
+	editMenu->Enable(ID_MAIN_SAVE_IMPRO, false);
+	editMenu->Enable(ID_MAIN_RECORD_IMPRO, true);
 
 	actionMenu = new wxMenu;
 
@@ -1440,6 +1448,20 @@ void Expresseur::OnPlayview(wxCommandEvent& WXUNUSED(event))
 		setPlayView(s);
 	}
 }
+void Expresseur::OnRecordImpro(wxCommandEvent& WXUNUSED(event))
+{
+	if (mode != modeChord)
+		return;
+	basslua_call(moduleChord, "logRecord", "");
+	editMenu->Enable(ID_MAIN_SAVE_IMPRO, true);
+	editMenu->Enable(ID_MAIN_RECORD_IMPRO, false);
+}
+void Expresseur::OnSaveImpro(wxCommandEvent& WXUNUSED(event))
+{
+	if (mode != modeChord)
+		return;
+	basslua_call(moduleChord, "logRecord", "");
+}
 void Expresseur::OnOrnamentAddAbsolute(wxCommandEvent& WXUNUSED(event))
 {
 	ornamentAdd(true);
@@ -2044,9 +2066,13 @@ bool Expresseur::settingReset(bool all)
 
 	basslua_setMode(mode);
 	
-	editMenu->Enable(ID_MAIN_RECORD_PLAYBACK , mode == modeScore);
-	editMenu->Enable(ID_MAIN_PLAYBACK , mode == modeScore);
-	editMenu->Enable(ID_MAIN_GOTO , mode == modeScore);
+	editMenu->Enable(ID_MAIN_RECORD_IMPRO, mode == modeChord);
+	editMenu->Enable(ID_MAIN_RECORD_PLAYBACK, mode == modeScore);
+	editMenu->Enable(ID_MAIN_SAVE_PLAYBACK, mode == modeScore);
+	editMenu->Enable(ID_MAIN_PLAYBACK, mode == modeScore);
+	editMenu->Enable(ID_MAIN_GOTO, mode == modeScore);
+	editMenu->Enable(ID_MAIN_PREVIOUS_PAGE, mode == modeScore);
+	editMenu->Enable(ID_MAIN_NEXT_PAGE, mode == modeScore);
 	editMenu->Enable(ID_MAIN_ORNAMENT_ADD_RELATIVE , mode == modeScore);
 	editMenu->Enable(ID_MAIN_ORNAMENT_ADD_ABSOLUTE , mode == modeScore);
 	editMenu->Check(ID_MAIN_RECORD_PLAYBACK,false);

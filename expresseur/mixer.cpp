@@ -534,12 +534,15 @@ void mixer::OnSoundDevice(wxEvent& event)
 	lastDevice = nameMidioutDevice[nrDevice];
 
 	wxString instrument;
-	mInstrument[nrTrack]->Set(listMidioutDevice[nrDevice]);
-	if (listMidioutDevice[nrDevice].GetCount() > 0)
-		instrument = listMidioutDevice[nrDevice].Item(0);
-	else
-		instrument = "" ;
-	mInstrument[nrTrack]->SetValue(instrument);
+	if (nrDevice < listMidioutDevice->GetCount())
+	{
+		mInstrument[nrTrack]->Set(listMidioutDevice[nrDevice]);
+		if (listMidioutDevice[nrDevice].GetCount() > 0)
+			instrument = listMidioutDevice[nrDevice].Item(0);
+		else
+			instrument = "";
+		mInstrument[nrTrack]->SetValue(instrument);
+	}
 
 	mConf->set(CONFIG_MIXERINSTRUMENT, instrument, true, nameTrack[nrTrack]);
 

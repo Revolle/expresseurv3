@@ -38,6 +38,8 @@ public:
 	void OnAudioSetting(wxCommandEvent& WXUNUSED(event));
 	void OnZoom(wxCommandEvent& WXUNUSED(event));
 	void OnPlayviewSolo(wxCommandEvent& WXUNUSED(event));
+	void OnSaveImpro(wxCommandEvent& WXUNUSED(event));
+	void OnRecordImpro(wxCommandEvent& WXUNUSED(event));
 	void OnPlayview(wxCommandEvent& WXUNUSED(event));
 	void OnPlayviewAll(wxCommandEvent& WXUNUSED(event));
 	void OnOrnamentAddAbsolute(wxCommandEvent& WXUNUSED(event));

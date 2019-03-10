@@ -57,7 +57,7 @@ local texttochord = require("texttochord")
 local score = "" 
 
 -- log of improvisation
-local logPlay = {}
+local logPlay = nil
 
 -- contains all the structured information about the score
 local section = {} -- sections which contain text + chords   
@@ -185,7 +185,11 @@ print ("     section#" .. posSection , section[part[posPart].section[posSection]
 print ("         chord#" .. posChord , section[part[posPart].section[posSection].nrSection].chord[posChord].root)
 end
 
-local function logRecord()
+function E.logRecord()
+  if logPlay == nil then
+	logPlay = {}
+    return
+  end
   -- record the log of notes played ( logPlay ) in a muscXML file
   luabass.logxml("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
   luabass.logxml("<!DOCTYPE score-partwise PUBLIC \"-//Recordare//DTD MusicXML 3.0 Partwise//EN\" \"http://www.musicxml.org/dtds/partwise.dtd\">\n")
@@ -204,16 +208,18 @@ local function logRecord()
 			  local malter = ""
 			  local moctave = ""
 			  local mchord = ""
+			  local mcue = ""
 			  local d = (p%12) + 1
 			  moctave = math.floor(p/12)
 			  local sstep = {"C","C","D","E","E","F","F","G","G","A","B","B"}
 			  local salter = {"","#","", "b","", "", "#","", "#","", "b","B"}
 			  if v.scale then
 				if v.scale == "chord" then
-					mcolor = "<notehead color=\"#FC0107\">normal</notehead>"
+					mcolor = "<notehead color=\"#9C9C9C\">normal</notehead>"
 				elseif v.scale == "bass" then
-					mcolor = "<notehead color=\"#20FFFF\">normal</notehead>"
+					mcolor = "<notehead color=\"#7C7C7C\">normal</notehead>"
 				elseif ( v.black or 0 ) ~= 0 then
+					mcue = "<cue/>"
 					mcolor = "<notehead color=\"#BFBFBF\">normal</notehead>"
 				end
 			  end
@@ -225,7 +231,7 @@ local function logRecord()
 			  if j > 1 then
 				mchord = "<chord/>"
 			  end
-			  luabass.logxml("<note> " .. mchord .. "<pitch> <step>" .. sstep[d] .. "</step>" .. malter .. "<octave>" .. moctave .. "</octave> </pitch> <duration>1</duration>  <type>quarter</type>" .. mcolor .. "\n" )
+			  luabass.logxml("<note> " .. mchord .. mcue .. "<pitch> <step>" .. sstep[d] .. "</step>" .. malter .. "<octave>" .. moctave .. "</octave> </pitch> <duration>1</duration>  <type>quarter</type>" .. mcolor .. "\n" )
 			  luabass.logxml("</note>\n")
 			end
 		end
@@ -591,7 +597,6 @@ function E.nextSection()
   E.letChord()
 end
 function E.firstPart()
-  logRecord()
   -- go to the beginning of the score
   posPart = 1
   posSection = 1
@@ -798,26 +803,24 @@ function offPedal(track)
   end
   bidPedal[track] = {} -- no more pedal pending
 end
-function legato(track,velocity,param)
-  -- set the legato of the track
-  -- param contains the status of the pedal : "off"  or "legato" , or "pedal" 
+function E.pedal(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+  -- set the legato of the track passed in param
+  -- param contains the track and the status of the pedal : "off"  or "legato" , or "pedal" 
   -- if param is empty : velocity = 0 <=> off , velocity > O <=> pedal
   local v
-  luabass.logmsg("legato "..track.."/"..param)
-  if string.len(param) > 0 then
-    if string.find(param,"legato") then 
-      v = 1
-    elseif string.find(param,"off") then
-      v = 0
-    elseif string.find(param,"pedal") then
-      v = 2
-    end
-  else
-    if velocity > 0 then
-      v = 2
-    else
-      v = 0
-    end
+  luabass.logmsg("legato "..param)
+  local track 
+  local value 
+  track , value = string.match(paramString or "" , "(%g+) (%g+)")
+  if track == nil or value == nil or legatoPlay[track] == nil then
+	return
+  end
+  if string.find(param,"legato") then 
+    v = 1
+  elseif string.find(param,"off") then
+    v = 0
+  elseif string.find(param,"pedal") then
+    v = 2
   end
   legatoPlay[track] = v
   if v == 0 then
@@ -832,29 +835,14 @@ function legato(track,velocity,param)
       offPedal(track)
   end
 end
-function E.pedalScale(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-  legato("scale",velocity,param)
-end
-function E.pedalBackground(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-  legato("background",velocity,param)
-end
-function E.pedalChord(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-  legato("chord",velocity,param)
-end
-function E.pedalBass(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-  legato("bass",velocity,param)
-end
-function E.octaveScale(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-  E.trackOctave["scale"] = 12 * (tonumber(parameter) or (E.trackOctave["scale"] / 12 ))
-end
-function E.octaveBackground(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-  E.trackOctave["background"] = 12 * (tonumber(parameter) or (E.trackOctave["background"] / 12 ))
-end
-function E.octaveChord(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-  E.trackOctave["chord"] = 12 * (tonumber(parameter) or (E.trackOctave["chord"] / 12 ))
-end
-function E.octaveBass(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-  E.trackOctave["bass"] = 12 * (tonumber(parameter) or (E.trackOctave["bass"] / 12 ))
+function E.octave(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+  local track 
+  local value 
+  track , value = string.match(paramString or "" , "(%g+) (%d+)")
+  if track == nil or value == nil or E.trackOctave[track] == nil then
+	return
+  end
+  E.trackOctave[track] = 12 * (tonumber(value))
 end
 
 function E.playPitches(bid,velocity,index,black,scale,track,pstart,pend,delay,decay)
@@ -899,11 +887,13 @@ function E.playPitches(bid,velocity,index,black,scale,track,pstart,pend,delay,de
   local tpitch = E.getIndexPitches(scale,index,black)
   if tpitch then
     --luabass.logmsg(track.." decay="..decay.." play=>"..table.concat(tpitch,"/"))
-    local logNote = {}
-    logNote.scale = scale
-    logNote.black = black
-  	logNote.chord = tpitch
-    table.insert(logPlay,logNote)
+	if logPlay then
+		local logNote = {}
+		logNote.scale = scale
+		logNote.black = black
+		logNote.chord = tpitch
+		table.insert(logPlay,logNote)
+	end
     local id = luabass.outChordSet(-1,E.trackOctave[track],delay or 0,decay or 64,pstart or 1,pend or -1,table.unpack(tpitch))
     luabass.outChordOn(id,velocity,0,tracks["chord-" .. track])
     if typeLegato == 2 and black == 0 then
@@ -913,64 +903,66 @@ function E.playPitches(bid,velocity,index,black,scale,track,pstart,pend,delay,de
      end
   end
 end
-function E.playScaleChord(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-  E.playPitches(bid,velocity,whitemediane,black,"chord","scale",1,-1,values["scale_delay"],values["scale_decay"])
+function E.playScale(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+  E.playPitches(bid,velocity,whitemediane,black,param or "penta","scale",1,-1,values["scale_delay"],values["scale_decay"])
 end
-function E.playScalePenta(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-  E.playPitches(bid,velocity,whitemediane,black,"penta","scale",1,-1,values["scale_delay"],values["scale_decay"])
-end
-function E.playChordUp(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-  E.playPitches(bid,velocity,0,0,"chord","chord",-1,1,values["chord_delay"],values["chord_decay"])
-end
-function E.playChordDown(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-  E.playPitches(bid,velocity,0,0,"chord","chord",1,-1,values["chord_delay"],values["chord_decay"])
+function E.playChord(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+  if (param or "up") == "up" then
+    E.playPitches(bid,velocity,0,0,"chord","chord",-1,1,values["chord_delay"],values["chord_decay"])
+  else
+    E.playPitches(bid,velocity,0,0,"chord","chord",1,-1,values["chord_delay"],values["chord_decay"])
+  end
 end
 function E.playBackground(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   E.playPitches(bid,velocity,0,0,"chord","background",1,-1,0,45)
-  E.playPitches(bid,velocity,1,0,"bass","bass",1,1,0,0)
 end
 function E.playBass(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-  E.playPitches(bid,velocity,1,0,"bass","bass",1,1,0,0)
+	if (param or "") == "walking" then
+       E.playPitches(bid,velocity,whiteindex,black,"bass","bass",1,1,0,0)
+	else
+       E.playPitches(bid,velocity,1,0,"bass","bass",1,1,0,0)
+	end
 end
-function E.playWalkingBass(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-  E.playPitches(bid,velocity,whiteindex,black,"bass","bass",1,1,0,0)
-end
-function E.changeChord()
+function E.changeNextChord()
   -- change to next chord 
   offPedal("bass")
   offPedal("background")
   offPedal("chord")
   offPedal("scale")
   E.nextChord()
+  if logPlay then
     local logNote = {}
     logNote.changechord = true
     table.insert(logPlay,logNote)
+  end
 end
-function E.changeChordOn(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+function E.changeChord(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   -- change to next chord on noteOn
-  if E.isRestart() or (velocity == 0) then
- 	return
-  end
-  E.changeChord()
-end
-function E.changeChordOff(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-  -- change to next chord on noteOff ( for anticipation )
-  if velocity == 0 then
-    E.changeChord()
-  end
-end
-function E.alternateChord(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-  -- change to next chord when alternate white <=> black
-  if E.isRestart() then 
-    previousBlack = black
-    currentBlack = black 
-  else
-    currentBlack = black
-  end
-  if previousBlack ~= currentBlack  then 
-    previousBlack = currentBlack
-    E.changeChord()
-  end
+  local v =  param or "on"
+  --luabass.logmsg("changechord:" .. v)
+  if v == "on" then
+	  if E.isRestart() or (velocity == 0) then
+		return
+	  end
+	  E.changeNextChord()
+   elseif v == "off" then
+     -- change to next chord on noteOff ( for anticipation )
+     if velocity == 0 then
+        E.changeNextChord()
+      end
+   elseif v == "alternate" then
+	  -- change to next chord when alternate white <=> black
+	  if E.isRestart() then 
+		previousBlack = black
+		currentBlack = black 
+	  else
+		currentBlack = black
+	  end
+	  if previousBlack ~= currentBlack  then 
+		previousBlack = currentBlack
+		E.changeNextChord()
+	  end
+   end
 end
 
 return E -- to export the functions
