@@ -3810,7 +3810,6 @@ static int LoutAllNoteOff(lua_State *L)
 	all_note_off(soption, nrTrack);
 	unlock_mutex_out();
 	return (0);
-	
 }
 
 static int LoutClock(lua_State *L)

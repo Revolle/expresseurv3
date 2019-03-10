@@ -596,8 +596,12 @@ function E.nextSection()
   posChord = 1 
   E.letChord()
 end
-function E.firstPart()
+function E.firstPart(time,bid,ch,typemsg, nr,velocity,param)
   -- go to the beginning of the score
+  if (param or "" ) == "smooth" then
+     smoothPart = 1
+     return
+  end
   posPart = 1
   posSection = 1
   posChord = 1
@@ -605,59 +609,60 @@ function E.firstPart()
   restart=true
   E.letChord()
 end
-function E.firstPartSmooth()
-  -- wait the end of the current section , go to the beginning of the score
-  smoothPart = 1
-end
-function E.nextPart()
+function E.nextPart(time,bid,ch,typemsg, nr,velocity,param)
   -- go to the next part ( or loop )
+  if (param or "" ) == "smooth" then
+     smoothPart = posPart + 1
+     return
+  end
   posPart = posPart + 1
   posSection = 1 
   posChord = 1 
   smoothPart = 0
   E.letChord()
 end
-function E.nextPartSmooth()
-  --  wait the end of the current section, go to the next part ( or loop )
-  smoothPart = posPart + 1
-end
-function E.lastPart()
+function E.lastPart(time,bid,ch,typemsg, nr,velocity,param)
   -- go to the last part ( tipycally a coda )
+  if (param or "" ) == "smooth" then
+     smoothPart = #part
+     return
+  end
   posPart = #part
   posSection = 1 
   posChord = 1 
   smoothPart = 0
    E.letChord()
 end
-function E.lastPartSmooth()
-  -- wait the end of the current section go to the last part ( tipycally a coda )
-  smoothPart = #part
-end
-function E.gotoPart(nrchainh)
+function E.gotoPart(time,bid,ch,typemsg, nr,velocity,param)
   -- go to the part
-  if ( type(nrchain) ~= "number" ) then return end
-  posPart = nrchain
-  posSection = 1 
-  posChord = 1 
-  smoothPart = 0
-  E.letChord()
+  local nrchain 
+  local smooth 
+  nrchain , smooth = string.match(paramString or "" , "(%d+) (smooth)")
+  if smooth then
+	-- wait the end of the current section, go to the part
+	smoothPart = nrchain
+    return
+  end
+  nrchain = string.match(paramString or "" , "(%d+)")
+  if nrchain then
+	  posPart = nrchain
+	  posSection = 1 
+	  posChord = 1 
+	  smoothPart = 0
+	  E.letChord()
+  end
 end
-function E.gotoPartSmooth(nrchain)
-  -- wait the end of the current section, go to the part
-  if ( type(nrchain) ~= "number" ) then return end
-  smoothPart = nrchain
-end
-function E.repeatPart()
+function E.repeatPart(time,bid,ch,typemsg, nr,velocity,param)
   -- repeat the part ( or loop )
+  if (param or "" ) == "smooth" then
+     smoothPart = posPart
+     return
+  end
   posPart = posPart
   posSection = 1 
   posChord = 1 
   smoothPart = 0
   E.letChord()
-end
-function E.repeatPartSmooth()
-  -- wait the end of the current section, and repeat the part ( or loop )
-  smoothPart = posPart
 end
 function E.getPosition()
   -- return position in the original text-score :
