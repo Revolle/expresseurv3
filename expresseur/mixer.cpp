@@ -47,6 +47,7 @@ enum
 	ID_MIXER_NEUTRAL=ID_MIXER ,
 	ID_MIXER_DEFAULT,
 	ID_MIXER_SOLO,
+	IDM_MIXER_EXTENSION,
 	ID_MIXER_SETTING_ALLNOTEOFF,
 	IDM_MIXER_CLOSE,
 	ID_MIXER_MAIN_VOLUME,
@@ -101,6 +102,7 @@ mixer::~mixer()
 }
 void mixer::close()
 {
+	mConf->set( CONFIG_MIXER_EXTENSION, mCheckBox->GetValue()?1:0 , true);
 }
 void mixer::OnClose(wxCloseEvent& event)
 {
@@ -141,6 +143,9 @@ void mixer::BuildSizer()
 	button_sizer->Add(new wxButton(this, ID_MIXER_NEUTRAL, _("Neutral")), sizerFlagMinimumPlace.Border(wxALL, 10));
 
 	button_sizer->Add(new wxButton(this, ID_MIXER_SETTING_ALLNOTEOFF, _("All Note off")), sizerFlagMinimumPlace.Border(wxALL, 10));
+	mCheckBox = new wxCheckBox(this, IDM_MIXER_EXTENSION, _("extended channels")) ;
+	mCheckBox->SetValue(mConf->get(CONFIG_MIXER_EXTENSION,1, true));
+	button_sizer->Add(mCheckBox, sizerFlagMinimumPlace.Border(wxALL, 10));
 	button_sizer->Add(new wxButton(this, IDM_MIXER_CLOSE, _("Close")), sizerFlagMinimumPlace.Border(wxALL, 10));
 
 	txtValue = new wxStaticText(this, wxID_ANY, "");
@@ -526,7 +531,7 @@ void mixer::OnSoundDevice(wxEvent& event)
 {
 	int nrTrack = event.GetId() - ID_MIXER_SOUND_DEVICE;
 	wxChoice *mControl = (wxChoice*)(event.GetEventObject());
-	int nrDevice = mControl->GetSelection();
+	unsigned int nrDevice = mControl->GetSelection();
 
 	wxString s1;
 	mConf->set(CONFIG_MIXERDEVICENAME, nameMidioutDevice[nrDevice], true, nameTrack[nrTrack]);
@@ -685,23 +690,28 @@ void mixer::reset(bool localoff ,bool doreset)
 	}
 	for (int nr_device = 0; nr_device < OUT_MAX_DEVICE; nr_device++)
 	{
-		channelPerDevice[nr_device] = 0;
-		for (int nr_channel = 0; nr_channel < MAXCHANNEL; nr_channel++)
+		if ( mCheckBox->GetValue() )
 		{
-			if (channelUsed[nr_device][nr_channel])
-				channelPerDevice[nr_device]++;
+			channelPerDevice[nr_device] = 0;
+			for (int nr_channel = 0; nr_channel < MAXCHANNEL; nr_channel++)
+			{
+				if (channelUsed[nr_device][nr_channel])
+					channelPerDevice[nr_device]++;
+			}
+			switch (channelPerDevice[nr_device])
+			{
+			case 0: additionnalChannelPerDevice[nr_device] = 8; break;
+			case 1: additionnalChannelPerDevice[nr_device] = 8; break;
+			case 2: additionnalChannelPerDevice[nr_device] = 5; break;
+			case 3: additionnalChannelPerDevice[nr_device] = 4; break;
+			case 4: additionnalChannelPerDevice[nr_device] = 2; break;
+			case 5: additionnalChannelPerDevice[nr_device] = 2; break;
+			case 6: additionnalChannelPerDevice[nr_device] = 1; break;
+			default: additionnalChannelPerDevice[nr_device] = 0; break;
+			}
 		}
-		switch (channelPerDevice[nr_device])
-		{
-		case 0: additionnalChannelPerDevice[nr_device] = 8; break;
-		case 1: additionnalChannelPerDevice[nr_device] = 8; break;
-		case 2: additionnalChannelPerDevice[nr_device] = 5; break;
-		case 3: additionnalChannelPerDevice[nr_device] = 4; break;
-		case 4: additionnalChannelPerDevice[nr_device] = 2; break;
-		case 5: additionnalChannelPerDevice[nr_device] = 2; break;
-		case 6: additionnalChannelPerDevice[nr_device] = 1; break;
-		default: additionnalChannelPerDevice[nr_device] = 0; break;
-		}
+		else
+			additionnalChannelPerDevice[nr_device] = 0;
 	}
 
 	//mlog_in("mixer / reset / setTracks");
@@ -753,6 +763,7 @@ void mixer::reset(bool localoff ,bool doreset)
 void mixer::write(wxTextFile *lfile)
 {
 	mConf->writeFile(lfile, CONFIG_MIXERMAIN,64,true);
+	mConf->writeFile(lfile, CONFIG_MIXER_EXTENSION,1,true);
 	for (unsigned int nrTrack = 0; nrTrack < nameTrack.GetCount(); nrTrack++)
 	{
 		mConf->writeFile(lfile, CONFIG_MIXERDEVICENAME, defaultDevice, true, nameTrack[nrTrack]);
@@ -764,6 +775,7 @@ void mixer::write(wxTextFile *lfile)
 void mixer::read(wxTextFile *lfile)
 {
 	mConf->readFile(lfile, CONFIG_MIXERMAIN,64);
+	mConf->readFile(lfile, CONFIG_MIXER_EXTENSION,1);
 	for (unsigned int nrTrack = 0; nrTrack < nameTrack.GetCount(); nrTrack++)
 	{
 		mConf->readFile(lfile, CONFIG_MIXERDEVICENAME, defaultDevice, true, nameTrack[nrTrack]);
