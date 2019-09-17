@@ -50,6 +50,8 @@ private:
 	mxconf* mConf;
 	viewerscore *mViewerscore;
 
+	wxCheckBox *mCheckBox ;
+	
 	bool loading = true;
 
 	wxStaticText *txtValue;

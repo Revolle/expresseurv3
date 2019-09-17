@@ -816,7 +816,7 @@ function E.pedal(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex
   luabass.logmsg("legato "..param)
   local track 
   local value 
-  track , value = string.match(paramString or "" , "(%g+) (%g+)")
+  track , value = string.match(param or "" , "(%g+) (%g+)")
   if track == nil or value == nil or legatoPlay[track] == nil then
 	return
   end

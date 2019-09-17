@@ -62,6 +62,7 @@
 #define CONFIG_MIXERCHANNEL "/mixer/channel"
 #define CONFIG_MIXERCURVENAME "/mixer/curvename"
 #define CONFIG_MIXERINSTRUMENT "/mixer/instrument"
+#define CONFIG_MIXER_EXTENSION "mixer/extendedchannel"
 
 #define CONFIG_SHORTCUTNB "/shortcut/selectornb"
 #define CONFIG_SHORTCUTCHANNEL "/shortcut/channel"
