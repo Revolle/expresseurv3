@@ -11,11 +11,46 @@
 //////////////////////////
 // selection of the design
 // Select one of the configs above
-// define KEYBOARD_CONFIG
+#define DUAL_OPTO_KEYBOARD
+// #define KEYBOARD_CONFIG
 // #define GUITAR_CONFIG
-// #define EXPANDER5_CONFIG
-#define EXPANDER6_CONFIG
 // end of configs
+//////////////////////////
+
+////////////////////////////
+// DUAL_OPTO_KEYBOARD design
+////////////////////////////
+#ifdef DUAL_OPTO_KEYBOARD
+#define MINVELOCITY 10 // velocity minimum
+#define DUALOPTO 1 // number fof optical velocity buttons
+//#define VELOMAX 4 // number fof optical velocity buttons
+//#define BUTTONMAX 2 // number of mechanical buttons
+//#define ANALOGMAX 1 // number of analog inputs
+//#define STRINGMAX 0 // number of optical strings
+//#define S2DREAMBLASTER1 // S2-DreamBlaster-midiexpander 1 available
+//#define CHANNELOUT 1
+
+// pins of the keyboard sensors
+#ifdef DUALOPTO
+const int veloPin[VELOMAX] = {2,1,0,5};
+const int veloValue[VELOMAX] = {A3,A4,A1,A5};
+#endif
+#ifdef VELOMAX
+const int veloPin[VELOMAX] = {2,1,0,5};
+const int veloValue[VELOMAX] = {A3,A4,A1,A5};
+#endif
+#ifdef BUTTONMAX
+const int buttonPin[BUTTONMAX] = {9,10};
+#endif
+#ifdef ANALOGMAX
+const int analogPin[ANALOGMAX] = {A0};
+const bool analogPullup[ANALOGMAX] = { true } ;
+#endif
+#ifdef STRINGMAX
+const int stringPin[STRINGMAX] = {0} ;
+#endif
+#define midiReset1 6 // pins to reset the S2-DreamBlaster-midi-expanders
+#endif // DUAL_OPTO_KEYBOARD
 //////////////////////////
 
 //////////////////////////
@@ -47,44 +82,6 @@ const int stringPin[STRINGMAX] = {0} ;
 #endif
 #define midiReset1 6 // pins to reset the S2-DreamBlaster-midi-expanders
 #endif // KEYBOARD_CONFIG
-//////////////////////////
-
-//////////////////////////
-// Expander 5*SF2 design
-//////////////////////////
-#ifdef EXPANDER5_CONFIG
-#define CHANNELOUT 3
-#define S2DREAMBLASTER1 //  S2-DreamBlaster-midiexpander 1 available
-#define S2DREAMBLASTER2 //  S2-DreamBlaster-midiexpander 2 available
-#define S2DREAMBLASTER3 //  S2-DreamBlaster-midiexpander 3 available
-#define S2DREAMBLASTER4 //  S2-DreamBlaster-midiexpander 4 available
-#define S2DREAMBLASTER5 //  S2-DreamBlaster-midiexpander 5 available
-#define midiReset1 23
-#define midiReset2 19
-#define midiReset3 16
-#define midiReset4 30
-#define midiReset5 35
-#endif // EXPANDER5_CONFIG
-//////////////////////////
-
-//////////////////////////
-// Expander 6*SF2 design
-//////////////////////////
-#ifdef EXPANDER6_CONFIG
-#define CHANNELOUT 3
-#define S2DREAMBLASTER1 //  S2-DreamBlaster-midiexpander 1 available
-#define S2DREAMBLASTER2 //  S2-DreamBlaster-midiexpander 2 available
-#define S2DREAMBLASTER3 //  S2-DreamBlaster-midiexpander 3 available
-#define S2DREAMBLASTER4 //  S2-DreamBlaster-midiexpander 4 available
-#define S2DREAMBLASTER5 //  S2-DreamBlaster-midiexpander 5 available
-#define S2DREAMBLASTER6 //  S2-DreamBlaster-midiexpander 6 available
-#define midiReset1 23
-#define midiReset2 19
-#define midiReset3 16
-#define midiReset4 30
-#define midiReset5 39
-#define midiReset6 35
-#endif // EXPANDER6_CONFIG
 //////////////////////////
 
 //////////////////////////
