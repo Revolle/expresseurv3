@@ -170,112 +170,69 @@ tracks = {
   { name = "chord-scale" , help = "scale for improvisation"  } ,
 }
 
---[[
---======== Guitare
-function onNoteOn(deviceNr , timestamp, channel , typemsg, pitch , velocity )
-	if (( pitch >= 12 ) and (pitch <= 15 )) then
-		luachord.playPitches(1000,0,pitch - 12,0,"chord","scale",1,-1,0,0) -- play chord strings
-		luachord.playPitches(1000,velocity,pitch - 12,0,"chord","scale",1,-1,50,50) -- play chord strings
-	end		
-	if (( pitch >= 16 ) and (pitch <= 19 )) then
-		luachord.playPitches(1000,0,pitch - 16,0,"chord","scale",1,-1,0,0) -- play chord strings
-		luachord.playPitches(1000,velocity,pitch - 16,0,"chord","scale",-1,1,50,50) -- play chord strings
-	end		
-end
+--======= tempo automatic
+local t0 = nil
+local t1 = nil
+local dt = nil
+local t = nil
+local triggerControl = 63
+function onControl(midinr, timestamp, channel , controlNr ,  value )
 
-
-local	guitare_posStrings = {} -- positions of strings
-local	guitare_first_time = true -- to initialize the guitare first time
-local	guitare_dString = 5 -- calculated trigger distance
-local	guitare_nbInterval = 20 -- calculated : intervals betwenn strings
-local	guitare_velocity = 64 -- modified by y-axis
-local	guitare_touch = 0 -- 0=no_touch 1=first_touch 2=next_touch
-local	guitare_prevValue = 1 -- previous position
-local   guitare_prevInterval = 1 -- previous interval
-
-function onControl(deviceNr ,  timestamp,  channel , typemsg,  controlNr ,  value )
+	-- filter control pedal
+	--if controNr ~= 64 then return end
 	
-	if ( guitare_first_time ) then
-	  guitare_first_time = false
-	  -- build a guitar with 6 strings, width=128
-	  local dp = 128 / ( 6 + 1 )
-	  guitare_dString = math.floor(dp/4)
-	  local p = 0
-	  while p < 128 do
-		table.insert(guitare_posStrings,math.floor(p))
-		p = p + dp
-	  end
-	  guitare_nbInterval = #guitare_posStrings
-	end
-
-	if ( controlNr == 20 ) then
-		values["scale decay"] = value
-		return
-	end
-	if ( controlNr == 21 ) then
-		values["scale delay"] = value
-		return
-	end
-	
-	if ( controlNr == 15 ) then -- guitare_touch
-	  if value > 60 then -- start guitare_touch
-		guitare_touch = 1 -- will calculate the intial position
-	  else -- stop guitare_touch
-		guitare_touch = 0 -- wait to guitare_touch
-	  end
-	  return
-	end
-
-	if ( controlNr == 17 ) then -- y-axis
-	  guitare_velocity = value 
-	  return
-	end
-
-	if ( controlNr == 16 ) then -- x-axis
-	  if ( guitare_touch == 0 ) then return end
-	  if ( guitare_touch == 1 ) then 
-		guitare_touch = 2 
-		guitare_prevValue = value -- start at this position
-		guitare_prevInterval = guitare_nbInterval
-		for i = 1 , guitare_nbInterval do
-		  if ( value <= guitare_posStrings[i] ) then
-			guitare_prevInterval = i -- start on this interval
-		  return
-		  end
-		end
+	-- schmidt trigger on pedal value
+	if value < triggerControl then
+		triggerControl = 63
 		return 
-	  end
-	  if ( value > guitare_prevValue ) then -- goes up
-		for i = guitare_prevInterval + 1 , guitare_nbInterval do
-		  if value > ( guitare_posStrings[i] + guitare_dString ) then
-			if ( i == 2 ) then
-				luachord.playPitches(2002,0,1,0,"bass","bass",1,1,0,0) -- play bass on first string
-				luachord.playPitches(2002,guitare_velocity,1,0,"bass","bass",1,1,0,0) -- play bass on first string
-			else
-				luachord.playPitches(2000+i,0,i - 2,0,"chord","scale",1,1,0,0) -- play chord strings
-				luachord.playPitches(2000+i,guitare_velocity,i - 2,0,"chord","scale",1,1,0,0) -- play chord strings
-			end
-			guitare_prevInterval = i
-		  end
+	end
+	if value > triggerControl then
+		if triggerControl == 10 then return end
+		triggerControl = 10 
+	end
+	-- timer init
+	if t == nil then return end
+	
+	if t0 == nil then
+		t0 = t
+		return
+	end
+	if dt == nil then
+		dt = t - t0
+		t0 = t 
+		t1 = t0 + dt
+		luabass.logmsg("pedal dt init t0=" .. t0 .. " dt=" .. dt .. " t1=" ..t1)
+	else
+		-- adapt tempo
+		local dti = t - t0 
+		if dti > (2*dt/3) then
+			-- before next automatic top, quicker !
+			luascore.play(t, 998, 0, 0, 1, 0)
+			luascore.play(t, 998, 0, 0, 1, 64)
+			dt = dti
+			t0 = t 
+			t1 = t0 + dt
+			luabass.logmsg("pedal quicker t0=" .. t0 .. " dt=" .. dt .. " t1=" ..t1)
+		elseif dti < (dt/3) then
+			-- after previous automatic top , smoother ...
+			dt = dt + dti
+			t0 = t 
+			t1 = t0 + dt
+			luabass.logmsg("pedal smoother t0=" .. t0 .. " dt=" .. dt .. " t1=" ..t1)
 		end
-	  else -- goes down
-		for i = guitare_prevInterval  , 1 , -1 do
-		  if value < ( guitare_posStrings[i] - guitare_dString ) then
-			if ( i == 2 ) then
-				luachord.playPitches(2002,0,1,0,"bass","bass",1,1,0,0) -- play bass on first string
-				luachord.playPitches(2002,guitare_velocity,1,0,"bass","bass",1,1,0,0) -- play bass on first string
-			else
-				luachord.playPitches(2000+i,0,i - 2,0,"chord","scale",1,1,0,0) -- play chord strings
-				luachord.playPitches(2000+i,guitare_velocity,i - 2,0,"chord","scale",1,1,0,0) -- play chord strings
-			end
-			guitare_prevInterval = i - 1
-		  end
-		end
-	  end
-	  guitare_prevValue= value 
 	end
 end
---]]
+function onTimer(it)
+	t = it
+	if t1 == nil then return end
+	if it > t1 then
+		luascore.play(t, 998, 0, 0, 1, 0)
+		luascore.play(t, 998, 0, 0, 1, 64)
+		t1 = t1 + dt
+		t0 = t 
+		luabass.logmsg("pedal trigger t0=" .. t0 .. " dt=" .. dt .. " t1=" ..t1)
+	end
+end
 
 function playNote( t, bid, ch, typemsg, d1, d2 , paramString)
 	trackNr = string.match(paramString or "" , "(%d+)")
@@ -283,6 +240,9 @@ function playNote( t, bid, ch, typemsg, d1, d2 , paramString)
 end
 function allNoteOff( )
     luabass.outAllNoteOff()
+    t0 = nil 
+    dt = nil
+    t1 = nil
 end
 function setLuaValue( t, bid, ch, typemsg, pitch, velo , paramString )
   local luaparam 
