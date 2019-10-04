@@ -1,13 +1,28 @@
-composant = 1 ; // pour voir les composants
-ligature=1; // pour lier les objets à l'impression
-ligature_couvercle = 0;
+voir_composant = 0 ; // pour voir les composants
+voir_led = 1 ; // pour voir les led
+voir_pedale = 1 ; // pour vior la pedale
+ligature=1; // pour lier les objets à l'impression (plot s2)
+ligature_couvercle = 0; // pour lier le couvercle
 audio = 1 ; // pour inclure le S2 et son jack
 x2 = 1; // pour inclure un x2 à la place du s2
 pedale = 1 ; // pour inclure la pedale 
-couvercle = 0 ; 
+couvercle = 0 ; // pour inclure le couvercle
+dzcouvercle = 0 ; // decalage couvercle pour l'impression
+
 
 // precision dessin (6=brouillon, 60=finition)
-$fn = 6 ;
+$fn = 10 ;
+// coupe= [500,0,0]; // pas de coupe
+//coupe= [-120,00,0]; // phototransistor
+//coupe= [-116,00,0]; // pcb
+//coupe= [-100,00,0]; // tunnel
+//coupe= [-67,00,0];// pedale
+//coupe= [-45,00,0]; // led
+//coupe= [83,00,0]; // 1/2 phototransistor
+//coupe= [85,00,0]; // phototransistor
+//coupe= [123,00,0]; // pcb
+coupe= [153,00,0]; // sans led
+//coupe= [155,00,0]; // avec led
 
 pouce=2.54;
 
@@ -15,6 +30,8 @@ largeurx2 = 40 ;
 longueurx2 = 67 ;
 largeurs2=34;
 longueurs2 = 25 ;
+epcb = 1.5 ;
+
 ex2=1.2;
 dys2 = 10.5*pouce ;
 dzs2=-12 ;
@@ -44,11 +61,12 @@ pled = 20-6.4 -6 ; // dimension pattes led
 dled = 2.8 ; // dimension trou lumiere
 
 iled = 9*pouce ; // intervale entre leds = 22.86
-hporteled = dhled + dled1/2 + 0.5 ;
-dzporteled = hauteur/2 - hporteled/2 - e ; 
+hporteled = dled + e ; // dhled + dled1+0.5 ;
+dzporteled = hauteur/2 ; 
+dzledporteled = - hporteled/2 ;
+dzcentreoptique = dzporteled +dzledporteled  ;
 lporteled = lled + e ; // largeur porte led
 
-epcb = 1.5 ;
 dyteensy = -iled/2 ;
 dzusbteensy = 4.3 ;
 dzteensy = 0 ;
@@ -58,15 +76,14 @@ xpcbled = 2 * pouce;
 ypcbled = 2*iled+2* pouce ; 
 xpcb = 18 * pouce; // 45.72 mm
 ypcb = largeur - 2* pouce ; // 71.12mm/2=35.56mm
-dzpcb = dzporteled + hporteled/2 -hled  ;
-dzpcbled = dzpcb    ;
+dzpcb = dzporteled - hled - 3 ; // dzporteled + hporteled/2 -hled  ;
 
 lplot = 2.5*pouce ;
-lplotcouvercle = 3.5*pouce;
-dxplot1= -x_electronique/2+ lplotcouvercle/2  + e/2 ;
-dxplot2 = x_electronique/2+x_doigt+x_led-2*e-lplotcouvercle/2 -e/2 ;
-dyplot1 = -largeur/2  + lplotcouvercle/2 + e/2  ;
-dyplot2 = largeur/2 - lplotcouvercle/2 - e/ 2;
+dyplotcouvercle = 3.5*pouce;
+dxplot1= -x_electronique/2+ dyplotcouvercle/2  + e/2 ;
+dxplot2 = x_electronique/2+x_doigt+x_led-2*e-dyplotcouvercle/2 -e/2 ;
+dyplot1 = -largeur/2  + dyplotcouvercle/2 + e/2  ;
+dyplot2 = largeur/2 - dyplotcouvercle/2 - e/ 2;
 dxplotc = x_electronique/2+x_doigt/2-8;
 dyplotc = -10 ;
 
@@ -89,6 +106,7 @@ laxe_tt404 = 20.57 ;
 dy_tt404 = laxe_tt404 - 12.7 - e  ;
 dtrou_tt404 = 1.93 ;
 daxe_tt404 = 24.13 ;
+dztt404 = hauteur - h_doigt - h_tt404 - e/2 - 0.3 ;
 
 module tt404()
 {
@@ -122,7 +140,7 @@ module tt404()
 }
 module led()
 {
-    //translate([0,0,-hled/2 + dhled])
+    translate([0,0,-hled/2 + dhled])
     union()
     {
         difference()
@@ -259,7 +277,6 @@ module pcb()
         }
     }
     translate([-2.5*pouce,dyteensy,dzteensy]) rotate([180,0,-90]) teensy2() ;
-    *translate([-6.5*pouce,-11*pouce,dzcny70]) rotate([180,0,0]) cny70();
     if ( audio == 1 )
     {
         // jack
@@ -325,38 +342,39 @@ module dedans_electronique(x,y,z)
 }
 module porteled(l)
 {
+    translate([0,0,dzledporteled])
     union()
     {
         difference()
         {
             // tunnel
             translate([(l+eled)/2,0,0])
-                cube([eled + e + l + eled ,lporteled,hporteled ],center=true);
+                cube([eled + e + l + eled ,lporteled,hporteled  ],center=true);
             // moins logement led
             scale([1.2,1.15,1.05]) led() ;
             // moins degagement led
-            translate([(l+eled)/2,0,0.1])
-                cube([eled  + l + eled ,lled -0.2 ,hled - 0.2 ],center=true);
+           translate([(l+eled)/2,0,0.1])
+                cube([eled  + l + eled ,lporteled - e  ,hporteled - e ],center=true);
             // ouverture tunnel extrémité
             translate([10 + (l+eled/2),0,0])
                 cube([20 ,20,20],center=true);
-            // moins degageent pour inserer la led
+            // moins degagement pour inserer la led
             translate([-e/2,0,-10-hled/2])
                 cube([eled + 1.5* e ,20,20],center=true);
         }
-        if (composant == 1)
-            translate([0,0,-hled/2+hporteled/2]) led();
+        if ((voir_composant == 1) && (voir_led == 1))
+            led();
     }
 }
-module plot(h,l,vis)
+module plot(h,vis)
 {
     translate([0,0,h/2])
         difference()
         {
-            cube([l,l,h],center=true);
+            cube([lplot,lplot,h],center=true);
             cylinder(h=h,d=dtrouvis,center=true);
         }
-    if ( composant)
+    if ( voir_composant)
     {
         if (vis)
         {
@@ -385,10 +403,21 @@ module bouton(lbouton,dbouton)
     }
 
 }
-module plot_couvercle(dx,xy)
+module plot_couvercle(dx,dy)
 {
-    translate([dx,xy,-hauteur/2 + e/2 ])
-        plot(1.5*lplot,lplotcouvercle,false);
+    translate([dx,dy,-hauteur/2 + e/2 ])
+    {
+        union()
+        {
+            plot(1.5*lplot,false);
+            if (dy > 0)
+                translate([0,lplot/2+(largeur/2-abs(dy)- lplot/2)/2,1.5*lplot/2])
+                    cube([lplot,largeur/2-abs(dy)- lplot/2,1.5*lplot],center=true);
+            else
+                translate([0,-(lplot/2+(largeur/2-abs(dy)- lplot/2)/2),1.5*lplot/2])
+                    cube([lplot,largeur/2-abs(dy)- lplot/2,1.5*lplot],center=true);
+        }
+    }
 }
 module plot_tt404(hplot)
 {
@@ -409,8 +438,9 @@ module plot_tt404(hplot)
               translate([dt_tt404-l_tt404/2,-daxe_tt404/2,-(4)/2-hplot/2])
                 cylinder(h=4,d=dtrou_tt404-0.1,center=true);
         }
-    *translate([0,0,-h_tt404/2 -hplot-1])
-        tt404();
+    if ((voir_composant == 1 ) && ( voir_pedale == 1 ))
+        translate([0,0,-h_tt404/2 -hplot-0.1])
+            tt404();
 }
 module trou_couvercle(dx,dy)
 {
@@ -447,31 +477,31 @@ module boite ()
             }
             // trous pour les chemins optiques
             union()
-            {
-                
+            {           
                 for(nrled = [-1:1] )
                 {
-                    translate([x_doigt/2 + x_electronique/2 -pouce ,nrled * iled,dzporteled  ])
+                    translate([x_doigt/2 + x_electronique/2 -pouce ,nrled * iled,dzcentreoptique  ])
                        cube([x_doigt+4*pouce,dled,dled],center=true);
                 }
             }
             // couvercle_fond
             translate([0,0,-hauteur/2]) fond(0.25,0) ;
             // trou fiche usb
-            translate([-x_electronique/2,dyteensy,-dzusbteensy - dzteensy + dzpcb ])
+            translate([-x_electronique/2,dyteensy,-dzusbteensy - dzteensy + dzpcb  - epcb/2])
                 cube([2*pouce,13,7],center=true);
             
             if ( audio == 1 )
             {
                 // trou fiche jack
-                translate([-x_electronique/2,dyjack,-dzjack + dzpcb]) 
+                translate([-x_electronique/2,dyjack,-dzjack + dzpcb - epcb/2 ]) 
                     rotate([0,90,0]) 
                         cylinder(h=2*pouce,d=8,center = true);
             }
             if ( pedale == 1)
             {
                 // trou pedale
-                translate([x_tt404 - da_tt404 ,-largeur/2,-hauteur/2 + e/2 + dz_tt404 + h_tt404 /2  ] )
+                translate([x_tt404 - da_tt404 ,-largeur/2, - dztt404 ]) 
+              //  -hauteur/2 + e/2 + dz_tt404 + h_tt404 /2  ] )
                 {
                     rotate([90,0,0])
                         cylinder(h=10,d=d_tt404  + 1 ,center = true);
@@ -480,26 +510,27 @@ module boite ()
                 }
             }
        } 
-       // chemins optiques   
-       for(nrled = [-1:1] )
+    }
+    // chemins optiques   
+    for(nrled = [-1:1] )
+    {
+        // recepteur
+        difference()
         {
-            // recepteur
-            difference()
-            {
-                translate([-(x_electronique -3*e )/2 +  e,nrled * iled,dzporteled  ])
-                   porteled(x_electronique - 3*e );
+            translate([-(x_electronique -3*e )/2 +  e,nrled * iled,dzporteled  ])
+               porteled(x_electronique - 3*e );
+            translate([e,0,0])
                 echancrure_empreinte(x_electronique,largeur,hauteur,nrled * iled);
-            }
-            // emetteur
-            translate([x_doigt + x_electronique/2 -pouce/2 ,nrled * iled,dzporteled ])
-                    rotate([0,0,180])
-                        porteled(pouce);
         }
+        // emetteur
+        translate([x_doigt + x_electronique/2 -pouce/2 ,nrled * iled,dzporteled ])
+                rotate([0,0,180])
+                    porteled(pouce);
     }
     // couvercle avec trous de vis
     if ( couvercle == 1 )
     {
-        translate([0,0,-hauteur/2 -4 ])
+        translate([0,0,-hauteur/2 + dzcouvercle ])
             union()
             {
                 difference()
@@ -528,55 +559,48 @@ module boite ()
         {
             for(i=[-12.5*pouce,12.5*pouce ])
             {
-                echo ("dplotpcb x,y= ", j, i);
-                translate([j,i,dzpcb + epcb/2 ])
-                    plot(hled + e,lplot,true);
+                translate([j,i,dzpcb ])
+                    plot(hauteur/2 - dzpcb,true);
             }
         }
         // pcbled
-        translate([x_electronique/2+x_doigt,-lplot ,dzpcbled])
-                plot(hled + e,lplot,true);
+        translate([x_electronique/2+x_doigt,-lplot ,dzpcb])
+                plot(hauteur/2 - dzpcb,true);
         // couvercle
         plot_couvercle(dxplot1,dyplot1);
         plot_couvercle(dxplot2,dyplot1);
         plot_couvercle(dxplot1,dyplot2);
         plot_couvercle(dxplot2,dyplot2);
-        translate([dxplotc,dyplotc,-hauteur/2 +e/2 ])
-            plot( hauteur - h_doigt -e ,lplot,false);
+        translate([dxplotc,dyplotc,-hauteur/2 + e/2  ])
+            plot( hauteur - h_doigt - e/2 ,false);
         //tt404
         if ( pedale == 1 )
         {
-            translate([x_tt404,-largeur/2+e/2+dy_tt404,hauteur/2 - h_doigt -e/2]) 
+            translate([x_tt404,-largeur/2+e/2+dy_tt404,hauteur/2 - h_doigt]) 
                 rotate([0,0,180])
-                    plot_tt404(hauteur/2 -h_tt404 + hauteur/2 - h_doigt -e - 0.25 );
+                    plot_tt404(dztt404 );
         }
         //x2
-        translate([-3*pouce,-12.5*pouce,dzpcb+dzs2+epcb/2])
+        translate([-3*pouce,-12.5*pouce,dzpcb+dzs2])
         union()
         {
-            plot(-dzs2 -epcb  ,lplot,true);
+            plot(-dzs2 -epcb ,true);
             if ( ligature == 1)
             {
-                translate([0,-3,3])
+                translate([0,-4.5,3])
                 rotate([90,0,0]) cube([1,1,5],center=true);
             }
         }
     }
      // composants
-    if (composant == 1)
+    if (voir_composant == 1)
     {
         // pcb
-        translate([-x_electronique/2 + xpcb/2 + pouce /2 ,0,dzpcb - epcb/2 -0.2 ] ) 
+        translate([-x_electronique/2 + xpcb/2 + pouce /2 ,0,dzpcb - epcb/2 ] ) 
             pcb() ;
         // pcbled
-        translate([+x_electronique/2 + x_doigt + x_led/2 -e -pouce ,0 , dzpcbled - epcb/2 -0.2  ] ) 
+        translate([+x_electronique/2 + x_doigt + x_led/2 -e -pouce ,0 , dzpcb - epcb/2   ] ) 
             pcbled() ;
-        if ( pedale == 1 )
-        {
-            translate([x_tt404,-largeur/2+e/2+dy_tt404,-hauteur/2+h_tt404/2 + e / 2]) 
-                rotate([0,0,180])
-                    tt404();
-        }
      }
 
 }
@@ -594,9 +618,7 @@ module boite ()
 difference()
 {
     boite() ;
-    //translate([123,00,0]) //bord pcb
-    //translate([153,00,0]) //bord sans led
-    translate([155,00,0]) //bord avec led
+    translate(coupe)   
         cube([200,200,200], center = true);
 }
 echo("largeur=",largeur," longueur=",x_electronique+x_doigt+x_led, " hauteur=",hauteur);
