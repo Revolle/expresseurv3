@@ -1,4 +1,4 @@
-voir_composant = 0 ; // pour voir les composants
+voir_composant = 1 ; // pour voir les composants
 voir_led = 1 ; // pour voir les led
 voir_pedale = 1 ; // pour vior la pedale
 ligature=1; // pour lier les objets à l'impression (plot s2)
@@ -10,9 +10,9 @@ couvercle = 0 ; // pour inclure le couvercle
 dzcouvercle = 0 ; // decalage couvercle pour l'impression
 
 
-// precision dessin (6=brouillon, 60=finition)
+// precision dessin (6=brouillon, 30=imprimable)
 $fn = 10 ;
-// coupe= [500,0,0]; // pas de coupe
+coupe= [500,0,0]; // pas de coupe
 //coupe= [-120,00,0]; // phototransistor
 //coupe= [-116,00,0]; // pcb
 //coupe= [-100,00,0]; // tunnel
@@ -21,7 +21,7 @@ $fn = 10 ;
 //coupe= [83,00,0]; // 1/2 phototransistor
 //coupe= [85,00,0]; // phototransistor
 //coupe= [123,00,0]; // pcb
-coupe= [153,00,0]; // sans led
+//coupe= [153,00,0]; // sans led
 //coupe= [155,00,0]; // avec led
 
 pouce=2.54;
