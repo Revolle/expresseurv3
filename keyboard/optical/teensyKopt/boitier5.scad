@@ -331,7 +331,7 @@ module contour_electronique(x,y,z)
                 echancrure_empreinte(x,y,z,nrled*iled);
             }
         }
-        sphere(r=e,center=true);
+        sphere(r=e);
     }
 
  }
