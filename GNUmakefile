@@ -45,7 +45,7 @@ ifeq ($(PLATFORM),Linux)
 		
 		CPPFLAGS := $(CPPFLAGS) -O -fPIC -D__LINUX_ALSA__ 
 
-		WX_CONFIG=~/Documents/wxWidgets/buildgtk/wx-config
+		WX_CONFIG=../wxWidgets/buildgtk/wx-config
 
     # dynamic library for basslua ( called by GUI expresseur )
     DYNLIB_EXT := dylib
