@@ -37,7 +37,7 @@ $fn = 10 ;
 //coupe= [123,00,0]; // pcb
 //coupe= [153,00,0]; // sans led
 //coupe= [155,00,0]; // avec led
-coupe=[0,-100,0];
+coupe=[0,100,0];
 
 pouce=1*2.54;
 
