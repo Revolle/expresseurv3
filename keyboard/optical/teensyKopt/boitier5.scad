@@ -11,22 +11,22 @@ ligature_couvercle = 0;
 // pour inclure le S2 et son jack
 audio = 1 ; 
 // pour inclure un x2 à la place du s2
-x2 = 0; 
+x2 = 1; 
 // pour inclure la pedale
 pedale = 1 ;  
 // pour inclure une capteur externe
 capteur = 1 ;
 // pour inclure le couvercle
-couvercle = 0 ; 
+couvercle = 1 ; 
 // decalage couvercle pour l'impression
-dzcouvercle = 0 ; 
+dzcouvercle = -10 ; 
 
 
 // precision dessin (6=brouillon, 30=imprimable)
-$fn = 10 ;
+$fn = 6 ;
 
 // vue en coupe 
-//coupe= [500,0,0]; // pas de coupe
+coupe= [500,0,0]; // pas de coupe
 //coupe= [-120,00,0]; // phototransistor
 //coupe= [-116,00,0]; // pcb
 //coupe= [-100,00,0]; // tunnel
@@ -37,7 +37,7 @@ $fn = 10 ;
 //coupe= [123,00,0]; // pcb
 //coupe= [153,00,0]; // sans led
 //coupe= [155,00,0]; // avec led
-coupe=[0,100,0];
+//coupe=[0,100,0];
 
 pouce=1*2.54;
 
@@ -47,11 +47,15 @@ largeurs2=34;
 longueurs2 = 25 ;
 epcb = 1.5 ;
 
+// intervale entre leds 
+iled_pouce = 9 ; 
+iled = iled_pouce *pouce ;
+
 ex2=1.2;
 dxs2 = 3*pouce ;
 dys2 = 10.5*pouce ;
 dzs2=-12 ;
-dyjack = +3.5*pouce ;
+dyjack = iled / 2 ;
 hjack = 3 ;
 dzjack = hjack + epcb / 2;
 d_trou_jack = 8 ;
@@ -78,9 +82,6 @@ pled = 20-6.4 -6 ; // dimension pattes led
 
 dled = 2.8 ; // dimension trou lumiere
 
-// intervale entre leds 
-iled_pouce = 9 ; 
-iled = iled_pouce *pouce ;
 
 hporteled = dled + e ; // dhled + dled1+0.5 ;
 dzporteled = hauteur/2 ; 
@@ -670,6 +671,7 @@ module boite ()
 *chanfrein(10,10,3);
 *s2(); 
 *x2();
+*jack();
 difference()
 {
     boite() ;
