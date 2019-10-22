@@ -11,46 +11,9 @@
 //////////////////////////
 // selection of the design
 // Select one of the configs above
-#define DUAL_OPTO_KEYBOARD
-// #define KEYBOARD_CONFIG
+#define KEYBOARD_CONFIG
 // #define GUITAR_CONFIG
 // end of configs
-//////////////////////////
-
-////////////////////////////
-// DUAL_OPTO_KEYBOARD design
-////////////////////////////
-#ifdef DUAL_OPTO_KEYBOARD
-#define MINVELOCITY 10 // velocity minimum
-#define DUALOPTO 1 // number fof optical velocity buttons
-//#define VELOMAX 4 // number fof optical velocity buttons
-//#define BUTTONMAX 2 // number of mechanical buttons
-//#define ANALOGMAX 1 // number of analog inputs
-//#define STRINGMAX 0 // number of optical strings
-//#define S2DREAMBLASTER1 // S2-DreamBlaster-midiexpander 1 available
-//#define CHANNELOUT 1
-
-// pins of the keyboard sensors
-#ifdef DUALOPTO
-const int veloPin[VELOMAX] = {2,1,0,5};
-const int veloValue[VELOMAX] = {A3,A4,A1,A5};
-#endif
-#ifdef VELOMAX
-const int veloPin[VELOMAX] = {2,1,0,5};
-const int veloValue[VELOMAX] = {A3,A4,A1,A5};
-#endif
-#ifdef BUTTONMAX
-const int buttonPin[BUTTONMAX] = {9,10};
-#endif
-#ifdef ANALOGMAX
-const int analogPin[ANALOGMAX] = {A0};
-const bool analogPullup[ANALOGMAX] = { true } ;
-#endif
-#ifdef STRINGMAX
-const int stringPin[STRINGMAX] = {0} ;
-#endif
-#define midiReset1 6 // pins to reset the S2-DreamBlaster-midi-expanders
-#endif // DUAL_OPTO_KEYBOARD
 //////////////////////////
 
 //////////////////////////
@@ -60,27 +23,27 @@ const int stringPin[STRINGMAX] = {0} ;
 #define S2DREAMBLASTER1 // S2-DreamBlaster-midiexpander 1 available
 #define CHANNELOUT 1
 #define MINVELOCITY 5 // velocity minimum
-#define VELOMAX 4 // number fof optical velocity buttons
-#define BUTTONMAX 2 // number of mechanical buttons
-#define ANALOGMAX 1 // number of analog inputs
+#define VELOMAX 3 // number fof optical velocity buttons
+//#define BUTTONMAX 2 // number of mechanical buttons
+#define ANALOGMAX 2 // number of analog inputs
 //#define STRINGMAX 0 // number of optical strings
 
 // pins of the keyboard sensors
 #ifdef VELOMAX
-const int veloPin[VELOMAX] = {2,1,0,5};
-const int veloValue[VELOMAX] = {A3,A4,A1,A5};
+const int veloPin[VELOMAX] = {17,16,1};
+const int veloValue[VELOMAX] = {A6,A7,A8};
 #endif
 #ifdef BUTTONMAX
-const int buttonPin[BUTTONMAX] = {9,10};
+const int buttonPin[BUTTONMAX] = {};
 #endif
 #ifdef ANALOGMAX
-const int analogPin[ANALOGMAX] = {A0};
-const bool analogPullup[ANALOGMAX] = { true } ;
+const int analogPin[ANALOGMAX] = {A9,A11};
+const bool analogPullup[ANALOGMAX] = { true, true } ;
 #endif
 #ifdef STRINGMAX
 const int stringPin[STRINGMAX] = {0} ;
 #endif
-#define midiReset1 6 // pins to reset the S2-DreamBlaster-midi-expanders
+//#define midiReset1 6 // pins to reset the S2-DreamBlaster-midi-expanders
 #endif // KEYBOARD_CONFIG
 //////////////////////////
 
@@ -127,7 +90,7 @@ byte midiLen ;
 byte *midiSysexBuf;
 
 // Led to "see" midi flow
-#define ledPin 13
+#define ledPin 11
 elapsedMillis sinceLed;
 bool ledStatus ;
 
@@ -209,7 +172,7 @@ void ledSetup()
 /////////////////////////////////
 void midiSetAudio(byte midiChannel, int audioOutput )
 {
-  // set the midiChannel on ont of the audioOutput 1..12
+  // set the midiChannel on one of the audioOutput 1..12 (using the 6 expanders, and their two audio channel R/L ) 
   if ( audioOutput == 0 )
   {
     channelToAudio[midiChannel] = 0 ; // channel not played
@@ -315,7 +278,7 @@ void s2Process()
 #ifdef S2DREAMBLASTER6
         if ( s2bitmap & (0x1 << 5) ) Serial6.write(midiBuf, midiLen);
 #endif
-        Serial.write(sinceLed); // track latency between midi-out and midi-in feedback
+        // Serial.write(sinceLed); // track delay
         break ;
     }
     ledOn() ;
@@ -324,55 +287,79 @@ void s2Process()
 void s2Setup()
 {
   for(int i = 0 ; i < 16 ; i ++ )
-     channelToAudio[i] = 1 ; // all channel payed on audio-output 1
+     channelToAudio[i] = 1 ; // all MID-IN channel are played on S2 audio-output 1
 #ifdef S2DREAMBLASTER1
   Serial1.begin(31250);
+#ifdef midiReset1
   pinMode(midiReset1,OUTPUT);
   digitalWrite(midiReset1,LOW);
 #endif
+#endif
 #ifdef S2DREAMBLASTER2
   Serial2.begin(31250);
+#ifdef midiReset2
   pinMode(midiReset2,OUTPUT);
   digitalWrite(midiReset2,LOW);
 #endif
+#endif
 #ifdef S2DREAMBLASTER3
   Serial3.begin(31250);
+#ifdef midiReset3
   pinMode(midiReset3,OUTPUT);
   digitalWrite(midiReset3,LOW);
 #endif
+#endif
 #ifdef S2DREAMBLASTER4
   Serial4.begin(31250);
+#ifdef midiReset4
   pinMode(midiReset4,OUTPUT);
   digitalWrite(midiReset4,LOW);
 #endif
+#endif
 #ifdef S2DREAMBLASTER5
   Serial5.begin(31250);
+#ifdef midiReset5
   pinMode(midiReset5,OUTPUT);
   digitalWrite(midiReset5,LOW);
 #endif
+#endif
 #ifdef S2DREAMBLASTER6
   Serial6.begin(31250);
+#ifdef midiReset6
   pinMode(midiReset6,OUTPUT);
   digitalWrite(midiReset6,LOW);
 #endif
+#endif
   delay(500);
 #ifdef S2DREAMBLASTER1
+#ifdef midiReset1
   digitalWrite(midiReset1,HIGH);
 #endif
+#endif
 #ifdef S2DREAMBLASTER2
+#ifdef midiReset2
   digitalWrite(midiReset2,HIGH);
 #endif
+#endif
 #ifdef S2DREAMBLASTER3
+#ifdef midiReset3
   digitalWrite(midiReset3,HIGH);
 #endif
+#endif
 #ifdef S2DREAMBLASTER4
+#ifdef midiReset4
   digitalWrite(midiReset4,HIGH);
 #endif
+#endif
 #ifdef S2DREAMBLASTER5
+#ifdef midiReset5
   digitalWrite(midiReset5,HIGH);
 #endif
+#endif
 #ifdef S2DREAMBLASTER6
+#ifdef midiReset6
   digitalWrite(midiReset6,HIGH);
+#endif
 #endif
 }
 
@@ -767,14 +754,23 @@ void calibrateProcess()
 }
 void calibrateSetup()
 {
-  // start calibration on first use ( 012 not available at the top of Eeprom ), or first button pressed
+  // start calibration on first use ( "magic number" 012 not available at the top of Eeprom ), or first button pressed
   ledOn();
   calibrateSince = 0 ;
   calibrateStatus= false ;
   if (( EEPROM.read(0) == 0) && ( EEPROM.read(1) == 1) && ( EEPROM.read(2) == 2))
   {
-    if ( digitalRead(buttonPin[0]) == LOW )
+    if ( false 
+#ifdef BUTTONMAX
+        || ( digitalRead(buttonPin[0]) == LOW )
+#endif
+#ifdef VELOMAX
+        ||  ( digitalRead(veloPin[0]) == LOW )
+#endif
+      )
+    {
       calibrateStatus = true ;
+    }
     else
     {
 #ifdef VELOMAX
