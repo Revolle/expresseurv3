@@ -4,48 +4,51 @@
 // analog input 0..+Vcc => midi-out CTRL
 // optical button => midi-out Note-On Off with velocity
 // optical string => midi-out Note-On Off with velocity
-// S2 dream-expander <= midi-in expanders ( up to 12 audio mono outputs )
+// midi-in => S2 dream-expander ( up to 12 audio mono outputs )
 
 #include <EEPROM.h>
 
 //////////////////////////
 // selection of the design
-// Select one of the configs above
-#define KEYBOARD_CONFIG
+// Select one of the configs above, using comments //
+#define OPTICAL_SCORE_KEYBOARD_CONFIG
 // #define GUITAR_CONFIG
 // end of configs
 //////////////////////////
 
-//////////////////////////
-// Keyboard design
-//////////////////////////
-#ifdef KEYBOARD_CONFIG
-#define S2DREAMBLASTER1 // S2-DreamBlaster-midiexpander 1 available
-#define CHANNELOUT 1
-#define MINVELOCITY 5 // velocity minimum
-#define VELOMAX 3 // number fof optical velocity buttons
-//#define BUTTONMAX 2 // number of mechanical buttons
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Optical Score Keyboard design OPTICAL_SCORE_KEYBOARD_CONFIG
+/////////////////////////////////
+#ifdef OPTICAL_SCORE_KEYBOARD_CONFIG
+#define S2DREAMBLASTER1 // 1 S2-DreamBlaster-midiexpander
+#define CHANNELOUT 1 // send midi on channel#1
+#define MINVELOCITY 10 // minimum noteOn velocity
+#define VELOMAX 3 // number of optical velocity buttons
+//#define BUTTONMAX 0 // number of mechanical buttons
 #define ANALOGMAX 2 // number of analog inputs
 //#define STRINGMAX 0 // number of optical strings
 
 // pins of the keyboard sensors
 #ifdef VELOMAX
-const int veloPin[VELOMAX] = {17,16,1};
-const int veloValue[VELOMAX] = {A6,A7,A8};
+const int veloPin[VELOMAX] = {17,16,1}; // digital pin LOW when optical is cut
+const int veloValue[VELOMAX] = {A6,A7,A8}; // analog pin = derivative(optical_sensor)
 #endif
 #ifdef BUTTONMAX
-const int buttonPin[BUTTONMAX] = {};
+const int buttonPin[BUTTONMAX] = {}; // digital pin LOW when button is pressed
 #endif
 #ifdef ANALOGMAX
-const int analogPin[ANALOGMAX] = {A9,A11};
-const bool analogPullup[ANALOGMAX] = { true, true } ;
+const int analogPin[ANALOGMAX] = {A9,A11}; // analog pin = sensor
+const bool analogPullup[ANALOGMAX] = { true, true } ; // true to use the internal µproc pullup resistor
+const bool analogMandatory[ANALOGMAX] = { true, false } ; // false for optional analog (jack input, ...)
+bool analogValid[ANALOGMAX] = { true, true } ; // false with midi-CTRL-CHG(channel=#analog,0)
 #endif
 #ifdef STRINGMAX
-const int stringPin[STRINGMAX] = {0} ;
+const int stringPin[STRINGMAX] = {} ; // analog pin = sensor
 #endif
 //#define midiReset1 6 // pins to reset the S2-DreamBlaster-midi-expanders
-#endif // KEYBOARD_CONFIG
-//////////////////////////
+#endif // 
+// end of Optical Score Keyboard design OPTICAL_SCORE_KEYBOARD_CONFIG
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////
 // Guitar design
@@ -69,6 +72,8 @@ const int buttonPin[BUTTONMAX] = {9,10};
 #ifdef ANALOGMAX
 const int analogPin[ANALOGMAX] = {A0,A1};
 const bool analogPullup[ANALOGMAX] = { true, false, false } ;
+const bool analogMandatory[ANALOGMAX] = { true, false, false } ;
+bool analogValid[ANALOGMAX] = { true, true, true } ;
 #endif
 #ifdef STRINGMAX
 const int stringPin[STRINGMAX] = {A2,A3,A4,A5;A6};
@@ -134,6 +139,8 @@ elapsedMillis stringSince[STRINGMAX];
 
 bool calibrateStatus ;
 elapsedMillis calibrateSince;
+#define CALIBRATEPERIOD 10 // s
+#define CALIBRATETIMEOUTPERIOD 30 //s
 
 // offsets of MIDI values
 #define VELOPITCHOFFSET 1
@@ -149,7 +156,6 @@ void ledOn()
     digitalWrite(ledPin,HIGH);
     sinceLed = 0;
     ledStatus = true ;
-  
 }
 void ledProcess()
 {
@@ -224,7 +230,7 @@ void s2Process()
     byte s2bitmap = channelToAudio[midiChannel] ;
     switch(midiType)
     {
-      case 7 : // sysex to dispatch to  S2-Soundblaster-midi-expander
+      case 7 : // sysex to dispatch to all S2-Soundblaster-midi-expander
         midiSysexBuf = usbMIDI.getSysExArray() ;
 #ifdef S2DREAMBLASTER1
         Serial1.write(midiSysexBuf, midiData1);
@@ -246,10 +252,16 @@ void s2Process()
 #endif
         break ;
       case 3 : // CTRL
-        // CTRL-42 is used to connect a channel on an audio-output : 0 (not played), 1..10
+        // CTRL-42 is used to connect a channel-nr on an audio-output : value=0 (not played), 1..12
         if (midiData1 == 42 )
         {
           midiSetAudio(midiChannel,midiData2);
+          break ;
+        }
+        // CTRL-43 is used to (un)validate the analog input #channel : value=0(not used), 127(used)
+        if (midiData1 == 43 )
+        {
+          analogValid[midiChannel] = (midiData2 != 0) ;
           break ;
         }
       case 4 : // PROG is only two bytes
@@ -287,7 +299,7 @@ void s2Process()
 void s2Setup()
 {
   for(int i = 0 ; i < 16 ; i ++ )
-     channelToAudio[i] = 1 ; // all MID-IN channel are played on S2 audio-output 1
+     channelToAudio[i] = 0x1 ; // all MID-IN channel are played on S2 audio-output #1
 #ifdef S2DREAMBLASTER1
   Serial1.begin(31250);
 #ifdef midiReset1
@@ -366,7 +378,7 @@ void s2Setup()
 //////////////////////////
 // velocity optical
 //////////////////////////
-void veloProcess()
+void veloProcess(bool calibration)
 {
 #ifdef VELOMAX
   for(int i = 0 ; i < VELOMAX ; i ++ )
@@ -374,13 +386,25 @@ void veloProcess()
     switch(veloStatus[i])
     {
       case 0 :
-        if ( digitalRead(buttonPin[i]) == LOW )
+        if ( digitalRead(veloPin[i]) == LOW )
         {
           int vIn = analogRead(veloValue[i]);
+          if ( calibration )
+          {
+            if ( vIn < veloMin[i] )
+            {
+              veloMin[i] = vIn;
+            }
+            if ( vIn > veloMax[i] )
+            {
+              veloMax[i] = vIn + 1;
+            }
+          }
           int vOut = MINVELOCITY + (( vIn - veloMin[i] ) * (127-MINVELOCITY) )/(veloMax[i] - veloMin[i]);
           if ( vOut < MINVELOCITY ) vOut = MINVELOCITY;
           if ( vOut > 127 ) vOut = 127 ;
           usbMIDI.sendNoteOn(VELOPITCHOFFSET+i,vOut,CHANNELOUT);
+          usbMIDI.send_now();
           ledOn();
           veloStatus[i] = 1 ;
           veloSince[i] = 0 ;
@@ -393,7 +417,7 @@ void veloProcess()
         }
       break ;
       case 2 :
-        if ( digitalRead(buttonPin[i]) == HIGH )
+        if ( digitalRead(veloPin[i]) == HIGH )
         {
           usbMIDI.sendNoteOff(VELOPITCHOFFSET+i,0,CHANNELOUT);
           veloStatus[i] = 3 ;
@@ -413,22 +437,16 @@ void veloProcess()
   }
 #endif
 }
-void veloCalibrate()
+bool veloCheckCalibration()
 {
 #ifdef VELOMAX
     for(int i = 0 ; i < VELOMAX; i ++ )
     {
-      int vIn = analogRead(veloValue[i]);
-      if ( vIn < veloMin[i] )
-      {
-        veloMin[i] = vIn;
-      }
-      if ( vIn > veloMax[i] )
-      {
-        veloMax[i] = vIn + 1;
-      }
+      if ((veloMax[i] - veloMin[i]) < 100)
+        return false;
     }
-#endif
+#endif  
+    return true ;
 }
 void veloWriteEeprom()
 {
@@ -472,7 +490,7 @@ void veloSetup()
 //////////////////////////
 // string optical
 //////////////////////////
-void stringProcess()
+void stringProcess(bool calibration)
 {
 #ifdef STRINGMAX
   for(int i = 0 ; i < STRINGMAX ; i ++ )
@@ -490,6 +508,17 @@ void stringProcess()
         if ( stringSince[i] > 50 )
         {
           int vIn = analogRead(stringPin[i]);
+          if ( calibration )
+          {
+            if ( vIn < stringMin[i] )
+            {
+              stringMin[i] = vIn;
+            }
+            if ( vIn > stringMax[i] )
+            {
+              stringMax[i] = vIn + 1;
+            }
+          }
           int vOut = MINVELOCITY + (( vIn - stringMin[i] ) * (127-MINVELOCITY) )/(stringMax[i] - stringMin[i]);
           if ( vOut < MINVELOCITY ) vOut = MINVELOCITY;
           if ( vOut > 127 ) vOut = 127 ;
@@ -519,22 +548,16 @@ void stringProcess()
   }
 #endif
 }
-void stringCalibrate()
+bool stringCheckCalibration()
 {
 #ifdef STRINGMAX
     for(int i = 0 ; i < STRINGMAX; i ++ )
     {
-      int vIn = analogRead(stringPin[i]);
-      if ( vIn < stringMin[i] )
-      {
-        stringMin[i] = vIn;
-      }
-      if ( vIn > stringMax[i] )
-      {
-        stringMax[i] = vIn + 1;
-      }
+      if ((stringMax[i] - stringMin[i]) < 100) 
+        return false;
     }
-#endif
+#endif  
+  return true ;
 }
 void stringWriteEeprom()
 {
@@ -636,7 +659,7 @@ void buttonSetup()
 //////////////////////////
 // Analog input
 //////////////////////////
-void analogProcess()
+void analogProcess(bool calibration)
 {
 #ifdef ANALOGMAX
   if ( analogSince > 100 )
@@ -644,35 +667,49 @@ void analogProcess()
     analogSince = 0 ;
     for(int i = 0 ; i < ANALOGMAX; i ++ )
     {
-      int vIn = analogRead(analogPin[i]);
-      int vOut = (( vIn - analogMin[i] ) * 127 )/(analogMax[i] - analogMin[i]);
-      if ( vOut < 0 ) vOut = 0 ;
-      if ( vOut > 127 ) vOut = 127 ;
-      if ( vOut != analogStatus[i] )
+      if ( analogValid[i])
       {
-        analogStatus[i] = vOut ;
-        usbMIDI.sendControlChange(ANALOGCTRLHOFFSET+i, vOut, CHANNELOUT);
+        int vIn = analogRead(analogPin[i]);
+        if (calibration)
+        {
+          if ( vIn < analogMin[i] )
+          {
+            analogMin[i] = vIn;
+          }
+          if ( vIn > analogMax[i] )
+          {
+            analogMax[i] = vIn + 1;
+          }
+        }
+        int vOut = (( vIn - analogMin[i] ) * 127 )/(analogMax[i] - analogMin[i]);
+        if ( vOut < 0 ) vOut = 0 ;
+        if ( vOut > 127 ) vOut = 127 ;
+        if (( abs(vOut - analogStatus[i]) > 1 ) || ((vOut == 0 ) && (analogStatus[i] != 0))|| ((vOut == 127 ) && (analogStatus[i] != 127)))
+        {
+          analogStatus[i] = vOut ;
+          usbMIDI.sendControlChange(ANALOGCTRLHOFFSET+i, vOut, CHANNELOUT);
+        }
       }
     }
   }
 #endif
 }
-void analogCalibrate()
+bool analogCheckCalibration()
 {
 #ifdef ANALOGMAX
     for(int i = 0 ; i < ANALOGMAX; i ++ )
     {
-      int vIn = analogRead(analogPin[i]);
-      if ( vIn < analogMin[i] )
-      {
-        analogMin[i] = vIn;
-      }
-      if ( vIn > analogMax[i] )
-      {
-        analogMax[i] = vIn + 1;
-      }
+      if (((analogMax[i] - analogMin[i]) < 100) && (analogMandatory[i]))
+        return false;
     }
-#endif
+    for(int i = 0 ; i < ANALOGMAX; i ++ )
+    {
+      // increase stability on min and max [2%..98%] <=> [0..127] :
+      analogMin[i] += (analogMax[i] - analogMin[i]) / 50 ;
+      analogMax[i] -= (analogMax[i] - analogMin[i]) / 50 ;
+    }
+#endif  
+    return true ;
 }
 void analogWriteEeprom()
 {
@@ -724,13 +761,30 @@ void calibrateProcess()
 {
   if ( ! calibrateStatus )
     return;
-  if ( calibrateSince > 5000 )
+  if ( calibrateSince > (CALIBRATETIMEOUTPERIOD * 1000) )
   {
+    // timeout calibration 
     calibrateStatus = false ;
-    // save calibration
-    EEPROM.write(0,0);
-    EEPROM.write(1,1);
-    EEPROM.write(2,2);
+    return ;
+  }
+  if ( calibrateSince > (CALIBRATEPERIOD * 1000) )
+  {
+    // end of calibration period. Calibration OK or restart for one more period ?
+    calibrateSince = 0 ;
+    calibrateStatus = true ;
+#ifdef VELOMAX
+    if (! veloCheckCalibration())
+      return;
+#endif
+#ifdef ANALOGMAX
+    if (! analogCheckCalibration())
+      return;
+#endif
+#ifdef STRINGMAX
+    if (! stringCheckCalibration())
+      return;
+#endif
+    // calibration OK. Write cabration in EEPROM
 #ifdef VELOMAX
     veloWriteEeprom();
 #endif
@@ -740,38 +794,47 @@ void calibrateProcess()
 #ifdef STRINGMAX
     stringWriteEeprom();
 #endif
+    // write magic number
+    EEPROM.write(0,0);
+    EEPROM.write(1,1);
+    EEPROM.write(2,2);
+    calibrateStatus = false ;
     return ;
   }
+  // within calibration period : continue calibration
 #ifdef VELOMAX
-  veloCalibrate() ;
+  veloProcess(true) ;
 #endif
 #ifdef ANALOGMAX
-  analogCalibrate() ;
+  analogProcess(true) ;
 #endif
 #ifdef STRINGMAX
-  stringCalibrate() ;
+  stringProcess(true) ;
 #endif
 }
 void calibrateSetup()
 {
-  // start calibration on first use ( "magic number" 012 not available at the top of Eeprom ), or first button pressed
+  // start calibration on first use ( "magic number" 012 not available at the top of Eeprom ), or a button is pressed
   ledOn();
   calibrateSince = 0 ;
   calibrateStatus= false ;
   if (( EEPROM.read(0) == 0) && ( EEPROM.read(1) == 1) && ( EEPROM.read(2) == 2))
   {
-    if ( false 
 #ifdef BUTTONMAX
-        || ( digitalRead(buttonPin[0]) == LOW )
+    for(int i = 0 ; i < BUTTONMAX; i ++ )
+    {
+      if (digitalRead(buttonPin[i]) == LOW)
+        calibrateStatus = true ;
+    }
 #endif
 #ifdef VELOMAX
-        ||  ( digitalRead(veloPin[0]) == LOW )
-#endif
-      )
+    for(int i = 0 ; i < VELOMAX; i ++ )
     {
-      calibrateStatus = true ;
+      if (digitalRead(veloPin[i]) == LOW)
+        calibrateStatus = true ;
     }
-    else
+#endif
+    if ( ! calibrateStatus )
     {
 #ifdef VELOMAX
       veloReadEeprom();
@@ -822,16 +885,16 @@ void loop()
   }
   s2Process() ;
 #ifdef VELOMAX
-  veloProcess();
+  veloProcess(false);
 #endif
 #ifdef BUTTONMAX
   buttonProcess();
 #endif
 #ifdef ANALOGMAX
-  analogProcess();
+  analogProcess(false);
 #endif
 #ifdef STRINGMAX
-  stringProcess();
+  stringProcess(false);
 #endif
   ledProcess() ;
 }

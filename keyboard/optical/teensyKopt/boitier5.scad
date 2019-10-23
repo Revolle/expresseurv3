@@ -26,7 +26,7 @@ dzcouvercle = -10 ;
 $fn = 6 ;
 
 // vue en coupe 
-coupe= [500,0,0]; // pas de coupe
+//coupe= [500,0,0]; // pas de coupe
 //coupe= [-120,00,0]; // phototransistor
 //coupe= [-116,00,0]; // pcb
 //coupe= [-100,00,0]; // tunnel
@@ -37,7 +37,7 @@ coupe= [500,0,0]; // pas de coupe
 //coupe= [123,00,0]; // pcb
 //coupe= [153,00,0]; // sans led
 //coupe= [155,00,0]; // avec led
-//coupe=[0,100,0];
+coupe=[0,95,0];
 
 pouce=1*2.54;
 
@@ -89,6 +89,7 @@ dzledporteled = - hporteled/2 ;
 dzcentreoptique = dzporteled +dzledporteled  ;
 lporteled = lled + e ; // largeur porte led
 
+dxteensy = -2.5*pouce ;
 dyteensy = -iled/2 ;
 dzusbteensy = 4.3 ;
 dzteensy = 0 ;
@@ -263,7 +264,7 @@ module teensy2()
 {
      union()
     {
-        for(i=[-4,-3,-2,-1,0,1,2,3,5])
+        for(i=[-6,-5,-4,-3,2,3,5])
         {
             translate([-3*pouce,(i+0.5)* pouce ,4]) cube([0.7,0.7,8],center=true) ;
             translate([3*pouce,(i+0.5)* pouce ,4]) cube([0.7,0.7,8],center=true) ;
@@ -315,7 +316,7 @@ module pcb()
             }
         }
     }
-    translate([-2.5*pouce,dyteensy,dzteensy]) rotate([180,0,-90]) teensy2() ;
+    translate([dxteensy,dyteensy,dzteensy]) rotate([180,0,-90]) teensy2() ;
     if ( audio == 1 )
     {
         // jack
