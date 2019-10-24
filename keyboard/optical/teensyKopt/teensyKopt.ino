@@ -1,7 +1,7 @@
 
 // Manages various MIDI input/outputs :
 // digital switch on/off => midi-out Note-On Off
-// analog input 0..+Vcc => midi-out CTRL
+// analog input 0..+Vcc => midi-out CTRL (can be swithed on/off with CTRL#43)
 // optical button => midi-out Note-On Off with velocity
 // optical string => midi-out Note-On Off with velocity
 // midi-in => S2 dream-expander ( up to 12 audio mono outputs )
@@ -39,8 +39,7 @@ const int buttonPin[BUTTONMAX] = {}; // digital pin LOW when button is pressed
 #ifdef ANALOGMAX
 const int analogPin[ANALOGMAX] = {A9,A11}; // analog pin = sensor
 const bool analogPullup[ANALOGMAX] = { true, true } ; // true to use the internal µproc pullup resistor
-const bool analogMandatory[ANALOGMAX] = { true, false } ; // false for optional analog (jack input, ...)
-bool analogValid[ANALOGMAX] = { true, true } ; // false with midi-CTRL-CHG(channel=#analog,0)
+bool analogValid[ANALOGMAX] = { true, false } ; //  changed with midi Ctrl-Change#43 (channel=#analog,0)
 #endif
 #ifdef STRINGMAX
 const int stringPin[STRINGMAX] = {} ; // analog pin = sensor
@@ -72,7 +71,6 @@ const int buttonPin[BUTTONMAX] = {9,10};
 #ifdef ANALOGMAX
 const int analogPin[ANALOGMAX] = {A0,A1};
 const bool analogPullup[ANALOGMAX] = { true, false, false } ;
-const bool analogMandatory[ANALOGMAX] = { true, false, false } ;
 bool analogValid[ANALOGMAX] = { true, true, true } ;
 #endif
 #ifdef STRINGMAX
@@ -102,7 +100,7 @@ bool ledStatus ;
 // EEPROM mapping
 // size of records
 #define VELOEEPROMSIZE 4 
-#define ANALOGEEPROMSIZE 4 
+#define ANALOGEEPROMSIZE 5 
 #define STRINGEEPROMSIZE 4 
 // offset of records
 #define VELOEEPROMOFFSET 3 
@@ -138,9 +136,10 @@ elapsedMillis stringSince[STRINGMAX];
 #endif
 
 bool calibrateStatus ;
+int calibrateNbPeriod = 0 ;
 elapsedMillis calibrateSince;
 #define CALIBRATEPERIOD 10 // s
-#define CALIBRATETIMEOUTPERIOD 30 //s
+#define CALIBRATEMAXPERIOD 3 // time
 
 // offsets of MIDI values
 #define VELOPITCHOFFSET 1
@@ -223,7 +222,7 @@ void s2Process()
   if ( usbMIDI.read() )
   {
     midiType = usbMIDI.getType() ;
-    midiChannel = usbMIDI.getChannel() ;
+    midiChannel = usbMIDI.getChannel() ; // 1..16
     midiData1 = usbMIDI.getData1() ;
     midiData2 = usbMIDI.getData2() ;
     midiLen = 3 ;
@@ -259,9 +258,11 @@ void s2Process()
           break ;
         }
         // CTRL-43 is used to (un)validate the analog input #channel : value=0(not used), 127(used)
-        if (midiData1 == 43 )
+        if ((midiData1 == 43 ) && (midiChannel <= ANALOGMAX))
         {
-          analogValid[midiChannel] = (midiData2 != 0) ;
+          int nrAnalog = midiChannel - 1 ; // midichannel [1..16]
+          analogValid[nrAnalog] = (midiData2 != 0) ;
+          EEPROM.write(ANALOGEEPROMOFFSET + ANALOGEEPROMSIZE * nrAnalog + 4,midiData2);
           break ;
         }
       case 4 : // PROG is only two bytes
@@ -299,7 +300,7 @@ void s2Process()
 void s2Setup()
 {
   for(int i = 0 ; i < 16 ; i ++ )
-     channelToAudio[i] = 0x1 ; // all MID-IN channel are played on S2 audio-output #1
+     channelToAudio[i] = 0x1 ; // all MIDI-IN channels are played on S2 audio-output #1
 #ifdef S2DREAMBLASTER1
   Serial1.begin(31250);
 #ifdef midiReset1
@@ -699,8 +700,11 @@ bool analogCheckCalibration()
 #ifdef ANALOGMAX
     for(int i = 0 ; i < ANALOGMAX; i ++ )
     {
-      if (((analogMax[i] - analogMin[i]) < 100) && (analogMandatory[i]))
-        return false;
+      if ( analogValid[i])
+      {
+        if ((analogMax[i] - analogMin[i]) < 100)
+          return false;
+      }
     }
     for(int i = 0 ; i < ANALOGMAX; i ++ )
     {
@@ -720,6 +724,10 @@ void analogWriteEeprom()
     EEPROM.write(ANALOGEEPROMOFFSET+ANALOGEEPROMSIZE*i+1,(analogMin[i])&(0x0FF00));
     EEPROM.write(ANALOGEEPROMOFFSET+ANALOGEEPROMSIZE*i+2,(analogMax[i])&(0x0FF));
     EEPROM.write(ANALOGEEPROMOFFSET+ANALOGEEPROMSIZE*i+3,(analogMax[i])&(0x0FF00));
+    EEPROM.write(ANALOGEEPROMOFFSET+ANALOGEEPROMSIZE*i+3,(analogMax[i])&(0x0FF00));
+    byte b4;
+    b4 = analogValid[midiChannel]?0x1:0x0 ;
+    EEPROM.write(ANALOGEEPROMOFFSET+ANALOGEEPROMSIZE*i+4,b4);
   }
 #endif
 }
@@ -732,8 +740,13 @@ void analogReadEeprom()
     int b1 = EEPROM.read(ANALOGEEPROMOFFSET+ANALOGEEPROMSIZE*i+1);
     int b2 = EEPROM.read(ANALOGEEPROMOFFSET+ANALOGEEPROMSIZE*i+2);
     int b3 = EEPROM.read(ANALOGEEPROMOFFSET+ANALOGEEPROMSIZE*i+3);
+    byte b4 = EEPROM.read(ANALOGEEPROMOFFSET+ANALOGEEPROMSIZE*i+4);
     analogMin[i] = b0 + ( b1 << 8 ) ;
     analogMax[i] = b2 + ( b3 << 8 ) ;
+    if ( b4 == 0x1)
+      analogValid[i] = true;
+     else
+      analogValid[i] = false;
   }
 #endif
 }
@@ -761,7 +774,7 @@ void calibrateProcess()
 {
   if ( ! calibrateStatus )
     return;
-  if ( calibrateSince > (CALIBRATETIMEOUTPERIOD * 1000) )
+  if ( calibrateNbPeriod > CALIBRATEMAXPERIOD  )
   {
     // timeout calibration 
     calibrateStatus = false ;
@@ -772,6 +785,7 @@ void calibrateProcess()
     // end of calibration period. Calibration OK or restart for one more period ?
     calibrateSince = 0 ;
     calibrateStatus = true ;
+    calibrateNbPeriod ++ ;
 #ifdef VELOMAX
     if (! veloCheckCalibration())
       return;
@@ -818,6 +832,7 @@ void calibrateSetup()
   ledOn();
   calibrateSince = 0 ;
   calibrateStatus= false ;
+  calibrateNbPeriod = 0 ;
   if (( EEPROM.read(0) == 0) && ( EEPROM.read(1) == 1) && ( EEPROM.read(2) == 2))
   {
 #ifdef BUTTONMAX
