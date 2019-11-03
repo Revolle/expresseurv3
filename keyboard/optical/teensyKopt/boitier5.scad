@@ -58,7 +58,7 @@ dzs2=-12 ;
 dyjack = iled / 2 ;
 hjack = 3 ;
 dzjack = hjack + epcb / 2;
-d_trou_jack = 8 ;
+d_trou_jack = 10 ;
 dxcapteur = 6.5*pouce ;
 
 
@@ -93,7 +93,8 @@ dxteensy = -2.5*pouce ;
 dyteensy = -iled/2 ;
 dzusbteensy = 4.3 ;
 dzteensy = 0 ;
-
+l_trou_usb = 12 ;
+h_trou_usb = 9 ;
 
 xpcbled = 2 * pouce;
 ypcbled = 2*iled+2* pouce ; 
@@ -535,7 +536,7 @@ module boite ()
             translate([0,0,-hauteur/2]) fond(0.25,0) ;
             // trou fiche usb
             translate([-x_electronique/2,dyteensy,-dzusbteensy - dzteensy + dzpcb  - epcb/2])
-                cube([2*pouce,13,7],center=true);
+                cube([2*pouce,l_trou_usb ,h_trou_usb ],center=true);
             
             if ( audio == 1 )
             {
