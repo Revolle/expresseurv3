@@ -421,7 +421,7 @@ function E.play( t, bid, ch, typemsg, pitch, velo , param )
   if (param or "") == "legato" then
     -- always legato, noteOn up to next noteOn
     if velo ~= 0 then
-	    luabass.logmsg("play score legato")
+	    --luabass.logmsg("play score legato")
 	    noteOff_Event(12532)
 	    c_nrEvent_playing = { 12532 , c_nrEvent_noteOn }
 	    noteOn_Event(12532 , velo)
@@ -429,12 +429,12 @@ function E.play( t, bid, ch, typemsg, pitch, velo , param )
   else
 	  if velo == 0 then
 	    -- noteoff
-	    luabass.logmsg("play score noteoff#"..bid)
+	    --luabass.logmsg("play score noteoff#"..bid)
 	    noteOff_Event(bid)
 	  else
 	    -- noteon
 	    c_nrEvent_playing = { bid , c_nrEvent_noteOn }
-	    luabass.logmsg("lay score noteon#"..bid.." "..c_nrEvent_noteOn)
+	    --luabass.logmsg("lay score noteon#"..bid.." "..c_nrEvent_noteOn)
 	    noteOn_Event(bid , velo)
 	  end
   end
