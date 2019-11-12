@@ -414,20 +414,29 @@ function memPos()
   collectgarbage("restart")
 end
 
-function E.play( t, bid, ch, typemsg, pitch, velo )
-  --luabass.logmsg("play score bid="..bid.." velo="..velo)
+function E.play( t, bid, ch, typemsg, pitch, velo , param )
+  --luabass.logmsg("play score bid="..bid.." velo="..velo.." param="..param)
   collectgarbage("stop")
   if nb_events == 0 then return end
-  
-  if velo == 0 then
-    -- noteoff
-    --luabass.logmsg("noteoff#"..bid)
-    noteOff_Event(bid)
+  if (param or "") == "legato" then
+    -- always legato, noteOn up to next noteOn
+    if velo ~= 0 then
+	    luabass.logmsg("play score legato")
+	    noteOff_Event(12532)
+	    c_nrEvent_playing = { 12532 , c_nrEvent_noteOn }
+	    noteOn_Event(12532 , velo)
+    end
   else
-    -- noteon
-    c_nrEvent_playing = { bid , c_nrEvent_noteOn }
-    --luabass.logmsg("noteon#"..bid.." "..c_nrEvent_noteOn)
-    noteOn_Event(bid , velo)
+	  if velo == 0 then
+	    -- noteoff
+	    luabass.logmsg("play score noteoff#"..bid)
+	    noteOff_Event(bid)
+	  else
+	    -- noteon
+	    c_nrEvent_playing = { bid , c_nrEvent_noteOn }
+	    luabass.logmsg("lay score noteon#"..bid.." "..c_nrEvent_noteOn)
+	    noteOn_Event(bid , velo)
+	  end
   end
 end
 
