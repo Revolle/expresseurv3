@@ -1,5 +1,5 @@
 // pour voir les composants
-voir_composant = 1 ; 
+voir_composant = 0 ; 
 // pour voir les led
 voir_led = 1 ; 
 // pour vior la pedale
@@ -26,7 +26,7 @@ dzcouvercle = -10 ;
 $fn = 6 ;
 
 // vue en coupe 
-coupe= [500,0,0]; // pas de coupe
+//coupe= [500,0,0]; // pas de coupe
 //coupe= [-120,00,0]; // phototransistor
 //coupe= [-116,00,0]; // pcb
 //coupe= [-100,00,0]; // tunnel
@@ -40,6 +40,7 @@ coupe= [500,0,0]; // pas de coupe
 //largeur
 //coupe=[0,77,0]; // led coté
 //coupe=[0,-100,0]; // milieu
+coupe=[0,100,0]; // milieu
 //coupe=[0,-135,0]; // presque tout
 
 pouce=1*2.54;
@@ -72,7 +73,7 @@ x_doigt = 12*pouce;
 x_led = 4*pouce;
 e=pouce ;
 h_doigt=10;
-h_electronique = (audio==1)?20:15;
+h_electronique = (audio==1)?22:15;
 hauteur = h_doigt + h_electronique;
 d_empreinte = 9*pouce ;
 
@@ -116,8 +117,6 @@ dxplot1= -x_electronique/2+ dyplotcouvercle/2  + e/2 ;
 dxplot2 = x_electronique/2+x_doigt+x_led-2*e-dyplotcouvercle/2 -e/2 ;
 dyplot1 = -largeur/2  + dyplotcouvercle/2 + e/2  ;
 dyplot2 = largeur/2 - dyplotcouvercle/2 - e/ 2;
-dxplotc = x_electronique/2+x_doigt/2-8;
-dyplotc = -10 ;
 
 htetevis=1.65;
 dtetevis=5.6;
@@ -337,7 +336,7 @@ module pcb()
             }
         }
         translate([dxteensy,dyteensy,dzteensy]) rotate([180,0,-90]) teensy2() ;
-        *if ( audio == 1 )
+        if ( audio == 1 )
         {
             // jack
             translate([dxjack,dyjack,-epcb / 2]) rotate([180,0,-90]) jack() ;
@@ -610,9 +609,7 @@ module boite ()
                     trou_couvercle(dxplot1,dyplot1);
                     trou_couvercle(dxplot2,dyplot1);
                     trou_couvercle(dxplot1,dyplot2);
-                    trou_couvercle(dxplot2,dyplot2);
-                    trou_couvercle(dxplotc,dyplotc);
-                }
+                    trou_couvercle(dxplot2,dyplot2);                }
                 //attaches pour l'impression
                 if ( ligature_couvercle == 1)
                 {
@@ -641,17 +638,11 @@ module boite ()
         plot_couvercle(dxplot2,dyplot1);
         plot_couvercle(dxplot1,dyplot2);
         plot_couvercle(dxplot2,dyplot2);
-        *translate([dxplotc,dyplotc,-hauteur/2 + e/2  ])
-            plot( hauteur - h_doigt - e/2 ,false);
-        //tt404
-        *if ( pedale == 1 )
-        {
-        }
         if ( x2 == 1 )
         {
             //x2
             translate([-1*pouce,-12.5*pouce,dzpcb+dzs2])
-            union()
+            *union()
             {
                 plot(-dzs2 -epcb ,true);
                 if ( ligature == 1)
