@@ -1,5 +1,5 @@
 // pour voir les composants
-voir_composant = 0 ; 
+voir_composant = 1 ; 
 // pour voir les led
 voir_led = 1 ; 
 // pour vior la pedale
@@ -23,10 +23,10 @@ dzcouvercle = -10 ;
 
 
 // precision dessin (6=brouillon, 30=imprimable)
-$fn = 6 ;
+$fn = 4 ;
 
 // vue en coupe 
-//coupe= [500,0,0]; // pas de coupe
+coupe= [500,0,0]; // pas de coupe
 //coupe= [-120,00,0]; // phototransistor
 //coupe= [-116,00,0]; // pcb
 //coupe= [-100,00,0]; // tunnel
@@ -40,7 +40,7 @@ $fn = 6 ;
 //largeur
 //coupe=[0,77,0]; // led coté
 //coupe=[0,-100,0]; // milieu
-coupe=[0,100,0]; // milieu
+//coupe=[0,100,0]; // milieu
 //coupe=[0,-135,0]; // presque tout
 
 pouce=1*2.54;
