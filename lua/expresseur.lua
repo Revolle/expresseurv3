@@ -170,68 +170,9 @@ tracks = {
   { name = "chord-scale" , help = "scale for improvisation"  } ,
 }
 
---======= tempo automatic
-local t0 = nil
-local t1 = nil
-local dt = nil
-local t = nil
-local triggerControl = 63
-function onControl(midinr, timestamp, channel , controlNr ,  value )
 
-	-- filter control pedal
-	--if controNr ~= 64 then return end
-	
-	-- schmidt trigger on pedal value
-	if value < triggerControl then
-		triggerControl = 63
-		return 
-	end
-	if value > triggerControl then
-		if triggerControl == 10 then return end
-		triggerControl = 10 
-	end
-	-- timer init
-	if t == nil then return end
-	
-	if t0 == nil then
-		t0 = t
-		return
-	end
-	if dt == nil then
-		dt = t - t0
-		t0 = t 
-		t1 = t0 + dt
-		luabass.logmsg("pedal dt init t0=" .. t0 .. " dt=" .. dt .. " t1=" ..t1)
-	else
-		-- adapt tempo
-		local dti = t - t0 
-		if dti > (2*dt/3) then
-			-- before next automatic top, quicker !
-			luascore.play(t, 998, 0, 0, 1, 0)
-			luascore.play(t, 998, 0, 0, 1, 64)
-			dt = dti
-			t0 = t 
-			t1 = t0 + dt
-			luabass.logmsg("pedal quicker t0=" .. t0 .. " dt=" .. dt .. " t1=" ..t1)
-		elseif dti < (dt/3) then
-			-- after previous automatic top , smoother ...
-			dt = dt + dti
-			t0 = t 
-			t1 = t0 + dt
-			luabass.logmsg("pedal smoother t0=" .. t0 .. " dt=" .. dt .. " t1=" ..t1)
-		end
-	end
-end
-function onTimer(it)
-	t = it
-	if t1 == nil then return end
-	if it > t1 then
-		luascore.play(t, 998, 0, 0, 1, 0)
-		luascore.play(t, 998, 0, 0, 1, 64)
-		t1 = t1 + dt
-		t0 = t 
-		luabass.logmsg("pedal trigger t0=" .. t0 .. " dt=" .. dt .. " t1=" ..t1)
-	end
+function onNoteOn(midinr, timestamp, channel , pitch ,  value )
+	luabass.logmsg("noteon")
 end
 
 function playNote( t, bid, ch, typemsg, d1, d2 , paramString)
