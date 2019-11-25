@@ -20,7 +20,6 @@
 #include "wx/wx.h"
 #endif
 
-
 #include "wx/dialog.h"
 #include "wx/filename.h"
 #include "wx/stattext.h"

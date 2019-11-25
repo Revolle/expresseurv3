@@ -1109,7 +1109,7 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 			nbParam = 5;
 			break;
 		default:
-			lua_pushinteger(g_LUAstate, channel + 1); // channel
+			lua_pushinteger(g_LUAstate, channel + 1 ); // channel 
 			lua_pushinteger(g_LUAstate, u.bData[1]); // control#
 			lua_pushinteger(g_LUAstate, u.bData[2]); // value
 			nbParam = 5;
