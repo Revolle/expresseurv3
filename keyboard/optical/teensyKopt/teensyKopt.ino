@@ -49,8 +49,8 @@ byte channelToAudio[16] ; // bitmap to link a midi channel to a S2-midi-expander
 // Midi message received on USB/MIDI
 byte midiType ;
 byte midiChannel  ;
-int midiData1 ;
-int midiData2  ;
+unsigned int midiData1 ;
+unsigned int midiData2  ;
 // Midi message to forward on S2-DreamBlaster-midi-expander
 byte midiBuf[3];
 byte midiLen ;
@@ -71,26 +71,26 @@ bool ledStatus ;
 
 // velocity touch status
 #ifdef VELOMAX
-int veloMin[VELOMAX] , veloMax[VELOMAX];
-int veloStatus[VELOMAX];
+unsigned int veloMin[VELOMAX] , veloMax[VELOMAX];
+unsigned int veloStatus[VELOMAX];
 elapsedMillis veloSince[VELOMAX];
 #endif
 
 // button status
 #ifdef BUTTONMAX
-int buttonStatus[BUTTONMAX];
+unsigned int buttonStatus[BUTTONMAX];
 elapsedMillis buttonSince[BUTTONMAX];
 #endif
 
 // analog status
 #ifdef ANALOGMAX
-int analogStatus[ANALOGMAX];
-int analogMin[ANALOGMAX] , analogMax[ANALOGMAX];
+unsigned int analogStatus[ANALOGMAX];
+unsigned int analogMin[ANALOGMAX] , analogMax[ANALOGMAX];
 elapsedMillis analogSince;
 #endif
 
 bool calibrateStatus ;
-int calibrateNbPeriod = 0 ;
+unsigned int calibrateNbPeriod = 0 ;
 elapsedMillis calibrateSince;
 #define CALIBRATEPERIOD 10 // s
 #define CALIBRATEMAXPERIOD 3 // time
@@ -339,19 +339,45 @@ void veloProcess(bool calibration)
   {
     switch(veloStatus[i])
     {
+#ifdef true // delay measurement is based on timer
       case 0 :
+        // wait for the first opto to be cut
         if ( digitalRead(veloFirstPin[i]) == HIGH )
         {
+          // the first opto is cut, start a timer which measure time until second opto is cut
           veloSince[i] = 0 ;
           veloStatus[i] = 1 ;
         }
         break ;
       case 1 :
-        if ( digitalRead(veloSecondPin[i]) == HIGH )
+        // first opto is cut , wait for the second opto to be cut
+        if ( digitalRead(veloSecondPin[i]) == HIGH ) 
         {
-          int vIn = veloSince[i] ;
+          // second opto is cut
+          unsigned int vIn = veloSince[i] ;
+#else // delay measurement is based on local loop
+      case 0 :
+        // wait for the first opto to be cut
+        if ( digitalRead(veloFirstPin[i]) == HIGH )
+        {
+          // the first opto is cut, loop until the second opto is cut
+          unsigned int vIn = 1 ;          
+          while( digitalRead(veloSecondPin[i]) == LOW )
+          {
+              vIn ++ ; // the second opto is not yet cut
+              if ( vIn == 0xFFFF )
+                break ; // overflow
+          }
+          if ( digitalRead(veloFirstPin[i]) == LOW )
+          {
+              veloStatus[i] = 0 ;
+              return ; // the first opto is not any more cut. No way.    
+          }
+#endif
+          // the second opto is cut => NOTE-ON
           if ( calibration )
           {
+            // calibration phase. 
             if ( vIn < veloMin[i] )
             {
               veloMin[i] = vIn;
@@ -372,20 +398,24 @@ void veloProcess(bool calibration)
         }
         break ;
       case 2 :
+        // stabilization in the Note-on status
         if ( veloSince[i] > 50 )
         {
           veloStatus[i] = 3 ;
         }
         break ;
       case 3 :
+        // wait for the note-off (firt opto is not cut)
         if ( digitalRead(veloFirstPin[i]) == LOW )
         {
+          // first opto is not any more cut => note-off
           usbMIDI.sendNoteOff(VELOPITCHOFFSET+i,0,CHANNELOUT);
           veloStatus[i] = 4 ;
           veloSince[i] = 0 ;
         }
         break ;
       case 4 :
+        // stabilization in the Note-off status
         if ( veloSince[i] > 50 )
         {
           veloStatus[i] = 0 ;
@@ -518,7 +548,7 @@ void analogProcess(bool calibration)
     {
       if ( analogValid[i])
       {
-        int vIn = analogRead(analogPin[i]);
+        unsigned int vIn = analogRead(analogPin[i]);
         if (calibration)
         {
           if ( vIn < analogMin[i] )
