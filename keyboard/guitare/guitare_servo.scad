@@ -1,6 +1,6 @@
 $fn=6;
 
-servo_dessine = 1 ;
+servo_dessine = 0 ;
 finger_dessine = 1 ;
 manche_dessine = 0 ;
 
@@ -18,9 +18,8 @@ servo_entraxe_d=1.2;
 
 servo_dx=5; // taille de la plaquette de fixation du servo
 servo_dy=2.25;
+servo_dz = servo_z ;
 servo_px=servo_x/2-servo_dx/2;
-// hauteur du pico qui tient le servo
-pico_z= servo_z + 2; 
 // moteur du servo
 moteur_x=18;
 moteur_d=5.5;
@@ -58,7 +57,7 @@ finger_taquet_trou_d1=1;
 finger_taquet_trou_d2=0.5;
 finger_taquet_trou_y=finger_taquet_y/4;
 finger_taquet_dx=-8;
-finger_taquet_fente_y=0.1;
+finger_taquet_fente_y=0.2;
 
 // plaque de support des servos
 corde_dy_1=8.5; // distance entre deux cordes sur la case 1
@@ -88,6 +87,12 @@ contrefort_vis_d = 2.5;
 // contrefort supérieur
 contrefort_dessus_x=epaisseur*1.05;
 contrefort_dessus_z=contrefort_cote_z;
+
+clips_x = 1.5; // largeur clips
+clips_y = 0.5 ; // epaisseur clips
+clips_dy = 1 ; // debordement clips
+clips_z = servo_dz + servo_z + clips_dy ; // hauteur totale clips
+clips_i = 60 ; // angle clips
 
 module finger_taquet()
 {
@@ -138,7 +143,7 @@ module servo(dx,pos)
 {
     if ( servo_dessine == 1)
     // servomoteur
-    translate([0,0, servo_z/2 + 0.1 ]) 
+    translate([0,0, servo_z/2 ]) 
         union()
         {
             // servo hors fixation
@@ -167,29 +172,66 @@ module servo(dx,pos)
                 translate([finger_x/2+pos,0,servo_z/2+finger_z/2+finger_dz]) finger(dx);
         }
 }
+module clips()
+{
+    union()
+    {
+        // tige clips
+        translate([0,clips_y/2,clips_z/2])
+            cube([clips_x,clips_y,clips_z ],center=true);
+        // crochet clips
+        translate([0,-clips_dy/2,clips_z - clips_dy/2])
+        difference()
+        {
+            cube([clips_x,clips_dy,clips_dy],center=true);
+            translate([-clips_x,clips_dy/2-(clips_dy/2)/(tan(clips_i))-(clips_dy*2)/(tan(clips_i)),-clips_dy*2])
+            rotate([clips_i,0,0])
+                cube([clips_x*2,clips_dy*4,clips_dy*4],center=false);
+        }
+    }
+}
+module pico()
+{
+    union()
+    {
+        // picot positionnement
+        translate([0,0,servo_z])
+            cylinder(servo_dz+servo_z+1  ,d=servo_entraxe_d,center=true);
+        // embase 
+        translate([0,0,servo_dz/2])
+            cylinder(servo_dz,d=servo_entraxe_d * 2,center=true);
+    }
+}
 module porte_servo(dx,pos)
 {
     // fixation servo sur la plaque
-    translate([0,0,pico_z/2 -epaisseur/2]) union()
+    union()
     {
         // 4 picots de fixation
         translate([-servo_entraxe_x/2,-servo_entraxe_y/2,0]) 
-            cylinder(pico_z,d=servo_entraxe_d,center=true);
+            pico();
         translate([servo_entraxe_x/2,servo_entraxe_y/2,0]) 
-            cylinder(pico_z,d=servo_entraxe_d,center=true);
+            pico();
         translate([servo_entraxe_x/2,-servo_entraxe_y/2,0]) 
-            cylinder(pico_z,d=servo_entraxe_d,center=true);
+            pico();
         translate([-servo_entraxe_x/2,servo_entraxe_y/2,0]) 
-            cylinder(pico_z,d=servo_entraxe_d,center=true);
+            pico();
     }
-    servo(dx,pos); 
+    union()
+    {
+        translate([-clips_x,-servo_y/2,0]) 
+            rotate([0,0,180]) clips();
+        translate([clips_x,servo_y/2,0]) 
+            rotate([0,0,0]) clips();
+    }
+    translate([0,0,servo_dz]) servo(dx,pos); 
 }
 module groupe_servo(corde_dy1,corde_dy2)
 {
     // les 6 servos
     union()
     {
-        translate([0,-finger_dy,epaisseur/2 + 0.5])
+        translate([0,-finger_dy,epaisseur/2])
            union()
             {
                translate([0,corde_dy1*(-2.5),0]) 
@@ -199,7 +241,7 @@ module groupe_servo(corde_dy1,corde_dy2)
                translate([0,corde_dy1*(1.5),0]) 
                     porte_servo(0,$t==0?finger_on:finger_off) ;
            }
-        translate([0,finger_dy,-epaisseur/2 - 0.5]) 
+        translate([0,finger_dy,-epaisseur/2]) 
             rotate([180,0,00]) 
                union()
                 {
@@ -366,7 +408,9 @@ module test()
         //translate([0,504,0]) cube([1000,1000,1000],center=true);
     }
 }
-tout();
-*fingers();
+*tout();
+fingers();
 *test();
 *porte_servo(0,0);
+*rotate([0,0,180]) clips();
+

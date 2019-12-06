@@ -1,5 +1,5 @@
 // pour voir les composants
-voir_composant = 1 ; 
+voir_composant = 0 ; 
 // pour voir les led
 voir_led = 1 ; 
 // pour vior la pedale
@@ -23,10 +23,10 @@ dzcouvercle = -10 ;
 
 
 // precision dessin (6=brouillon, 30=imprimable)
-$fn = 4 ;
+$fn = 15 ;
 
 // vue en coupe 
-coupe= [500,0,0]; // pas de coupe
+//coupe= [500,0,0]; // pas de coupe
 //coupe= [-120,00,0]; // phototransistor
 //coupe= [-116,00,0]; // pcb
 //coupe= [-100,00,0]; // tunnel
@@ -671,7 +671,14 @@ module boite ()
 difference()
 {
     boite() ;
-    translate(coupe)   
+    *translate(coupe)   
+        cube([200,200,200], center = true);
+    // depouille pour le montage
+    translate([0,0,-102])   
+        cube([200,200,200], center = true);
+    translate([-122,00,0])   
+        cube([200,200,200], center = true);
+    translate([158,00,0])   
         cube([200,200,200], center = true);
 }
 echo("largeur=",largeur," longueur=",x_electronique+x_doigt+x_led, " hauteur=",hauteur);

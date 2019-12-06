@@ -332,14 +332,37 @@ void s2Setup()
 //////////////////////////
 // velocity optical
 //////////////////////////
+void measureVelocity(unsigned int vIn , bool calibration , unsigned int i )
+{
+   // the second opto is cut => NOTE-ON
+    if ( calibration )
+    {
+      // calibration phase. 
+      if ( vIn < veloMin[i] )
+      {
+        veloMin[i] = vIn;
+      }
+      if ( vIn > veloMax[i] )
+      {
+        veloMax[i] = vIn + 1;
+      }
+    }
+    int vOut = MINVELOCITY + (( veloMax[i] - vIn ) * (127-MINVELOCITY) )/(veloMax[i] - veloMin[i]);
+    if ( vOut < MINVELOCITY ) vOut = MINVELOCITY;
+    if ( vOut > 127 ) vOut = 127 ;
+    usbMIDI.sendNoteOn(VELOPITCHOFFSET+i,vOut,CHANNELOUT);
+    usbMIDI.send_now();
+    ledOn();
+    veloSince[i] = 0 ;
+}
 void veloProcess(bool calibration)
 {
 #ifdef VELOMAX
-  for(int i = 0 ; i < VELOMAX ; i ++ )
+  for(unsigned int i = 0 ; i < VELOMAX ; i ++ )
   {
     switch(veloStatus[i])
     {
-#ifdef true // delay measurement is based on timer
+#if true // delay measurement is based on timer
       case 0 :
         // wait for the first opto to be cut
         if ( digitalRead(veloFirstPin[i]) == HIGH )
@@ -350,11 +373,29 @@ void veloProcess(bool calibration)
         }
         break ;
       case 1 :
-        // first opto is cut , wait for the second opto to be cut
+        if (veloSince[i] > 10)
+          veloStatus[i] = 2 ;
         if ( digitalRead(veloSecondPin[i]) == HIGH ) 
         {
-          // second opto is cut
-          unsigned int vIn = veloSince[i] ;
+          // second opto is cut 
+          measureVelocity(veloSince[i],calibration , i );
+          veloStatus[i] = 3 ;
+        }
+        break ;
+      case 2 :
+        if ( digitalRead(veloFirstPin[i]) == LOW )
+        {
+          // false press, wait for stabilization off
+          veloStatus[i] = 5 ;
+          break ;
+        }
+        if ( digitalRead(veloSecondPin[i]) == HIGH ) 
+        {
+          // second opto is cut 
+          measureVelocity(veloSince[i],calibration , i );
+          veloStatus[i] = 3 ;
+        }
+        break ;
 #else // delay measurement is based on local loop
       case 0 :
         // wait for the first opto to be cut
@@ -370,51 +411,32 @@ void veloProcess(bool calibration)
           }
           if ( digitalRead(veloFirstPin[i]) == LOW )
           {
-              veloStatus[i] = 0 ;
-              return ; // the first opto is not any more cut. No way.    
+              veloStatus[i] = 5 ;
+              return ; // false press, wait for stabilization off    
           }
-#endif
-          // the second opto is cut => NOTE-ON
-          if ( calibration )
-          {
-            // calibration phase. 
-            if ( vIn < veloMin[i] )
-            {
-              veloMin[i] = vIn;
-            }
-            if ( vIn > veloMax[i] )
-            {
-              veloMax[i] = vIn + 1;
-            }
-          }
-          int vOut = MINVELOCITY + (( veloMax[i] - vIn ) * (127-MINVELOCITY) )/(veloMax[i] - veloMin[i]);
-          if ( vOut < MINVELOCITY ) vOut = MINVELOCITY;
-          if ( vOut > 127 ) vOut = 127 ;
-          usbMIDI.sendNoteOn(VELOPITCHOFFSET+i,vOut,CHANNELOUT);
-          usbMIDI.send_now();
-          ledOn();
-          veloStatus[i] = 2 ;
-          veloSince[i] = 0 ;
-        }
-        break ;
-      case 2 :
-        // stabilization in the Note-on status
-        if ( veloSince[i] > 50 )
-        {
+          measureVelocity(vIn,calibration , i );
           veloStatus[i] = 3 ;
         }
         break ;
+#endif
       case 3 :
+        // stabilization in the Note-on status
+        if ( veloSince[i] > 50 )
+        {
+          veloStatus[i] = 4 ;
+        }
+        break ;
+      case 4 :
         // wait for the note-off (firt opto is not cut)
         if ( digitalRead(veloFirstPin[i]) == LOW )
         {
           // first opto is not any more cut => note-off
           usbMIDI.sendNoteOff(VELOPITCHOFFSET+i,0,CHANNELOUT);
-          veloStatus[i] = 4 ;
+          veloStatus[i] = 5 ;
           veloSince[i] = 0 ;
         }
         break ;
-      case 4 :
+      case 5 :
         // stabilization in the Note-off status
         if ( veloSince[i] > 50 )
         {
