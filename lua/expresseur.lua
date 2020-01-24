@@ -170,9 +170,13 @@ tracks = {
   { name = "chord-scale" , help = "scale for improvisation"  } ,
 }
 
-
-function onNoteOn(midinr, timestamp, channel , pitch ,  value )
-	luabass.logmsg("noteon")
+function  keyDown ( keyLetter, keyCode, modifiers)
+-- when a computer key is pressed, this function is called
+-- return 
+--     if key is processed : true + "detail" 
+--     else : false + ""
+	luabass.logmsg("keyDown " ..keyLetter.." / "..keyCode.. " / " .. modifiers )
+	return false , ""
 end
 
 function playNote( t, bid, ch, typemsg, d1, d2 , paramString)
