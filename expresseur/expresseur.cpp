@@ -881,7 +881,7 @@ bool Expresseur::OnKeyDown(wxKeyEvent& event)
 	wxChar keyc = event.GetUnicodeKey();
 	char sret[MAXBUFCHAR];
 	*sret = '\0';
-	int ret = -1;
+	bool ret = false;
 	int modifiers = event.GetModifiers();
 	char bsin[MAXBUFCHAR];
 	*bsin = '\0';
@@ -890,9 +890,19 @@ bool Expresseur::OnKeyDown(wxKeyEvent& event)
 		wxString sin(keyc);
 		strcpy(bsin,sin.utf8_str());
 	}
-	basslua_call(moduleGlobal, "keyDown", "sii>is", bsin, event.GetKeyCode(), modifiers, &ret, &sret);
-	if (ret)
-		SetStatusText(sret, 1);
+	basslua_call(moduleKeydown, "keydown", "sii>bs", bsin, event.GetKeyCode(), modifiers, &ret, &sret);
+	wxString ssret(sret);
+	if (ssret.StartsWith("!"))
+		wxMessageBox(ssret.Mid(1), "keydown.lua help");
+	else
+		if (ssret.StartsWith("*"))
+		{
+			setPlayView(ssret.Mid(1));
+			SetStatusText("play/view " + ssret.Mid(1),1);
+		}
+		else
+			if (!ssret.IsEmpty())
+				SetStatusText(ssret, 1);
 	return ret;
 }
 void Expresseur::OnIdle(wxIdleEvent& evt)

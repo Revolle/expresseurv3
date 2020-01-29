@@ -165,8 +165,10 @@ void luafile::reset(mxconf* mConf, bool all, int timerDt)
 	wxFileName dtmp(mxconf::getTmpDir());
 	dtmp.SetName("expresseur_log");
 	wxString slog = dtmp.GetFullPath();
+	wxFileName dressource(mxconf::getResourceDir());
+	wxString sressource = dressource.GetFullPath();
 	wxFileName::SetCwd(mxconf::getCwdDir()) ;
-	basslua_open(slua.c_str(), luascriptparameter.c_str(), all, dd, functioncallback, slog.c_str(),true, timerDt);
+	basslua_open(slua.c_str(), luascriptparameter.c_str(), all, dd, functioncallback, slog.c_str(), sressource.c_str(),true, timerDt);
 }
 void luafile::write(mxconf* mConf, wxTextFile *lfile)
 {

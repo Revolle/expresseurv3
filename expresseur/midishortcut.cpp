@@ -52,8 +52,7 @@ enum
 	IDM_MIDISHORTCUT_DOWN,
 	IDM_MIDISHORTCUT_CLOSE,
 	IDM_MIDISHORTCUT_LIST,
-	IDM_MIDISHORTCUT_PRECONFIG,
-	IDM_MIDISHORTCUT_DESCRIPTION_DEVICE,
+	IDM_MIDISHORTCUT_KEYDOWN,
 	IDM_MIDISHORTCUT_END,
 	IDM_MIDISHORTCUT_ID_START = ID_MIDISHORTCUT + 100,
 	IDM_MIDISHORTCUT_ID_END = IDM_MIDISHORTCUT_ID_START + 800
@@ -64,14 +63,13 @@ enum
 wxBEGIN_EVENT_TABLE(midishortcut, wxDialog)
 EVT_SIZE(midishortcut::OnSize)
 EVT_CLOSE(midishortcut::OnClose)
-EVT_CHOICE(IDM_MIDISHORTCUT_PRECONFIG, midishortcut::OnFunctionMidi)
 EVT_BUTTON(IDM_MIDISHORTCUT_DELETE, midishortcut::OnDelete)
 EVT_BUTTON(IDM_MIDISHORTCUT_ADD, midishortcut::OnAdd)
 EVT_BUTTON(IDM_MIDISHORTCUT_EDIT, midishortcut::OnEdit)
 EVT_BUTTON(IDM_MIDISHORTCUT_UP, midishortcut::OnUp)
 EVT_BUTTON(IDM_MIDISHORTCUT_DOWN, midishortcut::OnDown)
 EVT_BUTTON(IDM_MIDISHORTCUT_CLOSE, midishortcut::OnClose)
-EVT_BUTTON(IDM_MIDISHORTCUT_DESCRIPTION_DEVICE, midishortcut::OnDescriptionFunctionMidi)
+EVT_BUTTON(IDM_MIDISHORTCUT_KEYDOWN, midishortcut::OnKeydown)
 wxEND_EVENT_TABLE()
 
 
@@ -127,6 +125,7 @@ midishortcut::midishortcut(wxFrame *parent, wxWindowID id, const wxString &title
 	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_EDIT, _("Edit")), sizerFlagMinimumPlace.Border(wxALL, 10));
 	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_UP, _("Up")), sizerFlagMinimumPlace.Border(wxALL, 10));
 	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_DOWN, _("Down")), sizerFlagMinimumPlace.Border(wxALL, 10));
+	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_KEYDOWN, _("Keydown.lua")), sizerFlagMinimumPlace.Border(wxALL, 10));
 	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_CLOSE, _("Close")), sizerFlagMinimumPlace.Border(wxALL, 10));
 	topsizer->Add(button_sizer, sizerFlagMaximumPlace);
 
@@ -425,31 +424,24 @@ void midishortcut::OnDown(wxCommandEvent& WXUNUSED(event))
 	reset();
 
 }
-void midishortcut::OnDescriptionFunctionMidi(wxCommandEvent& WXUNUSED(event))
+void midishortcut::OnKeydown(wxCommandEvent& WXUNUSED(event))
 {
-	if (listFunctionMidi->GetSelection() == wxNOT_FOUND)
-		return;
-	wxString f = listFunctionMidi->GetString(listFunctionMidi->GetSelection());
-	wxFileName fn;
-	fn.AssignDir(mxconf::getResourceDir());
-
-	fn.SetFullName(f);
-	wxString s = fn.GetFullPath();
-	if (fn.IsFileReadable())
+	char sret[MAXBUFCHAR];
+	*sret = '\0';
+	bool ret = false;
+	if (basslua_call(moduleKeydown, "keydown", "sii>bs", "", -1, -1, &ret, &sret))
 	{
-		wxFile mfile(s);
-		wxString t;
-		mfile.ReadAll(&t);
-		wxMessageBox(t, "Description of the preconfiguration");
+		wxString ssret(sret);
+		if (ssret.StartsWith("!"))
+			wxMessageBox(ssret.Mid(1), "keydown.lua help");
+		else
+			wxMessageBox(ssret, "keydown.lua help");
 	}
 	else
-		wxMessageBox("description not available", "Description of the preconfiguration" );
+	{
+		wxMessageBox("keydown.lua/keydown() not available", "keydown.lua help");
+	}
 
-}
-void midishortcut::OnFunctionMidi(wxCommandEvent& WXUNUSED(event))
-{
-	saveShortcut();
-	reset();
 }
 int midishortcut::edit(long i)
 {

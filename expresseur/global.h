@@ -154,7 +154,7 @@
 #define MINSCALEBAR 0.2
 #define MAXSCALEBAR 4.0
 
-#define MAXBUFCHAR 1024
+#define MAXBUFCHAR 2048
 #define NULL_INT -9999
 #define NULL_STRING "-9999"
 

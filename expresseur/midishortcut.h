@@ -27,9 +27,8 @@ public:
 	void OnUp(wxCommandEvent& event);
 	void OnDown(wxCommandEvent& event);
 	void OnClose(wxCommandEvent& event);
-	void OnDescriptionFunctionMidi(wxCommandEvent& event);
+	void OnKeydown(wxCommandEvent& event);
 
-	void OnFunctionMidi(wxCommandEvent& event);
 	void OnDevice(wxEvent& event);
 	void OnCurve(wxEvent& event);
 	void OnChannel(wxEvent& event);
