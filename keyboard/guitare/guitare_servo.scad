@@ -1,6 +1,6 @@
 $fn=6;
 
-servo_dessine = 0 ;
+servo_dessine = 1 ;
 finger_dessine = 1 ;
 manche_dessine = 0 ;
 
@@ -90,6 +90,7 @@ contrefort_dessus_z=contrefort_cote_z;
 
 clips_x = 1.5; // largeur clips
 clips_y = 0.5 ; // epaisseur clips
+clips_ddy = 0.15 ; // decalage clips
 clips_dy = 1 ; // debordement clips
 clips_z = servo_dz + servo_z + clips_dy ; // hauteur totale clips
 clips_i = 60 ; // angle clips
@@ -174,6 +175,7 @@ module servo(dx,pos)
 }
 module clips()
 {
+    translate([0,clips_ddy,0])
     union()
     {
         // tige clips
@@ -409,8 +411,8 @@ module test()
     }
 }
 *tout();
-fingers();
-*test();
+*fingers();
+test();
 *porte_servo(0,0);
 *rotate([0,0,180]) clips();
 
