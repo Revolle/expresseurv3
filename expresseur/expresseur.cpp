@@ -59,6 +59,7 @@
 #include "wx/statbmp.h"
 #include "wx/stopwatch.h"
 #include "wx/tokenzr.h"
+#include "wx/kbdstate.h"
 
 #include "global.h"
 #include "basslua.h"
@@ -104,11 +105,23 @@
 #endif // USE_XPM_BITMAPS
 */
 
+Expresseur *frame = NULL;
+
 // Define a new application
 class MyApp : public wxApp
 {
 public:
     bool OnInit();
+	
+	int MyApp::FilterEvent(wxEvent& event)
+	{
+		if ((event.GetEventType() == wxEVT_KEY_DOWN) && frame)
+		{
+			if (frame->OnKeyDown((wxKeyEvent&)event) )
+				return true;
+		}
+		return -1;
+	}
 };
 
 // timer value for compilation in ms
@@ -289,7 +302,6 @@ wxEND_EVENT_TABLE()
 
 IMPLEMENT_APP(MyApp)
 
-Expresseur *frame = NULL;
  
 // The `main program' equivalent, creating the windows and returning the
 // main frame
@@ -861,6 +873,37 @@ void Expresseur::OnSize(wxSizeEvent& WXUNUSED(event))
 {
 	waitToRefresh = periodRefresh / timerDt;
 	Layout();
+}
+bool Expresseur::OnKeyDown(wxKeyEvent& event)
+{
+	if (editMode)
+		return false;
+	wxChar keyc = event.GetUnicodeKey();
+	char sret[MAXBUFCHAR];
+	*sret = '\0';
+	bool ret = false;
+	int modifiers = event.GetModifiers();
+	char bsin[MAXBUFCHAR];
+	*bsin = '\0';
+	if (keyc  != WXK_NONE)
+	{
+		wxString sin(keyc);
+		strcpy(bsin,sin.utf8_str());
+	}
+	basslua_call(moduleKeydown, "keydown", "sii>bs", bsin, event.GetKeyCode(), modifiers, &ret, &sret);
+	wxString ssret(sret);
+	if (ssret.StartsWith("!"))
+		wxMessageBox(ssret.Mid(1), "keydown.lua help");
+	else
+		if (ssret.StartsWith("*"))
+		{
+			setPlayView(ssret.Mid(1));
+			SetStatusText("play/view " + ssret.Mid(1),1);
+		}
+		else
+			if (!ssret.IsEmpty())
+				SetStatusText(ssret, 1);
+	return ret;
 }
 void Expresseur::OnIdle(wxIdleEvent& evt)
 { 

@@ -92,6 +92,8 @@ public:
 
 	void OnActivate(wxActivateEvent& event);
 
+	bool OnKeyDown(wxKeyEvent& event );
+
 	void OnHorizontalScroll(wxScrollEvent& event);
 	void OnVerticalScroll(wxScrollEvent& event);
 

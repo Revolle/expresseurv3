@@ -1638,7 +1638,7 @@ void basslua_external_timer()
 * \param param : parameter given to the LUA function onStart
 * \return -1 if mlog_in. 0 if no mlog_in.
 **/
-bool basslua_open(const char* fname, const char* param, bool reset, long datefname, voidcallback ifcallback , const char *logpath , bool externalTimer , int timerDt )
+bool basslua_open(const char* fname, const char* param, bool reset, long datefname, voidcallback ifcallback , const char *logpath, const char *ressourdir, bool externalTimer , int timerDt )
 {
 	if (( reset == false ) && (strcmp(param, pparam) == 0) && (strcmp(fname, pfname) == 0)&& (datefname == pdatefname))
 		return true ;
@@ -1729,6 +1729,39 @@ bool basslua_open(const char* fname, const char* param, bool reset, long datefna
 	}
 	lua_setglobal(g_LUAstate, moduleScore);
 	//mlog_in("debug basslua_open OK : lua_setglobal <%s>",moduleScore);
+
+	// require the "keydown" module for keydown interpretation
+	lua_getglobal(g_LUAstate, "package");
+	lua_getfield(g_LUAstate, -1, "path"); // get field "path" from table at top of stack (-1)
+	std::string cur_path = lua_tostring(g_LUAstate, -1); // grab path string from top of stack
+	cur_path.append(";"); // do your path magic here
+	cur_path.append(ressourdir);
+	cur_path.append("?.lua");
+	lua_pop(g_LUAstate, 1); // get rid of the string on the stack we just pushed on line 5
+	lua_pushstring(g_LUAstate, cur_path.c_str()); // push the new one
+	lua_setfield(g_LUAstate, -2, "path"); // set the field "path" in table at -2 with value at top of stack
+	lua_pop(g_LUAstate, 1); // get rid of package table from top of stack
+
+	lua_getglobal(g_LUAstate, "require");
+	lua_pushstring(g_LUAstate, moduleKeydown);
+	if (lua_pcall(g_LUAstate, 1, 1, 0) != LUA_OK)
+	{
+		char bufr[2056];
+		strcpy(bufr, lua_tostring(g_LUAstate, -1));
+		mlog_in("basslua_open mlog_in require %s <%s>", moduleKeydown, bufr);
+		lua_pop(g_LUAstate, 1);
+		return false;
+	}
+	//mlog_in("debug basslua_open OK : require <%s>",moduleKeydown);
+
+	if (!lua_istable(g_LUAstate, -1))
+	{
+		mlog_in("debug basslua_open error require %s : not a table", moduleKeydown);
+		lua_pop(g_LUAstate, 1);
+		return false;
+	}
+	lua_setglobal(g_LUAstate, moduleKeydown);
+	//mlog_in("debug basslua_open OK : lua_setglobal <%s>",moduleKeydown);
 
 	// create the "info" table to receive instructions
 	lua_newtable(g_LUAstate);

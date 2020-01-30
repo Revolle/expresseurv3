@@ -11,13 +11,14 @@ Basslua loads in addition, by default, these modules, accessible as global :
 - luabass : C-LUA-Module for midi output.
 - luachord.lua : script-LUA-module to interpret text chords.
 - luascore.lua : script-LUA-module to interpret score.
+- keydown.lua : script-LUA-module to interpret PC-keydown.
 
 Function onStart(param) : called by basslua ,when this LUA script is started.
 Function onStop() : called by basslua , before to close this LUA script.
 
 basslua uses these tables :
 - midiinOpen = { 1, 3 } : LUA table which contains midiIn deviceNrs to open. Checked regularly by basslua.
-- info.value = "text to display in the gui" : LUA string, to be displayed in the GUI. Checked regularly by basslua.
+- info.value = "text to display in the gui" : LUA string, to be displayed in the GUI. Checked regularly by basslua. if starts with ? => messagebox
 - info.next = 1 : LUA value to increment-decrement the file in the GUI list. Checked regularly by basslua.
 - values = { {},..} : table of values which can be tuned in the GUI. 
     Read by the GUI through basslua.
@@ -140,9 +141,9 @@ function onStart(param)
   -- after init of the LUA bass module
 	if ( string.find(param,"--preopen_midiout") ~= nil) then
   	     lOut = luabass.outGetMidiList() -- list of midi-out ports
-  	for i,v in ipairs(lOut) do
+		for i,v in ipairs(lOut) do
     	  luabass.outSetMidiValide(i,midiOutIsValid(v)) -- make midi-out valide or not
-  	end
+		end
   	luabass.outPreOpenMidi() -- pre-open valid midi-out, to avoid later conflict 
 	end
 end
@@ -169,11 +170,6 @@ tracks = {
   { name = "chord-chord" , help = "chords for improvisation"  } ,
   { name = "chord-scale" , help = "scale for improvisation"  } ,
 }
-
-
-function onNoteOn(midinr, timestamp, channel , pitch ,  value )
-	luabass.logmsg("noteon")
-end
 
 function playNote( t, bid, ch, typemsg, d1, d2 , paramString)
 	trackNr = string.match(paramString or "" , "(%d+)")
