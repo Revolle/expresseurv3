@@ -69,7 +69,7 @@
 #define functionChordSetScore "setScore"
 #define functionScorePlay "play"
 
-#define moduleKeydown "keydown"
+#define moduleUser "luauser"
 
 
 // LUA constants in LUA midi modules
