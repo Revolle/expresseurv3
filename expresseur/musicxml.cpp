@@ -473,11 +473,11 @@ c_attributes::~c_attributes()
 }
 c_attributes::c_attributes(const c_attributes & attributes, bool withContent)
 {
+	divisions = attributes.divisions;
 	if (attributes.mtime != NULL)
 		mtime = new c_time(*(attributes.mtime));
 	if (withContent)
 	{
-		divisions = attributes.divisions;
 		staves = attributes.staves;
 		if ((attributes.key != NULL) && (withContent))
 			key = new c_key(*(attributes.key));

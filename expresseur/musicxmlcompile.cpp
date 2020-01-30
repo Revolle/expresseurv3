@@ -3009,11 +3009,12 @@ void musicxmlcompile::addExpresseurPart()
 	{
 		c_measure *measure = *iter_measure;
 		c_measure *newMeasure = new c_measure(*measure, false);
+		// FR 01/2020 :  bug on next measure with attributes ..? 
 		if (measure->number == 1)
 		{
 			c_attributes *current_attributes = NULL;
 			l_measure_sequence::iterator iter_measure_sequence;
-			for (iter_measure_sequence = measure->measure_sequences.begin(); iter_measure_sequence != measure->measure_sequences.end(); iter_measure_sequence++)
+			for (iter_measure_sequence = newMeasure->measure_sequences.begin(); iter_measure_sequence != newMeasure->measure_sequences.end(); iter_measure_sequence++)
 			{
 				c_measure_sequence *measure_sequence = *iter_measure_sequence;
 				if (measure_sequence->type == t_attributes)
@@ -3023,9 +3024,13 @@ void musicxmlcompile::addExpresseurPart()
 				}
 			}
 			if (current_attributes == NULL)
+			{
 				current_attributes = new c_attributes();
-			else
-				current_attributes = new c_attributes(*current_attributes);
+				c_measure_sequence *mmeasure_sequence = new c_measure_sequence();
+				mmeasure_sequence->type = t_attributes;
+				mmeasure_sequence->pt = current_attributes;
+				newMeasure->measure_sequences.Insert(mmeasure_sequence);
+			}
 			wxASSERT(current_attributes != NULL);
 			if (current_attributes->key)
 				delete (current_attributes->key);
@@ -3041,10 +3046,6 @@ void musicxmlcompile::addExpresseurPart()
 			clef->line = 1;
 			clef->sign = "percussion";
 			current_attributes->clefs.Append(clef);
-			c_measure_sequence *mmeasure_sequence = new c_measure_sequence();
-			mmeasure_sequence->type = t_attributes;
-			mmeasure_sequence->pt = current_attributes;
-			newMeasure->measure_sequences.Insert(mmeasure_sequence);
 		}
 		// deleteBarLabel(newMeasure);
 		part_expresseur->measures.Append(newMeasure);

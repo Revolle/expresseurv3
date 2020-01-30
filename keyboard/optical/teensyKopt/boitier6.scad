@@ -25,24 +25,6 @@ dzcouvercle = -10 ;
 // precision dessin (6=brouillon, 30=imprimable)
 $fn = 15 ;
 
-// vue en coupe 
-//coupe= [500,0,0]; // pas de coupe
-//coupe= [-120,00,0]; // phototransistor
-//coupe= [-116,00,0]; // pcb
-//coupe= [-100,00,0]; // tunnel
-//coupe= [-67,00,0];// pedale
-//coupe= [-45,00,0]; // led
-//coupe= [83,00,0]; // 1/2 phototransistor
-//coupe= [85,00,0]; // phototransistor
-//coupe= [123,00,0]; // pcb
-//coupe= [153,00,0]; // sans led
-//coupe= [155,00,0]; // avec led
-//largeur
-//coupe=[0,77,0]; // led coté
-//coupe=[0,-100,0]; // milieu
-//coupe=[0,100,0]; // milieu
-//coupe=[0,-135,0]; // presque tout
-
 pouce=1*2.54;
 
 largeurx2 = 40 ;
@@ -137,9 +119,30 @@ daxe_tt404 = 24.13 ;
 hpicot_tt404 = 3 ;
 dz_tt404 = -8.51/2+3.56 ;
 dxtrou_tt404 = dt_tt404-l_tt404/2 ;
-
 dztt404 = h_tt404/2 + hpicot_tt404 - dz_tt404 ;
 dxtt404 = 9.5 * pouce ;
+dz_trou_pedale = - dztt404 + dzpcb - epcb/2 ;
+
+dcubecoupe=200;
+// vue en coupe 
+coupe= [500,0,0]; // pas de coupe
+//coupe= [-120,00,0]; // phototransistor
+//coupe= [-116,00,0]; // pcb
+//coupe= [-100,00,0]; // tunnel
+//coupe= [-67,00,0];// pedale
+//coupe= [-45,00,0]; // led
+//coupe= [83,00,0]; // 1/2 phototransistor
+//coupe= [85,00,0]; // phototransistor
+//coupe= [123,00,0]; // pcb
+//coupe= [153,00,0]; // sans led
+//coupe= [155,00,0]; // avec led
+//largeur
+//coupe=[0,77,0]; // led coté
+//coupe=[0,-100,0]; // milieu
+//coupe=[0,100,0]; // milieu
+//coupe=[0,-135,0]; // presque tout
+//coupe=[0,0,(dcubecoupe/2+dz_trou_pedale)];
+ 
 
 module tt404()
 {
@@ -548,8 +551,6 @@ module boite ()
                                 hporteled - e ],center=true);
                 }
             }
-            // couvercle_fond
-            translate([0,0,-hauteur/2]) fond(0.25,0) ;
             // trou fiche usb
             translate([-x_electronique/2,dyteensy,-dzusbteensy - dzteensy + dzpcb  - epcb/2])
                 cube([2*pouce,l_trou_usb ,h_trou_usb ],center=true);
@@ -571,11 +572,11 @@ module boite ()
             if ( pedale == 1)
             {
                 // trou pedale
-                translate([dxpcb+ dxtt404 ,-largeur/2, - dztt404 + dzpcb - epcb/2 ]) 
+                translate([dxpcb+ dxtt404 ,-largeur/2, dz_trou_pedale ]) 
                 {
                     rotate([90,0,0])
                         cylinder(h=10,d=d_tt404  + 1 ,center = true);
-                    translate([0,0,-10])
+                    *translate([0,0,-10])
                         cube([d_tt404  + 1, 6*e,20],center=true);
                 }
             }
@@ -596,27 +597,6 @@ module boite ()
         translate([x_doigt + x_electronique/2 -pouce/2 ,nrled * iled,dzporteled ])
                 rotate([0,0,180])
                     porteled(pouce , 1);
-    }
-    // couvercle avec trous de vis
-    if ( couvercle == 1 )
-    {
-        translate([0,0,-hauteur/2 + dzcouvercle ])
-            union()
-            {
-                difference()
-                {
-                    fond(0,-0.5);
-                    trou_couvercle(dxplot1,dyplot1);
-                    trou_couvercle(dxplot2,dyplot1);
-                    trou_couvercle(dxplot1,dyplot2);
-                    trou_couvercle(dxplot2,dyplot2);                }
-                //attaches pour l'impression
-                if ( ligature_couvercle == 1)
-                {
-                    translate([dxplot1-2,dyplot1-2,3])cube([1,1,6],center=true);
-                    translate([dxplot2+2,dyplot2+2,3])cube([1,1,6],center=true);
-                }
-            }
     }
         
     // fixation
@@ -657,6 +637,26 @@ module boite ()
     translate([dxpcb ,0,dzpcb - epcb/2 ] ) 
             pcb() ;
  }
+ 
+ module boite_decoupe_bas()
+ {
+    cube([dcubecoupe,dcubecoupe,dcubecoupe], center = true);
+ }
+ module boite_haut()
+ {
+     difference()
+     {
+        boite();
+        boite_decoupe_bas() ;
+     }
+ }
+ module boite_bas()
+ {
+      difference()
+     {
+        boite();
+     }
+}
 *tt404();
 *plot(6,lplot,true);
 *pcb();
@@ -668,19 +668,13 @@ module boite ()
 *s2(); 
 *x2();
 *jack();
-difference()
+*difference()
 {
     boite() ;
-    *translate(coupe)   
-        cube([200,200,200], center = true);
-    // depouille pour le montage
-    translate([0,0,-102])   
-        cube([200,200,200], center = true);
-    translate([-122,00,0])   
-        cube([200,200,200], center = true);
-    translate([158,00,0])   
-        cube([200,200,200], center = true);
+    translate(coupe)   
+        cube([dcubecoupe,dcubecoupe,dcubecoupe], center = true);
 }
+boite_haut();
 echo("largeur=",largeur," longueur=",x_electronique+x_doigt+x_led, " hauteur=",hauteur);
 echo ("xpcb=",xpcb, " ypcb=",ypcb);
 echo ("dxtrou tt404=",dxtrou_tt404+da_tt404);
