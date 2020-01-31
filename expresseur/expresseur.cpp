@@ -113,15 +113,7 @@ class MyApp : public wxApp
 public:
     	bool OnInit();
 	
-	int FilterEvent(wxEvent& event)
-	{
-		if ((event.GetEventType() == wxEVT_KEY_DOWN) && frame)
-		{
-			if (frame->OnKeyDown((wxKeyEvent&)event) )
-				return true;
-		}
-		return -1;
-	}
+	int FilterEvent(wxEvent& event);
 };
 
 // timer value for compilation in ms
@@ -296,12 +288,6 @@ wxEND_EVENT_TABLE()
 // implementation
 // ============================================================================
 
-// ----------------------------------------------------------------------------
-// MyApp
-// ----------------------------------------------------------------------------
-
-IMPLEMENT_APP(MyApp)
-
  
 // The `main program' equivalent, creating the windows and returning the
 // main frame
@@ -338,6 +324,22 @@ bool MyApp::OnInit()
 
   return true;
 }
+int MyApp::FilterEvent(wxEvent& event)
+{
+	if ((event.GetEventType() == wxEVT_KEY_DOWN) && frame)
+	{
+		if (frame->OnKeyDown((wxKeyEvent&)event) )
+			return true;
+	}
+	return -1;
+}
+
+// ----------------------------------------------------------------------------
+// MyApp
+// ----------------------------------------------------------------------------
+
+IMPLEMENT_APP(MyApp)
+
 
 Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const wxPoint& pos,const wxSize& size,long style)
  :wxFrame(parent, id, title, pos, size, style)
@@ -2294,19 +2296,21 @@ void Expresseur::CreateExpresseurV3()
 			wxFileName ffile1(file1);
 			wxFileName ffile2(file1);
 			ffile1.SetPath(fdirRessources.GetPath());
-			file1 = ffile1.GetFullPath();
 			ffile2.SetPath(mxconf::getResourceDir());
-			file2 = ffile2.GetFullPath();
 			wxString ext = ffile1.GetExt();
 			ext.MakeLower();
 			bool tocopy = true;
 			if ((ext == "lua") && (ffile2.FileExists()))
-					tocopy = false;
+					ffile2.SetExt("lua.new") ;
 			if ((ext == "sf2") && (ffile2.FileExists()) && (ffile1.GetSize() == ffile2.GetSize()))
 					tocopy = false;
-			//wxMessageBox(file1 + " to " + file2 , "copy ressource");
+			file1 = ffile1.GetFullPath();
+			file2 = ffile2.GetFullPath();
 			if (tocopy)
+			{
+				//wxMessageBox(file1 + " to " + file2 , "copy ressource");
 				wxCopyFile(file1, file2);
+			}
 			cont = dirRessources.GetNext(&file1);
 		}
 	}
