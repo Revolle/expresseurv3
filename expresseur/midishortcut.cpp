@@ -426,22 +426,8 @@ void midishortcut::OnDown(wxCommandEvent& WXUNUSED(event))
 }
 void midishortcut::OnKeydown(wxCommandEvent& WXUNUSED(event))
 {
-	char sret[MAXBUFCHAR];
-	*sret = '\0';
-	bool ret = false;
-	if (basslua_call(moduleKeydown, "keydown", "sii>bs", "", -1, -1, &ret, &sret))
-	{
-		wxString ssret(sret);
-		if (ssret.StartsWith("!"))
-			wxMessageBox(ssret.Mid(1), "keydown.lua help");
-		else
-			wxMessageBox(ssret, "keydown.lua help");
-	}
-	else
-	{
-		wxMessageBox("keydown.lua/keydown() not available", "keydown.lua help");
-	}
-
+	bool ret ;
+	basslua_call(moduleUser, "keydown", "sii>b", "", -1, -1, &ret);
 }
 int midishortcut::edit(long i)
 {

@@ -1,8 +1,4 @@
 --[[
-Created: 10/02/2015
--- update : 23/11/2016 18:00 
-
-
 This LUA script is started by basslua.
 
 Basslua manages input ( GUI, MIDI-In, timer ). These inputs are sent to this LUA script.
@@ -18,8 +14,11 @@ Function onStop() : called by basslua , before to close this LUA script.
 
 basslua uses these tables :
 - midiinOpen = { 1, 3 } : LUA table which contains midiIn deviceNrs to open. Checked regularly by basslua.
-- info.value = "text to display in the gui" : LUA string, to be displayed in the GUI. Checked regularly by basslua. if starts with ? => messagebox
-- info.next = 1 : LUA value to increment-decrement the file in the GUI list. Checked regularly by basslua.
+- It can write 
+	info.status = "staus message to display in the gui" 
+	info.msgbox = "message-box to display in the gui" 
+	info.playview => track to play/view
+	info.file => value to increment decrement file
 - values = { {},..} : table of values which can be tuned in the GUI. 
     Read by the GUI through basslua.
 	The GUI, through basslua, will add fields : values[valueName]=value
@@ -60,7 +59,7 @@ basslua uses these tables :
      --   whiteMediane : integer,  idem medianeKey, but taking in account only "white keys"
      --   black[0,1] : integer,  0 means white key. 1 means black key.
  
-Functions on<event>(...) : LUA functions to take actions on midi events
+in LUA user module : Functions user.on<event>(...) : LUA functions to take actions on midi events
   called by luabass.dll on midi or timer event.
 	
   To process-map midi events before their processing ( change pitch ... ) : 
@@ -107,8 +106,12 @@ function midiOutIsValid(midiout_name)
   -------================
   -- return false if the midiout is not valid for the GUI
   local s = string.lower(midiout_name)
-  local invalid = { "teensy", "wavetable" , "sd%-50 midi" , "sd%-50 control" , "keystation" , "nanokey" , "key25" , "key49" }
-  for inil,v in ipairs(invalid) do
+  for inil,v in ipairs(luauser.valid_midiout) do
+    if ( string.find(s,v ) ~= nil) then
+      return true ;
+    end
+  end
+  for inil,v in ipairs(luauser.invalid_midiout) do
     if ( string.find(s,v ) ~= nil) then
       return false ;
     end
@@ -120,14 +123,12 @@ function midiInIsValid(midiin_name)
   -------===============
   -- return false if the midiin is not valid for the GUI
   local s = string.lower(midiin_name)
-  local valid = { "sd%-50 midi" }
-  local invalid = { "bus" , "iac" , "loop" , "sd%-50" , "internal" , "through", "buran" }
-  for inil,v in ipairs(valid) do
+  for inil,v in ipairs(luauser.valid_midiin) do
     if ( string.find(s,v ) ~= nil) then
       return true ;
     end
   end
-  for inil,v in ipairs(invalid) do
+  for inil,v in ipairs(luauser.invalid_midiin) do
     if ( string.find(s,v ) ~= nil) then
       return false ;
     end
@@ -136,17 +137,24 @@ function midiInIsValid(midiin_name)
 end
 
 --===================== initialization
-
 function onStart(param)
   -- after init of the LUA bass module
 	if ( string.find(param,"--preopen_midiout") ~= nil) then
   	     lOut = luabass.outGetMidiList() -- list of midi-out ports
 		for i,v in ipairs(lOut) do
-    	  luabass.outSetMidiValide(i,midiOutIsValid(v)) -- make midi-out valide or not
+    	  		luabass.outSetMidiValide(i,midiOutIsValid(v)) -- make midi-out valide or not
 		end
   	luabass.outPreOpenMidi() -- pre-open valid midi-out, to avoid later conflict 
 	end
+	luauser.onStart(param)
 end
+
+--===================== stop
+function onStop()
+	-- before stop of the LUA bass module
+	luauser.onStop()
+end
+
 
 --==================== Expresseur GUI
 
@@ -222,10 +230,10 @@ function trackVolume( t, bid, ch, typemsg, pitch, velo , paramString )
   luabass.logmsg("trackVolume("..paramString.."):unsolved")
 end
 function nextFile( t, bid, ch, typemsg, pitch, velo )
-  if ( velo or 64 ) > 0 then info.next = 1 end
+  if ( velo or 64 ) > 0 then info.file = 1 end
 end
 function previousFile( t, bid, typemsg, ch, pitch, velo )
-  if ( velo or 64 ) > 0 then info.next = -1 end
+  if ( velo or 64 ) > 0 then info.file = -1 end
 end
 -- list of actions for the GUI ( throug basslua )
   -- <name> : displayed in the GUI

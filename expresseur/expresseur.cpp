@@ -111,9 +111,9 @@ Expresseur *frame = NULL;
 class MyApp : public wxApp
 {
 public:
-    bool OnInit();
+    	bool OnInit();
 	
-	int MyApp::FilterEvent(wxEvent& event)
+	int FilterEvent(wxEvent& event)
 	{
 		if ((event.GetEventType() == wxEVT_KEY_DOWN) && frame)
 		{
@@ -879,8 +879,6 @@ bool Expresseur::OnKeyDown(wxKeyEvent& event)
 	if (editMode)
 		return false;
 	wxChar keyc = event.GetUnicodeKey();
-	char sret[MAXBUFCHAR];
-	*sret = '\0';
 	bool ret = false;
 	int modifiers = event.GetModifiers();
 	char bsin[MAXBUFCHAR];
@@ -890,19 +888,7 @@ bool Expresseur::OnKeyDown(wxKeyEvent& event)
 		wxString sin(keyc);
 		strcpy(bsin,sin.utf8_str());
 	}
-	basslua_call(moduleKeydown, "keydown", "sii>bs", bsin, event.GetKeyCode(), modifiers, &ret, &sret);
-	wxString ssret(sret);
-	if (ssret.StartsWith("!"))
-		wxMessageBox(ssret.Mid(1), "keydown.lua help");
-	else
-		if (ssret.StartsWith("*"))
-		{
-			setPlayView(ssret.Mid(1));
-			SetStatusText("play/view " + ssret.Mid(1),1);
-		}
-		else
-			if (!ssret.IsEmpty())
-				SetStatusText(ssret, 1);
+	basslua_call(moduleUser, "keydown", "sii>b", bsin, event.GetKeyCode(), modifiers, &ret);
 	return ret;
 }
 void Expresseur::OnIdle(wxIdleEvent& evt)
@@ -1035,13 +1021,21 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 
 		// scan from LUA, if a MIDI event asked to go to next file in the list of file
 		int n;
-		if ((basslua_table(moduleGlobal, tableInfo, -1, fieldNext, NULL, &n, tableGetKeyValue | tableNilKeyValue) & tableGetKeyValue) == tableGetKeyValue)
+		if ((basslua_table(moduleGlobal, tableInfo, -1, fieldFile, NULL, &n, tableGetKeyValue | tableNilKeyValue) & tableGetKeyValue) == tableGetKeyValue)
 			ListSelectNext(n);
 
 		// scan if the LUA status text has been changed
 		char ch[1024];
-		if ((basslua_table(moduleGlobal, tableInfo, -1, fieldValue, ch, NULL, tableGetKeyValue | tableNilKeyValue) & tableGetKeyValue) == tableGetKeyValue)
+		if ((basslua_table(moduleGlobal, tableInfo, -1, fieldStatus, ch, NULL, tableGetKeyValue | tableNilKeyValue) & tableGetKeyValue) == tableGetKeyValue)
 			SetStatusText(ch, 1);
+
+		// scan if the LUA message msgbox has been changed
+		if ((basslua_table(moduleGlobal, tableInfo, -1, fieldMsgbox, ch, NULL, tableGetKeyValue | tableNilKeyValue) & tableGetKeyValue) == tableGetKeyValue)
+			wxMessageBox(ch, "LUA message");
+
+		// scan if the LUA message play/view has been changed
+		if ((basslua_table(moduleGlobal, tableInfo, -1, fieldPlayview, ch, NULL, tableGetKeyValue | tableNilKeyValue) & tableGetKeyValue) == tableGetKeyValue)
+			setPlayView(ch);
 
 		if (image_right != mViewerscore->GetClientSize())
 		{

@@ -890,7 +890,7 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 	case SYSEX:
 		// sysex
 		if (! g_process_Sysex)	return; // g_process_ sysex
-		if ( lua_getfield(g_LUAstate, -1, , LUAFunctionSysex) != LUA_TFUNCTION)
+		if ( lua_getfield(g_LUAstate, -1, LUAFunctionSysex) != LUA_TFUNCTION)
 		{
 			lua_pop(g_LUAstate, 2);
 			return ;
@@ -924,7 +924,7 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 		return;
 	case ACTIVESENSING:
 		if (! g_process_Activesensing) return; // g_process_ active sensing messages 
-		if ( lua_getfield(g_LUAstate, -1, , LUAFunctionActive) != LUA_TFUNCTION)
+		if ( lua_getfield(g_LUAstate, -1, LUAFunctionActive) != LUA_TFUNCTION)
 		{
 			lua_pop(g_LUAstate, 2);
 			return ;
@@ -939,7 +939,7 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 		return;
 	case CLOCK:
 		if (! g_process_Clock) return; // g_process_ clock messages 
-		if ( lua_getfield(g_LUAstate, -1, , LUAFunctionClock) != LUA_TFUNCTION)
+		if ( lua_getfield(g_LUAstate, -1, LUAFunctionClock) != LUA_TFUNCTION)
 		{
 			lua_pop(g_LUAstate, 2);
 			return ;
@@ -972,7 +972,7 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 
 	if (g_process_Midi)
 	{
-		if ( lua_getfield(g_LUAstate, -1, , LUAFunctionMidi) != LUA_TFUNCTION)
+		if ( lua_getfield(g_LUAstate, -1, LUAFunctionMidi) != LUA_TFUNCTION)
 		{
 			lua_pop(g_LUAstate, 2);
 			return ;
@@ -986,7 +986,8 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 		if (lua_pcall(g_LUAstate, 6, LUA_MULTRET, 0) != LUA_OK)
 		{
 			mlog_in("error calling LUA %s, err: %s", LUAFunctionMidi, lua_tostring(g_LUAstate, -1));
-			lua_pop(g_LUAstate, 1);
+			lua_pop(g_LUAstate, lua_gettop(g_LUAstate));
+			return;
 		}
 		else
 		{
@@ -998,6 +999,7 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 				u.bData[1] = lua_tonumber(g_LUAstate, -2);
 				u.bData[2] = lua_tonumber(g_LUAstate, -1);
 				lua_pop(g_LUAstate, lua_gettop(g_LUAstate));
+				lua_getglobal(g_LUAstate, moduleUser);
 			}
 			else
 			{
@@ -1022,7 +1024,7 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 		if (g_process_ChannelPressure)
 		{
 			tbd = true ;  
-			if ( lua_getfield(g_LUAstate, -1, , LUAFunctionChannelPressure) != LUA_TFUNCTION)
+			if ( lua_getfield(g_LUAstate, -1, LUAFunctionChannelPressure) != LUA_TFUNCTION)
 			{
 				lua_pop(g_LUAstate, 2);
 				return ;
@@ -1033,7 +1035,7 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 		if (g_process_KeyPressure)
 		{
 			tbd = true ;
-			if ( lua_getfield(g_LUAstate, -1, , LUAFunctionKeyPressure) != LUA_TFUNCTION)
+			if ( lua_getfield(g_LUAstate, -1, LUAFunctionKeyPressure) != LUA_TFUNCTION)
 			{
 				lua_pop(g_LUAstate, 2);
 				return ;
@@ -1044,7 +1046,7 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 		if (g_process_SystemCommon)
 		{
 			tbd = true ;
-			if ( lua_getfield(g_LUAstate, -1, , LUAFunctionSystemCommon) != LUA_TFUNCTION)
+			if ( lua_getfield(g_LUAstate, -1, LUAFunctionSystemCommon) != LUA_TFUNCTION)
 			{
 				lua_pop(g_LUAstate, 2);
 				return ;
@@ -1056,7 +1058,7 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 		if (g_process_Control)
 		{
 			tbd = true ;
-			if ( lua_getfield(g_LUAstate, -1, , LUAFunctionControl) != LUA_TFUNCTION)
+			if ( lua_getfield(g_LUAstate, -1, LUAFunctionControl) != LUA_TFUNCTION)
 			{
 				lua_pop(g_LUAstate, 2);
 				return ;
@@ -1068,7 +1070,7 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 		if (g_process_Program)
 		{
 			tbd = true ;
-			if ( lua_getfield(g_LUAstate, -1, , LUAFunctionProgram) != LUA_TFUNCTION)
+			if ( lua_getfield(g_LUAstate, -1, LUAFunctionProgram) != LUA_TFUNCTION)
 			{
 				lua_pop(g_LUAstate, 2);
 				return ;
@@ -1088,7 +1090,7 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 		if (g_process_NoteOff)
 		{
 			tbd = true ;
-			if ( lua_getfield(g_LUAstate, -1, , LUAFunctionNoteOff) != LUA_TFUNCTION)
+			if ( lua_getfield(g_LUAstate, -1, LUAFunctionNoteOff) != LUA_TFUNCTION)
 			{
 				lua_pop(g_LUAstate, 2);
 				return ;
@@ -1108,7 +1110,7 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 		if (g_process_NoteOn)
 		{
 			tbd = true ;
-			if ( lua_getfield(g_LUAstate, -1, , LUAFunctionNoteOn) != LUA_TFUNCTION)
+			if ( lua_getfield(g_LUAstate, -1, LUAFunctionNoteOn) != LUA_TFUNCTION)
 			{
 				lua_pop(g_LUAstate, 2);
 				return ;
@@ -1119,7 +1121,7 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 		if (g_process_PitchBend)
 		{
 			tbd = true ;
-			if ( lua_getfield(g_LUAstate, -1, , LUAFunctionPitchBend) != LUA_TFUNCTION)
+			if ( lua_getfield(g_LUAstate, -1, LUAFunctionPitchBend) != LUA_TFUNCTION)
 			{
 				lua_pop(g_LUAstate, 2);
 				return ;
@@ -1295,7 +1297,7 @@ static bool filter_check(const char *buf)
 {
 	if (lua_getglobal(g_LUAstate, moduleUser) != LUA_TTABLE)
 		return false ;
-	int typev = lua_getfield(g_LUAstate, -1, , LUAFunctionNoteOn) ;
+	int typev = lua_getfield(g_LUAstate, -1, buf) ;
 	lua_pop(g_LUAstate, 2);
 	if (typev == LUA_TFUNCTION)
 	{
@@ -1400,7 +1402,7 @@ static void process_in_timer()
 	{
 		if (lua_getglobal(g_LUAstate, moduleUser) == LUA_TTABLE)
 		{
-			if ( lua_getfield(g_LUAstate, -1, , LUAFunctionTimer) != LUA_TFUNCTION)
+			if ( lua_getfield(g_LUAstate, -1, LUAFunctionTimer) != LUA_TFUNCTION)
 			{
 				lua_pop(g_LUAstate, 1);
 				return;
@@ -1796,38 +1798,36 @@ bool basslua_open(const char* fname, const char* param, bool reset, long datefna
 	lua_setglobal(g_LUAstate, moduleScore);
 	//mlog_in("debug basslua_open OK : lua_setglobal <%s>",moduleScore);
 
-	// require the "keydown" module for keydown interpretation
-	lua_getglobal(g_LUAstate, "package");
+	// require the "user" module 
+	lua_getglobal(g_LUAstate, "package"); // to modify the PATH
 	lua_getfield(g_LUAstate, -1, "path"); // get field "path" from table at top of stack (-1)
-	std::string cur_path = lua_tostring(g_LUAstate, -1); // grab path string from top of stack
-	cur_path.append(";"); // do your path magic here
-	cur_path.append(ressourdir);
-	cur_path.append("?.lua");
+	char cur_path[2056] ;
+	sprintf(cur_path,"%s;%s?.lua", lua_tostring(g_LUAstate, -1), ressourdir);
 	lua_pop(g_LUAstate, 1); // get rid of the string on the stack we just pushed on line 5
-	lua_pushstring(g_LUAstate, cur_path.c_str()); // push the new one
+	lua_pushstring(g_LUAstate, cur_path); // push the new one
 	lua_setfield(g_LUAstate, -2, "path"); // set the field "path" in table at -2 with value at top of stack
 	lua_pop(g_LUAstate, 1); // get rid of package table from top of stack
 
 	lua_getglobal(g_LUAstate, "require");
-	lua_pushstring(g_LUAstate, moduleKeydown);
+	lua_pushstring(g_LUAstate, moduleUser);
 	if (lua_pcall(g_LUAstate, 1, 1, 0) != LUA_OK)
 	{
 		char bufr[2056];
 		strcpy(bufr, lua_tostring(g_LUAstate, -1));
-		mlog_in("basslua_open mlog_in require %s <%s>", moduleKeydown, bufr);
+		mlog_in("basslua_open mlog_in require %s <%s>", moduleUser, bufr);
 		lua_pop(g_LUAstate, 1);
 		return false;
 	}
-	//mlog_in("debug basslua_open OK : require <%s>",moduleKeydown);
+	//mlog_in("debug basslua_open OK : require <%s>",moduleUser);
 
 	if (!lua_istable(g_LUAstate, -1))
 	{
-		mlog_in("debug basslua_open error require %s : not a table", moduleKeydown);
+		mlog_in("debug basslua_open error require %s : not a table", moduleUser);
 		lua_pop(g_LUAstate, 1);
 		return false;
 	}
-	lua_setglobal(g_LUAstate, moduleKeydown);
-	//mlog_in("debug basslua_open OK : lua_setglobal <%s>",moduleKeydown);
+	lua_setglobal(g_LUAstate, moduleUser);
+	//mlog_in("debug basslua_open OK : lua_setglobal <%s>",moduleUser);
 
 	// create the "info" table to receive instructions
 	lua_newtable(g_LUAstate);
@@ -1854,7 +1854,7 @@ bool basslua_open(const char* fname, const char* param, bool reset, long datefna
 	// mlog_in("debug basslua_open OK : luabass.inCountMidi()=%d",g_nb_midi_in);
 
 	// init the lua script
-	basslua_call(moduleGlobal, sonStart, "s", param) ; // ask for the _G.onStart() : init user's settings
+	basslua_call(moduleGlobal, sonStart, "s", param) ; // ask for the userlua.onStart() : init user's settings
 	// mlog_in("debug basslua_open OK : %s %s",fname,sonStart);
 
 	// init the static variable of this dll
