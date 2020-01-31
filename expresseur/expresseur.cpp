@@ -638,6 +638,7 @@ bool Expresseur::checkConfig()
 	merrors += checkFile(mxconf::getCwdDir(),"luachord.lua");
 	merrors += checkFile(mxconf::getCwdDir(),"luascore.lua");
 	merrors += checkFile(mxconf::getCwdDir(),"texttochord.lua");
+	merrors += checkFile(mxconf::getResourceDir(),"luauser.lua");
 	merrors += checkFile(mxconf::getResourceDir(),"default_piano.sf2");
 	merrors += checkFile(mxconf::getResourceDir(),"guitare.sf2");
 	merrors += checkFile(mxconf::getResourceDir(),"default_piano.txt");
@@ -2299,6 +2300,8 @@ void Expresseur::CreateExpresseurV3()
 			wxString ext = ffile1.GetExt();
 			ext.MakeLower();
 			bool tocopy = true;
+			if ((ext == "lua") && (ffile2.FileExists()))
+					tocopy = false;
 			if ((ext == "sf2") && (ffile2.FileExists()) && (ffile1.GetSize() == ffile2.GetSize()))
 					tocopy = false;
 			//wxMessageBox(file1 + " to " + file2 , "copy ressource");
