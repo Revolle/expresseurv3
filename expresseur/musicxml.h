@@ -589,6 +589,8 @@ public:
 	int division_quarter = NULL_INT;
 	int division_beat = NULL_INT;
 	int division_measure = NULL_INT;
+	int beat_type = NULL_INT;
+	int beats = NULL_INT;
 	int key_fifths = NULL_INT;
 	int number = NULL_INT;
 	int width = NULL_INT;

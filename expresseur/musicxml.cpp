@@ -526,6 +526,11 @@ void c_attributes::compile(bool twelved , c_measure *measure)
 	{
 		measure->key_fifths = key->fifths;
 	}
+	if (mtime)
+	{
+		measure->beats = mtime->beats;
+		measure->beat_type = mtime->beat_type;
+	}
 	if (divisions != NULL_INT)
 	{
 		if (twelved)
@@ -533,30 +538,26 @@ void c_attributes::compile(bool twelved , c_measure *measure)
 		measure->divisions = divisions;
 		measure->division_quarter = divisions;
 	}
-	if (mtime)
+	switch (measure->beat_type)
 	{
-		switch (mtime->beat_type)
-		{
-		case 1:
-			measure->division_beat = 4 * measure->division_quarter;
-			measure->division_measure = 4 * measure->division_quarter * mtime->beats;
-			break;
-		case 2:
-			measure->division_beat = 2 * measure->division_quarter;
-			measure->division_measure = 2 * measure->division_quarter * mtime->beats;
-			break;
-		case 8:
-			measure->division_beat = (3 * measure->division_quarter) / 2;
-			measure->division_measure = measure->division_quarter * mtime->beats / 2;
-			break;
-		case 4:
-		default:
-			measure->division_beat = measure->division_quarter;
-			measure->division_measure = measure->division_quarter * mtime->beats;
-			break;
-		}
+	case 1:
+		measure->division_beat = 4 * measure->division_quarter;
+		measure->division_measure = 4 * measure->division_quarter * measure->beats;
+		break;
+	case 2:
+		measure->division_beat = 2 * measure->division_quarter;
+		measure->division_measure = 2 * measure->division_quarter * measure->beats;
+		break;
+	case 8:
+		measure->division_beat = (3 * measure->division_quarter) / 2;
+		measure->division_measure = measure->division_quarter * measure->beats / 2;
+		break;
+	case 4:
+	default:
+		measure->division_beat = measure->division_quarter;
+		measure->division_measure = measure->division_quarter * measure->beats;
+		break;
 	}
-
 }
 
 // score-partwise/list/part/measure/note/pitch
@@ -2401,6 +2402,8 @@ void c_measure::compile(c_measure *previous_measure , int partNr, bool twelved)
 		division_beat = previous_measure->division_beat;
 		division_measure = previous_measure->division_measure;
 		key_fifths = previous_measure->key_fifths;
+		beats = previous_measure->beats;
+		beat_type = previous_measure->beat_type;
 	}
 	if (previous_measure == NULL)
 		original_number = 1;
