@@ -1022,24 +1022,20 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 		if (mExpression && (mExpression->IsVisible()))
 			mExpression->scanValue(); // updates the values of the "expression" of thuis GUI, with the values in LUA
 
-		// scan from LUA, if a MIDI event asked to go to next file in the list of file
-		int n;
-		if ((basslua_table(moduleGlobal, tableInfo, -1, fieldFile, NULL, &n, tableGetKeyValue | tableNilKeyValue) & tableGetKeyValue) == tableGetKeyValue)
-			ListSelectNext(n);
-
 		// scan if the LUA status text has been changed
 		char ch[1024];
 		if ((basslua_table(moduleGlobal, tableInfo, -1, fieldStatus, ch, NULL, tableGetKeyValue | tableNilKeyValue) & tableGetKeyValue) == tableGetKeyValue)
-			SetStatusText(ch, 1);
-
-		// scan if the LUA message msgbox has been changed
-		if ((basslua_table(moduleGlobal, tableInfo, -1, fieldMsgbox, ch, NULL, tableGetKeyValue | tableNilKeyValue) & tableGetKeyValue) == tableGetKeyValue)
-			wxMessageBox(ch, "LUA message");
-
-		// scan if the LUA message play/view has been changed
-		if ((basslua_table(moduleGlobal, tableInfo, -1, fieldPlayview, ch, NULL, tableGetKeyValue | tableNilKeyValue) & tableGetKeyValue) == tableGetKeyValue)
-			setPlayView(ch);
-
+		{
+			switch (ch[0])
+			{
+			case '+': ListSelectNext(1); break;
+			case '-': ListSelectNext(-1); break;
+			case '!': wxMessageBox(ch + 1, "LUA message"); break;
+			case '=': setPlayView(ch + 1); break;
+			default: SetStatusText(ch, 1); break;
+			}
+		}
+			
 		if (image_right != mViewerscore->GetClientSize())
 		{
 			if ( image_right.GetWidth() == 0)

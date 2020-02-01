@@ -34,10 +34,7 @@
 #define fieldIcone "icone"
 #define fieldHelp "help"
 #define fieldShortcut "shortcut"
-#define fieldFile "file"
 #define fieldStatus "status"
-#define fieldMsgbox "msgbox"
-#define fieldPlayview "playview"
 #define modeNil 0
 #define modeScore 1
 #define modeChord 2

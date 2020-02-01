@@ -2,8 +2,6 @@
 * \file basslua.c
 * \brief Midi-IN Event LUA processor 
 * \author Franck Revolle
-* \version 1.1
-* \date 05 10 2015
 * Objective :
 *   This module :
 *     - manages hardware :
