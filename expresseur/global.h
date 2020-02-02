@@ -91,6 +91,7 @@
 #define CONFIG_BITMAPSCOREWARNINGTAGIMAGE "/bitmapscore/warningtagimage"
 
 #define CONFIG_LUA_SCRIPT "/script/luascript"
+#define CONFIG_LUA_USER_SCRIPT "/script/luauserscript"
 #define CONFIG_LUA_PARAMETER "/script/luaparameter"
 #define CONFIG_MUSESCORE "/script/musescore"
 

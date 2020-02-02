@@ -1704,7 +1704,7 @@ void basslua_external_timer()
 * \param param : parameter given to the LUA function onStart
 * \return -1 if mlog_in. 0 if no mlog_in.
 **/
-bool basslua_open(const char* fname, const char* param, bool reset, long datefname, voidcallback ifcallback , const char *logpath, const char *ressourdir, bool externalTimer , int timerDt )
+bool basslua_open(const char* fname, const char* fusername, const char* param, bool reset, long datefname, voidcallback ifcallback , const char *logpath, const char *ressourdir, bool externalTimer , int timerDt )
 {
 	if (( reset == false ) && (strcmp(param, pparam) == 0) && (strcmp(fname, pfname) == 0)&& (datefname == pdatefname))
 		return true ;
@@ -1807,16 +1807,16 @@ bool basslua_open(const char* fname, const char* param, bool reset, long datefna
 	lua_pop(g_LUAstate, 1); // get rid of package table from top of stack
 
 	lua_getglobal(g_LUAstate, "require");
-	lua_pushstring(g_LUAstate, moduleUser);
+	lua_pushstring(g_LUAstate, fusername);
 	if (lua_pcall(g_LUAstate, 1, 1, 0) != LUA_OK)
 	{
 		char bufr[2056];
 		strcpy(bufr, lua_tostring(g_LUAstate, -1));
-		mlog_in("basslua_open mlog_in require %s <%s>", moduleUser, bufr);
+		mlog_in("basslua_open mlog_in require %s <%s>", fusername, bufr);
 		lua_pop(g_LUAstate, 1);
 		return false;
 	}
-	//mlog_in("debug basslua_open OK : require <%s>",moduleUser);
+	//mlog_in("debug basslua_open OK : require <%s>",fusername);
 
 	if (!lua_istable(g_LUAstate, -1))
 	{
