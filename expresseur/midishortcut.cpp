@@ -426,8 +426,9 @@ void midishortcut::OnDown(wxCommandEvent& WXUNUSED(event))
 }
 void midishortcut::OnKeydown(wxCommandEvent& WXUNUSED(event))
 {
-	bool ret ;
-	basslua_call(moduleUser, "keydown", "sii>b", "", -1, -1, &ret);
+	bool ret = true ;
+	if (! basslua_call(moduleUser, "keydown", "sii>b", "", -1, -1, &ret) )
+		wxMessageBox("Error calling luauser.lua keydown()");
 }
 int midishortcut::edit(long i)
 {

@@ -4,14 +4,19 @@ This LUA module is on the user directory ExpresseruV3/ressources/luauser.lua
 It is used to customize the behavior of Expresseur
 
 It can write 
-	info.status = "staus message to display in the gui" 
-	info.msgbox = "message-box to display in the gui" 
-	info.playview => track to play/view
-	info.file => value to increment decrement file
+	info.status = "status message to display in the gui" 
+	info.status = "!message-box to display in the gui" 
+	info.status = "=3/2" track to play/view
+	info.status = "+" increment file 
+	info.status = "-" decrement file 
 
 It contains information about valid or non valid MIDI
+	E.valid_midiout 
+	E.invalid_midiout 
+	E.valid_midiin 
+	E.invalid_midiin
 
-It can catch computer keydown
+It can catch computer keydown with function E.keydown ( keyLetter, keyCode, modifiers)
 
 It can catch MIDI-Event following this specifications :
 Functions E.on<event>(...) : LUA functions to take actions on midi events
@@ -70,21 +75,20 @@ function E.keydown ( keyLetter, keyCode, modifiers)
 -- when a computer key is pressed, this function is called
 -- return true if the process of the keydown will not continue
 
- info.msgbox = "keydown"
-
-	luabass.logmsg("keydown(" .. (keyLetter or "" ).. "," .. (keyCode or "") .. "," .. (modifiers or "")  .. ")")
+	luabass.logmsg("keydown")
+ 	luabass.logmsg("keydown(" .. (keyLetter or "" ).. "," .. (keyCode or "") .. "," .. (modifiers or "")  .. ")")
 	if (keyCode or -1) == -1 then
-		info.msgbox = "Help about the keydown lua function\nfunctions are described here\n..\n.." 
+		info.status = "!Help about the keydown lua function\nfunctions are described here\n..\n.." 
 		return true
 	end
 	if keyLetter == "A" then
-		info.playview = "*/"
+		info.status = "=*/"
 		return true 
 	elseif keyLetter == "B" then
-		info.playview = "1/2" 
+		info.status = "=1/2" 
 		return true 
 	end
-	info.status = keyLetter .. " is not processed by keydown.lua" -- info in status bar
+	info.status = "the " .. keyLetter .. " is not processed by keydown.lua" -- info in status bar
 	return false 
 end
 

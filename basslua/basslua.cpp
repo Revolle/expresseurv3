@@ -1801,6 +1801,7 @@ bool basslua_open(const char* fname, const char* fusername, const char* param, b
 	lua_getfield(g_LUAstate, -1, "path"); // get field "path" from table at top of stack (-1)
 	char cur_path[2056] ;
 	sprintf(cur_path,"%s;%s?.lua", lua_tostring(g_LUAstate, -1), ressourdir);
+	//mlog_in("curpath <%s> <%s> <%s> <%s>",cur_path,lua_tostring(g_LUAstate, -1),ressourdir,fusername);
 	lua_pop(g_LUAstate, 1); // get rid of the string on the stack we just pushed on line 5
 	lua_pushstring(g_LUAstate, cur_path); // push the new one
 	lua_setfield(g_LUAstate, -2, "path"); // set the field "path" in table at -2 with value at top of stack

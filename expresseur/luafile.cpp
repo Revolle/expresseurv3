@@ -86,7 +86,7 @@ luafile::luafile(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* 
 	sizerFlagMinimumPlace.Border(wxALL, 2);
 
 	wxBoxSizer *topsizer = new wxBoxSizer(wxVERTICAL);
-	wxFlexGridSizer *paramsizer = new wxFlexGridSizer(3, wxSize(5, 5));
+	wxFlexGridSizer *paramsizer = new wxFlexGridSizer(2, wxSize(5, 5));
 	paramsizer->AddGrowableCol(1);
 
 	wxArrayString lScript, lfScript;
@@ -127,6 +127,7 @@ luafile::luafile(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* 
 
 	wxString luascriptparameter = mConf->get(CONFIG_LUA_PARAMETER, DEFAULT_LUA_PARAMETER);
 
+	paramsizer->Add(new wxStaticText(this, wxID_ANY, _("LUA start parameter")), sizerFlagMaximumPlace);
 	wxTextCtrl *mLuaParameter = new wxTextCtrl(this, IDM_LUAFILE_LUA_PARAMETER, luascriptparameter);
 	mLuaParameter->SetToolTip(_("parameter for the LUA script"));
 	paramsizer->Add(mLuaParameter, sizerFlagMaximumPlace);
@@ -198,7 +199,7 @@ void luafile::reset(mxconf* mConf, bool all, int timerDt)
 		wxDateTime d = fuser.GetModificationTime();
 		dduser = d.GetTicks();
 	}
-	wxString sluauser = fuser.GetFullPath();
+	wxString sluauser = fuser.GetName();
 	if (dduser > dd)
 		dd = dduser;
 
