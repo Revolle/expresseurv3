@@ -123,9 +123,12 @@ dztt404 = h_tt404/2 + hpicot_tt404 - dz_tt404 ;
 dxtt404 = 9.5 * pouce ;
 dz_trou_pedale = - dztt404 + dzpcb - epcb/2 ;
 
+dcuberaccord=e/4;
+
 dcubecoupe=200;
 // vue en coupe 
-coupe= [500,0,0]; // pas de coupe
+//coupe= [500,0,0]; // pas de coupe
+// longueur
 //coupe= [-120,00,0]; // phototransistor
 //coupe= [-116,00,0]; // pcb
 //coupe= [-100,00,0]; // tunnel
@@ -141,8 +144,9 @@ coupe= [500,0,0]; // pas de coupe
 //coupe=[0,-100,0]; // milieu
 //coupe=[0,100,0]; // milieu
 //coupe=[0,-135,0]; // presque tout
-//coupe=[0,0,(dcubecoupe/2+dz_trou_pedale)];
- 
+//hauteur
+//coupe=[0,0,(dcubecoupe/2-dz_trou_pedale)];
+coupe=[0,0,-(dcubecoupe/2-dz_trou_pedale)];
 
 module tt404()
 {
@@ -637,7 +641,27 @@ module boite ()
     translate([dxpcb ,0,dzpcb - epcb/2 ] ) 
             pcb() ;
  }
- 
+ module boite_decoupe_haut()
+ {
+     union()
+     {
+         translate([0,0,-(dcubecoupe/2-dz_trou_pedale)])   
+            cube([dcubecoupe,dcubecoupe,dcubecoupe], center = true);
+         translate([(x_doigt+x_led-2*e)/2,largeur/2+e/5,dz_trou_pedale])
+            rotate([45,0,0])
+                cube([x_electronique+(x_doigt+x_led-2*e)-2*e,
+                    dcuberaccord,dcuberaccord],center=true);
+         translate([-x_electronique/4+2*e,-largeur/2-e/5,dz_trou_pedale])
+            rotate([45,0,0])
+                cube([x_electronique/2+2*e,
+                dcuberaccord,dcuberaccord],center=true);
+         translate([x_electronique/2+(x_doigt+x_led-4*e)/2,
+                    -largeur/2-e/5,dz_trou_pedale])
+            rotate([45,0,0])
+                cube([x_doigt+x_led-2*e,
+                dcuberaccord,dcuberaccord],center=true);
+     }
+ }
  module boite_decoupe_bas()
  {
     cube([dcubecoupe,dcubecoupe,dcubecoupe], center = true);
@@ -655,6 +679,7 @@ module boite ()
       difference()
      {
         boite();
+        boite_decoupe_haut() ;
      }
 }
 *tt404();
@@ -674,7 +699,7 @@ module boite ()
     translate(coupe)   
         cube([dcubecoupe,dcubecoupe,dcubecoupe], center = true);
 }
-boite_haut();
+boite_bas();
 echo("largeur=",largeur," longueur=",x_electronique+x_doigt+x_led, " hauteur=",hauteur);
 echo ("xpcb=",xpcb, " ypcb=",ypcb);
 echo ("dxtrou tt404=",dxtrou_tt404+da_tt404);

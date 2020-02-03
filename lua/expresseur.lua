@@ -15,10 +15,13 @@ Function onStop() : called by basslua , before to close this LUA script.
 basslua uses these tables :
 - midiinOpen = { 1, 3 } : LUA table which contains midiIn deviceNrs to open. Checked regularly by basslua.
 - It can write 
-	info.status = "staus message to display in the gui" 
-	info.msgbox = "message-box to display in the gui" 
-	info.playview => track to play/view
-	info.file => value to increment decrement file
+	info.status = "status message to display in the gui" 
+	info.action = "!message-box to display in the gui" 
+	info.action = "=3/2" track to play/view
+	info.action = "+" increment file 
+	info.action = "-" decrement file 
+	info.action = "0" first file 
+	info.action = "#" last file 
 - values = { {},..} : table of values which can be tuned in the GUI. 
     Read by the GUI through basslua.
 	The GUI, through basslua, will add fields : values[valueName]=value

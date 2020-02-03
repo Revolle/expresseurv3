@@ -35,6 +35,7 @@
 #define fieldHelp "help"
 #define fieldShortcut "shortcut"
 #define fieldStatus "status"
+#define fieldAction "action"
 #define modeNil 0
 #define modeScore 1
 #define modeChord 2

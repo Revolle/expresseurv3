@@ -5,10 +5,12 @@ It is used to customize the behavior of Expresseur
 
 It can write 
 	info.status = "status message to display in the gui" 
-	info.status = "!message-box to display in the gui" 
-	info.status = "=3/2" track to play/view
-	info.status = "+" increment file 
-	info.status = "-" decrement file 
+	info.action = "!message-box to display in the gui" 
+	info.action = "=3/2" track to play/view
+	info.action = "+" increment file 
+	info.action = "-" decrement file 
+	info.action = "0" first file 
+	info.action = "#" last file 
 
 It contains information about valid or non valid MIDI
 	E.valid_midiout 
@@ -75,17 +77,150 @@ function E.keydown ( keyLetter, keyCode, modifiers)
 -- when a computer key is pressed, this function is called
 -- return true if the process of the keydown will not continue
 
-	luabass.logmsg("keydown")
  	luabass.logmsg("keydown(" .. (keyLetter or "" ).. "," .. (keyCode or "") .. "," .. (modifiers or "")  .. ")")
 	if (keyCode or -1) == -1 then
-		info.status = "!Help about the keydown lua function\nfunctions are described here\n..\n.." 
+		info.action = "!Help about the keydown lua function\nfunctions are described here\n..\n.." 
 		return true
 	end
-	if keyLetter == "A" then
-		info.status = "=*/"
+	if keyLetter == "Y" then
+		info.status = "track 1 not played" 
+		info.action = "=-1" 
+		return true 
+	elseif keyLetter == "X" then
+		info.status = "track 2 not played" 
+		info.action = "=-2" 
+		return true 
+	elseif keyLetter == "C" then
+		info.status = "track 3 not played" 
+		info.action = "=-3" 
+		return true 
+	elseif keyLetter == "V" then
+		info.status = "track 4 not played" 
+		info.action = "=-4" 
 		return true 
 	elseif keyLetter == "B" then
-		info.status = "=1/2" 
+		info.status = "track 5 not played" 
+		info.action = "=-5"  
+		return true 
+	elseif keyLetter == "N" then
+		info.status = "track 6 not played" 
+		info.action = "=-6"  
+		return true 
+	elseif keyLetter == "M" then
+		info.status = "track 7 not played" 
+		info.action = "=-7" 
+		return true 
+	elseif keyLetter == "," then
+		info.status = "track 8 not played" 
+		info.action = "=-8"  
+		return true 
+	elseif keyLetter == "A" then
+		info.status = "track 1 piano" 
+		info.action = "=+1" 
+		luabasss.outSetTrackVolume (30,1)
+	elseif keyLetter == "S" then
+		info.status = "track 2 piano" 
+		info.action = "=+2" 
+		luabasss.outSetTrackVolume (30,2)
+		return true 
+	elseif keyLetter == "D" then
+		info.status = "track 3 piano" 
+		info.action = "=+3" 
+		luabasss.outSetTrackVolume (30,3)
+	elseif keyLetter == "F" then
+		info.status = "track 4 piano" 
+		info.action = "=+4" 
+		luabasss.outSetTrackVolume (30,4)
+		return true 
+	elseif keyLetter == "G" then
+		info.status = "track 5 piano" 
+		info.action = "=+5" 
+		luabasss.outSetTrackVolume (30,5)
+	elseif keyLetter == "H" then
+		info.status = "track 6 piano" 
+		info.action = "=+6" 
+		luabasss.outSetTrackVolume (30,6)
+		return true 
+	elseif keyLetter == "J" then
+		info.status = "track 7 piano" 
+		info.action = "=+7" 
+		luabasss.outSetTrackVolume (30,7)
+	elseif keyLetter == "K" then
+		info.status = "track 8 piano" 
+		info.action = "=+8" 
+		luabasss.outSetTrackVolume (30,8)
+		return true 
+	elseif keyLetter == "Q" then
+		info.status = "track 1 mesoforte" 
+		info.action = "=+1" 
+		luabasss.outSetTrackVolume (70,1)
+	elseif keyLetter == "W" then
+		info.status = "track 2 mesoforte" 
+		info.action = "=+2" 
+		luabasss.outSetTrackVolume (70,2)
+		return true 
+	elseif keyLetter == "E" then
+		info.status = "track 3 mesoforte" 
+		info.action = "=+3" 
+		luabasss.outSetTrackVolume (70,3)
+	elseif keyLetter == "R" then
+		info.status = "track 4 mesoforte" 
+		info.action = "=+4" 
+		luabasss.outSetTrackVolume (70,4)
+		return true 
+	elseif keyLetter == "T" then
+		info.status = "track 5 mesoforte" 
+		info.action = "=+5" 
+		luabasss.outSetTrackVolume (70,5)
+	elseif keyLetter == "Z" then
+		info.status = "track 6 mesoforte" 
+		info.action = "=+6" 
+		luabasss.outSetTrackVolume (70,6)
+		return true 
+	elseif keyLetter == "U" then
+		info.status = "track 7 mesoforte" 
+		info.action = "=+7" 
+		luabasss.outSetTrackVolume (70,7)
+	elseif keyLetter == "I" then
+		info.status = "track 8 mesoforte" 
+		info.action = "=+8" 
+		luabasss.outSetTrackVolume (70,8)
+		return true 
+	elseif keyLetter == "1" then
+		info.status = "track 1 forte" 
+		info.action = "=+1" 
+		luabasss.outSetTrackVolume (100,1)
+	elseif keyLetter == "2" then
+		info.status = "track 2 forte" 
+		info.action = "=+2" 
+		luabasss.outSetTrackVolume (100,2)
+		return true 
+	elseif keyLetter == "3" then
+		info.status = "track 3 forte" 
+		info.action = "=+3" 
+		luabasss.outSetTrackVolume (100,3)
+	elseif keyLetter == "4" then
+		info.status = "track 4 forte" 
+		info.action = "=+4" 
+		luabasss.outSetTrackVolume (100,4)
+		return true 
+	elseif keyLetter == "5" then
+		info.status = "track 5 forte" 
+		info.action = "=+5" 
+		luabasss.outSetTrackVolume (100,5)
+	elseif keyLetter == "6" then
+		info.status = "track 6 forte" 
+		info.action = "=+6" 
+		luabasss.outSetTrackVolume (100,6)
+		return true 
+	elseif keyLetter == "7" then
+		info.status = "track 7 forte" 
+		info.action = "=+7" 
+		luabasss.outSetTrackVolume (100,7)
+	elseif keyLetter == "8" then
+		info.status = "track 8 forte" 
+		info.action = "=+8" 
+		luabasss.outSetTrackVolume (100,8)
 		return true 
 	end
 	info.status = "the " .. keyLetter .. " is not processed by keydown.lua" -- info in status bar

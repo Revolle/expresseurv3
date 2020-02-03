@@ -1373,13 +1373,16 @@ void musicxmlscore::setPlayVisible(wxString sin)
 	// */ : play view all
 	// * : play all
 	// /* : view all
+	// -2 : not play track 2. Other : not changed
+	// +2 : play track 2. Other not changed
+
 	wxString overwriteListPlay;
 	wxString overwriteListVisible;
+
 	bool overwritePlay = false;
 	bool overwriteVisible = false;
-
-	overwritePlay = true;
-	overwriteVisible = false;
+	int silenceTrack = -1;
+	int playTrack = -1;
 	overwriteListPlay.Empty();
 	overwriteListVisible.Empty();
 
@@ -1413,10 +1416,31 @@ void musicxmlscore::setPlayVisible(wxString sin)
 	}
 	else
 	{
-		overwritePlay = true;
-		overwriteVisible = false;
-		overwriteListPlay = sin;
-		overwriteListVisible = "";
+		if (sin.Left(1) == "+")
+		{
+			long l;
+			if (sin.Mid(1).ToLong(&l))
+			{
+				playTrack = (int)l;
+			}
+			else return;
+		}
+		else if (sin.Left(1) == "-")
+		{
+			long l;
+			if (sin.Mid(1).ToLong(&l))
+			{
+				silenceTrack = (int)l;
+			}
+			else return;
+		}
+		else
+		{
+			overwritePlay = true;
+			overwriteVisible = false;
+			overwriteListPlay = sin;
+			overwriteListVisible = "";
+		}
 	}
 
 	wxFileName txtFile = xmlCompile->getNameTxtFile();
@@ -1510,6 +1534,20 @@ void musicxmlscore::setPlayVisible(wxString sin)
 										changeLine = true;
 									}
 								}
+							}
+						}
+						if ((partNr + 1) == playTrack)
+						{
+							if (line.Replace(PART_NOT_PLAYED, PART_PLAYED, false) > 0)
+							{
+								changeLine = true;
+							}
+						}
+						if ((partNr + 1) == silenceTrack)
+						{
+							if (line.Replace(PART_PLAYED, PART_NOT_PLAYED, false) > 0)
+							{
+								changeLine = true;
 							}
 						}
 						if (changeLine)

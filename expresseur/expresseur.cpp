@@ -1024,18 +1024,24 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 
 		// scan if the LUA status text has been changed
 		char ch[1024];
-		if ((basslua_table(moduleGlobal, tableInfo, -1, fieldStatus, ch, NULL, tableGetKeyValue | tableNilKeyValue) & tableGetKeyValue) == tableGetKeyValue)
+		if ((basslua_table(moduleGlobal, tableInfo, -1, fieldAction, ch, NULL, tableGetKeyValue | tableNilKeyValue) & tableGetKeyValue) == tableGetKeyValue)
 		{
 			switch (ch[0])
 			{
-			case '+': ListSelectNext(1); break;
-			case '-': ListSelectNext(-1); break;
+			case '0': ListSelect(0); SetStatusText("keydown : first file", 1); break;
+			case '#': ListSelect(-1); SetStatusText("keydown : last file", 1); break;
+			case '+': ListSelectNext(1); SetStatusText("keydown : next file", 1); break;
+			case '-': ListSelectNext(-1); SetStatusText("keydown : previous file", 1); break;
 			case '!': wxMessageBox(ch + 1, "LUA message"); break;
-			case '=': setPlayView(ch + 1); break;
+			case '=': setPlayView(ch + 1);  SetStatusText(wxString("keydown : playview ") + wxString(ch + 1), 1);  break;
 			default: SetStatusText(ch, 1); break;
 			}
 		}
-			
+		if ((basslua_table(moduleGlobal, tableInfo, -1, fieldStatus, ch, NULL, tableGetKeyValue | tableNilKeyValue) & tableGetKeyValue) == tableGetKeyValue)
+		{
+			SetStatusText(ch);
+		}
+
 		if (image_right != mViewerscore->GetClientSize())
 		{
 			if ( image_right.GetWidth() == 0)
@@ -1477,7 +1483,7 @@ void Expresseur::OnPlayview(wxCommandEvent& WXUNUSED(event))
 {
 	if (mode != modeScore)
 		return;
-	wxTextEntryDialog mdialog(NULL, "Tracks to play/view.\n14 : play track#1 & #4\n* : play all tracks\n12/ play and view track #1 & #2\n1/2 play track #1 and view track #2\n/3 view track #3\n/* view all tracks\n*/ play and view all tracks", "Expresseur");
+	wxTextEntryDialog mdialog(NULL, "Tracks to play/view.\n14 : play track#1 & #4\n* : play all tracks\n12/ play and view track #1 & #2\n1/2 play track #1 and view track #2\n/3 view track #3\n/* view all tracks\n*/ play and view all tracks\n+2 change only track #2 as played\n-2 change only track #2 as not played", "Expresseur");
 	if (mdialog.ShowModal() == wxID_OK)
 	{
 		wxString s = mdialog.GetValue();
