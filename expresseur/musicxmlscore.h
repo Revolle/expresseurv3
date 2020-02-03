@@ -24,7 +24,7 @@ public:
 	wxXmlNode *GetXmlPath(wxXmlNode *parent, const wxString name, wxString *content);
 	bool getScorePosition(int *absolute_measure_nr, int *measure_nr, int *repeat , int *beat, int *t);
 
-	void setPlayVisible(wxString sin);
+	bool setPlayVisible(wxString sin);
 
 	void initRecordPlayback();
 	void initPlayback();

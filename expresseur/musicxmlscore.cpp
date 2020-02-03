@@ -1361,10 +1361,10 @@ wxString musicxmlscore::getPlayback()
 {
 	return xmlCompile->getPlayback();
 }
-void musicxmlscore::setPlayVisible(wxString sin)
+bool musicxmlscore::setPlayVisible(wxString sin)
 {
 	if (!isOk())
-		return;
+		return false;
 	// analyse sin , to select tracks to be play/view
 	// 2/4 : play 2 / view 4
 	// 34 : play 3 & 4
@@ -1376,6 +1376,7 @@ void musicxmlscore::setPlayVisible(wxString sin)
 	// -2 : not play track 2. Other : not changed
 	// +2 : play track 2. Other not changed
 
+	bool changed = false;
 	wxString overwriteListPlay;
 	wxString overwriteListVisible;
 
@@ -1423,7 +1424,7 @@ void musicxmlscore::setPlayVisible(wxString sin)
 			{
 				playTrack = (int)l;
 			}
-			else return;
+			else return false;
 		}
 		else if (sin.Left(1) == "-")
 		{
@@ -1432,7 +1433,7 @@ void musicxmlscore::setPlayVisible(wxString sin)
 			{
 				silenceTrack = (int)l;
 			}
-			else return;
+			else return false;
 		}
 		else
 		{
@@ -1447,7 +1448,7 @@ void musicxmlscore::setPlayVisible(wxString sin)
 	wxTextFile f;
 	f.Open(txtFile.GetFullPath());
 	if (f.IsOpened() == false)
-		return;
+		return false;
 	wxString line;
 	wxString sectionName;
 	int line_nb = f.GetLineCount();
@@ -1554,6 +1555,7 @@ void musicxmlscore::setPlayVisible(wxString sin)
 						{
 							f.RemoveLine(line_nr);
 							f.InsertLine(line, line_nr);
+							changed = true;
 						}
 					}
 				}
@@ -1562,5 +1564,6 @@ void musicxmlscore::setPlayVisible(wxString sin)
 	}
 	f.Write();
 	f.Close();
+	return changed;
 }
 

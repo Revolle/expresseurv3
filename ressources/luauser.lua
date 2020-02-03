@@ -117,110 +117,110 @@ function E.keydown ( keyLetter, keyCode, modifiers)
 	elseif keyLetter == "A" then
 		info.status = "track 1 piano" 
 		info.action = "=+1" 
-		luabasss.outSetTrackVolume (30,1)
+		luabass.outSetTrackVolume (30,1)
 	elseif keyLetter == "S" then
 		info.status = "track 2 piano" 
 		info.action = "=+2" 
-		luabasss.outSetTrackVolume (30,2)
+		luabass.outSetTrackVolume (30,2)
 		return true 
 	elseif keyLetter == "D" then
 		info.status = "track 3 piano" 
 		info.action = "=+3" 
-		luabasss.outSetTrackVolume (30,3)
+		luabass.outSetTrackVolume (30,3)
 	elseif keyLetter == "F" then
 		info.status = "track 4 piano" 
 		info.action = "=+4" 
-		luabasss.outSetTrackVolume (30,4)
+		luabass.outSetTrackVolume (30,4)
 		return true 
 	elseif keyLetter == "G" then
 		info.status = "track 5 piano" 
 		info.action = "=+5" 
-		luabasss.outSetTrackVolume (30,5)
+		luabass.outSetTrackVolume (30,5)
 	elseif keyLetter == "H" then
 		info.status = "track 6 piano" 
 		info.action = "=+6" 
-		luabasss.outSetTrackVolume (30,6)
+		luabass.outSetTrackVolume (30,6)
 		return true 
 	elseif keyLetter == "J" then
 		info.status = "track 7 piano" 
 		info.action = "=+7" 
-		luabasss.outSetTrackVolume (30,7)
+		luabass.outSetTrackVolume (30,7)
 	elseif keyLetter == "K" then
 		info.status = "track 8 piano" 
 		info.action = "=+8" 
-		luabasss.outSetTrackVolume (30,8)
+		luabass.outSetTrackVolume (30,8)
 		return true 
 	elseif keyLetter == "Q" then
 		info.status = "track 1 mesoforte" 
 		info.action = "=+1" 
-		luabasss.outSetTrackVolume (70,1)
+		luabass.outSetTrackVolume (64,1)
 	elseif keyLetter == "W" then
 		info.status = "track 2 mesoforte" 
 		info.action = "=+2" 
-		luabasss.outSetTrackVolume (70,2)
+		luabass.outSetTrackVolume (64,2)
 		return true 
 	elseif keyLetter == "E" then
 		info.status = "track 3 mesoforte" 
 		info.action = "=+3" 
-		luabasss.outSetTrackVolume (70,3)
+		luabass.outSetTrackVolume (64,3)
 	elseif keyLetter == "R" then
 		info.status = "track 4 mesoforte" 
 		info.action = "=+4" 
-		luabasss.outSetTrackVolume (70,4)
+		luabass.outSetTrackVolume (64,4)
 		return true 
 	elseif keyLetter == "T" then
 		info.status = "track 5 mesoforte" 
 		info.action = "=+5" 
-		luabasss.outSetTrackVolume (70,5)
+		luabass.outSetTrackVolume (64,5)
 	elseif keyLetter == "Z" then
 		info.status = "track 6 mesoforte" 
 		info.action = "=+6" 
-		luabasss.outSetTrackVolume (70,6)
+		luabass.outSetTrackVolume (64,6)
 		return true 
 	elseif keyLetter == "U" then
 		info.status = "track 7 mesoforte" 
 		info.action = "=+7" 
-		luabasss.outSetTrackVolume (70,7)
+		luabass.outSetTrackVolume (64,7)
 	elseif keyLetter == "I" then
 		info.status = "track 8 mesoforte" 
 		info.action = "=+8" 
-		luabasss.outSetTrackVolume (70,8)
+		luabass.outSetTrackVolume (64,8)
 		return true 
 	elseif keyLetter == "1" then
 		info.status = "track 1 forte" 
 		info.action = "=+1" 
-		luabasss.outSetTrackVolume (100,1)
+		luabass.outSetTrackVolume (100,1)
 	elseif keyLetter == "2" then
 		info.status = "track 2 forte" 
 		info.action = "=+2" 
-		luabasss.outSetTrackVolume (100,2)
+		luabass.outSetTrackVolume (100,2)
 		return true 
 	elseif keyLetter == "3" then
 		info.status = "track 3 forte" 
 		info.action = "=+3" 
-		luabasss.outSetTrackVolume (100,3)
+		luabass.outSetTrackVolume (100,3)
 	elseif keyLetter == "4" then
 		info.status = "track 4 forte" 
 		info.action = "=+4" 
-		luabasss.outSetTrackVolume (100,4)
+		luabass.outSetTrackVolume (100,4)
 		return true 
 	elseif keyLetter == "5" then
 		info.status = "track 5 forte" 
 		info.action = "=+5" 
-		luabasss.outSetTrackVolume (100,5)
+		luabass.outSetTrackVolume (100,5)
 	elseif keyLetter == "6" then
 		info.status = "track 6 forte" 
 		info.action = "=+6" 
-		luabasss.outSetTrackVolume (100,6)
+		luabass.outSetTrackVolume (100,6)
 		return true 
 	elseif keyLetter == "7" then
 		info.status = "track 7 forte" 
 		info.action = "=+7" 
-		luabasss.outSetTrackVolume (100,7)
+		luabass.outSetTrackVolume (100,7)
 	elseif keyLetter == "8" then
 		info.status = "track 8 forte" 
 		info.action = "=+8" 
-		luabasss.outSetTrackVolume (100,8)
+		luabass.outSetTrackVolume (100,8)
 		return true 
 	end
 	info.status = "the " .. keyLetter .. " is not processed by keydown.lua" -- info in status bar

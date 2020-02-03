@@ -1028,18 +1028,18 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 		{
 			switch (ch[0])
 			{
-			case '0': ListSelect(0); SetStatusText("keydown : first file", 1); break;
-			case '#': ListSelect(-1); SetStatusText("keydown : last file", 1); break;
-			case '+': ListSelectNext(1); SetStatusText("keydown : next file", 1); break;
-			case '-': ListSelectNext(-1); SetStatusText("keydown : previous file", 1); break;
+			case '0': ListSelect(0);  break;
+			case '#': ListSelect(-1);  break;
+			case '+': ListSelectNext(1);  break;
+			case '-': ListSelectNext(-1); break;
 			case '!': wxMessageBox(ch + 1, "LUA message"); break;
-			case '=': setPlayView(ch + 1);  SetStatusText(wxString("keydown : playview ") + wxString(ch + 1), 1);  break;
+			case '=': setPlayView(ch + 1); break;
 			default: SetStatusText(ch, 1); break;
 			}
 		}
 		if ((basslua_table(moduleGlobal, tableInfo, -1, fieldStatus, ch, NULL, tableGetKeyValue | tableNilKeyValue) & tableGetKeyValue) == tableGetKeyValue)
 		{
-			SetStatusText(ch);
+			SetStatusText(ch,1);
 		}
 
 		if (image_right != mViewerscore->GetClientSize())
@@ -1458,11 +1458,13 @@ void Expresseur::OnZoom(wxCommandEvent& event)
 }
 void Expresseur::setPlayView(wxString s)
 {
-	((musicxmlscore*)mViewerscore)->setPlayVisible(s);
-	mTextscore->setFile(fileName);
-	fileName.SetExt(SUFFIXE_TEXT);
-	mViewerscore->setFile(fileName);
-	mViewerscore->displayFile(mViewerscore->GetClientSize());
+	if (((musicxmlscore*)mViewerscore)->setPlayVisible(s))
+	{
+		mTextscore->setFile(fileName);
+		fileName.SetExt(SUFFIXE_TEXT);
+		mViewerscore->setFile(fileName);
+		mViewerscore->displayFile(mViewerscore->GetClientSize());
+	}
 }
 void Expresseur::OnPlayviewSolo(wxCommandEvent& event)
 {
