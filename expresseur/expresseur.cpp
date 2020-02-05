@@ -1033,7 +1033,8 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 			case '+': ListSelectNext(1);  break;
 			case '-': ListSelectNext(-1); break;
 			case '!': wxMessageBox(ch + 1, "LUA message"); break;
-			case '=': setPlayView(ch + 1); break;
+			case '=': selectPlayview(ch + 1); break;
+			case '@': if (mode == modeScore) mViewerscore->gotoPosition(ch + 1); break;
 			default: SetStatusText(ch, 1); break;
 			}
 		}
@@ -1481,16 +1482,25 @@ void Expresseur::OnPlayviewAll(wxCommandEvent& WXUNUSED(event))
 		return;
 	setPlayView("*/");
 }
+void Expresseur::selectPlayview(wxString s)
+{
+	wxString ts ;
+	if ( s.IsEmpty() )
+	{
+		wxTextEntryDialog mdialog(NULL, "Tracks to play/view.\n14 : play track#1 & #4\n* : play all tracks\n12/ play and view track #1 & #2\n1/2 play track #1 and view track #2\n/3 view track #3\n/* view all tracks\n*/ play and view all tracks\n+2 change only track #2 as played\n-2 change only track #2 as not played", "Expresseur");
+		if (mdialog.ShowModal() == wxID_OK)
+		{
+			ts = mdialog.GetValue();
+		}
+	}
+	if ( ! s.IsEmpty() )
+		setPlayView(s);
+}
 void Expresseur::OnPlayview(wxCommandEvent& WXUNUSED(event))
 {
 	if (mode != modeScore)
 		return;
-	wxTextEntryDialog mdialog(NULL, "Tracks to play/view.\n14 : play track#1 & #4\n* : play all tracks\n12/ play and view track #1 & #2\n1/2 play track #1 and view track #2\n/3 view track #3\n/* view all tracks\n*/ play and view all tracks\n+2 change only track #2 as played\n-2 change only track #2 as not played", "Expresseur");
-	if (mdialog.ShowModal() == wxID_OK)
-	{
-		wxString s = mdialog.GetValue();
-		setPlayView(s);
-	}
+	selectPlayview("");
 }
 void Expresseur::OnRecordImpro(wxCommandEvent& WXUNUSED(event))
 {
@@ -1864,7 +1874,7 @@ void Expresseur::OnGoto(wxCommandEvent& WXUNUSED(event))
 {
 	if (mode != modeScore)
 		return;
-	mViewerscore->gotoPosition();
+	mViewerscore->gotoPosition("");
 }
 void Expresseur::OnMidishortcut(wxCommandEvent& WXUNUSED(event))
 {

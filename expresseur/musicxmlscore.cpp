@@ -892,14 +892,21 @@ void musicxmlscore::OnLeftDown(wxMouseEvent& event)
 	prevPlaying = -1;
 	basslua_call(moduleScore, functionScoreGotoNrEvent, "i", nrEvent + 1 );
 }
-void musicxmlscore::gotoPosition()
+void musicxmlscore::gotoPosition(wxString gotovalue)
 {
 	if (xmlCompile == NULL)
 		return;
-	wxTextEntryDialog mdialog(NULL, "Expresseur measure (prefix !). eg !12\nScore measure (optional repetion with *). eg 6*2 ( measure 6 2nd time)\nA label as described in the text file. eg A*2 (label A 2nd time)", "Expresseur");
-	if (mdialog.ShowModal() == wxID_OK)
+	wxString sgoto ;
+	if (gotovalue.IsEmpty())
 	{
-		wxString sgoto = mdialog.GetValue();
+		wxTextEntryDialog mdialog(NULL, "Expresseur measure (prefix !). eg !12\nScore measure (optional repetion with *). eg 6*2 ( measure 6 2nd time)\nA label as described in the text file. eg A*2 (label A 2nd time)", "Expresseur");
+		if (mdialog.ShowModal() == wxID_OK)
+			sgoto = mdialog.GetValue();
+	}
+	else
+		sgoto = gotovalue ;
+	if (! sgoto.IsEmpty() )
+	{
 		int nrEvent = xmlCompile->stringToEventNr(sgoto);
 		if (nrEvent != -1)
 			basslua_call(moduleScore, functionScoreGotoNrEvent, "i", nrEvent + 1);

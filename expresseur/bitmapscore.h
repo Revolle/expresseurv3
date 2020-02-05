@@ -26,7 +26,7 @@ public:
 	virtual int getTrackCount();
 	virtual void zoom(int dzoom);
 	virtual wxString getTrackName(int trackNr);
-	virtual void gotoPosition();
+	virtual void gotoPosition(wxString gotovalue);
 	virtual void gotoNextPage(bool forward);
 
 private:

@@ -183,6 +183,7 @@ static char g_path_in_error_txt[MAXBUFCHAR] = "basslua_log_in.txt";
 
 
 #define smidiToOpen "midiinOpen" // global LUA table which contains the MIDI-in to open
+#define smidiSelector "midiinSelector" // global LUA boolean to validate or not selectors
 
 #define sinit "init" // luabass function called to init the bass midi out 
 #define sonStart "onStart" // LUA function called just after the init ( e.g. to initialise the MIDI settings)
@@ -234,6 +235,7 @@ static int g_countmidiin = 0;
 
 static T_selector g_selectors[SELECTORMAX];
 static int g_selectormax = 0;
+static bool g_selector_active = true ;
 
 static int g_timer_in_dt = 50 ; // ms between two internal timer interrupts on LUA input
 static double g_current_t = 0.0; // time in s for the timer
@@ -803,6 +805,9 @@ bool selectorSearch(double time, int nrDevice, int nrChannel, int type_msg, int 
 	// search a note/program/control ( in midimsg u ) , within the selectors
 	// the selectors are created with the LUA funtion selector()
 
+	if (! g_selector_active )
+		return false ;
+
 	bool found = false ;
 	for (int nr_selector = 0; nr_selector < g_selectormax; nr_selector++)
 	{
@@ -1269,6 +1274,16 @@ static int midiopen_device(int nr_device)
 	}
 	return nr_device;
 }
+static void enableSelectors()
+{
+	if (lua_getglobal(g_LUAstate, smidiSelector) == LUA_TBOOLEAN)
+	{
+		g_selector_active = lua_toboolean (g_LUAstate, -1);
+	}
+	lua_pop(g_LUAstate, 1);
+	lua_pushnil(g_LUAstate);
+	lua_setglobal(g_LUAstate, smidiSelector);
+}
 static void midiopen_devices()
 {
 	if (lua_getglobal(g_LUAstate, smidiToOpen) == LUA_TTABLE)
@@ -1421,6 +1436,7 @@ static void process_in_timer()
 	{
 		midiopen_devices(); // check if there is any new midiin device to open
 		g_countmidiin = 0;
+		enableSelectors(); // check if the selectors are valid or not
 	}
 	g_countmidiin++;
 

@@ -11,6 +11,7 @@ It can write
 	info.action = "-" decrement file 
 	info.action = "0" first file 
 	info.action = "#" last file 
+	info.action = "@B*2" goto marker B for second time
 
 It contains information about valid or non valid MIDI
 	E.valid_midiout 
@@ -66,10 +67,52 @@ function E.onStop()
 end
 
 --===================== 
--- catch Program MIDI event
-function E.onProgram(deviceNr , timestamp, channel , programNr )
-	luabass.logmsg("Program#" .. programNr)
+-- catch Noteon MIDI event
+function E.onNoteOn(deviceNr , timestamp, channel , pitch, velocity )
+	if (midiinThru or false) then
+		luabass.outNoteOn(pitch,velocity )
+	end
 end
+function E.onNoteOff(deviceNr , timestamp, channel , pitch, velocity )
+	if (midiinThru or false) then
+		luabass.outNoteOff(pitch )
+	end
+end
+
+-- french keyboard
+keyboard_line = {} 
+keyboard_line[1]={"1" , "2" , "3" , "4", "5" , "6" , "7" , "8", "9", "0" }
+keyboard_line[2]={"A" , "Z" , "E" , "R", "T" , "Y" , "U" , "I", "O", "P" }
+keyboard_line[3]={"Q" , "S" , "D" , "F", "G" , "H" , "J" , "K", "L", "M" }
+keyboard_line[4]={"W" , "X" , "C" , "V", "B" , "N" , "," , ";", ":", "!" }
+
+-- US keyboard
+--[[ 
+keyboard_line[1]={"1" , "2" , "3" , "4", "5" , "6" , "7" , "8", "9", "0" }
+keyboard_line[2]={"Q" , "W" , "E" , "R", "T" , "Y" , "U" , "I", "O", "P" }
+keyboard_line[3]={"A" , "S" , "D" , "F", "G" , "H" , "J" , "K", "L", ";" }
+keyboard_line[4]={"Z" , "X" , "C" , "V", "B" , "N" , "M" , ",", ".", "/" }
+--]]
+-- switzerland keyboard
+--[[ 
+keyboard_line[1]={"1" , "2" , "3" , "4", "5" , "6" , "7" , "8", "9", "0" }
+keyboard_line[2]={"Q" , "W" , "E" , "R", "T" , "Z" , "U" , "I", "O", "P" }
+keyboard_line[3]={"A" , "S" , "D" , "F", "G" , "H" , "J" , "K", "L", "é" }
+keyboard_line[4]={"Y" , "X" , "C" , "V", "B" , "N" , "M" , ",", ".", "-" }
+--]]
+helpkeydown = [[
+Shortcuts defined in ressources/luauser.lua :
+Mixer : 8 tracks ( tacet/p/mf/f) on the left of the four lines of the keyboard 
+Move : arrows, page, home , end , backspace 
+Transpose : ]] .. keyboard_line[2][10] .. " " .. keyboard_line[3][10] .. [[ 
+Silence : ]] .. keyboard_line[1][10] .. [[
+
+Goto : ]] .. keyboard_line[1][9] .. [[
+
+play view : ]] .. keyboard_line[4][10] .. [[
+
+Midithru : ]] .. keyboard_line[2][9] .. " " .. keyboard_line[3][9]
+
 
 --===================== 
 -- catch PC keydown
@@ -78,152 +121,120 @@ function E.keydown ( keyLetter, keyCode, modifiers)
 -- return true if the process of the keydown will not continue
 
  	luabass.logmsg("keydown(" .. (keyLetter or "" ).. "," .. (keyCode or "") .. "," .. (modifiers or "")  .. ")")
+-- help
 	if (keyCode or -1) == -1 then
-		info.action = "!Help about the keydown lua function\nfunctions are described here\n..\n.." 
+		info.action = "!" .. helpkeydown
 		return true
 	end
-	if keyLetter == "Y" then
-		info.status = "track 1 not played" 
-		info.action = "=-1" 
-		return true 
-	elseif keyLetter == "X" then
-		info.status = "track 2 not played" 
-		info.action = "=-2" 
-		return true 
-	elseif keyLetter == "C" then
-		info.status = "track 3 not played" 
-		info.action = "=-3" 
-		return true 
-	elseif keyLetter == "V" then
-		info.status = "track 4 not played" 
-		info.action = "=-4" 
-		return true 
-	elseif keyLetter == "B" then
-		info.status = "track 5 not played" 
-		info.action = "=-5"  
-		return true 
-	elseif keyLetter == "N" then
-		info.status = "track 6 not played" 
-		info.action = "=-6"  
-		return true 
-	elseif keyLetter == "M" then
-		info.status = "track 7 not played" 
-		info.action = "=-7" 
-		return true 
-	elseif keyLetter == "," then
-		info.status = "track 8 not played" 
-		info.action = "=-8"  
-		return true 
-	elseif keyLetter == "A" then
-		info.status = "track 1 piano" 
-		info.action = "=+1" 
-		luabass.outSetTrackVolume (30,1)
-	elseif keyLetter == "S" then
-		info.status = "track 2 piano" 
-		info.action = "=+2" 
-		luabass.outSetTrackVolume (30,2)
-		return true 
-	elseif keyLetter == "D" then
-		info.status = "track 3 piano" 
-		info.action = "=+3" 
-		luabass.outSetTrackVolume (30,3)
-	elseif keyLetter == "F" then
-		info.status = "track 4 piano" 
-		info.action = "=+4" 
-		luabass.outSetTrackVolume (30,4)
-		return true 
-	elseif keyLetter == "G" then
-		info.status = "track 5 piano" 
-		info.action = "=+5" 
-		luabass.outSetTrackVolume (30,5)
-	elseif keyLetter == "H" then
-		info.status = "track 6 piano" 
-		info.action = "=+6" 
-		luabass.outSetTrackVolume (30,6)
-		return true 
-	elseif keyLetter == "J" then
-		info.status = "track 7 piano" 
-		info.action = "=+7" 
-		luabass.outSetTrackVolume (30,7)
-	elseif keyLetter == "K" then
-		info.status = "track 8 piano" 
-		info.action = "=+8" 
-		luabass.outSetTrackVolume (30,8)
-		return true 
-	elseif keyLetter == "Q" then
-		info.status = "track 1 mesoforte" 
-		info.action = "=+1" 
-		luabass.outSetTrackVolume (64,1)
-	elseif keyLetter == "W" then
-		info.status = "track 2 mesoforte" 
-		info.action = "=+2" 
-		luabass.outSetTrackVolume (64,2)
-		return true 
-	elseif keyLetter == "E" then
-		info.status = "track 3 mesoforte" 
-		info.action = "=+3" 
-		luabass.outSetTrackVolume (64,3)
-	elseif keyLetter == "R" then
-		info.status = "track 4 mesoforte" 
-		info.action = "=+4" 
-		luabass.outSetTrackVolume (64,4)
-		return true 
-	elseif keyLetter == "T" then
-		info.status = "track 5 mesoforte" 
-		info.action = "=+5" 
-		luabass.outSetTrackVolume (64,5)
-	elseif keyLetter == "Z" then
-		info.status = "track 6 mesoforte" 
-		info.action = "=+6" 
-		luabass.outSetTrackVolume (64,6)
-		return true 
-	elseif keyLetter == "U" then
-		info.status = "track 7 mesoforte" 
-		info.action = "=+7" 
-		luabass.outSetTrackVolume (64,7)
-	elseif keyLetter == "I" then
-		info.status = "track 8 mesoforte" 
-		info.action = "=+8" 
-		luabass.outSetTrackVolume (64,8)
-		return true 
-	elseif keyLetter == "1" then
-		info.status = "track 1 forte" 
-		info.action = "=+1" 
-		luabass.outSetTrackVolume (100,1)
-	elseif keyLetter == "2" then
-		info.status = "track 2 forte" 
-		info.action = "=+2" 
-		luabass.outSetTrackVolume (100,2)
-		return true 
-	elseif keyLetter == "3" then
-		info.status = "track 3 forte" 
-		info.action = "=+3" 
-		luabass.outSetTrackVolume (100,3)
-	elseif keyLetter == "4" then
-		info.status = "track 4 forte" 
-		info.action = "=+4" 
-		luabass.outSetTrackVolume (100,4)
-		return true 
-	elseif keyLetter == "5" then
-		info.status = "track 5 forte" 
-		info.action = "=+5" 
-		luabass.outSetTrackVolume (100,5)
-	elseif keyLetter == "6" then
-		info.status = "track 6 forte" 
-		info.action = "=+6" 
-		luabass.outSetTrackVolume (100,6)
-		return true 
-	elseif keyLetter == "7" then
-		info.status = "track 7 forte" 
-		info.action = "=+7" 
-		luabass.outSetTrackVolume (100,7)
-	elseif keyLetter == "8" then
-		info.status = "track 8 forte" 
-		info.action = "=+8" 
-		luabass.outSetTrackVolume (100,8)
-		return true 
+-- mixer
+	for i,v in ipairs(keyboard_line[1]) do
+    		if (keyLetter == v) and (i < 9) then
+      			info.status = "track ".. i .. " forte"
+			info.action = "=+" .. i
+			luabass.outSetTrackVolume (100,i)
+			return true
+		end
+	end 
+	for i,v in ipairs(keyboard_line[2]) do
+    		if (keyLetter == v) and (i < 9) then
+      			info.status = "track ".. i .. " meso"
+			info.action = "=+" .. i
+			luabass.outSetTrackVolume (64,i)
+			return true
+		end
+	end 
+	for i,v in ipairs(keyboard_line[3]) do
+    		if (keyLetter == v) and (i < 9) then
+      			info.status = "track ".. i .. " piano"
+			info.action = "=+" .. i
+			luabass.outSetTrackVolume (30,i)
+			return true
+		end
+	end 
+	for i,v in ipairs(keyboard_line[4]) do
+    		if (keyLetter == v) and (i < 9) then
+      			info.status = "track ".. i .. " tacet"
+			info.action = "=-" .. i
+			return true
+		end
+	end 
+-- silence
+	if keyLetter == keyboard_line[1][10] then
+		luabass.outAllNoteOff()
+		info.status = "all note off" 
+		return true
+-- transpose
+	elseif keyLetter == keyboard_line[2][10] then
+		valueTranspose = (valueTranspose or 0) + 1
+		luabass.outTranspose(valueTranspose)
+		info.status("Transpose " .. valueTranspose)
+		return true
+	elseif keyLetter == keyboard_line[3][10] then
+		valueTranspose = (valueTranspose or 0) - 1
+		luabass.outTranspose(valueTranspose)
+		info.status("Transpose " .. valueTranspose)
+		return true
+-- playview
+	elseif keyLetter == keyboard_line[4][10] then
+		info.action = "="
+		info.status("play view")
+		return true
+-- goto
+	elseif keyLetter == keyboard_line[1][9] then
+		info.action = "@"
+		info.status("Goto")
+		return true
+-- move
+	elseif keyCode == 314 then -- WXK_HOME
+		luascore.firstPart() ;
+		info.status("first part")
+		return true
+	elseif keyCode == 313 then -- WXK_END
+		luascore.lastPart() ;
+		info.status("last part")
+		return true
+	elseif keyCode == 315 then -- WXK_LEFT
+		luascore.previousEvent() ;
+		info.status("previous note")
+		return true
+	elseif keyCode == 317 then -- WXK_RIGHT
+		luascore.nextEvent() ;
+		info.status("next note")
+		return true
+	elseif keyCode == 316 then -- WXK_UP
+		luascore.previousMeasure() ;
+		info.status("previous measure")
+		return true
+	elseif keyCode == 318 then -- WXK_DOWN
+		luascore.nextMeasure() ;
+		info.status("next measure")
+		return true
+	elseif keyCode == 367 then -- WXK_PAGE_UP
+		luascore.previousPart() ;
+		info.status("previous part")
+		return true
+	elseif keyCode == 369 then -- WXK_PAGE_DOWN
+		luascore.nextPart() ;
+		info.status("next part")
+		return true
+	elseif keyCode == 8 then -- WXK_BACK
+		luascore.previousPos() ;
+		info.status("previous move")
+		return true
+-- midi thru
+	elseif keyLetter == keyboard_line[2][9] then
+		midiinSelector = true
+		midiinThru = false
+		luabass.outAllNoteOff()
+		info.status = "MIDI Keyboard is assisted" 
+		return true
+	elseif keyLetter == keyboard_line[3][9] then
+		midiinSelector = false
+		midiinThru = true
+		info.status = "MIDI Keyboard is NOT assisted" 
+		return true
 	end
-	info.status = "the " .. keyLetter .. " is not processed by keydown.lua" -- info in status bar
+	info.status = "the " .. keyLetter .. " / " .. keyCode .. " is not processed by keydown.lua" 
 	return false 
 end
 

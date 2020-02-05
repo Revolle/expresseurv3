@@ -42,6 +42,7 @@ public:
 	void OnRecordImpro(wxCommandEvent& WXUNUSED(event));
 	void OnPlayview(wxCommandEvent& WXUNUSED(event));
 	void OnPlayviewAll(wxCommandEvent& WXUNUSED(event));
+	void selectPlayview(wxString s);
 	void OnOrnamentAddAbsolute(wxCommandEvent& WXUNUSED(event));
 	void OnOrnamentAddRelative(wxCommandEvent& WXUNUSED(event));
 	void OnPreviousPage(wxCommandEvent& WXUNUSED(event));

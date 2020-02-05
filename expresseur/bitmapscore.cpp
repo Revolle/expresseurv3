@@ -477,7 +477,7 @@ void bitmapscore::gotoNextPage(bool WXUNUSED(forward))
 {
 
 }
-void bitmapscore::gotoPosition()
+void bitmapscore::gotoPosition(wxString gotovalue)
 {
 
 }

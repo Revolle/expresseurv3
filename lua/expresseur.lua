@@ -14,6 +14,7 @@ Function onStop() : called by basslua , before to close this LUA script.
 
 basslua uses these tables :
 - midiinOpen = { 1, 3 } : LUA table which contains midiIn deviceNrs to open. Checked regularly by basslua.
+- midiinSelector = true/false : LUA boolean to unvalidate/validate selectors. Checked regularly by basslua.
 - It can write 
 	info.status = "status message to display in the gui" 
 	info.action = "!message-box to display in the gui" 
@@ -22,6 +23,8 @@ basslua uses these tables :
 	info.action = "-" decrement file 
 	info.action = "0" first file 
 	info.action = "#" last file 
+	info.action = "@B*2" goto marker B for second time
+
 - values = { {},..} : table of values which can be tuned in the GUI. 
     Read by the GUI through basslua.
 	The GUI, through basslua, will add fields : values[valueName]=value
@@ -233,10 +236,10 @@ function trackVolume( t, bid, ch, typemsg, pitch, velo , paramString )
   luabass.logmsg("trackVolume("..paramString.."):unsolved")
 end
 function nextFile( t, bid, ch, typemsg, pitch, velo )
-  if ( velo or 64 ) > 0 then info.file = 1 end
+  if ( velo or 64 ) > 0 then info.action = "-" end
 end
 function previousFile( t, bid, typemsg, ch, pitch, velo )
-  if ( velo or 64 ) > 0 then info.file = -1 end
+  if ( velo or 64 ) > 0 then info.action = "+" end
 end
 -- list of actions for the GUI ( throug basslua )
   -- <name> : displayed in the GUI

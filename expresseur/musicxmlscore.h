@@ -41,7 +41,7 @@ public:
 	virtual wxString getTrackName(int trackNr);
 	virtual void setPosition(int pos, bool playing);
 	virtual void zoom(int zoom);
-	virtual void gotoPosition();
+	virtual void gotoPosition(wxString gotovalue);
 	virtual void gotoNextPage(bool forward);
 
 private:
