@@ -270,7 +270,7 @@ actions = {
   {name="global/lua value", callFunction = setLuaValue  ,help="set lua vaue from parameter=luaname value, or value from MIDI data-2"},
   {name="global/previous file",  help="go to previous file of the list", callFunction = previousFile  },
   {name="global/next file", help="go to next file of the list", 
-    callFunction = nextFile , shortcut = "CTRL+TAB", icone = "next_file" },
+    callFunction = nextFile , icone = "next_file" },
   {name="move/previous move", help="go to the position of the previous move",
     callScore = luascore.previousPos,callChord=luachord.previousPos,shortcut = "ALT+HOME",icone = "previous_move" },
   {name="move/first part", help="go to beginning of the score",

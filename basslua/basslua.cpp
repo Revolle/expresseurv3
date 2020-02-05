@@ -661,11 +661,12 @@ bool basslua_call(const char *module, const char *function, const char *sig, ...
 }
 static void runAction(int nrAction,double time, int nr_selector, int nrChannel, int type_msg, int d1, int d2, const char *param, int index, int mediane, int whiteIndex, int whiteMediane, int sharp)
 {
-	// mlog_in("runaction #%d (%d)", nrAction , lua_gettop(g_LUAstate));
+	mlog_in("runaction #%d (%d==0!)", nrAction , lua_gettop(g_LUAstate));
 	if (lua_getglobal(g_LUAstate, tableActions) == LUA_TTABLE)
 	{
-		//mlog_in("lua_getglobal tableActions OK");
-		if (lua_geti(g_LUAstate, 1, nrAction + 1) == LUA_TTABLE)
+		mlog_in("lua_getglobal tableActions OK");
+		int ret = lua_geti(g_LUAstate, 1, nrAction + 1);
+		if ( ret == LUA_TTABLE)
 		{
 			//mlog_in("g_LUAstate nrAction=%d OK", nrAction);
 			bool functionOK = false;
@@ -1336,6 +1337,7 @@ static void filter_in_set()
 	g_process_NoteOn = filter_check(LUAFunctionNoteOn);
 	g_process_PitchBend = filter_check(LUAFunctionPitchBend);
 	g_process_Timer = filter_check(LUAFunctionTimer);
+	mlog_in("filter_in_set gettop=%d %s", lua_gettop(g_LUAstate), (lua_gettop(g_LUAstate) == 0 ? "OK" : "KO"));
 }
 static void mutex_in_init()
 {
@@ -1741,7 +1743,7 @@ bool basslua_open(const char* fname, const char* fusername, const char* param, b
 	// open the dedicated midiin-LUA-thread to process midiin msg
 	g_LUAstate = luaL_newstate(); // newthread 
 	luaL_openlibs(g_LUAstate);
-	//mlog_in("debug basslua_open OK : luaL_openlibs");
+	//mlog_in("debug basslua_open OK : luaL_openlibs getop=%d==0", lua_gettop(g_LUAstate));
 
  	
 	if (luaL_loadfile(g_LUAstate, fname) != LUA_OK)
@@ -1749,7 +1751,7 @@ bool basslua_open(const char* fname, const char* fusername, const char* param, b
 		mlog_in("Error : basslua_open lua_loadfile <%s>", lua_tostring(g_LUAstate, -1));
 		return(false);
 	}
-	//mlog_in("debug basslua_open OK : lua_loadfile <%s>",fname);
+	//mlog_in("debug basslua_open OK : lua_loadfile <%s>  getop=%d==1",fname, lua_gettop(g_LUAstate));
 
 
 	// require the "luabass" module for Midi-out
@@ -1761,7 +1763,7 @@ bool basslua_open(const char* fname, const char* fusername, const char* param, b
 		lua_pop(g_LUAstate, 1);
 		return false;
 	}
-	//mlog_in("debug basslua_open OK : require <%s>",moduleLuabass);
+	//mlog_in("debug basslua_open OK : require <%s> getop=%d==2",moduleLuabass, lua_gettop(g_LUAstate));
 
 	if (! lua_istable(g_LUAstate, -1))
 	{
@@ -1770,7 +1772,7 @@ bool basslua_open(const char* fname, const char* fusername, const char* param, b
 		return false;
 	}
 	lua_setglobal(g_LUAstate, moduleLuabass);
-	//mlog_in("debug basslua_open OK : lua_setglobal <%s>",moduleLuabass);
+	//mlog_in("debug basslua_open OK : lua_setglobal <%s> getop=%d==1",moduleLuabass, lua_gettop(g_LUAstate));
 	
 	// require the "chord" module for chord interpretation
 	lua_getglobal(g_LUAstate, "require");
@@ -1810,7 +1812,7 @@ bool basslua_open(const char* fname, const char* fusername, const char* param, b
 		return false;
 	}
 	lua_setglobal(g_LUAstate, moduleScore);
-	//mlog_in("debug basslua_open OK : lua_setglobal <%s>",moduleScore);
+	//mlog_in("debug basslua_open OK : lua_setglobal <%s> gettop=%d==1",moduleScore, lua_gettop(g_LUAstate));
 
 	// require the "user" module 
 	lua_getglobal(g_LUAstate, "package"); // to modify the PATH
@@ -1842,7 +1844,7 @@ bool basslua_open(const char* fname, const char* fusername, const char* param, b
 		return false;
 	}
 	lua_setglobal(g_LUAstate, moduleUser);
-	//mlog_in("debug basslua_open OK : lua_setglobal <%s>",moduleUser);
+	//mlog_in("debug basslua_open OK : lua_setglobal <%s> gettop=%d==1", moduleUser, lua_gettop(g_LUAstate));
 
 	// create the "info" table to receive instructions
 	lua_newtable(g_LUAstate);
@@ -1876,7 +1878,8 @@ bool basslua_open(const char* fname, const char* fusername, const char* param, b
 	init_in(externalTimer, timerDt);
 	// mlog_in("debug basslua_open OK : init");
 
-	// mlog_in("debug basslua_open(%s) ended succesfully", fname);
+	mlog_in("debug basslua_open(%s,%s) ended succesfully", fname, fusername );
+	mlog_in("gettop=%d %s",lua_gettop(g_LUAstate), (lua_gettop(g_LUAstate) == 0 ? "OK" : "KO"));
 	return (true);
 }
 /**
