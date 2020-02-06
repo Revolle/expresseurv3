@@ -127,9 +127,9 @@ $(EXPRESSEURAPP): $(EXPRESSEUR) $(LUA_OBJECTS) expresseur/Info.plist
 		$(EXPRESSEURCONTENT)/$$f; \
 	done
 	cp lua/*.* $(EXPRESSEURCONTENT)
-	rm ~/Documents/ExpresseurV3/ressources/*.lua
-	rm ~/Documents/ExpresseurV3/ressources/*.new
-	rm ~/Documents/ExpresseurV3/ressources/*.txt
+	rm -f ~/Documents/ExpresseurV3/ressources/*.lua
+	rm -f ~/Documents/ExpresseurV3/ressources/*.new
+	rm -f ~/Documents/ExpresseurV3/ressources/*.txt
 	
 $(EXPRESSCMDEXE) : $(EXPRESSCMD)
 	-mkdir -p $(EXPRESSEURCONTENT)
@@ -158,9 +158,9 @@ $(EXPRESSEURAPP): $(EXPRESSEUR) $(LUA_OBJECTS)
 	cp example/*.* $(EXPRESSEURCONTENT)/example
 	cp lua/*.* $(EXPRESSEURCONTENT)
 	cp expresseur/*.ico $(EXPRESSEURCONTENT)
-	rm ~/Documents/ExpresseurV3/ressources/*.lua
-	rm ~/Documents/ExpresseurV3/ressources/*.new
-	rm ~/Documents/ExpresseurV3/ressources/*.txt
+	rm -f ~/Documents/ExpresseurV3/ressources/*.lua
+	rm -f ~/Documents/ExpresseurV3/ressources/*.new
+	rm -f ~/Documents/ExpresseurV3/ressources/*.txt
 	
 $(EXPRESSCMDEXE) : $(EXPRESSCMD)
 	-mkdir -p $(EXPRESSEURCONTENT)/basslua

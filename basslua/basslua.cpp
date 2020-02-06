@@ -1878,8 +1878,8 @@ bool basslua_open(const char* fname, const char* fusername, const char* param, b
 	init_in(externalTimer, timerDt);
 	// mlog_in("debug basslua_open OK : init");
 
-	mlog_in("debug basslua_open(%s,%s) ended succesfully", fname, fusername );
-	mlog_in("gettop=%d %s",lua_gettop(g_LUAstate), (lua_gettop(g_LUAstate) == 0 ? "OK" : "KO"));
+	//mlog_in("debug basslua_open(%s,%s) ended succesfully", fname, fusername );
+	mlog_in("basslua_open OK (gettop=%d %s)",lua_gettop(g_LUAstate), (lua_gettop(g_LUAstate) == 0 ? "OK" : "KO"));
 	return (true);
 }
 /**
