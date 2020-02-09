@@ -93,6 +93,7 @@ private:
 
 	int edit(long i);
 	void close();
+	bool changed = false;
 
 	wxDECLARE_EVENT_TABLE();
 };

@@ -869,6 +869,7 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 {
 	// process this new midiin mg with the midiin-LUA-thread , using the expected LUA-function midixxx()
 	// Construct the short MIDI message.	
+	mlog_in("midiprocess_msg (%d==0!)", lua_gettop(g_LUAstate));
 	T_midimsg u , u_Original;
 	u.dwData = 0;
 	switch (length)

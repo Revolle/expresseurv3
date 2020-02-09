@@ -82,6 +82,7 @@ midishortcut::midishortcut(wxFrame *parent, wxWindowID id, const wxString &title
 	medit = NULL;
 	mConf = lMxconf;
 	nameAction = inameAction;
+	changed = false;
 
 	topsizer = NULL;
 	// some sizerFlags commonly used
@@ -151,10 +152,10 @@ void midishortcut::savePos()
 void midishortcut::close()
 {
 #ifdef RUN_MAC
-	EndModal(wxOK);
+	EndModal(changed ? wxOK : wxCANCEL);
 #else
 	if ( IsModal() )
-		EndModal(wxOK);
+		EndModal(changed?wxOK:wxCANCEL);
 #endif
 }
 void midishortcut::OnClose(wxCloseEvent& event)
@@ -353,6 +354,7 @@ void midishortcut::getMidiinDevices()
 }
 void midishortcut::OnDelete(wxCommandEvent& WXUNUSED(event))
 {
+	changed = true;
 	long i = listShortchut->GetFirstSelected();
 	while (i != -1)
 	{
@@ -364,6 +366,7 @@ void midishortcut::OnDelete(wxCommandEvent& WXUNUSED(event))
 }
 void midishortcut::OnAdd(wxCommandEvent& WXUNUSED(event))
 {
+	changed = true;
 	int i = listShortchut->GetFirstSelected();
 	if (i == -1)
 		i = listShortchut->GetItemCount();
@@ -383,6 +386,7 @@ void midishortcut::OnAdd(wxCommandEvent& WXUNUSED(event))
 }
 void midishortcut::OnEdit(wxCommandEvent& WXUNUSED(event))
 {
+	changed = true;
 	long i = listShortchut->GetFirstSelected();
 	if (i == -1)
 		return;
@@ -394,6 +398,7 @@ void midishortcut::OnEdit(wxCommandEvent& WXUNUSED(event))
 }
 void midishortcut::OnUp(wxCommandEvent& WXUNUSED(event))
 {
+	changed = true;
 	long i = listShortchut->GetFirstSelected();
 	if (i < 1)
 		return;
@@ -410,6 +415,7 @@ void midishortcut::OnUp(wxCommandEvent& WXUNUSED(event))
 }
 void midishortcut::OnDown(wxCommandEvent& WXUNUSED(event))
 {
+	changed = true;
 	long i = listShortchut->GetFirstSelected();
 	if (i >= (listShortchut->GetItemCount() - 1))
 		return;

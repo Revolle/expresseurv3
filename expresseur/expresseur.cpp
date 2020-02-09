@@ -1878,8 +1878,10 @@ void Expresseur::OnGoto(wxCommandEvent& WXUNUSED(event))
 }
 void Expresseur::OnMidishortcut(wxCommandEvent& WXUNUSED(event))
 {
-	mMidishortcut->ShowModal();
-	settingReset(true);
+	editMode = true;
+	if ( mMidishortcut->ShowModal() == wxOK)
+		settingReset(true);
+	editMode = false;
 }
 void Expresseur::OnExpression(wxCommandEvent& WXUNUSED(event))
 {
