@@ -636,11 +636,10 @@ bool Expresseur::checkConfig()
 	merrors += checkFile(mxconf::getCwdDir(),"previous_section.png");
 	merrors += checkFile(mxconf::getCwdDir(),"save.png");
 	merrors += checkFile(mxconf::getCwdDir(),"expresscmd.lua");
-	merrors += checkFile(mxconf::getCwdDir(),"expresseur.lua");
 	merrors += checkFile(mxconf::getCwdDir(),"luachord.lua");
 	merrors += checkFile(mxconf::getCwdDir(),"luascore.lua");
 	merrors += checkFile(mxconf::getCwdDir(),"texttochord.lua");
-	merrors += checkFile(mxconf::getResourceDir(),"luauser.lua");
+	merrors += checkFile(mxconf::getResourceDir(),"expresseur.lua");
 	merrors += checkFile(mxconf::getResourceDir(),"default_piano.sf2");
 	merrors += checkFile(mxconf::getResourceDir(),"guitare.sf2");
 	merrors += checkFile(mxconf::getResourceDir(),"default_piano.txt");
@@ -1487,11 +1486,13 @@ void Expresseur::selectPlayview(wxString s)
 	wxString ts ;
 	if ( s.IsEmpty() )
 	{
+		editMode = true;
 		wxTextEntryDialog mdialog(NULL, "Tracks to play/view.\n14 : play track#1 & #4\n* : play all tracks\n12/ play and view track #1 & #2\n1/2 play track #1 and view track #2\n/3 view track #3\n/* view all tracks\n*/ play and view all tracks\n+2 change only track #2 as played\n-2 change only track #2 as not played", "Expresseur");
 		if (mdialog.ShowModal() == wxID_OK)
 		{
 			ts = mdialog.GetValue();
 		}
+		editMode = false;
 	}
 	if ( ! s.IsEmpty() )
 		setPlayView(s);
@@ -1533,7 +1534,9 @@ void Expresseur::ornamentAdd(bool absolute)
 	if (ret)
 		return;
 	wxArrayString list_ornament = musicxmlcompile::getListOrnament();
+	editMode = true;
 	wxString ornament = wxGetSingleChoice("Select ornament", "Add ornament", list_ornament, this);
+	editMode = false;
 	if (ornament.IsEmpty())
 		return;
 	wxString line;
@@ -1874,7 +1877,10 @@ void Expresseur::OnGoto(wxCommandEvent& WXUNUSED(event))
 {
 	if (mode != modeScore)
 		return;
+	editMode = true;
 	mViewerscore->gotoPosition("");
+	editMode = false;
+
 }
 void Expresseur::OnMidishortcut(wxCommandEvent& WXUNUSED(event))
 {
@@ -2264,6 +2270,13 @@ void Expresseur::CreateExpresseurV3()
 	wxFileName fname;
 	fname.AssignDir(mxconf::getResourceDir());
 	fname.Mkdir(wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
+
+	// remove potential old version of expresseur.lua not n ressource dir
+	wxFileName foldlua;
+	foldlua.Assign(mxconf::getCwdDir());
+	foldlua.SetName("expresseur");
+	foldlua.SetExt("lua");
+	wxRemoveFile(foldlua.GetFullPath());
 
 	// copy examples from example-folder in documents/expresseurV3-folder
 	wxFileName fdirExample;

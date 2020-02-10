@@ -56,7 +56,6 @@ int main(int argc, char* argv[])
 {
 	// define the default lua-script and its empty parameter
 	char fname[1024] = "expresscmd.lua";
-	char fusername[1024] = "luauser.lua";
 	char param[1024] = "--preopen_midiout";
 	char line_read[1024] ;
 
@@ -64,9 +63,7 @@ int main(int argc, char* argv[])
 	if (argc > 1)
 		strcpy_s(fname, argv[1]);
 	if (argc > 2)
-		strcpy_s(fusername, argv[2]);
-	if (argc > 3)
-		strcpy_s(param, argv[3]);
+		strcpy_s(param, argv[2]);
 
 	// starts the basslua module with the lua-scipt
 	// this command loads :
@@ -78,7 +75,7 @@ int main(int argc, char* argv[])
 	//          - luachord ( to play chords )
 	//        The lua-scriptstarts the lua-function onStart(parameters) :
 	fprintf(stderr,"basslua_open <%s> param=<%s>\n",fname, param);
-	bool retCode = basslua_open(fname, fusername , param, true, 0, NULL ,"expresscmd_log","", false/*external timer*/,20);
+	bool retCode = basslua_open(fname, param, true, 0, NULL ,"expresscmd_log","", false/*external timer*/,20);
 	fprintf(stderr,"Return code basslua_open =%s\n", retCode?"OK":"Error");
 
 	// print the usage of this command-line tool
