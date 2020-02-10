@@ -39,8 +39,7 @@
 #include "basslua.h"
 #include "luafile.h"
 
-#define DEFAULT_LUA_FILE "expresseur.lua"
-#define DEFAULT_LUA_USER_FILE "luauser.lua"
+#define DEFAULT_LUA_USER_FILE "expresseur.lua"
 #define DEFAULT_LUA_PARAMETER "--preopen_midiout"
 
 #include <wx/listimpl.cpp>
@@ -58,14 +57,12 @@ c_eventMidi::c_eventMidi(	wxLongLong itime , int inr_device, int itype_msg, int 
 
 enum
 {
-	IDM_LUAFILE_LUA_SCRIPT = ID_LUAFILE ,
-	IDM_LUAFILE_LUA_USER_SCRIPT,
+	IDM_LUAFILE_LUA_USER_SCRIPT = ID_LUAFILE ,
 	IDM_LUAFILE_LUA_PARAMETER
 };
 
 wxBEGIN_EVENT_TABLE(luafile, luafile::wxDialog)
 EVT_SIZE(luafile::OnSize)
-EVT_CHOICE(IDM_LUAFILE_LUA_SCRIPT, luafile::OnLuaFile)
 EVT_CHOICE(IDM_LUAFILE_LUA_USER_SCRIPT, luafile::OnLuaUserFile)
 EVT_TEXT(IDM_LUAFILE_LUA_PARAMETER, luafile::OnLuaParameter)
 wxEND_EVENT_TABLE()
@@ -88,25 +85,6 @@ luafile::luafile(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* 
 	wxBoxSizer *topsizer = new wxBoxSizer(wxVERTICAL);
 	wxFlexGridSizer *paramsizer = new wxFlexGridSizer(2, wxSize(5, 5));
 	paramsizer->AddGrowableCol(1);
-
-	wxArrayString lScript, lfScript;
-	wxFileName f;
-	f.Assign(mxconf::getCwdDir());
-	wxDir::GetAllFiles(f.GetPath(), &lScript, "*.lua", wxDIR_FILES);
-	for (unsigned int i = 0; i < lScript.GetCount(); i++)
-	{
-		wxFileName fs(lScript[i]);
-		lfScript.Add(fs.GetFullName());
-	}
-
-
-	paramsizer->Add(new wxStaticText(this, wxID_ANY, _("LUA main Script")), sizerFlagMaximumPlace);
-	wxString luascriptfile = mConf->get(CONFIG_LUA_SCRIPT, DEFAULT_LUA_FILE);
-	wxChoice *cLuaScript = new wxChoice(this, IDM_LUAFILE_LUA_SCRIPT, wxDefaultPosition, wxDefaultSize, lfScript);
-	if (lfScript.Index(luascriptfile) != wxNOT_FOUND)
-		cLuaScript->SetSelection(lfScript.Index(luascriptfile));
-	cLuaScript->SetToolTip(_("LUA script which manages technically midi inputs, midi outputs, ..."));
-	paramsizer->Add(cLuaScript, sizerFlagMaximumPlace);
 
 	wxArrayString lUserScript, lfUserScript;
 	wxFileName fUser;
@@ -147,13 +125,6 @@ void luafile::OnSize(wxSizeEvent& WXUNUSED(event))
 {
 	Layout();
 }
-void luafile::OnLuaFile(wxCommandEvent& event)
-{
-	wxString f = event.GetString();
-	mConf->set(CONFIG_LUA_SCRIPT, f);
-
-	SetReturnCode(1);
-}
 void luafile::OnLuaUserFile(wxCommandEvent& event)
 {
 	wxString f = event.GetString();
@@ -175,22 +146,11 @@ void luafile::reset(mxconf* mConf, bool all, int timerDt)
 	f.Assign(mxconf::getCwdDir());
 	wxFileName fuser;
 	fuser.Assign(mxconf::getResourceDir());
-	wxString luascriptfile;
 	wxString luauserscriptfile;
 	wxString luascriptparameter;
 
-	luascriptfile = mConf->get(CONFIG_LUA_SCRIPT, DEFAULT_LUA_FILE);
 	luauserscriptfile = mConf->get(CONFIG_LUA_USER_SCRIPT, DEFAULT_LUA_USER_FILE);
 	luascriptparameter = mConf->get(CONFIG_LUA_PARAMETER, DEFAULT_LUA_PARAMETER);
-
-	f.SetFullName(luascriptfile);
-	long dd = 0;
-	if (f.IsFileReadable())
-	{
-		wxDateTime d = f.GetModificationTime();
-		dd = d.GetTicks();
-	}
-	wxString slua = f.GetFullPath();
 
 	fuser.SetFullName(luauserscriptfile);
 	long dduser = 0;
@@ -200,8 +160,6 @@ void luafile::reset(mxconf* mConf, bool all, int timerDt)
 		dduser = d.GetTicks();
 	}
 	wxString sluauser = fuser.GetName();
-	if (dduser > dd)
-		dd = dduser;
 
 	wxFileName dtmp(mxconf::getTmpDir());
 	dtmp.SetName("expresseur_log");
@@ -209,17 +167,15 @@ void luafile::reset(mxconf* mConf, bool all, int timerDt)
 	wxFileName dressource(mxconf::getResourceDir());
 	wxString sressource = dressource.GetFullPath();
 	wxFileName::SetCwd(mxconf::getCwdDir()) ;
-	basslua_open(slua.c_str(), sluauser.c_str() , luascriptparameter.c_str(), all, dd, functioncallback, slog.c_str(), sressource.c_str(),true, timerDt);
+	basslua_open(sluauser.c_str() , luascriptparameter.c_str(), all, dduser, functioncallback, slog.c_str(), sressource.c_str(),true, timerDt);
 }
 void luafile::write(mxconf* mConf, wxTextFile *lfile)
 {
-	mConf->writeFile(lfile, CONFIG_LUA_SCRIPT, DEFAULT_LUA_FILE);
 	mConf->writeFile(lfile, CONFIG_LUA_USER_SCRIPT, DEFAULT_LUA_USER_FILE);
 	mConf->writeFile(lfile, CONFIG_LUA_PARAMETER, DEFAULT_LUA_PARAMETER);
 }
 void luafile::read(mxconf* mConf , wxTextFile *lfile)
 {
-	mConf->readFile(lfile, CONFIG_LUA_SCRIPT, DEFAULT_LUA_FILE);
 	mConf->readFile(lfile, CONFIG_LUA_USER_SCRIPT, DEFAULT_LUA_USER_FILE);
 	mConf->readFile(lfile, CONFIG_LUA_PARAMETER, DEFAULT_LUA_PARAMETER);
 }

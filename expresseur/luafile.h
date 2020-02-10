@@ -28,7 +28,6 @@ public:
 	static void read(mxconf* mConf, wxTextFile *lfile);
 	static void functioncallback(double time , int nr_device , int type_msg , int channel , int value1 , int value2 , bool isProcessed );
 	static bool isCalledback(wxLongLong *time , int *nr_device , int *type_msg , int *channel , int *value1 , int *value2, bool *isProcessed, bool *oneIsProcessed);
-	void OnLuaFile(wxCommandEvent& event);
 	void OnLuaUserFile(wxCommandEvent& event);
 	void OnLuaParameter(wxCommandEvent&  event);
 

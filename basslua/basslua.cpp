@@ -884,12 +884,6 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 
 	// mlog_in("receive length=%d %d %d %d ", length, u.bData[0], u.bData[1], u.bData[2]);
 
-	if (lua_getglobal(g_LUAstate, moduleUser) != LUA_TTABLE)
-	{
-		lua_pop(g_LUAstate, 1);
-		return ;
-	}
-
 	switch (u.bData[0])
 	{
 	case SYSEX:
@@ -1004,7 +998,6 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 				u.bData[1] = lua_tonumber(g_LUAstate, -2);
 				u.bData[2] = lua_tonumber(g_LUAstate, -1);
 				lua_pop(g_LUAstate, lua_gettop(g_LUAstate));
-				lua_getglobal(g_LUAstate, moduleUser);
 			}
 			else
 			{
@@ -1310,8 +1303,6 @@ static void midiopen_devices()
 }
 static bool filter_check(const char *buf)
 {
-	if (lua_getglobal(g_LUAstate, moduleUser) != LUA_TTABLE)
-		return false ;
 	int typev = lua_getfield(g_LUAstate, -1, buf) ;
 	lua_pop(g_LUAstate, 2);
 	if (typev == LUA_TFUNCTION)
@@ -1416,22 +1407,18 @@ static void process_in_timer()
 	// process the timer in LUA script
 	if (g_process_Timer)
 	{
-		if (lua_getglobal(g_LUAstate, moduleUser) == LUA_TTABLE)
+		if ( lua_getfield(g_LUAstate, -1, LUAFunctionTimer) != LUA_TFUNCTION)
 		{
-			if ( lua_getfield(g_LUAstate, -1, LUAFunctionTimer) != LUA_TFUNCTION)
-			{
-				lua_pop(g_LUAstate, 1);
-				return;
-			}
-			lua_pushnumber(g_LUAstate, g_current_t);
-			g_current_t = g_current_t + (float)(g_timer_in_dt) / 1000.0;
-			if (lua_pcall(g_LUAstate, 1, 0, 0) != LUA_OK)
-			{
-				mlog_in("error calling LUA %s, err: %s", LUAFunctionTimer, lua_tostring(g_LUAstate, -1));
-				lua_pop(g_LUAstate, 1);
-			}
+			lua_pop(g_LUAstate, 1);
+			return;
 		}
-		lua_pop(g_LUAstate, 1);
+		lua_pushnumber(g_LUAstate, g_current_t);
+		g_current_t = g_current_t + (float)(g_timer_in_dt) / 1000.0;
+		if (lua_pcall(g_LUAstate, 1, 0, 0) != LUA_OK)
+		{
+			mlog_in("error calling LUA %s, err: %s", LUAFunctionTimer, lua_tostring(g_LUAstate, -1));
+			lua_pop(g_LUAstate, 1);
+		}
 	}
 
 	// check if there is any new midiin device to open
@@ -1723,7 +1710,7 @@ void basslua_external_timer()
 * \param param : parameter given to the LUA function onStart
 * \return -1 if mlog_in. 0 if no mlog_in.
 **/
-bool basslua_open(const char* fname, const char* fusername, const char* param, bool reset, long datefname, voidcallback ifcallback , const char *logpath, const char *ressourdir, bool externalTimer , int timerDt )
+bool basslua_open(const char* fname, const char* param, bool reset, long datefname, voidcallback ifcallback , const char *logpath, const char *ressourdir, bool externalTimer , int timerDt )
 {
 	if (( reset == false ) && (strcmp(param, pparam) == 0) && (strcmp(fname, pfname) == 0)&& (datefname == pdatefname))
 		return true ;
@@ -1747,6 +1734,16 @@ bool basslua_open(const char* fname, const char* fusername, const char* param, b
 	//mlog_in("debug basslua_open OK : luaL_openlibs getop=%d==0", lua_gettop(g_LUAstate));
 
  	
+	lua_getglobal(g_LUAstate, "package"); // to modify the PATH
+	lua_getfield(g_LUAstate, -1, "path"); // get field "path" from table at top of stack (-1)
+	char cur_path[2056];
+	sprintf(cur_path, "%s;%s?.lua", lua_tostring(g_LUAstate, -1), ressourdir);
+	//mlog_in("curpath <%s> <%s> <%s> <%s>",cur_path,lua_tostring(g_LUAstate, -1),ressourdir,fusername);
+	lua_pop(g_LUAstate, 1); // get rid of the string on the stack we just pushed on line 5
+	lua_pushstring(g_LUAstate, cur_path); // push the new one
+	lua_setfield(g_LUAstate, -2, "path"); // set the field "path" in table at -2 with value at top of stack
+	lua_pop(g_LUAstate, 1); // get rid of package table from top of stack
+
 	if (luaL_loadfile(g_LUAstate, fname) != LUA_OK)
 	{
 		mlog_in("Error : basslua_open lua_loadfile <%s>", lua_tostring(g_LUAstate, -1));
@@ -1814,38 +1811,6 @@ bool basslua_open(const char* fname, const char* fusername, const char* param, b
 	}
 	lua_setglobal(g_LUAstate, moduleScore);
 	//mlog_in("debug basslua_open OK : lua_setglobal <%s> gettop=%d==1",moduleScore, lua_gettop(g_LUAstate));
-
-	// require the "user" module 
-	lua_getglobal(g_LUAstate, "package"); // to modify the PATH
-	lua_getfield(g_LUAstate, -1, "path"); // get field "path" from table at top of stack (-1)
-	char cur_path[2056] ;
-	sprintf(cur_path,"%s;%s?.lua", lua_tostring(g_LUAstate, -1), ressourdir);
-	//mlog_in("curpath <%s> <%s> <%s> <%s>",cur_path,lua_tostring(g_LUAstate, -1),ressourdir,fusername);
-	lua_pop(g_LUAstate, 1); // get rid of the string on the stack we just pushed on line 5
-	lua_pushstring(g_LUAstate, cur_path); // push the new one
-	lua_setfield(g_LUAstate, -2, "path"); // set the field "path" in table at -2 with value at top of stack
-	lua_pop(g_LUAstate, 1); // get rid of package table from top of stack
-
-	lua_getglobal(g_LUAstate, "require");
-	lua_pushstring(g_LUAstate, fusername);
-	if (lua_pcall(g_LUAstate, 1, 1, 0) != LUA_OK)
-	{
-		char bufr[2056];
-		strcpy(bufr, lua_tostring(g_LUAstate, -1));
-		mlog_in("basslua_open mlog_in require %s <%s>", fusername, bufr);
-		lua_pop(g_LUAstate, 1);
-		return false;
-	}
-	//mlog_in("debug basslua_open OK : require <%s>",fusername);
-
-	if (!lua_istable(g_LUAstate, -1))
-	{
-		mlog_in("debug basslua_open error require %s : not a table", moduleUser);
-		lua_pop(g_LUAstate, 1);
-		return false;
-	}
-	lua_setglobal(g_LUAstate, moduleUser);
-	//mlog_in("debug basslua_open OK : lua_setglobal <%s> gettop=%d==1", moduleUser, lua_gettop(g_LUAstate));
 
 	// create the "info" table to receive instructions
 	lua_newtable(g_LUAstate);

@@ -891,7 +891,7 @@ bool Expresseur::OnKeyDown(wxKeyEvent& event)
 		wxString sin(keyc);
 		strcpy(bsin,sin.utf8_str());
 	}
-	basslua_call(moduleUser, "keydown", "sii>b", bsin, event.GetKeyCode(), modifiers, &ret);
+	basslua_call(moduleGlobal, "keydown", "sii>b", bsin, event.GetKeyCode(), modifiers, &ret);
 	return ret;
 }
 void Expresseur::OnIdle(wxIdleEvent& evt)
