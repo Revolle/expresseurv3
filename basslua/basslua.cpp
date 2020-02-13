@@ -134,9 +134,9 @@
 #endif
 
 
-static char pparam[1024] = "";
-static char pfname[1024] = "";
-static long pdatefname = 0;
+static char pluaparam[1024] = "";
+static char pfluaname[1024] = "";
+static long pluadatefname = 0;
 
 #define MAXPITCH 128
 #define MAXCHANNEL 16
@@ -1303,8 +1303,8 @@ static void midiopen_devices()
 }
 static bool filter_check(const char *buf)
 {
-	int typev = lua_getfield(g_LUAstate, -1, buf) ;
-	lua_pop(g_LUAstate, 2);
+	int typev = lua_getglobal(g_LUAstate, buf) ;
+	lua_pop(g_LUAstate, 1);
 	if (typev == LUA_TFUNCTION)
 	{
 		mlog_in("Information : bassLUA function %s registered", buf);
@@ -1329,7 +1329,7 @@ static void filter_in_set()
 	g_process_NoteOn = filter_check(LUAFunctionNoteOn);
 	g_process_PitchBend = filter_check(LUAFunctionPitchBend);
 	g_process_Timer = filter_check(LUAFunctionTimer);
-	mlog_in("filter_in_set gettop=%d %s", lua_gettop(g_LUAstate), (lua_gettop(g_LUAstate) == 0 ? "OK" : "KO"));
+	//mlog_in("filter_in_set gettop=%d %s", lua_gettop(g_LUAstate), (lua_gettop(g_LUAstate) == 0 ? "OK" : "KO"));
 }
 static void mutex_in_init()
 {
@@ -1432,7 +1432,7 @@ static void process_in_timer()
 
 }
 #ifdef V_PC
-VOID CALLBACK timer_in_callback(PVOID lpParam, BOOLEAN TimerOrWaitFired)
+VOID CALLBACK timer_in_callback(PVOID lpluaparam, BOOLEAN TimerOrWaitFired)
 {
 	if ( try_lock_mutex_in())
 	{
@@ -1572,12 +1572,18 @@ static void timer_in_free()
 static void init_in(bool externalTimer , int timerDt)
 {
 	pitch_init();
+	// mlog_in("debug init_in OK : pitch_init");
 	midi_in_init_devices();
+	// mlog_in("debug init_in OK : midi_in_init_devices");
 	initSelector();
+	// mlog_in("debug init_in OK : initSelector");
 	srand((unsigned)time(NULL));
 	filter_in_set();
+	// mlog_in("debug init_in OK : filter_in_set");
 	mutex_in_init();
+	// mlog_in("debug init_in OK : mutex_in_init");
 	timer_in_init( externalTimer ,  timerDt);
+	// mlog_in("debug init_in OK : timer_in_init");
 }
 static void free()
 {
@@ -1706,17 +1712,17 @@ void basslua_external_timer()
 * \brief Open the dedicated midiin-LUA-thread to process midiin msg.
 * This function must be called at the beginning, by any external C Module.
 * It starts an LUA thread, and call the LUA function onStart(param).
-* \param fname : LUA script file to launch. This LUA script must have some predefined functions
-* \param param : parameter given to the LUA function onStart
+* \param fluaname : LUA script file to launch. This LUA script must have some predefined functions
+* \param luaparam : parameter given to the LUA function onStart
 * \return -1 if mlog_in. 0 if no mlog_in.
 **/
-bool basslua_open(const char* fname, const char* param, bool reset, long datefname, voidcallback ifcallback , const char *logpath, const char *ressourdir, bool externalTimer , int timerDt )
+bool basslua_open(const char* fluaname, const char* luaparam, bool reset, long datefluaname, voidcallback ifcallback , const char *logpath, const char *luapath, bool externalTimer , int timerDt )
 {
-	if (( reset == false ) && (strcmp(param, pparam) == 0) && (strcmp(fname, pfname) == 0)&& (datefname == pdatefname))
+	if (( reset == false ) && (strcmp(luaparam, pluaparam) == 0) && (strcmp(fluaname, pfluaname) == 0)&& (datefluaname == pluadatefname))
 		return true ;
-	strcpy(pparam, param);
-	strcpy(pfname, fname);
-	pdatefname = datefname;
+	strcpy(pluaparam, luaparam);
+	strcpy(pfluaname, fluaname);
+	pluadatefname = datefluaname;
 
 	if (ifcallback == NULL)
 		g_fcallback = null_fcallback;
@@ -1735,21 +1741,22 @@ bool basslua_open(const char* fname, const char* param, bool reset, long datefna
 
  	
 	lua_getglobal(g_LUAstate, "package"); // to modify the PATH
-	lua_getfield(g_LUAstate, -1, "path"); // get field "path" from table at top of stack (-1)
-	char cur_path[2056];
-	sprintf(cur_path, "%s;%s?.lua", lua_tostring(g_LUAstate, -1), ressourdir);
+	//lua_getfield(g_LUAstate, -1, "path"); // get field "path" from table at top of stack (-1)
+	//char cur_path[2056];
+	//sprintf(cur_path, "%s;%s?.lua", lua_tostring(g_LUAstate, -1), ressourdir);
 	//mlog_in("curpath <%s> <%s> <%s> <%s>",cur_path,lua_tostring(g_LUAstate, -1),ressourdir,fusername);
-	lua_pop(g_LUAstate, 1); // get rid of the string on the stack we just pushed on line 5
-	lua_pushstring(g_LUAstate, cur_path); // push the new one
+	//lua_pop(g_LUAstate, 1); // get rid of the string on the stack we just pushed on line 5
+	lua_pushstring(g_LUAstate, luapath); // push the new LUA path
 	lua_setfield(g_LUAstate, -2, "path"); // set the field "path" in table at -2 with value at top of stack
 	lua_pop(g_LUAstate, 1); // get rid of package table from top of stack
 
-	if (luaL_loadfile(g_LUAstate, fname) != LUA_OK)
+	if (luaL_loadfile(g_LUAstate, fluaname) != LUA_OK)
 	{
-		mlog_in("Error : basslua_open lua_loadfile <%s>", lua_tostring(g_LUAstate, -1));
+		mlog_in("Error : basslua_open lua_loadfile %s : <%s>", fluaname, lua_tostring(g_LUAstate, -1));
+		lua_pop(g_LUAstate, 1);
 		return(false);
 	}
-	//mlog_in("debug basslua_open OK : lua_loadfile <%s>  getop=%d==1",fname, lua_gettop(g_LUAstate));
+	//mlog_in("debug basslua_open OK : lua_loadfile <%s>  getop=%d==1",fluaname, lua_gettop(g_LUAstate));
 
 
 	// require the "luabass" module for Midi-out
@@ -1790,7 +1797,7 @@ bool basslua_open(const char* fname, const char* param, bool reset, long datefna
 		return false;
 	}
 	lua_setglobal(g_LUAstate, moduleChord);
-	// mlog_in("debug basslua_open OK : lua_setglobal <%s>",moduleChord);
+	//mlog_in("debug basslua_open OK : lua_setglobal <%s>",moduleChord);
 
 	// require the "score" module for score interpretation
 	lua_getglobal(g_LUAstate, "require");
@@ -1824,7 +1831,7 @@ bool basslua_open(const char* fname, const char* param, bool reset, long datefna
 		lua_pop(g_LUAstate, 1);
 		return false;
 	}
-	//mlog_in("debug basslua_open OK : lua_pcall run script <%s>",fname);
+	//mlog_in("debug basslua_open OK : lua_pcall run script <%s>",fluaname);
 
 	// init the luabass module
 	if ( ! basslua_call(moduleLuabass, sinit, "sii", (logpath == NULL) ? "" : logpath, true, timerDt )) // ask for the luabass.init out-process : init the module 
@@ -1834,18 +1841,18 @@ bool basslua_open(const char* fname, const char* param, bool reset, long datefna
 	// count midi in devices
 	if ( ! basslua_call(moduleLuabass, "inCountMidi", ">i", &g_nb_midi_in ))  
 		mlog_in("debug basslua_open error : luabass.inCountMidi()");
-	// mlog_in("debug basslua_open OK : luabass.inCountMidi()=%d",g_nb_midi_in);
+	//mlog_in("debug basslua_open OK : luabass.inCountMidi()=%d",g_nb_midi_in);
 
 	// init the lua script
-	basslua_call(moduleGlobal, sonStart, "s", param) ; // ask for the userlua.onStart() : init user's settings
-	// mlog_in("debug basslua_open OK : %s %s",fname,sonStart);
+	basslua_call(moduleGlobal, sonStart, "s", luaparam) ; // ask for the userlua.onStart() : init user's settings
+	//mlog_in("debug basslua_open OK : %s %s",fluaname,sonStart);
 
 	// init the static variable of this dll
 	init_in(externalTimer, timerDt);
-	// mlog_in("debug basslua_open OK : init");
+	//mlog_in("debug basslua_open OK : init");
 
-	//mlog_in("debug basslua_open(%s,%s) ended succesfully", fname, fusername );
-	mlog_in("basslua_open OK (gettop=%d %s)",lua_gettop(g_LUAstate), (lua_gettop(g_LUAstate) == 0 ? "OK" : "KO"));
+	//mlog_in("debug basslua_open(%s,%s) ended succesfully", fluaname, fusername );
+	//mlog_in("basslua_open OK (gettop=%d %s)",lua_gettop(g_LUAstate), (lua_gettop(g_LUAstate) == 0 ? "OK" : "KO"));
 	return (true);
 }
 /**

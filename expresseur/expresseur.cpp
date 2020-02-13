@@ -639,7 +639,7 @@ bool Expresseur::checkConfig()
 	merrors += checkFile(mxconf::getCwdDir(),"luachord.lua");
 	merrors += checkFile(mxconf::getCwdDir(),"luascore.lua");
 	merrors += checkFile(mxconf::getCwdDir(),"texttochord.lua");
-	merrors += checkFile(mxconf::getResourceDir(),"expresseur.lua");
+	merrors += checkFile(mxconf::getCwdDir(),"expresseur.lua");
 	merrors += checkFile(mxconf::getResourceDir(),"default_piano.sf2");
 	merrors += checkFile(mxconf::getResourceDir(),"guitare.sf2");
 	merrors += checkFile(mxconf::getResourceDir(),"default_piano.txt");
@@ -2271,13 +2271,6 @@ void Expresseur::CreateExpresseurV3()
 	fname.AssignDir(mxconf::getResourceDir());
 	fname.Mkdir(wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
 
-	// remove potential old version of expresseur.lua not n ressource dir
-	wxFileName foldlua;
-	foldlua.Assign(mxconf::getCwdDir());
-	foldlua.SetName("expresseur");
-	foldlua.SetExt("lua");
-	wxRemoveFile(foldlua.GetFullPath());
-
 	// copy examples from example-folder in documents/expresseurV3-folder
 	wxFileName fdirExample;
 	fdirExample.Assign(mxconf::getCwdDir());
@@ -2329,8 +2322,6 @@ void Expresseur::CreateExpresseurV3()
 			wxString ext = ffile1.GetExt();
 			ext.MakeLower();
 			bool tocopy = true;
-			if ((ext == "lua") && (ffile2.FileExists()))
-					ffile2.SetExt("lua.new") ;
 			if ((ext == "sf2") && (ffile2.FileExists()) && (ffile1.GetSize() == ffile2.GetSize()))
 					tocopy = false;
 			file1 = ffile1.GetFullPath();

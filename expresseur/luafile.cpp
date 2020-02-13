@@ -142,32 +142,42 @@ void luafile::OnLuaParameter(wxCommandEvent&  event)
 void luafile::reset(mxconf* mConf, bool all, int timerDt)
 {
 	wxBusyCursor wait;
-	wxFileName f;
-	f.Assign(mxconf::getCwdDir());
+
+	wxString luauserscriptfile = mConf->get(CONFIG_LUA_USER_SCRIPT, DEFAULT_LUA_USER_FILE);
+	wxString luascriptparameter = mConf->get(CONFIG_LUA_PARAMETER, DEFAULT_LUA_PARAMETER);
+
 	wxFileName fuser;
-	fuser.Assign(mxconf::getResourceDir());
-	wxString luauserscriptfile;
-	wxString luascriptparameter;
-
-	luauserscriptfile = mConf->get(CONFIG_LUA_USER_SCRIPT, DEFAULT_LUA_USER_FILE);
-	luascriptparameter = mConf->get(CONFIG_LUA_PARAMETER, DEFAULT_LUA_PARAMETER);
-
-	fuser.SetFullName(luauserscriptfile);
-	long dduser = 0;
-	if (fuser.IsFileReadable())
+	
+	fuser.AssignDir(mxconf::getResourceDir());
+	fuser.SetName(luauserscriptfile);
+	if (! fuser.IsFileReadable())
 	{
-		wxDateTime d = fuser.GetModificationTime();
-		dduser = d.GetTicks();
+		fuser.AssignDir(mxconf::getCwdDir());
+		fuser.SetName(luauserscriptfile);
+		if (! fuser.IsFileReadable())
+		{
+			wxString serr;
+			serr.Printf(wxT("Error : LUA file %s not available"),fuser.GetFullPath());
+			wxMessageBox(serr);
+			return ;
+		}
 	}
-	wxString sluauser = fuser.GetName();
+	wxDateTime d = fuser.GetModificationTime();
+	long dduser = 0;
+	dduser = d.GetTicks();
+	luauserscriptfile = fuser.GetFullPath();
 
 	wxFileName dtmp(mxconf::getTmpDir());
-	dtmp.SetName("expresseur_log");
+	dtmp.SetName(wxT("expresseur_log"));
 	wxString slog = dtmp.GetFullPath();
+
 	wxFileName dressource(mxconf::getResourceDir());
-	wxString sressource = dressource.GetFullPath();
+	wxString spathlua ;
+	spathlua.Printf(wxT("%s?.lua;%s?.lua") , mxconf::getResourceDir() , mxconf::getCwdDir()) ;
+
 	wxFileName::SetCwd(mxconf::getCwdDir()) ;
-	basslua_open(sluauser.c_str() , luascriptparameter.c_str(), all, dduser, functioncallback, slog.c_str(), sressource.c_str(),true, timerDt);
+
+	basslua_open(luauserscriptfile.c_str() , luascriptparameter.c_str(), all, dduser, functioncallback, slog.c_str(), spathlua.c_str(),true, timerDt);
 }
 void luafile::write(mxconf* mConf, wxTextFile *lfile)
 {

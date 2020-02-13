@@ -244,13 +244,13 @@ function previousFile( t, bid, typemsg, ch, pitch, velo )
   if ( velo or 64 ) > 0 then info.action = "+" end
 end
 
---========================= mifi thru
-function E.onNoteOn(deviceNr , timestamp, channel , pitch, velocity )
+--========================= midi thru
+function onNoteOn(deviceNr , timestamp, channel , pitch, velocity )
 	if (midiinThru or false) then
 		luabass.outNoteOn(pitch,velocity )
 	end
 end
-function E.onNoteOff(deviceNr , timestamp, channel , pitch, velocity )
+function onNoteOff(deviceNr , timestamp, channel , pitch, velocity )
 	if (midiinThru or false) then
 		luabass.outNoteOff(pitch )
 	end
@@ -293,7 +293,7 @@ Midithru : ]] .. keyboard_line[2][9] .. " " .. keyboard_line[3][9]
 
 --===================== 
 -- catch PC keydown
-function E.keydown ( keyLetter, keyCode, modifiers)
+function keydown ( keyLetter, keyCode, modifiers)
 -- when a computer key is pressed, this function is called
 -- return true if the process of the keydown will not continue
 

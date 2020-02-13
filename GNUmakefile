@@ -127,8 +127,6 @@ $(EXPRESSEURAPP): $(EXPRESSEUR) $(LUA_OBJECTS) expresseur/Info.plist
 		$(EXPRESSEURCONTENT)/$$f; \
 	done
 	cp lua/*.* $(EXPRESSEURCONTENT)
-	rm -f ~/Documents/ExpresseurV3/ressources/*.lua
-	rm -f ~/Documents/ExpresseurV3/ressources/*.new
 	rm -f ~/Documents/ExpresseurV3/ressources/*.txt
 	
 $(EXPRESSCMDEXE) : $(EXPRESSCMD)
@@ -158,8 +156,6 @@ $(EXPRESSEURAPP): $(EXPRESSEUR) $(LUA_OBJECTS)
 	cp example/*.* $(EXPRESSEURCONTENT)/example
 	cp lua/*.* $(EXPRESSEURCONTENT)
 	cp expresseur/*.ico $(EXPRESSEURCONTENT)
-	rm -f ~/Documents/ExpresseurV3/ressources/*.lua
-	rm -f ~/Documents/ExpresseurV3/ressources/*.new
 	rm -f ~/Documents/ExpresseurV3/ressources/*.txt
 	
 $(EXPRESSCMDEXE) : $(EXPRESSCMD)
