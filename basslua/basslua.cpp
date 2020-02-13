@@ -924,7 +924,7 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 		if (! g_process_Activesensing) return; // g_process_ active sensing messages 
 		if ( lua_getglobal(g_LUAstate, LUAFunctionActive) != LUA_TFUNCTION)
 		{
-			lua_pop(g_LUAstate, lua_gettop(g_LUAstate))
+			lua_pop(g_LUAstate, lua_gettop(g_LUAstate));
 			return ;
 		}
 		lua_pushinteger(g_LUAstate, midinr + 1);
@@ -1003,7 +1003,7 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 				return;
 			}
 		}
-		lua_pop(g_LUAstate, lua_gettop(g_LUAstate))
+		lua_pop(g_LUAstate, lua_gettop(g_LUAstate));
 	}
 	if ((type_msg == NOTEON) && (u.bData[2] == 0))
 	{
