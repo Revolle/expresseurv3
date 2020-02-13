@@ -869,7 +869,6 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 {
 	// process this new midiin mg with the midiin-LUA-thread , using the expected LUA-function midixxx()
 	// Construct the short MIDI message.	
-	mlog_in("midiprocess_msg (%d==0!)", lua_gettop(g_LUAstate));
 	T_midimsg u , u_Original;
 	u.dwData = 0;
 	switch (length)
@@ -882,16 +881,16 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 	
 	g_current_t = time;
 
-	// mlog_in("receive length=%d %d %d %d ", length, u.bData[0], u.bData[1], u.bData[2]);
+	mlog_in("midiprocess_msg receive length=%d %d %d %d (lua_gettop=%d==0!)", length, u.bData[0], u.bData[1], u.bData[2], lua_gettop(g_LUAstate));
 
 	switch (u.bData[0])
 	{
 	case SYSEX:
 		// sysex
 		if (! g_process_Sysex)	return; // g_process_ sysex
-		if ( lua_getfield(g_LUAstate, -1, LUAFunctionSysex) != LUA_TFUNCTION)
+		if ( lua_getglobal(g_LUAstate, LUAFunctionSysex) != LUA_TFUNCTION)
 		{
-			lua_pop(g_LUAstate, 2);
+			lua_pop(g_LUAstate, lua_gettop(g_LUAstate));
 			return ;
 		}
 		lua_pushinteger(g_LUAstate, midinr + 1);
@@ -916,16 +915,16 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 			if (lua_pcall(g_LUAstate, 3, 0, 0) != LUA_OK)
 			{
 				mlog_in("error call  LUA %s , err: %s", LUAFunctionSysex, lua_tostring(g_LUAstate, -1));
-				lua_pop(g_LUAstate, 1);
 			}
 			free(sysexAscii);
 		}
+		lua_pop(g_LUAstate, lua_gettop(g_LUAstate));
 		return;
 	case ACTIVESENSING:
 		if (! g_process_Activesensing) return; // g_process_ active sensing messages 
-		if ( lua_getfield(g_LUAstate, -1, LUAFunctionActive) != LUA_TFUNCTION)
+		if ( lua_getglobal(g_LUAstate, LUAFunctionActive) != LUA_TFUNCTION)
 		{
-			lua_pop(g_LUAstate, 2);
+			lua_pop(g_LUAstate, lua_gettop(g_LUAstate))
 			return ;
 		}
 		lua_pushinteger(g_LUAstate, midinr + 1);
@@ -933,14 +932,14 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 		if ( lua_pcall(g_LUAstate, 2, 0, 0) != LUA_OK )
 		{
 			mlog_in("error call  LUA %s , err: %s", LUAFunctionActive, lua_tostring(g_LUAstate, -1));
-			lua_pop(g_LUAstate, 1);
 		}
+		lua_pop(g_LUAstate, lua_gettop(g_LUAstate));
 		return;
 	case CLOCK:
 		if (! g_process_Clock) return; // g_process_ clock messages 
-		if ( lua_getfield(g_LUAstate, -1, LUAFunctionClock) != LUA_TFUNCTION)
+		if ( lua_getglobal(g_LUAstate, LUAFunctionClock) != LUA_TFUNCTION)
 		{
-			lua_pop(g_LUAstate, 2);
+			lua_pop(g_LUAstate, lua_gettop(g_LUAstate));
 			return ;
 		}
 		lua_pushinteger(g_LUAstate, midinr + 1);
@@ -948,8 +947,8 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 		if ( lua_pcall(g_LUAstate, 2, 0, 0)!= LUA_OK )
 		{
 			mlog_in("error call  LUA %s , err: %s", LUAFunctionClock, lua_tostring(g_LUAstate, -1));
-			lua_pop(g_LUAstate, 1);
 		}
+		lua_pop(g_LUAstate, lua_gettop(g_LUAstate));
 		return;
 	default: break;
 	}
@@ -971,9 +970,9 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 
 	if (g_process_Midi)
 	{
-		if ( lua_getfield(g_LUAstate, -1, LUAFunctionMidi) != LUA_TFUNCTION)
+		if ( lua_getglobal(g_LUAstate, LUAFunctionMidi) != LUA_TFUNCTION)
 		{
-			lua_pop(g_LUAstate, 2);
+			lua_pop(g_LUAstate, lua_gettop(g_LUAstate));
 			return ;
 		}
 		lua_pushinteger(g_LUAstate, midinr + 1);
@@ -997,7 +996,6 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 				u.bData[0] = (type_msg << 4) + channel;
 				u.bData[1] = lua_tonumber(g_LUAstate, -2);
 				u.bData[2] = lua_tonumber(g_LUAstate, -1);
-				lua_pop(g_LUAstate, lua_gettop(g_LUAstate));
 			}
 			else
 			{
@@ -1005,6 +1003,7 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 				return;
 			}
 		}
+		lua_pop(g_LUAstate, lua_gettop(g_LUAstate))
 	}
 	if ((type_msg == NOTEON) && (u.bData[2] == 0))
 	{
@@ -1022,9 +1021,9 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 		if (g_process_ChannelPressure)
 		{
 			tbd = true ;  
-			if ( lua_getfield(g_LUAstate, -1, LUAFunctionChannelPressure) != LUA_TFUNCTION)
+			if ( lua_getglobal(g_LUAstate, LUAFunctionChannelPressure) != LUA_TFUNCTION)
 			{
-				lua_pop(g_LUAstate, 2);
+				lua_pop(g_LUAstate, lua_gettop(g_LUAstate));
 				return ;
 			}
 		}
@@ -1033,9 +1032,9 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 		if (g_process_KeyPressure)
 		{
 			tbd = true ;
-			if ( lua_getfield(g_LUAstate, -1, LUAFunctionKeyPressure) != LUA_TFUNCTION)
+			if ( lua_getglobal(g_LUAstate, LUAFunctionKeyPressure) != LUA_TFUNCTION)
 			{
-				lua_pop(g_LUAstate, 2);
+				lua_pop(g_LUAstate, lua_gettop(g_LUAstate));
 				return ;
 			}
 		}
@@ -1044,9 +1043,9 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 		if (g_process_SystemCommon)
 		{
 			tbd = true ;
-			if ( lua_getfield(g_LUAstate, -1, LUAFunctionSystemCommon) != LUA_TFUNCTION)
+			if ( lua_getglobal(g_LUAstate, LUAFunctionSystemCommon) != LUA_TFUNCTION)
 			{
-				lua_pop(g_LUAstate, 2);
+				lua_pop(g_LUAstate, lua_gettop(g_LUAstate));
 				return ;
 			}
 		}
@@ -1056,9 +1055,9 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 		if (g_process_Control)
 		{
 			tbd = true ;
-			if ( lua_getfield(g_LUAstate, -1, LUAFunctionControl) != LUA_TFUNCTION)
+			if ( lua_getglobal(g_LUAstate, LUAFunctionControl) != LUA_TFUNCTION)
 			{
-				lua_pop(g_LUAstate, 2);
+				lua_pop(g_LUAstate, lua_gettop(g_LUAstate));
 				return ;
 			}
 		}
@@ -1068,9 +1067,9 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 		if (g_process_Program)
 		{
 			tbd = true ;
-			if ( lua_getfield(g_LUAstate, -1, LUAFunctionProgram) != LUA_TFUNCTION)
+			if ( lua_getglobal(g_LUAstate, LUAFunctionProgram) != LUA_TFUNCTION)
 			{
-				lua_pop(g_LUAstate, 2);
+				lua_pop(g_LUAstate, lua_gettop(g_LUAstate));
 				return ;
 			}
 		}
@@ -1088,9 +1087,9 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 		if (g_process_NoteOff)
 		{
 			tbd = true ;
-			if ( lua_getfield(g_LUAstate, -1, LUAFunctionNoteOff) != LUA_TFUNCTION)
+			if ( lua_getglobal(g_LUAstate, LUAFunctionNoteOff) != LUA_TFUNCTION)
 			{
-				lua_pop(g_LUAstate, 2);
+				lua_pop(g_LUAstate, lua_gettop(g_LUAstate));
 				return ;
 			}
 		}
@@ -1108,9 +1107,9 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 		if (g_process_NoteOn)
 		{
 			tbd = true ;
-			if ( lua_getfield(g_LUAstate, -1, LUAFunctionNoteOn) != LUA_TFUNCTION)
+			if ( lua_getglobal(g_LUAstate, LUAFunctionNoteOn) != LUA_TFUNCTION)
 			{
-				lua_pop(g_LUAstate, 2);
+				lua_pop(g_LUAstate, lua_gettop(g_LUAstate));
 				return ;
 			}
 		}
@@ -1119,9 +1118,9 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 		if (g_process_PitchBend)
 		{
 			tbd = true ;
-			if ( lua_getfield(g_LUAstate, -1, LUAFunctionPitchBend) != LUA_TFUNCTION)
+			if ( lua_getglobal(g_LUAstate, LUAFunctionPitchBend) != LUA_TFUNCTION)
 			{
-				lua_pop(g_LUAstate, 2);
+				lua_pop(g_LUAstate, lua_gettop(g_LUAstate));
 				return ;
 			}
 		}
@@ -1172,12 +1171,12 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 		if (lua_pcall(g_LUAstate, nbParam, 0, 0) != LUA_OK)
 		{
 			mlog_in("error calling LUA on_midi_msg, err: %s", lua_tostring(g_LUAstate, -1));
-			lua_pop(g_LUAstate, 1);
 		}
+		lua_pop(g_LUAstate, lua_gettop(g_LUAstate));
 	}
 	g_fcallback(time, midinr, u_Original.bData[0] >> 4, u_Original.bData[0] & 0x0F, u_Original.bData[1], u_Original.bData[2], tbd | isSelected);
 
-	lua_pop(g_LUAstate, 1); // pop table module
+	lua_pop(g_LUAstate, lua_gettop(g_LUAstate));
 }
 void CALLBACK midinewmsg(DWORD device, double time, void *buffer, DWORD length, void *ptuser)
 {
