@@ -61,6 +61,8 @@ WX_DEFINE_LIST(l_slur);
 static int gchord_counter = 0;
 static int gtranspose = 0;
 
+static int divisionsMax ;
+
 wxString encodeXML(wxString s)
 {
 	wxString sw = s;
@@ -538,6 +540,11 @@ void c_attributes::compile(bool twelved , c_measure *measure)
 		measure->divisions = divisions;
 		measure->division_quarter = divisions;
 	}
+
+	if ( divisionsMax < divisions )
+		divisionsMax = divisions ;
+
+
 	switch (measure->beat_type)
 	{
 	case 1:
@@ -559,6 +566,11 @@ void c_attributes::compile(bool twelved , c_measure *measure)
 		break;
 	}
 }
+void c_attributes::divisionsAlign()
+{
+	divisions = divisionsMax ;
+}
+
 
 // score-partwise/list/part/measure/note/pitch
 //--------------------------------------------
@@ -1531,6 +1543,10 @@ void c_note::compile(int ipartNr , bool twelved)
 			duration *= 12 ;
 	}
 }
+void c_note::divisionsAlign(int ratio)
+{
+	duration *= ratio ;
+}
 // score-partwise/list/part/measure/backup
 //--------------------------------------------
 c_backup::c_backup()
@@ -1561,6 +1577,11 @@ void c_backup::compile(bool twelved)
 {
 	if (twelved && (duration != NULL_INT))
 		duration *= 12 ;
+}
+void c_backup::divisionsAlign(int ratio)
+{
+	if (duration != NULL_INT)
+		duration *= ratio ;
 }
 // score-partwise/list/part/measure/forward
 //--------------------------------------------
@@ -1593,6 +1614,11 @@ void c_forward::compile(bool twelved)
 	if (twelved && (duration != NULL_INT))
 		duration *= 12 ;
 
+}
+void c_forward::divisionsAlign(int ratio)
+{
+	if (duration != NULL_INT)
+		duration *= ratio ;
 }
 // score-partwise/list/part/measure/barline/repeat
 //------------------------------------------------
@@ -2291,7 +2317,20 @@ void c_measure_sequence::compile(int partNr , bool twelved , c_measure *measure)
 	default: break;
 	}
 }
-
+void c_measure_sequence::divisionsAlign(int ratio)
+{
+	switch (type)
+	{
+	case t_note: ((c_note*)(pt))->divisionsAlign(ratio); break;
+	//case t_harmony: ((c_harmony*)(pt))->divisionsAlign(ratio); break;
+	case t_backup: ((c_backup*)(pt))->divisionsAlign(ratio); break;
+	case t_forward: ((c_forward*)(pt))->divisionsAlign(ratio); break;
+	//case t_barline: ((c_barline*)(pt))->divisionsAlign(ratio); break;
+	//case t_direction: ((c_direction*)(pt))->divisionsAlign(ratio); break;
+	case t_attributes: ((c_attributes*)(pt))->divisionsAlign(); break;
+	default: break;
+	}
+}
 // score-partwise/list/part/measure
 //---------------------------------
 c_measure::c_measure()
@@ -2417,6 +2456,24 @@ void c_measure::compile(c_measure *previous_measure , int partNr, bool twelved)
 		current->compile(partNr , twelved , this);
 	}
 }
+void c_measure::divisionsAlign()
+{
+	int ratio = divisionsMax / divisions ;
+	if (ratio == 1)
+		return ;
+
+	divisions *= ratio;
+	division_quarter *= ratio;
+	division_beat *= ratio;
+	division_measure *= ratio;
+
+	l_measure_sequence::iterator iter;
+	for (iter = measure_sequences.begin(); iter != measure_sequences.end(); ++iter)
+	{
+		c_measure_sequence *current = *iter;
+		current->divisionsAlign(ratio);
+	}
+}
 
 // score-partwise/part
 //-------------------------
@@ -2482,6 +2539,15 @@ void c_part::compile(int ipartNr, bool twelved)
 		c_measure *current_measure = *iter;
 		current_measure->compile(previous_measure, partNr, twelved);
 		previous_measure = current_measure;
+	}
+}
+void c_part::divisionsAlign()
+{
+	l_measure::iterator iter;
+	for (iter = measures.begin(); iter != measures.end(); ++iter)
+	{
+		c_measure *current_measure = *iter;
+		current_measure->divisionsAlign();
 	}
 }
 
@@ -2703,6 +2769,7 @@ void c_score_partwise::write(wxString filename , bool layout = true)
 
 void c_score_partwise::compile(bool twelved)
 {
+	divisionsMax = -1 ;
 	bool tobe_twelved = false;
 	if (twelved) // to increase the reolution of the duration by 3*2*2
 	{
@@ -2718,5 +2785,12 @@ void c_score_partwise::compile(bool twelved)
 	{
 		c_part *current_part = *iter;
 		current_part->compile(partNr , tobe_twelved);
+	}
+
+	// to align divisions for each measure
+	for (iter = parts.begin(), partNr = 0; iter != parts.end(); ++iter, ++partNr)
+	{
+		c_part *current_part = *iter;
+		current_part->divisionsAlign();
 	}
 }

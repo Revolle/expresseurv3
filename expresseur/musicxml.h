@@ -5,6 +5,7 @@
 #define DEF_MUSICXML
 
 #define MAX_SCORE_PART 64
+
 class c_default_xy
 {
 public:
@@ -123,6 +124,7 @@ public:
 	c_backup(const c_backup &backup);
 	c_backup(wxXmlNode *xmlnode);
 	void compile(bool twelved);
+	void divisionsAlign(int ratio);
 	void write(wxFFile *f);
 	int duration = NULL_INT;
 };
@@ -133,6 +135,7 @@ public:
 	c_forward(const c_forward &forward);
 	c_forward(wxXmlNode *xmlnode);
 	void compile(bool twelved);
+	void divisionsAlign(int ratio);
 	void write(wxFFile *f);
 	int duration = NULL_INT;
 };
@@ -323,6 +326,7 @@ public:
 	c_attributes(wxXmlNode *xmlnode);
 	~c_attributes();
 	void compile(bool twelved, c_measure *measure);
+	void divisionsAlign();
 	void write(wxFFile *f);
 	c_key *key = NULL;
 	c_time *mtime = NULL;
@@ -537,6 +541,7 @@ public:
 	c_note(wxXmlNode *xmlnode );
 	~c_note();
 	void compile(int partNr , bool twelved = false);
+	void divisionsAlign(int ratio);
 	void write(wxFFile *f);
 	c_pitch *pitch = NULL;
 	c_rest *rest = NULL;
@@ -570,6 +575,7 @@ public:
 	c_measure_sequence(void *pt, int type);
 	~c_measure_sequence();
 	void compile(int partNr , bool twelved , c_measure *measure);
+	void divisionsAlign(int ratio);
 	void write(wxFFile *f);
 	int type = NULL_INT ;
 	void *pt = NULL ;
@@ -585,6 +591,7 @@ public:
 	c_measure(wxXmlNode *xmlnode);
 	void write(wxFFile *f, bool layout);
 	void compile(c_measure *previous_measure,int partNr, bool twelved = false);
+	void divisionsAlign();
 	int divisions = NULL_INT;
 	int division_quarter = NULL_INT;
 	int division_beat = NULL_INT;
@@ -609,6 +616,7 @@ public:
 	c_part(const c_part &part, bool withMeasures = true);
 	c_part(wxXmlNode *xmlnode);
 	void compile(int nr, bool twelved = false);
+	void divisionsAlign();
 	void write(wxFFile *f, bool layout);
 	wxString id = NULL_STRING;
 	int idNr = 0;
