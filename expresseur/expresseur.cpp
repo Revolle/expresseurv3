@@ -114,6 +114,8 @@ public:
     	bool OnInit();
 	
 	int FilterEvent(wxEvent& event);
+private:
+	bool listEvent[20000];
 };
 
 // timer value for compilation in ms
@@ -282,6 +284,7 @@ EVT_COMMAND_SCROLL_THUMBRELEASE(ID_MAIN_SCROLL_VERTICAL, Expresseur::OnVerticalS
 EVT_TIMER(ID_MAIN_TIMER, Expresseur::OnTimer)
 EVT_IDLE(Expresseur::OnIdle)
 EVT_SIZE(Expresseur::OnSize)
+
 wxEND_EVENT_TABLE()
 
 // ============================================================================
@@ -320,18 +323,16 @@ bool MyApp::OnInit()
     frame->SetStatusText("",1);
 #endif
 
-
-
   return true;
 }
 int MyApp::FilterEvent(wxEvent& event)
-{
-	if ((event.GetEventType() == wxEVT_KEY_DOWN) && frame)
+{ 
+	if ((event.GetEventType() == wxEVT_KEY_DOWN ) && frame)
 	{
 		if (frame->OnKeyDown((wxKeyEvent&)event) )
-			return true;
+			return Event_Processed;
 	}
-	return -1;
+	return Event_Skip;
 }
 
 // ----------------------------------------------------------------------------

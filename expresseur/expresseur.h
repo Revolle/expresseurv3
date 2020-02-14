@@ -1,5 +1,3 @@
-// update : 17/11/2016 17:00
-
 #ifndef DEF_EXPRESSEUR
 
 #define DEF_EXPRESSEUR
