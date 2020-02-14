@@ -1257,55 +1257,58 @@ void musicxmlcompile::writeMarks()
 	for (iter_ornament = lOrnaments.begin(); iter_ornament != lOrnaments.end(); ++iter_ornament)
 	{
 		c_ornament *ornament = *iter_ornament;
-		wxString sr , st , srepeatNr ,  strack , sbefore , sname;
-		int tInBeat , beat ;
-		int division_beat, division_quarter, division_measure;
-		division_beat = getDivision(ornament->measureNumber, &division_quarter, &division_measure);
-		beat = ornament->t / division_beat;
-		tInBeat = ornament->t % division_beat;
-		if ((tInBeat != 0) || (ornament->chord_order > 0))
+		if (ornament->type != o_divisions)
 		{
-			if (ornament->chord_order <= 0)
-				st.Printf(".%d.%d", beat + 1, (int)(tInBeat / 12) ); // 1/12 : to display back  the original division
-			else
-				st.Printf(".%d.%d.%d", beat + 1, (int)(tInBeat / 12) , ornament->chord_order + 1);
-		}
-		else
-			st.Printf(".%d", beat + 1);
-		if (ornament->repeat != -1)
-			srepeatNr.Printf("*%d", (ornament->repeat + 1));
-		if (ornament->partNr != -1)
-		{
-			if (( ornament->staffNr != -1) && (ornament->staffNr != NULL_INT))
-				strack.Printf("@P%d_%s.%d", ornament->partNr + 1, getTrackName(ornament->partNr), ornament->staffNr);
-			else
-				strack.Printf("@P%d_%s", ornament->partNr + 1, getTrackName(ornament->partNr));
-		}
-		if (ornament->before)
-			sbefore = "<";
-		if (ornament->value.IsEmpty() == false)
-		{
-			if (ornament->type == o_divisions)
+			wxString sr , st , srepeatNr ,  strack , sbefore , sname;
+			int tInBeat , beat ;
+			int division_beat, division_quarter, division_measure;
+			division_beat = getDivision(ornament->measureNumber, &division_quarter, &division_measure);
+			beat = ornament->t / division_beat;
+			tInBeat = ornament->t % division_beat;
+			if ((tInBeat != 0) || (ornament->chord_order > 0))
 			{
-				// display the original division ( / 12 )
-				long lv = 1 ;
-				ornament->value.ToLong(&lv);
-				sname.Printf("%s=%d", ornamentName[ornament->type], (int)(lv/12));
+				if (ornament->chord_order <= 0)
+					st.Printf(".%d.%d", beat + 1, (int)(tInBeat / 12) ); // 1/12 : to display back  the original division
+				else
+					st.Printf(".%d.%d.%d", beat + 1, (int)(tInBeat / 12) , ornament->chord_order + 1);
 			}
 			else
-				sname.Printf("%s=%s", ornamentName[ornament->type], ornament->value);
+				st.Printf(".%d", beat + 1);
+			if (ornament->repeat != -1)
+				srepeatNr.Printf("*%d", (ornament->repeat + 1));
+			if (ornament->partNr != -1)
+			{
+				if (( ornament->staffNr != -1) && (ornament->staffNr != NULL_INT))
+					strack.Printf("@P%d_%s.%d", ornament->partNr + 1, getTrackName(ornament->partNr), ornament->staffNr);
+				else
+					strack.Printf("@P%d_%s", ornament->partNr + 1, getTrackName(ornament->partNr));
+			}
+			if (ornament->before)
+				sbefore = "<";
+			if (ornament->value.IsEmpty() == false)
+			{
+				/*if (ornament->type == o_divisions)
+				{
+					// display the original division ( / 12 )
+					long lv = 1 ;
+					ornament->value.ToLong(&lv);
+					sname.Printf("%s=%d", ornamentName[ornament->type], (int)(lv/12));
+				}
+				else*/
+					sname.Printf("%s=%s", ornamentName[ornament->type], ornament->value);
+			}
+			else
+				sname = ornamentName[ornament->type];
+			if (ornament->absolute_measureNr)
+				sr = "!";
+			else
+			{
+				if ((ornament->mark_prefix >= 0) && (ornament->mark_prefix < (int)(lMeasureMarks.GetCount())))
+					sr.Printf("%s.", lMeasureMarks[ornament->mark_prefix]->name);
+			}
+			s.Printf("%s%d%s%s%s%s:%s",sr, ornament->measureNumber, st, srepeatNr, sbefore, strack, sname);
+			f.AddLine(s);
 		}
-		else
-			sname = ornamentName[ornament->type];
-		if (ornament->absolute_measureNr)
-			sr = "!";
-		else
-		{
-			if ((ornament->mark_prefix >= 0) && (ornament->mark_prefix < (int)(lMeasureMarks.GetCount())))
-				sr.Printf("%s.", lMeasureMarks[ornament->mark_prefix]->name);
-		}
-		s.Printf("%s%d%s%s%s%s:%s",sr, ornament->measureNumber, st, srepeatNr, sbefore, strack, sname);
-		f.AddLine(s);
 	}
 
 
