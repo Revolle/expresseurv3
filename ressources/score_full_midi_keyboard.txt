@@ -4,7 +4,7 @@ Configuration ExpresseurV3
 --D#2 : beginning 
 --F#2 : all sound off
 /shortcut/midifunction=
-/shortcut/selectornb=20
+/shortcut/selectornb=4
 /shortcut/name/0=last move
 /shortcut/action/0=move/previous move
 /shortcut/key/0=L

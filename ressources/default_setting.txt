@@ -1,6 +1,6 @@
 Configuration ExpresseurV3
 /shortcut/midifunction=
-/shortcut/selectornb=20
+/shortcut/selectornb=4
 /shortcut/name/0=last move
 /shortcut/action/0=move/previous move
 /shortcut/key/0=L

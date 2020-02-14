@@ -2328,7 +2328,7 @@ void Expresseur::CreateExpresseurV3()
 			file2 = ffile2.GetFullPath();
 			if (tocopy)
 			{
-				//wxMessageBox(file1 + " to " + file2 , "copy ressource");
+				// wxMessageBox(file1 + " to " + file2 , "copy ressource");
 				wxCopyFile(file1, file2);
 			}
 			cont = dirRessources.GetNext(&file1);

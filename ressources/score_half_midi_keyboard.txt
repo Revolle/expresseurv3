@@ -5,9 +5,7 @@ Configuration ExpresseurV3
 --C#2 : last move 
 --D#2 : beginning 
 --F#2 : all sound off
---Mixers for the score on the computer keyboard (see Action menu )
-/shortcut/midifunction=
-/shortcut/selectornb=20
+/shortcut/selectornb=5
 /shortcut/name/0=last move
 /shortcut/action/0=move/previous move
 /shortcut/key/0=L
@@ -48,7 +46,7 @@ Configuration ExpresseurV3
 /shortcut/max/3=47
 /shortcut/stoponmatch/3=stop
 /shortcut/param/3=
-/shortcut/name/4=thru
+/shortcut/name/4=midi-thru
 /shortcut/action/4=global/play note
 /shortcut/key/4=
 /shortcut/devicename/4=all Midi-In
