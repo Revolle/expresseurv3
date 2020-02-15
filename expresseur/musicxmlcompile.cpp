@@ -650,11 +650,11 @@ void musicxmlcompile::analyseMeasureMarks()
 		{
 			c_measure *measure = *iter_measure;
 			int timeMeasure = 0;
-			if ((measure->divisions != NULL_INT) && (partNr == 0))
+			/* if ((measure->divisions != NULL_INT) && (partNr == 0))
 			{
 				c_ornament *ornament = new c_ornament(o_divisions, measure->number, 0, -1, -1, -1, false, wxString::Format("%d", measure->divisions));
 				lOrnaments.Append(ornament);
-			}
+			}*/
 			l_measure_sequence::iterator iter_sequence;
 			for (iter_sequence = measure->measure_sequences.begin(); iter_sequence != measure->measure_sequences.end(); ++iter_sequence)
 			{
@@ -1098,6 +1098,9 @@ void musicxmlcompile::singleOrnaments()
 void musicxmlcompile::clearOrnaments()
 {
 	// clear the ornaments, except the divisions 
+	lOrnaments.DeleteContents(true);
+	lOrnaments.Clear();
+	/*
 	l_ornament::iterator iter_ornament;
 	for (iter_ornament = lOrnaments.begin(); iter_ornament != lOrnaments.end();)
 	{
@@ -1111,6 +1114,7 @@ void musicxmlcompile::clearOrnaments()
 		else
 			iter_ornament++;
 	}
+	*/
 	/*
 	wxl_ornamentNode *node = lOrnaments.GetFirst();
 	while (node)

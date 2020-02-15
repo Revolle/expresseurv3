@@ -61,7 +61,8 @@ WX_DEFINE_LIST(l_slur);
 static int gchord_counter = 0;
 static int gtranspose = 0;
 
-static int divisionsMax ;
+static int divisionsMax = 4 ;
+static 	int ratioDivisions = 1 ;
 
 wxString encodeXML(wxString s)
 {
@@ -568,7 +569,8 @@ void c_attributes::compile(bool twelved , c_measure *measure)
 }
 void c_attributes::divisionsAlign()
 {
-	divisions = divisionsMax ;
+	if (divisions != NULL_INT)
+		divisions = divisionsMax ;
 }
 
 
@@ -2458,20 +2460,21 @@ void c_measure::compile(c_measure *previous_measure , int partNr, bool twelved)
 }
 void c_measure::divisionsAlign()
 {
-	int ratio = divisionsMax / divisions ;
-	if (ratio == 1)
+	if (divisions != NULL_INT)
+		ratioDivisions = divisionsMax / divisions ;
+	if (ratioDivisions == 1)
 		return ;
 
-	divisions *= ratio;
-	division_quarter *= ratio;
-	division_beat *= ratio;
-	division_measure *= ratio;
+	divisions *= ratioDivisions;
+	division_quarter *= ratioDivisions;
+	division_beat *= ratioDivisions;
+	division_measure *= ratioDivisions;
 
 	l_measure_sequence::iterator iter;
 	for (iter = measure_sequences.begin(); iter != measure_sequences.end(); ++iter)
 	{
 		c_measure_sequence *current = *iter;
-		current->divisionsAlign(ratio);
+		current->divisionsAlign(ratioDivisions);
 	}
 }
 

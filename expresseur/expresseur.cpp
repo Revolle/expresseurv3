@@ -169,6 +169,7 @@ enum
 	ID_MAIN_MIXER,
 	ID_MAIN_GOTO,
 	ID_MAIN_MIDISHORTCUT,
+	ID_MAIN_KEYDOWNINFOLUA,
 	ID_MAIN_EXPRESSION,
 	ID_MAIN_LUAFILE,
 	ID_MAIN_SETTING_OPEN,
@@ -259,6 +260,7 @@ EVT_MENU_RANGE(ID_MAIN_SETTINGS_FILE, ID_MAIN_SETTINGS_FILE_END, Expresseur::OnM
 EVT_MENU(ID_MAIN_MIXER, Expresseur::OnMixer)
 EVT_MENU(ID_MAIN_GOTO, Expresseur::OnGoto)
 EVT_MENU(ID_MAIN_MIDISHORTCUT, Expresseur::OnMidishortcut)
+EVT_MENU(ID_MAIN_KEYDOWNINFOLUA, Expresseur::OnKeydowInfoLua)
 EVT_MENU(ID_MAIN_EXPRESSION, Expresseur::OnExpression)
 EVT_MENU(ID_MAIN_LUAFILE, Expresseur::OnLuafile)
 EVT_MENU(ID_MAIN_RESET, Expresseur::OnReset)
@@ -479,7 +481,8 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 
 
 	wxMenu *settingMenu = new wxMenu;
-	settingMenu->Append(ID_MAIN_MIDISHORTCUT, _("MIDI/keyboard config") , _("Configure interaction from MIDI or keyboard"));
+	settingMenu->Append(ID_MAIN_MIDISHORTCUT, _("MIDI/keyboard config"), _("Configure interaction from MIDI or keyboard"));
+	settingMenu->Append(ID_MAIN_KEYDOWNINFOLUA, _("keydown LUA config"), _("List interaction from computer keyboard scripted in keydown LUA"));
 	settingMenu->AppendSubMenu(listSettingMenu,_("MIDI/keyboard presets"), _("list of MIDI/keyboard configs already available in the Expresseur/Resource directory"));
 	settingMenu->Append(ID_MAIN_SETTING_OPEN, _("Import setting..."));
 	settingMenu->Append(ID_MAIN_SETTING_SAVEAS, _("Export setting as..."));
@@ -1886,8 +1889,16 @@ void Expresseur::OnGoto(wxCommandEvent& WXUNUSED(event))
 void Expresseur::OnMidishortcut(wxCommandEvent& WXUNUSED(event))
 {
 	editMode = true;
-	if ( mMidishortcut->ShowModal() == wxOK)
+	if (mMidishortcut->ShowModal() == wxOK)
 		settingReset(true);
+	editMode = false;
+}
+void Expresseur::OnKeydowInfoLua(wxCommandEvent& WXUNUSED(event))
+{
+	editMode = true;
+	bool ret = true;
+	if (!basslua_call(moduleGlobal, "keydown", "sii>b", "", -1, -1, &ret))
+		wxMessageBox("Error calling luauser.lua keydown()");
 	editMode = false;
 }
 void Expresseur::OnExpression(wxCommandEvent& WXUNUSED(event))
@@ -2201,6 +2212,8 @@ bool Expresseur::settingReset(bool all)
 
 	waitToCompile = 1 ;
 	waitToRefresh = 1 ;
+	
+	mTextscore->SetFocus();
 
 	// restart the timer
 	mtimer->Start(timerDt);

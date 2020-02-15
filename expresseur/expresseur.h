@@ -68,6 +68,7 @@ public:
 	void OnMixer(wxCommandEvent& WXUNUSED(event));
 	void OnGoto(wxCommandEvent& WXUNUSED(event));
 	void OnMidishortcut(wxCommandEvent& WXUNUSED(event));
+	void OnKeydowInfoLua(wxCommandEvent& WXUNUSED(event));
 	void OnExpression(wxCommandEvent& WXUNUSED(event));
 	void OnLuafile(wxCommandEvent& WXUNUSED(event));
 	void OnReset(wxCommandEvent& WXUNUSED(event));
