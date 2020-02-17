@@ -661,10 +661,10 @@ bool basslua_call(const char *module, const char *function, const char *sig, ...
 }
 static void runAction(int nrAction,double time, int nr_selector, int nrChannel, int type_msg, int d1, int d2, const char *param, int index, int mediane, int whiteIndex, int whiteMediane, int sharp)
 {
-	mlog_in("runaction #%d (%d==0!)", nrAction , lua_gettop(g_LUAstate));
+	// mlog_in("runaction #%d (%d==0!)", nrAction , lua_gettop(g_LUAstate));
 	if (lua_getglobal(g_LUAstate, tableActions) == LUA_TTABLE)
 	{
-		mlog_in("lua_getglobal tableActions OK");
+		// mlog_in("lua_getglobal tableActions OK");
 		int ret = lua_geti(g_LUAstate, 1, nrAction + 1);
 		if ( ret == LUA_TTABLE)
 		{
@@ -881,7 +881,7 @@ static void midiprocess_msg(int midinr, double time, void *buffer, DWORD length)
 	
 	g_current_t = time;
 
-	mlog_in("midiprocess_msg receive length=%d %d %d %d (lua_gettop=%d==0!)", length, u.bData[0], u.bData[1], u.bData[2], lua_gettop(g_LUAstate));
+	//mlog_in("midiprocess_msg receive length=%d %d %d %d (lua_gettop=%d==0!)", length, u.bData[0], u.bData[1], u.bData[2], lua_gettop(g_LUAstate));
 
 	switch (u.bData[0])
 	{

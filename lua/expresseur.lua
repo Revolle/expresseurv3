@@ -289,23 +289,23 @@ end
 
 -- help message for keydown function
 function helpkeydown()
-	if keyboarDisposal then
+	if keyboarDisposal and keyboarDisposal[1] and keyboarDisposal[4] and keyboarDisposal[1][10] and keyboarDisposal[4][10] then
 chhelp= [[
 Shortcuts defined in expresseur.lua according to ressources/keyboard_xx.lua disposal :
 Select ressources/keyboard_xx.lua with option '-k xx' in start LUA-parameter
 * Mixer : 8 tracks ( tacet/p/mf/f) on the left of the four lines of the keyboard 
 * Move : arrows, page, home , end , backspace 
-* Transpose : ]] .. keyboarDisposal[2][10] .. " " .. keyboard_line[3][10] .. [[ 
-* Silence : ]] .. keyboard_line[1][10] .. [[
+* Transpose : ]] .. string.sub(keyboarDisposal[2][10],1,1) .. " " .. string.sub(keyboarDisposal[3][10],1,1) .. [[ 
+* Silence : ]] .. string.sub(keyboarDisposal[1][10],1,1) .. [[
 
-* Goto : ]] .. keyboard_line[1][9] .. [[
+* Goto : ]] .. string.sub(keyboarDisposal[1][9],1,1) .. [[
 
-* play view : ]] .. keyboard_line[4][10] .. [[
+* play view : ]] .. string.sub(keyboarDisposal[4][10],1,1) .. [[
 
-* Midithru : ]] .. keyboard_line[2][9] .. " " .. keyboard_line[3][9] 
+* Midithru : ]] .. string.sub(keyboarDisposal[2][9],1,1) .. " " .. string.sub(keyboarDisposal[3][9],1,1) 
 		return chhelp
 	end
-	return ""
+	return "no help in helpkeydown"
 end
 
 function keydown ( keyLetter, keyCode, modifiers)
@@ -313,8 +313,7 @@ function keydown ( keyLetter, keyCode, modifiers)
 -- when a computer key is pressed, this function is called
 -- return true if the process of the keydown will not continue
 
- 	luabass.logmsg("keydown(" .. (keyLetter or "" ).. "," .. (keyCode or "") .. "," .. (modifiers or "")  .. ")")
-	info.status = "keydown LUA " .. keyLetter .. " / " .. keyCode
+	info.status = "keydown LUA " .. (keyLetter or "") .. " / " .. (keyCode or "") .. "/" .. (modifiers or "")
 
 -- help
 	if (keyCode or -1) == -1 then
@@ -370,6 +369,10 @@ function keydown ( keyLetter, keyCode, modifiers)
 		return true
 	end
 
+	if modifiers ~= 0 then 
+		return false 
+	end
+	
 -- standard keystrokes checked according to keyboard disposal
 	if keyLetter == nil or string.len(keyLetter) < 1 then
 		return false
@@ -381,12 +384,12 @@ function keydown ( keyLetter, keyCode, modifiers)
 		-- line by line of the keyboad disposal
 		local p = nil
 		for j,w in ipairs(v) do
-			if keyLetter == w then
+			if string.find(w,keyLetter,1,true) then
 				p = j
+				break ;
 			end
 		end
 		if p then
-luabass.logmsg("string.find(" .. keyLetter  .. ")=" .. p)
 			-- column by column of the keyboard disposal
 			if (p < 9) then
 				-- mixer for 8 first columns (track#). Line is the action (forte, mp, piano, tacet)
