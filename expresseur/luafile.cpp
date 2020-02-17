@@ -88,14 +88,24 @@ luafile::luafile(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* 
 
 	wxArrayString lUserScript, lfUserScript;
 	wxFileName fUser;
-	fUser.Assign(mxconf::getResourceDir());
+	fUser.Assign(mxconf::getCwdDir());
 	wxDir::GetAllFiles(fUser.GetPath(), &lUserScript, "*.lua", wxDIR_FILES);
 	for (unsigned int i = 0; i < lUserScript.GetCount(); i++)
 	{
 		wxFileName fsUser(lUserScript[i]);
 		lfUserScript.Add(fsUser.GetFullName());
 	}
-	paramsizer->Add(new wxStaticText(this, wxID_ANY, _("LUA User Script")), sizerFlagMaximumPlace);
+	fUser.Assign(mxconf::getResourceDir());
+	wxDir::GetAllFiles(fUser.GetPath(), &lUserScript, "*.lua", wxDIR_FILES);
+	for (unsigned int i = 0; i < lUserScript.GetCount(); i++)
+	{
+		if ( ! lUserScript[i].StartsWith("keyboard") )
+		{
+			wxFileName fsUser(lUserScript[i]);
+			lfUserScript.Add(fsUser.GetFullName());
+		}
+	}
+	paramsizer->Add(new wxStaticText(this, wxID_ANY, _("LUA Script")), sizerFlagMaximumPlace);
 	wxString luauserscriptfile = mConf->get(CONFIG_LUA_USER_SCRIPT, DEFAULT_LUA_USER_FILE);
 	wxChoice *cLuaUserScript = new wxChoice(this, IDM_LUAFILE_LUA_USER_SCRIPT, wxDefaultPosition, wxDefaultSize, lfUserScript);
 	if (lfUserScript.Index(luauserscriptfile) != wxNOT_FOUND)

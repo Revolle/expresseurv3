@@ -161,7 +161,8 @@ function onStart(param)
   	luabass.outPreOpenMidi() -- pre-open valid midi-out, to avoid later conflict 
 	end
 	-- change keyboard for shortcuts,using -k option, requiring lua script keyboard_xx.lua
-	kb = require("keyboard_".. string.match(param,"-k (%a+)") or "US") 
+	local typeKeyboard = (string.match(param,"-k (%a+)")) or "us"
+	local kb = require("keyboard_"..typeKeyboard ) 
 	if ( kb ) then
 		-- keyboarDisposal return the four lines of keyboard like this : { "1234567890" , "QWERTYUIOP" "ASDFGHJKL" , "ZXCVBNM," } 
 		keyboarDisposal = kb.keyboarDisposal()
@@ -287,7 +288,9 @@ end
 --========================= PC Keyboard shortcuts 
 
 -- help message for keydown function
-helpkeydown = [[
+function helpkeydown()
+	if keyboarDisposal then
+chhelp= [[
 Shortcuts defined in expresseur.lua according to ressources/keyboard_xx.lua disposal :
 Select ressources/keyboard_xx.lua with option '-k xx' in start LUA-parameter
 * Mixer : 8 tracks ( tacet/p/mf/f) on the left of the four lines of the keyboard 
@@ -300,7 +303,10 @@ Select ressources/keyboard_xx.lua with option '-k xx' in start LUA-parameter
 * play view : ]] .. keyboard_line[4][10] .. [[
 
 * Midithru : ]] .. keyboard_line[2][9] .. " " .. keyboard_line[3][9] 
-
+		return chhelp
+	end
+	return ""
+end
 
 function keydown ( keyLetter, keyCode, modifiers)
 --===============================================
@@ -308,19 +314,79 @@ function keydown ( keyLetter, keyCode, modifiers)
 -- return true if the process of the keydown will not continue
 
  	luabass.logmsg("keydown(" .. (keyLetter or "" ).. "," .. (keyCode or "") .. "," .. (modifiers or "")  .. ")")
+	info.status = "keydown LUA " .. keyLetter .. " / " .. keyCode
+
 -- help
 	if (keyCode or -1) == -1 then
-		info.action = "!" .. helpkeydown
+		info.action = "!" .. helpkeydown()
 		return true
 	end
+
+-- move in the score
+	if keyCode == 313 then -- WXK_HOME
+		luabass.outAllNoteOff()
+		luascore.firstPart() ;
+		info.status = "first part"
+		return true
+	elseif keyCode == 312 then -- WXK_END
+		luabass.outAllNoteOff()
+		luascore.lastPart() 
+		info.status= "last part"
+		return true
+	elseif keyCode == 314 then -- WXK_LEFT
+		luabass.outAllNoteOff()
+		luascore.previousEvent() 
+		info.status= "previous note"
+		return true
+	elseif keyCode == 316 then -- WXK_RIGHT
+		luabass.outAllNoteOff()
+		luascore.nextEvent() 
+		info.status = "next note"
+		return true
+	elseif keyCode == 315 then -- WXK_UP
+		luabass.outAllNoteOff()
+		luascore.previousMeasure() 
+		info.status = "previous measure"
+		return true
+	elseif keyCode == 317 then -- WXK_DOWN
+		luabass.outAllNoteOff()
+		luascore.nextMeasure() 
+		info.status = "next measure"
+		return true
+	elseif keyCode == 366 then -- WXK_PAGE_UP
+		luabass.outAllNoteOff()
+		luascore.previousPart() 
+		info.status  = "previous part"
+		return true
+	elseif keyCode == 367 then -- WXK_PAGE_DOWN
+		luabass.outAllNoteOff()
+		luascore.nextPart() 
+		info.status= "next part"
+		return true
+	elseif keyCode == 8 then -- WXK_BACK
+		luabass.outAllNoteOff()
+		luascore.previousPos() 
+		info.status  = "previous move"
+		return true
+	end
+
 -- standard keystrokes checked according to keyboard disposal
+	if keyLetter == nil or string.len(keyLetter) < 1 then
+		return false
+	end
 	if keyboarDisposal == nil then 
-		return 
-	end ;
+		return false
+	end 
 	for i,v in ipairs(keyboarDisposal) do
 		-- line by line of the keyboad disposal
-	    	p = string.find(v,keyletter)
-		if ( p != nil ) then
+		local p = nil
+		for j,w in ipairs(v) do
+			if keyLetter == w then
+				p = j
+			end
+		end
+		if p then
+luabass.logmsg("string.find(" .. keyLetter  .. ")=" .. p)
 			-- column by column of the keyboard disposal
 			if (p < 9) then
 				-- mixer for 8 first columns (track#). Line is the action (forte, mp, piano, tacet)
@@ -342,7 +408,7 @@ function keydown ( keyLetter, keyCode, modifiers)
 					info.action = "=-" .. p
 				end
 				return true 
-			elseif (p == 9)
+			elseif (p == 9) then
 				if (i==1) then
 					luabass.outAllNoteOff()
 					info.action = "@"
@@ -361,7 +427,7 @@ function keydown ( keyLetter, keyCode, modifiers)
 					info.status = "MIDI Keyboard is NOT assisted" 
 					return true 
 				end
-			elseif (p == 10)
+			elseif (p == 10) then
 				if (i==1) then
 					info.status = "All Note Off"
 					luabass.outAllNoteOff()
@@ -386,56 +452,7 @@ function keydown ( keyLetter, keyCode, modifiers)
 				end
 			end
 		end
-	    end
 	end
--- move in the score
-	if keyCode == 314 then -- WXK_HOME
-		luabass.outAllNoteOff()
-		luascore.firstPart() ;
-		info.status = "first part"
-		return true
-	elseif keyCode == 313 then -- WXK_END
-		luabass.outAllNoteOff()
-		luascore.lastPart() ;
-		info.status= "last part"
-		return true
-	elseif keyCode == 315 then -- WXK_LEFT
-		luabass.outAllNoteOff()
-		luascore.previousEvent() ;
-		info.status= "previous note"
-		return true
-	elseif keyCode == 317 then -- WXK_RIGHT
-		luabass.outAllNoteOff()
-		luascore.nextEvent() ;
-		info.status( = "next note"
-		return true
-	elseif keyCode == 316 then -- WXK_UP
-		luabass.outAllNoteOff()
-		luascore.previousMeasure() ;
-		info.status = "previous measure"
-		return true
-	elseif keyCode == 318 then -- WXK_DOWN
-		luabass.outAllNoteOff()
-		luascore.nextMeasure() ;
-		info.status = "next measure"
-		return true
-	elseif keyCode == 367 then -- WXK_PAGE_UP
-		luabass.outAllNoteOff()
-		luascore.previousPart() ;
-		info.status  = "previous part"
-		return true
-	elseif keyCode == 369 then -- WXK_PAGE_DOWN
-		luabass.outAllNoteOff()
-		luascore.nextPart() ;
-		info.status= "next part"
-		return true
-	elseif keyCode == 8 then -- WXK_BACK
-		luabass.outAllNoteOff()
-		luascore.previousPos() ;
-		info.status  = "previous move"
-		return true
-	end
-	info.status = "the " .. keyLetter .. " / " .. keyCode .. " is not processed by keydown.lua" 
 	return false 
 end
 

@@ -1037,7 +1037,14 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 			case '-': ListSelectNext(-1); break;
 			case '!': wxMessageBox(ch + 1, "LUA message"); break;
 			case '=': selectPlayview(ch + 1); break;
-			case '@': if (mode == modeScore) mViewerscore->gotoPosition(ch + 1); break;
+			case '@': 
+				if (mode == modeScore) 
+				{ 
+					editMode = true ;
+					mViewerscore->gotoPosition(ch + 1) ;
+					editMode = false ;
+				}
+				break;
 			default: SetStatusText(ch, 1); break;
 			}
 		}
