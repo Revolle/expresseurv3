@@ -1495,7 +1495,7 @@ void Expresseur::OnPlayviewAll(wxCommandEvent& WXUNUSED(event))
 void Expresseur::selectPlayview(wxString s)
 {
 	wxString ts ;
-	if ( s.IsEmpty() )
+	if (s.IsEmpty())
 	{
 		editMode = true;
 		wxTextEntryDialog mdialog(NULL, "Tracks to play/view.\n14 : play track#1 & #4\n* : play all tracks\n12/ play and view track #1 & #2\n1/2 play track #1 and view track #2\n/3 view track #3\n/* view all tracks\n*/ play and view all tracks\n+2 change only track #2 as played\n-2 change only track #2 as not played", "Expresseur");
@@ -1505,8 +1505,10 @@ void Expresseur::selectPlayview(wxString s)
 		}
 		editMode = false;
 	}
-	if ( ! s.IsEmpty() )
-		setPlayView(s);
+	else
+		ts = s;
+	if ( ! ts.IsEmpty() )
+		setPlayView(ts);
 }
 void Expresseur::OnPlayview(wxCommandEvent& WXUNUSED(event))
 {
@@ -2675,10 +2677,10 @@ list all the LUA shortcuts.\n\n\
 Please select the PC-keyboard\n\
 configuration hereafter.");
 	topsizer_pckeyboard->Add(new wxStaticText(pwizard_pckeyboard, wxID_ANY, spckeyboard), sizerFlagMaximumPlace);
-	mConf->set(CONFIG_KEYBOARDCONFIG, "qwerty" , true);	
-	keyboardConfigs.Add(_("qwerty"));
-	keyboardConfigs.Add(_("azerty"));
-	keyboardConfigs.Add(_("qwertz"));
+	mConf->set(CONFIG_KEYBOARDCONFIG, wxT("qwerty"));
+	keyboardConfigs.Add(wxT("qwerty"));
+	keyboardConfigs.Add(wxT("azerty"));
+	keyboardConfigs.Add(wxT("qwertz"));
 	mlistkeyboardConfigs = new	wxListBox(pwizard_pckeyboard, wxID_ANY, wxDefaultPosition, wxDefaultSize, keyboardConfigs);
 	mlistkeyboardConfigs->Bind(wxEVT_LISTBOX, &Expresseur::OnKeyboarConfigChoice, this);
 	topsizer_pckeyboard->Add(mlistkeyboardConfigs, sizerFlagMaximumPlace);
@@ -2750,7 +2752,8 @@ int Expresseur::getListAudio()
 void Expresseur::OnKeyboarConfigChoice(wxCommandEvent& event)
 {
 	unsigned int nrKeyboard = event.GetSelection();
-	mConf->set(CONFIG_KEYBOARDCONFIG, keyboardConfigs[nrKeyboard] , true);
+	wxString s = keyboardConfigs[nrKeyboard]; 
+	mConf->set(CONFIG_KEYBOARDCONFIG, s);
 }
 void Expresseur::OnMidioutChoice(wxCommandEvent& event)
 {
