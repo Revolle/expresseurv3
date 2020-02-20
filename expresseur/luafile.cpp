@@ -59,12 +59,14 @@ c_eventMidi::c_eventMidi(	wxLongLong itime , int inr_device, int itype_msg, int 
 enum
 {
 	IDM_LUAFILE_LUA_USER_SCRIPT = ID_LUAFILE ,
-	IDM_LUAFILE_LUA_PARAMETER
+	IDM_LUAFILE_LUA_PARAMETER,
+	IDM_LUAFILE_KEYBOARDCONFIG
 };
 
 wxBEGIN_EVENT_TABLE(luafile, luafile::wxDialog)
 EVT_SIZE(luafile::OnSize)
 EVT_CHOICE(IDM_LUAFILE_LUA_USER_SCRIPT, luafile::OnLuaUserFile)
+EVT_LISTBOX(IDM_LUAFILE_KEYBOARDCONFIG, luafile::OnKeyboardconfig)
 EVT_TEXT(IDM_LUAFILE_LUA_PARAMETER, luafile::OnLuaParameter)
 wxEND_EVENT_TABLE()
 
@@ -118,6 +120,13 @@ luafile::luafile(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* 
 	mLuaParameter->SetToolTip(_("parameter for the LUA script. -k to select a keyboard disposal"));
 	paramsizer->Add(mLuaParameter, sizerFlagMaximumPlace);
 
+	keyboardConfigs.Add(wxT("qwerty"));
+	keyboardConfigs.Add(wxT("azerty"));
+	keyboardConfigs.Add(wxT("qwertz"));
+	wxListBox *mlistkeyboardConfigs = new	wxListBox(this, IDM_LUAFILE_KEYBOARDCONFIG, wxDefaultPosition, wxDefaultSize, keyboardConfigs);
+	paramsizer->Add(new wxStaticText(this, wxID_ANY, _("Keyboard config")), sizerFlagMaximumPlace);
+	paramsizer->Add(mlistkeyboardConfigs, sizerFlagMaximumPlace);
+
 
 	topsizer->Add(paramsizer, sizerFlagMaximumPlace);
 	topsizer->Add(CreateButtonSizer(wxCLOSE), sizerFlagMaximumPlace);
@@ -138,6 +147,13 @@ void luafile::OnLuaUserFile(wxCommandEvent& event)
 	wxString f = event.GetString();
 	mConf->set(CONFIG_LUA_USER_SCRIPT, f);
 
+	SetReturnCode(1);
+}
+void luafile::OnKeyboardconfig(wxCommandEvent& event)
+{
+	unsigned int nrKeyboard = event.GetSelection();
+	wxString s = keyboardConfigs[nrKeyboard];
+	mConf->set(CONFIG_KEYBOARDCONFIG, s);
 	SetReturnCode(1);
 }
 void luafile::OnLuaParameter(wxCommandEvent&  event)

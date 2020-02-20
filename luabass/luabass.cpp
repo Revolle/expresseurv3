@@ -3138,7 +3138,7 @@ static int LoutTranspose(lua_State *L)
 	// parameter #1 : g_transposition value 
 	lock_mutex_out();
 	all_note_off("n", -1);
-	g_transposition = (-1) * cap((int)lua_tointeger(L, 1), -24, 24, 0);
+	g_transposition = cap((int)lua_tointeger(L, 1), -24, 24, 0);
 	unlock_mutex_out();
 	return (0);
 }

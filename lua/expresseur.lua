@@ -463,13 +463,11 @@ function keydown ( keyLetter, keyCode, modifiers)
 					luabass.outAllNoteOff()
 					return true 
 				elseif (i==2) then
-					luabass.outAllNoteOff()
 					valueTranspose = (valueTranspose or 0) + 1
 					luabass.outTranspose(valueTranspose)
 					info.status = "Transpose " .. valueTranspose
 					return true 
 				elseif (i==3) then
-					luabass.outAllNoteOff()
 					valueTranspose = (valueTranspose or 0) - 1
 					luabass.outTranspose(valueTranspose)
 					info.status = "Transpose " .. valueTranspose
