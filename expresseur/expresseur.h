@@ -81,6 +81,7 @@ public:
 
 	void OnAudioChoice(wxCommandEvent& event);
 	void OnMidioutChoice(wxCommandEvent& event);
+	void OnKeyboarConfigChoice(wxCommandEvent& event);
 	void OnAsioSet(wxCommandEvent& event);
 	void OnAudioTest(wxCommandEvent& WXUNUSED(event));
 	int setAudioDefault();
@@ -190,7 +191,8 @@ private:
 	wxArrayString nameaudioDevices;
 	wxListBox *mlistMidiout;
 	wxArrayString nameMidiOutDevices;
- 
+ 	wxArrayString keyboardConfigs ;
+	wxListBox *mlistkeyboardConfigs ;
 	int getListAudio();
 	void setAudioChoice(int nrDevice);
 

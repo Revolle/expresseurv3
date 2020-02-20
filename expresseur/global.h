@@ -82,6 +82,8 @@
 #define CONFIG_SHORTCUTHEIGHT "/shortcut/height"
 #define CONFIG_SHORTCUTWIDTHLIST "/shortcut/widthlist"
 
+#define CONFIG_KEYBOARDCONFIG "/shortcut/keyboardconfig"
+
 #define CONFIG_EMPTYSCOREWARNING "/warningscore"
 
 #define CONFIG_BITMAPSCOREX "/bitmapscore/x"

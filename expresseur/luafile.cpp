@@ -41,6 +41,7 @@
 
 #define DEFAULT_LUA_USER_FILE "expresseur.lua"
 #define DEFAULT_LUA_PARAMETER "--preopen_midiout"
+#define DEFAULT_KEYBOARDCONFIG "qwerty"
 
 #include <wx/listimpl.cpp>
 WX_DEFINE_LIST(l_eventMidi);
@@ -99,25 +100,22 @@ luafile::luafile(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* 
 	wxDir::GetAllFiles(fUser.GetPath(), &lUserScript, "*.lua", wxDIR_FILES);
 	for (unsigned int i = 0; i < lUserScript.GetCount(); i++)
 	{
-		if ( ! lUserScript[i].StartsWith("keyboard") )
-		{
-			wxFileName fsUser(lUserScript[i]);
-			lfUserScript.Add(fsUser.GetFullName());
-		}
+		wxFileName fsUser(lUserScript[i]);
+		lfUserScript.Add(fsUser.GetFullName());
 	}
 	paramsizer->Add(new wxStaticText(this, wxID_ANY, _("LUA Script")), sizerFlagMaximumPlace);
 	wxString luauserscriptfile = mConf->get(CONFIG_LUA_USER_SCRIPT, DEFAULT_LUA_USER_FILE);
 	wxChoice *cLuaUserScript = new wxChoice(this, IDM_LUAFILE_LUA_USER_SCRIPT, wxDefaultPosition, wxDefaultSize, lfUserScript);
 	if (lfUserScript.Index(luauserscriptfile) != wxNOT_FOUND)
 		cLuaUserScript->SetSelection(lfUserScript.Index(luauserscriptfile));
-	cLuaUserScript->SetToolTip(_("LUA script which manages user's features, in user's ressource dir"));
+	cLuaUserScript->SetToolTip(_("LUA script which manages user's features, in program and user's ressource dir"));
 	paramsizer->Add(cLuaUserScript, sizerFlagMaximumPlace);
 
 	wxString luascriptparameter = mConf->get(CONFIG_LUA_PARAMETER, DEFAULT_LUA_PARAMETER);
 
 	paramsizer->Add(new wxStaticText(this, wxID_ANY, _("LUA start parameter")), sizerFlagMaximumPlace);
 	wxTextCtrl *mLuaParameter = new wxTextCtrl(this, IDM_LUAFILE_LUA_PARAMETER, luascriptparameter);
-	mLuaParameter->SetToolTip(_("parameter for the LUA script"));
+	mLuaParameter->SetToolTip(_("parameter for the LUA script. -k to select a keyboard disposal"));
 	paramsizer->Add(mLuaParameter, sizerFlagMaximumPlace);
 
 
@@ -155,6 +153,9 @@ void luafile::reset(mxconf* mConf, bool all, int timerDt)
 
 	wxString luauserscriptfile = mConf->get(CONFIG_LUA_USER_SCRIPT, DEFAULT_LUA_USER_FILE);
 	wxString luascriptparameter = mConf->get(CONFIG_LUA_PARAMETER, DEFAULT_LUA_PARAMETER);
+	wxString luakeyboarconfig = mConf->get(CONFIG_KEYBOARDCONFIG, DEFAULT_KEYBOARDCONFIG);
+
+	luascriptparameter = luascriptparameter + wxT(" -k ") + luakeyboarconfig ;
 
 	wxFileName fuser;
 	

@@ -2657,6 +2657,35 @@ chords have been installed.");
 	topsizer_improvise->Add(new wxStaticText(pwizard_improvise, wxID_ANY, simprovise), sizerFlagMaximumPlace);
 	pwizard_improvise->SetSizerAndFit(topsizer_improvise);
 
+	///// pckeyboard
+
+	wxWizardPageSimple *pwizard_pckeyboard = new wxWizardPageSimple(mwizard);
+	wxBoxSizer *topsizer_pckeyboard = new wxBoxSizer(wxVERTICAL);
+	fWizardJpeg.SetName("wizard_pckeyboard");
+	topsizer_pckeyboard->Add(new wxStaticBitmap(pwizard_pckeyboard,wxID_ANY,wxBitmap(fWizardJpeg.GetFullPath(), wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
+	wxString spckeyboard = _("\
+MIDI-keyboard shortcuts can be\n\
+defined in the interface.\n\
+Select the menu settings/MIDI to\n\
+list/edit all the MIDI shortcuts.\n\n\
+PC-keyboard shortcuts are defined\n\
+in LUA script ( mixer, move, ...)\n\
+Select the menu settings/LUA to\n\
+list all the LUA shortcuts.\n\n\
+Please select the PC-keyboard\n\
+configuration hereafter.");
+	topsizer_pckeyboard->Add(new wxStaticText(pwizard_pckeyboard, wxID_ANY, spckeyboard), sizerFlagMaximumPlace);
+	mConf->set(CONFIG_KEYBOARDCONFIG, "qwerty" , true);	
+	keyboardConfigs.Add(_("qwerty"));
+	keyboardConfigs.Add(_("azerty"));
+	keyboardConfigs.Add(_("qwertz"));
+	mlistkeyboardConfigs = new	wxListBox(pwizard_pckeyboard, wxID_ANY, wxDefaultPosition, wxDefaultSize, keyboardConfigs);
+	mlistkeyboardConfigs->Bind(wxEVT_LISTBOX, &Expresseur::OnKeyboarConfigChoice, this);
+	topsizer_pckeyboard->Add(mlistkeyboardConfigs, sizerFlagMaximumPlace);
+	pwizard_pckeyboard->SetSizerAndFit(topsizer_pckeyboard);
+
+	////// end of wizard
+
 	wxWizardPageSimple *pwizard_end = new wxWizardPageSimple(mwizard);
 	wxBoxSizer *topsizer_end = new wxBoxSizer(wxVERTICAL);
 	fWizardJpeg.SetName("wizard_end");
@@ -2692,8 +2721,10 @@ select the menu setup/wizard.");
 		pwizard_playscore->SetPrev(pwizard_audio);
 		pwizard_playscore->SetNext(pwizard_improvise);
 		pwizard_improvise->SetPrev(pwizard_playscore);
-		pwizard_improvise->SetNext(pwizard_end);
-		pwizard_end->SetPrev(pwizard_improvise);
+		pwizard_improvise->SetNext(pwizard_pckeyboard);
+		pwizard_pckeyboard->SetPrev(pwizard_improvise);
+		pwizard_pckeyboard->SetNext(pwizard_end);
+		pwizard_end->SetPrev(pwizard_pckeyboard);
 		pwizard_end->SetNext(NULL);
 		mwizard->RunWizard(pwizard_welcome);
 	}
@@ -2715,6 +2746,11 @@ int Expresseur::getListAudio()
 		nraudioDevice++;
 	}
 	return nraudioDevice;
+}
+void Expresseur::OnKeyboarConfigChoice(wxCommandEvent& event)
+{
+	unsigned int nrKeyboard = event.GetSelection();
+	mConf->set(CONFIG_KEYBOARDCONFIG, keyboardConfigs[nrKeyboard] , true);
 }
 void Expresseur::OnMidioutChoice(wxCommandEvent& event)
 {

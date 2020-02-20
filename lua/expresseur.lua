@@ -112,8 +112,32 @@ invalid_midiout = { "teensy", "wavetable" , "sd%-50 midi" , "sd%-50 control" , "
 valid_midiin = { "sd%-50 midi" }
 invalid_midiin = { "bus" , "iac" , "loop" , "sd%-50" , "internal" , "through", "buran" }
 
--- disposal of the four lines of keyboard { "1234567890" , "QWERTYUIOP" "ASDFGHJKL" , "ZXCVBNM," }
+-- disposal of the four lines of keyboard
 keyboarDisposal = nil
+keyboardDisposals=
+	{
+		qwerty = 
+		{ 
+			{ "1!" , "2@" , "3#" , "4$" , "5%^" , "6&" , "7*" , "8(" , "9)" , "0_" } , 
+			{ "Qq" , "Ww" , 'Ee' , "Rr" , "Tt" , "Yy" , "Uu" , "Ii" , "Oo" , "Pp" } , 
+			{ "Aa" , "Ss" , 'Dd' , "Ff" , "Gg" , "Hh" , "Jj" , "Kk" , "Ll" , ":;" } , 
+			{ "Zz" , "Xx" , "Cc" , "Vv" , "Bb" , "Nn" , "Mm" , "<?" , ">." , "/?"  } 
+		} ,
+		azerty = 
+		{
+			{ "1&" , "2é2" , '3"' , "4'" , "5(" , "6-" , "7è" , "8_" , "9ç" , "0à"  } , 
+			{ "Aa" , "Zz" , 'Ee' , "Rr" , "Tt" , "Yy" , "Uu" , "Ii" , "Oo" , "Pp"  } , 
+			{ "Qq" , "Ss" , 'Dd' , "Ff" , "Gg" , "Hh" , "Jj" , "Kk" , "Ll" , "Mm"  } , 
+			{ "Ww" , 'Xx' , "Cc" , "Vv" , "Bb" , "Nn" , "?," , ".;" , ":/" , "!§"  } 
+		} ,
+		qwertz = 
+		{
+			{ "1+" , '2"' , "3*" , "4ç" , "5%" , "6&" , "7/" , "8(" , "9)" , "0=" } , 
+			{ "Qq" , "Ww" , 'Ee' , "Rr" , "Tt" , "Zz" , "Uu" , "Ii" , "Oo" , "Pp" } , 
+			{ "Aa" , "Ss" , 'Dd' , "Ff" , "Gg" , "Hh" , "Jj" , "Kk" , "Ll" , "éö" } , 
+			{ "Yy" , "Xx" , "Cc" , "Vv" , "Bb" , "Nn" , "Mm" , ",;" , ".:" , "-_" } 
+		}
+	}
 
 
 function midiOutIsValid(midiout_name)
@@ -160,13 +184,10 @@ function onStart(param)
 		end
   	luabass.outPreOpenMidi() -- pre-open valid midi-out, to avoid later conflict 
 	end
-	-- change keyboard for shortcuts,using -k option, requiring lua script keyboard_xx.lua
-	local typeKeyboard = (string.match(param,"-k (%a+)")) or "us"
-	local kb = require("keyboard_"..typeKeyboard ) 
-	if ( kb ) then
-		-- keyboarDisposal return the four lines of keyboard like this : { "1234567890" , "QWERTYUIOP" "ASDFGHJKL" , "ZXCVBNM," } 
-		keyboarDisposal = kb.keyboarDisposal()
-	end	
+	-- change keyboard for shortcuts,using -k option
+	local typeKeyboard = (string.match(param,"-k (%a+)")) or "qwerty"
+	-- luabass.logmsg("param=" .. param .. " / typeKeyboard=" .. typeKeyboard )
+	keyboarDisposal = keyboardDisposals[typeKeyboard]
 end
 
 --===================== stop
@@ -287,12 +308,14 @@ end
 
 --========================= PC Keyboard shortcuts 
 
+
 -- help message for keydown function
 function helpkeydown()
+	local chhelp
 	if keyboarDisposal and keyboarDisposal[1] and keyboarDisposal[4] and keyboarDisposal[1][10] and keyboarDisposal[4][10] then
-chhelp= [[
-Shortcuts defined in expresseur.lua according to ressources/keyboard_xx.lua disposal :
-Select ressources/keyboard_xx.lua with option '-k xx' in start LUA-parameter
+		chhelp= [[
+Shortcuts defined in expresseur.lua :
+Select disposal with -k option in LUA-parameter (qwerty,azerty,qwertz)
 * Mixer : 8 tracks ( tacet/p/mf/f) on the left of the four lines of the keyboard 
 * Move : arrows, page, home , end , backspace 
 * Transpose : ]] .. string.sub(keyboarDisposal[2][10],1,1) .. " " .. string.sub(keyboarDisposal[3][10],1,1) .. [[ 
@@ -303,9 +326,12 @@ Select ressources/keyboard_xx.lua with option '-k xx' in start LUA-parameter
 * play view : ]] .. string.sub(keyboarDisposal[4][10],1,1) .. [[
 
 * Midithru : ]] .. string.sub(keyboarDisposal[2][9],1,1) .. " " .. string.sub(keyboarDisposal[3][9],1,1) 
-		return chhelp
+	else
+		chhelp = [[
+No keyboard disposal in expresseur.lua
+Select disposal with -k option in LUA-parameter (qwerty,azerty,qwertz)]]
 	end
-	return "no help in helpkeydown"
+	return chhelp
 end
 
 function keydown ( keyLetter, keyCode, modifiers)
@@ -320,6 +346,10 @@ function keydown ( keyLetter, keyCode, modifiers)
 		info.action = "!" .. helpkeydown()
 		return true
 	end
+
+	if keyboarDisposal == nil then 
+		return false
+	end 
 
 -- move in the score
 	if keyCode == 313 then -- WXK_HOME
@@ -377,9 +407,6 @@ function keydown ( keyLetter, keyCode, modifiers)
 	if keyLetter == nil or string.len(keyLetter) < 1 then
 		return false
 	end
-	if keyboarDisposal == nil then 
-		return false
-	end 
 	for i,v in ipairs(keyboarDisposal) do
 		-- line by line of the keyboad disposal
 		local p = nil
