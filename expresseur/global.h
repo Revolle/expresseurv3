@@ -95,6 +95,7 @@
 #define CONFIG_LUA_USER_SCRIPT "/script/luascript"
 #define CONFIG_LUA_PARAMETER "/script/luaparameter"
 #define CONFIG_MUSESCORE "/script/musescore"
+#define CONFIG_MUSESCOREV3 "/script/musescorev3"
 
 #define MAX_MIDIOUT_DEVICE 32 
 #define MAX_MIDIIN_DEVICE 32 

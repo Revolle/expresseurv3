@@ -78,6 +78,8 @@
 #define FILE_OUT_XML "expresseur_out.xml"
 #define FILE_IN_XML "expresseur_in.xml"
 #define FILE_SCAN_QML "expresseur_scan.qml"
+#define FILE_SCAN_POSITION_QML "scan_position.qml"
+#define FILE_SCAN_POSITION_QML_V3 "scan_position_v3.qml"
 
 #define PREFIX_CACHE "CACHE_EXPRESSEUR"
 #define WIDTH_SEPARATOR_PAGE 10
@@ -251,8 +253,14 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 	docOK = false;
 	xmlCompile = NULL;
 
-	// locate the musescore exe for the rendering of the musial score
-	musescoreexe = mConf->get(CONFIG_MUSESCORE, "");
+	// locate the musescore exe for the rendering of the musical score
+	musescorev3 =  true;
+	musescoreexe = mConf->get(CONFIG_MUSESCOREV3, "");
+	if ( musescoreexe.IsEmpty())
+	{
+		musescoreexe = mConf->get(CONFIG_MUSESCORE, "");
+		musescorev3 =  false;
+	}
 	if (musescoreexe.IsEmpty() == false)
 	{
 		wxFileName fm(musescoreexe);
@@ -263,25 +271,59 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 	{
 #ifdef RUN_WIN
 		wxString x86folder = wxGetenv("ProgramFiles(x86)");
-		wxFileName fm(x86folder + "\\" );
-		fm.AppendDir("MuseScore 2");
-		fm.AppendDir("bin");
-		fm.SetFullName("MuseScore.exe");
-		if (fm.IsFileExecutable())
-			musescoreexe = fm.GetFullPath();
+		wxFileName fm3(x86folder + "\\" );
+		fm3.AppendDir("MuseScore 3");
+		fm3.AppendDir("bin");
+		fm3.SetFullName("MuseScore.exe");
+		if (fm3.IsFileExecutable())
+		{
+			musescoreexe = fm3.GetFullPath();
+			musescorev3 =  true;
+		}
+		else
+		{
+			wxFileName fm(x86folder + "\\" );
+			fm.AppendDir("MuseScore 2");
+			fm.AppendDir("bin");
+			fm.SetFullName("MuseScore.exe");
+			if (fm.IsFileExecutable())
+			{
+				musescoreexe = fm.GetFullPath();
+				musescorev3 =  false;
+			}
+		}
 #endif
 #ifdef RUN_MAC
-		wxFileName fm;
-		fm.Assign(mxconf::getAppDir()) ;
-		fm.AppendDir("MuseScore 2.app");
-		fm.AppendDir("Contents");
-		fm.AppendDir("MacOS");
-		fm.SetName("mscore");
+		wxFileName fm3;
+		fm3.Assign(mxconf::getAppDir()) ;
+		fm3.AppendDir("MuseScore 3.app");
+		fm3.AppendDir("Contents");
+		fm3.AppendDir("MacOS");
+		fm3.SetName("mscore");
 		//wxMessageBox(fm.GetFullPath(),"musescore ?");
-		if (fm.IsFileExecutable())
-			musescoreexe = fm.GetFullPath();
+		if (fm3.IsFileExecutable())
+		{
+			musescorev3 = true ;
+			musescoreexe = fm3.GetFullPath();
+		}
+		else
+		{
+			wxFileName fm;
+			fm.Assign(mxconf::getAppDir()) ;
+			fm.AppendDir("MuseScore 2.app");
+			fm.AppendDir("Contents");
+			fm.AppendDir("MacOS");
+			fm.SetName("mscore");
+			//wxMessageBox(fm.GetFullPath(),"musescore ?");
+			if (fm.IsFileExecutable())
+			{
+				musescorev3 = false ;
+				musescoreexe = fm.GetFullPath();
+			}
+		}
 #endif
 #ifdef RUN_LINUX
+		/*
 		wxString mpath = wxGetenv("PATH");
 		wxArrayString mpaths = wxStringTokenize ( mpath, ":" );
 		unsigned int nbpath = mpaths.GetCount();
@@ -295,6 +337,7 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 				break ;
 			}
 		} 
+		*/
 #endif
 	}
 	if (musescoreexe.IsEmpty())
@@ -323,14 +366,22 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 #endif
 			if (fm.IsFileExecutable())
 			{
-				wxMessageBox(fm.GetFullPath(),"MuseScore OK");
 				musescoreexe = openFileDialog.GetPath();
+				wxArrayString v ;
+				v.Add("Version 2");
+				v.Add("Version 3");
+				wxString sv = wxGetSingleChoice (_("MuseScore version ? "),_("MuseScore exe locator"),v,this);
+				if ( sv != "Version 2")
+					musescorev3 = true ;
 			}
 			else
 				wxMessageBox(fm.GetFullPath(),"MuseScore : not recognized as an exe");
 		}
 	}
-	mConf->set(CONFIG_MUSESCORE, musescoreexe);
+	if ( musescorev3 )
+		mConf->set(CONFIG_MUSESCORE3, musescoreexe);
+	else
+		mConf->set(CONFIG_MUSESCORE, musescoreexe);
 
 	/*
 	char buflog[512];
@@ -1017,7 +1068,10 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	wxTextFile fin, fout;
 	wxFileName fm2;
 	fm2.Assign(mxconf::getCwdDir());
-	fm2.SetFullName("scan_position.qml");
+	if ( musescorev3 )
+		fm2.SetFullName("scan_position_v3.qml");
+	else
+		fm2.SetFullName("scan_position.qml");
 	fin.Open(fm2.GetFullPath());
 	if (fm.FileExists())
 		wxRemoveFile(musescorescript);

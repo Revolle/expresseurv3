@@ -52,7 +52,9 @@ private:
 	bool xmlExtractXml(wxFileName f);
 	bool newLayout(wxSize sizeClient);
 	wxString getNamePage(wxFileName fp , int pageNr);
-	wxString musescoreexe, musescorescript , musescorepng , musescorepos;
+	wxString musescoreexe ; 
+	bool musescorev3 = true ;
+	wxString musescorescript , musescorepng , musescorepos;
 
 	bool docOK = false ;
 	int nrChord;
