@@ -33,6 +33,7 @@ public:
 	static wxString getTmpDir();
 	static wxString getResourceDir();
 	static wxString getUserDir();
+	static wxString getConfPath();
 	
 private:
 	static void setDir() ;

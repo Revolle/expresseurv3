@@ -50,7 +50,8 @@ bool todoDir = true;
 wxString appDir ;
 wxString cwdDir ;
 wxString tmpDir ;
-wxString userDir ;
+wxString userDir;
+wxString confPath;
 wxString resourceDir ;
 
 mxconf::mxconf()
@@ -116,6 +117,11 @@ void mxconf::setDir()
 		if ( ! ftmpDir.DirExists() )
 			wxMessageBox(tmpDir , "Directory tmp error");	
 
+#ifdef RUN_WIN
+		confPath = wxT("regedit.exe HKEY_CURRENT_USER\Software\ExpresseurV3");
+#else
+		confPath = wxFileConfig::GetPath();
+#endif
 	}
 }
 wxString mxconf::getAppDir()
@@ -136,7 +142,12 @@ wxString mxconf::getTmpDir()
 wxString mxconf::getUserDir()
 {
 	setDir();
-	return userDir ;
+	return userDir;
+}
+wxString mxconf::getConfPath()
+{
+	setDir();
+	return confPath;
 }
 wxString mxconf::getResourceDir()
 {
