@@ -243,10 +243,18 @@ function setLuaValue( t, bid, ch, typemsg, pitch, velo , paramString )
 		return
 	end
 	luaparam  = string.match(paramString or "" , "(%g+)")
-	if luaparam and velo then
-		values[luaparam]=velo
-		return
-	end
+	if typemsg == 12 then 
+		-- Program
+		if luaparam and pitch then
+			values[luaparam]=pitch
+			return
+		end
+	else
+		if luaparam and velo then
+			values[luaparam]=velo
+			return
+		end
+	end 
 end
 
 function mainVolume( t, bid, ch, typemsg, pitch, velo , paramString )
