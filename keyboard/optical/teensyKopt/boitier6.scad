@@ -22,7 +22,7 @@ couvercle = 0 ;
 dzcouvercle = -10 ; 
 
 
-// precision dessin (6=brouillon, 30=imprimable)
+// precision dessin (6=brouillon, 20=imprimable)
 $fn = 15 ;
 
 pouce=1*2.54;
@@ -587,7 +587,7 @@ module boite ()
        } 
     }
     // chemins optiques   
-    for(nrled = [-1:1] )
+    *for(nrled = [-1:1] )
     {
         // recepteur
         difference()

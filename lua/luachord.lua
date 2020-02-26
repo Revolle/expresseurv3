@@ -155,34 +155,28 @@ end
 
 function E.trace()
   -- for debug purpose
-  print()
+  luabass.logmsg("====== start luachord.trace")
   for nrSection=1 , #section ,  1 do
-    print("=============================================")
-    print( "section#" .. nrSection , section[nrSection].name , section[nrSection].key , section[nrSection].posStart .. ".." .. section[nrSection].posEnd )
-    print("=============================================")
+    luabass.logmsg("=============================================")
+    luabass.logmsg( "section#" .. nrSection .. " " ..section[nrSection].name .. " " .. (section[nrSection].key or "nokey") .. " " ..section[nrSection].posStart .. ".." .. section[nrSection].posEnd )
+    luabass.logmsg("=============================================")
     if ( section[nrSection].chord ) then
       for nrChord = 1 , #(section[nrSection].chord) ,1 do
         local tc = section[nrSection].chord[nrChord]
-        print("chord #", tc.nrChord , string.sub(score,tc.posStart,tc.posEnd) , "root=".. tc.interpretedChord.root )
+        luabass.logmsg("chord #" .. " " .. tc.nrChord .. " " ..string.sub(score,tc.posStart,tc.posEnd) .. " " .."root=".. tc.interpretedChord.root )
       end
     end
   end
-  print()
+  luabass.logmsg()
   for nrChord=1 , #part ,  1 do
-    print("*********************************************")
-    print( "part#" .. nrChord , part[nrChord].name , part[nrChord].loop , part[nrChord].posStart .. ".." .. part[nrChord].posEnd )
-    print("*********************************************")
+    luabass.logmsg("*********************************************")
+    luabass.logmsg( "part#" .. nrChord .. " " ..part[nrChord].name .. " " .. (part[nrChord].loop or "no loop") .. " " ..part[nrChord].posStart .. ".." .. part[nrChord].posEnd )
+    luabass.logmsg("*********************************************")
     for nrSection=1 , #(part[nrChord].section) ,  1 do
-      print ("       section#" .. part[nrChord].section[nrSection].nrSection , " = " , section[part[nrChord].section[nrSection].nrSection].name )
+      luabass.logmsg ("       section#" .. part[nrChord].section[nrSection].nrSection .. " " .." = " .. " " ..section[part[nrChord].section[nrSection].nrSection].name )
     end
   end
-  print()
-end
-local function printPos()
-print ("position")
-print ("  part#" .. posPart , part[posPart].name )
-print ("     section#" .. posSection , section[part[posPart].section[posSection].nrSection].name )
-print ("         chord#" .. posChord , section[part[posPart].section[posSection].nrSection].chord[posChord].root)
+  luabass.logmsg("====== end luachord.trace")
 end
 
 function E.logRecord()
@@ -244,7 +238,7 @@ end
 local function extractParts()
   -- read the text file, and extract the Parts
   -- Parts are stored in in the table <parts>
-  -- a part starts with the textt: word()
+  -- a part starts with the text: word()
   -- the possible words are in the table <keyword> 
   local posStart = 1
   local pmax = string.len(score)
@@ -297,15 +291,17 @@ local function extractParts()
     end
     pp.titleStart = pat[nbest].posStart
     pp.titleEnd = pat[nbest].posEnd
-    -- print("name",pat[nbest].name)
+    luabass.logmsg("extractParts : name="..pat[nbest].name)
     if ( string.find(pat[nbest].name,",") ) then
       -- there are additional information in the line
       -- extract the name of the section or part, and the additional parameter
       local sk
       pp.name , sk = string.match(pat[nbest].name,"%(%s*(%w+)%s*,%s*(%w+)%s*%)")
+	  luabass.logmsg("extractParts " .. pat[nbest].name .. " : pp.name , sk =".. (pp.name or "ppnil") .. " " .. (sk or "sknil"))
       if ( nbest == 1 ) then
         -- tone of the section
-        local k = texttochord.stringToPitch(sk)
+        local k = texttochord.stringToPitch(string.lower(sk))
+		luabass.logmsg("extractParts sk=".. sk .. " k=" .. (k or "nil"))
         if ( k ) then
           pp.key = k % 12
         end
@@ -382,7 +378,7 @@ local function extractSectionFromPart()
           local pc = part[nrPart].section[#(part[nrPart].section)]
           pc.nrSection = nrSection
           pc.posStart = posStart + part[nrPart].posStart - 1
-          pc.posEnd = posEnd  + part[nrPart].posStart - 1          
+          pc.posEnd = posEnd  + part[nrPart].posStart - 2          
           break 
         end
       end
@@ -394,58 +390,70 @@ local function extractChord()
   -- extract the chords fom the "section"
   -- chords are recognized according to the patterns
   -- line starting with ponctuation is ignored 
-  local nrChord = 1
-  for nrSection=1 , #section , 1 do
-    section[nrSection].chord = {}
-    local l = 0 
-    local pl = 1 
-    local endl = false
-	luabass.logmsg("extractChord nrSection="..nrSection)
-    -- analyse each line
-    while(endl == false) do
-      l = string.find(section[nrSection].content,"\n",l+1 )
-      if ( l == nil ) then 
-        endl = true 
-        l = string.len(section[nrSection].content)
-      end
-      -- detect free-text-ilne with a ponctuation character  at the beginning of the line
-      local sl 
-      sl = string.sub(section[nrSection].content,pl,l)
-      local ponctuation 
-      ponctuation = string.find(sl,"^%p")
-      if ( ponctuation == nil ) then
-        local gstart
-        local gend = 0 
-        local sg
-        -- analyse each word of the line
-        while(true) do
-          gstart , gend , sg = string.find(sl,"(%g+)", gend + 1 )
-          if ( gstart == nil ) then break end
-		   luabass.logmsg("extractChord sg="..sg)
-           if (( sg ~= "[" ) and ( sg ~= "]" ) 
-            and ( sg ~= "(" ) and ( sg ~= ")" ) 
-            and ( sg ~= "|" ) and ( sg ~= "||" ) and ( sg ~= "/" )) then
-            local interpretedChord = texttochord.stringToChord(sg)
-            if interpretedChord then
-              table.insert(section[nrSection].chord,{})
-              local pc = section[nrSection].chord[#(section[nrSection].chord)]
-              pc.interpretedChord = interpretedChord
-              if ( pc.interpretedChord.sameChord ) and ( #(section[nrSection].chord) > 1 ) then
-                pc.interpretedChord.pitch = section[nrSection].chord[#(section[nrSection].chord) - 1].interpretedChord.pitch
-              end
-              pc.posStart = section[nrSection].posStart + gstart + pl - 2
-              pc.posEnd = section[nrSection].posStart + gend + pl - 2
-              pc.nrChord = nrChord
-              nrChord = nrChord + 1
-            end
-          end
-        end
-        pl = l
-      end
-    end
-  end
+	local nrChord = 1
+	for nrSection=1 , #section , 1 do
+		section[nrSection].chord = {}
+		local gstart
+		local gend = 0 
+		local sg
+		-- analyse each word of the line
+		while(true) do
+			gstart , gend , sg = string.find(section[nrSection].content,"(%g+)", gend + 1 )
+			if ( gstart == nil ) then 
+				break 
+			end
+			luabass.logmsg("extractChord sg="..sg)
+			if (( sg ~= "[" ) and ( sg ~= "]" ) 
+			and ( sg ~= "(" ) and ( sg ~= ")" ) 
+			and ( sg ~= "|" ) and ( sg ~= "||" ) and ( sg ~= "/" )) then
+				local interpretedChord = texttochord.stringToChord(sg)
+				if interpretedChord then
+					table.insert(section[nrSection].chord,{})
+					local pc = section[nrSection].chord[#(section[nrSection].chord)]
+					pc.interpretedChord = interpretedChord
+					if ( pc.interpretedChord.sameChord ) and ( #(section[nrSection].chord) > 1 ) then
+						pc.interpretedChord.pitch = section[nrSection].chord[#(section[nrSection].chord) - 1].interpretedChord.pitch
+					end
+					pc.posStart = section[nrSection].posStart + gstart-1
+					pc.posEnd = section[nrSection].posStart + gend
+					pc.nrChord = nrChord
+					nrChord = nrChord + 1
+				end
+			end
+		end
+	end
 end  
 
+function supressComments(sscore)
+	luabass.logmsg("nscore....")
+	local nscore = ""
+	local nline 
+	local pl = 1 
+	local l = 1
+	local endl = false
+	-- analyse each line
+	while(endl == false) do
+		l = string.find(sscore,"\n",pl+1 )
+		if ( l == nil ) then 
+			endl = true 
+			l = string.len(sscore)
+		end
+		-- detect free-text-line with a ponctuation character  at the beginning of the line
+		local sl = string.sub(sscore,pl,l)
+		local ponctuation = string.find(sl,"^%p")
+		if ponctuation then
+			-- replace all the line with spaces
+			nline = string.rep (" ", l-pl) .. "\n"
+		else
+			nline = sl
+		end
+		luabass.logmsg(nline)
+		nscore = nscore .. nline
+		pl = l + 1
+	end
+	luabass.logmsg("...nscore")
+	return nscore
+end
 
 function analyseScore()
   luabass.logmsg("analysescore extractParts")
@@ -454,12 +462,13 @@ function analyseScore()
   extractSectionFromPart()
   luabass.logmsg("analysescore extractChord")
   extractChord()
+  E.trace()
 end
 
 function E.setScore(sscore)
-  -- load the song from string ssong
+  -- load the song from string sscore
   -- extract the structured information in table chord_score
-  score = sscore
+  score = supressComments(sscore)
   section = {}    
   part = {} 
   typeRecognizedPosition = "section"
@@ -472,7 +481,7 @@ function E.setScore(sscore)
   
 end
 function E.setFile(fscore)
-  -- load the song from string ssong
+  -- load the song from file fscore
   -- extract the structured information in table chord_score
   local f = io.open(fscore)
   if f then

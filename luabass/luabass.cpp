@@ -4310,6 +4310,7 @@ static int LsetVarMidiOut(lua_State *L)
 static int Llogmsg(lua_State *L)
 {
 	const char* s = lua_tostring(L, 1);
+	if (s == NULL) return (0);
 	lock_mutex_out();
 	mlog_out(s);
 	unlock_mutex_out();
