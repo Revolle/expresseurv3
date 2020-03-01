@@ -163,6 +163,7 @@ function E.stringToDegree(ipitch, iroot)
   -- exception : - == third minor , 7 == 7th minor , m7 ==lower(M7) == 7th major
   -- return : chromatic-range 1..12, string after the pitch-processed,  degree-range 1..7 , alteration -1..1 , octavia
   if ipitch == nil then return end
+  
   local root = ( iroot or 1 ) - 1
   local p = nil
   local d = nil
@@ -398,6 +399,13 @@ function E.setTone(s)
   local tone =  E.stringToDegree(string.lower(s))
   currentTone = tone or currentTone
   return currentTone
+end
+
+--==================================
+function E.setiTone(i)
+--==================================
+  -- set the tone
+  currentTone = i
 end
 
 --=========================
@@ -924,121 +932,129 @@ function E.stringToChord(isChord , isNextChord)
     end
   end
   
-  -- calculate the root with the first word
-  -----------------------------------------
-  
-  root , smodifier , degreeRoot = E.stringToDegree(rsChord , currentTone)
-  if root == nil then
-    return nil
-  end
-  interpretedChord.root = root
-  degreeInChord[1] = 1
-  
-
-  -- calculate modifiers of the chord ( e.g. "7" in G7 )
-  -------------------------------------------------------
-  
-  if string.find(smodifier,"o") then -- diminue mb56
-    degreeInChord[3] = 4
-    degreeInChord[5] = 7
-    degreeInChord[7] = 10
-  elseif string.find(smodifier,"0") then  -- semi-diminue mb57   
-    degreeInChord[3] = 4
-    degreeInChord[5] = 7
-    degreeInChord[7] = 11
-  else
-    -- tierce
-    if string.find(smodifier,"sus2") then
-      degreeInChord[3] = 3
-    elseif string.find(smodifier,"sus[4]*") then
-      degreeInChord[3] = 6
-    elseif string.find(smodifier,"[-m]*") and string.find(isChord,"[-m]") then -- m is case sensitive
+  -- iterate each word separated by a dot
+  local firstWord = true 
+  for wordchord in string.gmatch(rsChord, "[#%+%-%w]+") do
+    if firstWord == true then
+	    firstWord = false
+      -- calculate the root with the first word
+      -----------------------------------------
+	  -- luabass.logmsg("wordchord " .. wordchord .. " " .. currentTone)
+      root , smodifier , degreeRoot = E.stringToDegree(wordchord , currentTone)
+      if root == nil then
+        return nil
+      end
+      interpretedChord.root = root
+      degreeInChord[1] = 1
+    else
+      smodifier = wordchord
+    end
+    -- calculate modifiers of the chord ( e.g. "7" in G7, or #5 in G.#5 )
+    -------------------------------------------------------
+    
+    if string.find(smodifier,"o") then -- diminue mb56
       degreeInChord[3] = 4
-    --elseif string.find(smodifier,"m[^7]*") and string.find(isChord,"m[^7]*") then -- m is case sensitive
-    --  degreeInChord[3] = 5
-    end   
-    -- quinte
-    if string.find(smodifier,"b5") then
       degreeInChord[5] = 7
-    elseif string.find(smodifier,"#5") then
-      degreeInChord[5] = 9
-    elseif string.find(smodifier,"5") then
-      degreeInChord[5] = 8
-    end
-    --sixte
-    if string.find(smodifier,"64") or string.find(smodifier,"46")  then
-      degreeInChord[4] = 6
-      degreeInChord[6] = 10
-    elseif string.find(smodifier,"6") then
-      degreeInChord[6] = 10
-    end
-    --septieme
-    if (string.find(smodifier,"maj7")  and string.find(isChord,"MAJ7")) or ( string.find(smodifier,"m7") and string.find(isChord,"M7")) then
-      degreeInChord[7] = 12
-    elseif string.find(smodifier,"7") then
+      degreeInChord[7] = 10
+    elseif string.find(smodifier,"0") then  -- semi-diminue mb57   
+      degreeInChord[3] = 4
+      degreeInChord[5] = 7
       degreeInChord[7] = 11
+    else
+      -- tierce
+      if string.find(smodifier,"sus2") then
+        degreeInChord[3] = 3
+      elseif string.find(smodifier,"sus[4]*") then
+        degreeInChord[3] = 6
+      elseif string.find(smodifier,"[-m]*") and string.find(isChord,"[-m]") then -- m is case sensitive
+        degreeInChord[3] = 4
+      --elseif string.find(smodifier,"m[^7]*") and string.find(isChord,"m[^7]*") then -- m is case sensitive
+      --  degreeInChord[3] = 5
+      end   
+      -- quinte
+      if string.find(smodifier,"b5") then
+        degreeInChord[5] = 7
+      elseif string.find(smodifier,"#5") then
+        degreeInChord[5] = 9
+      elseif string.find(smodifier,"5") then
+        degreeInChord[5] = 8
+      end
+      --sixte
+      if string.find(smodifier,"64") or string.find(smodifier,"46")  then
+        degreeInChord[4] = 6
+        degreeInChord[6] = 10
+      elseif string.find(smodifier,"6") then
+        degreeInChord[6] = 10
+      end
+      --septieme
+      if (string.find(smodifier,"maj7")  and string.find(isChord,"MAJ7")) or ( string.find(smodifier,"m7") and string.find(isChord,"M7")) then
+        degreeInChord[7] = 12
+      elseif string.find(smodifier,"7") then
+        degreeInChord[7] = 11
+      end
+    end
+    --extension 9
+    if string.find(smodifier,"a[d]+9") then
+      degreeInChord[2] = 3
+    elseif string.find(smodifier,"a[d]+#9") then
+      degreeInChord[2] = 4
+    elseif string.find(smodifier,"a[d]+b9") then
+      degreeInChord[2] = 2
+    elseif string.find(smodifier,"9") then
+      if degreeInChord[7] == 0 then degreeInChord[7] = 11 end
+      degreeInChord[2] = 3
+    elseif string.find(smodifier,"#9") then
+       if degreeInChord[7] == 0 then degreeInChord[7] = 11 end
+      degreeInChord[2] = 4
+    elseif string.find(smodifier,"b9") then
+      if degreeInChord[7] == 0 then degreeInChord[7] = 11 end
+      degreeInChord[2] = 2
+    end
+    --extension 11
+    if string.find(smodifier,"a[d]+11") then
+      degreeInChord[4] = 6
+    elseif string.find(smodifier,"a[d]+#11") then
+      degreeInChord[4] = 7
+    elseif string.find(smodifier,"a[d]+b11") then
+      degreeInChord[4] = 5
+    elseif string.find(smodifier,"11") then
+      if degreeInChord[7] == 0 then degreeInChord[7] = 11 end
+      if degreeInChord[2] == 0 then degreeInChord[2] = 3  end
+      degreeInChord[4] = 6
+    elseif string.find(smodifier,"#11") then
+      if degreeInChord[7] == 0 then degreeInChord[7] = 11 end
+      if degreeInChord[2] == 0 then degreeInChord[2] = 3 end
+      degreeInChord[4] = 7
+    elseif string.find(smodifier,"b11") then
+      if degreeInChord[7] == 0 then degreeInChord[7] = 11 end
+      if degreeInChord[2] == 0 then degreeInChord[2] = 3  end
+      degreeInChord[4] = 5
+    end
+      --extension 13
+    if string.find(smodifier,"a[d]+13") then
+      degreeInChord[6] = 10
+    elseif string.find(smodifier,"a[d]+#13") then
+      degreeInChord[6] = 11
+    elseif string.find(smodifier,"a[d]+b13") then
+      degreeInChord[6] = 9
+    elseif string.find(smodifier,"13") then
+      if degreeInChord[7] == 0 then degreeInChord[7] = 11 end
+      if degreeInChord[2] == 0 then degreeInChord[2] = 3  end
+      if degreeInChord[4] == 0 then degreeInChord[4] = 6  end
+      degreeInChord[6] = 10
+    elseif string.find(smodifier,"#13") then
+      if degreeInChord[7] == 0 then degreeInChord[7] = 11 end
+      if degreeInChord[2] == 0 then degreeInChord[2] = 3  end
+      if degreeInChord[4] == 0 then degreeInChord[4] = 6  end
+      degreeInChord[6] = 11
+    elseif string.find(smodifier,"b13") then
+      if degreeInChord[7] == 0 then degreeInChord[7] = 11 end
+      if degreeInChord[2] == 0 then degreeInChord[2] = 3  end
+      if degreeInChord[4] == 0 then degreeInChord[4] = 6  end
+      degreeInChord[6] = 9
     end
   end
-  --extension 9
-  if string.find(smodifier,"a[d]+9") then
-    degreeInChord[2] = 3
-  elseif string.find(smodifier,"a[d]+#9") then
-    degreeInChord[2] = 4
-  elseif string.find(smodifier,"a[d]+b9") then
-    degreeInChord[2] = 2
-  elseif string.find(smodifier,"9") then
-    if degreeInChord[7] == 0 then degreeInChord[7] = 11 end
-    degreeInChord[2] = 3
-  elseif string.find(smodifier,"#9") then
-     if degreeInChord[7] == 0 then degreeInChord[7] = 11 end
-    degreeInChord[2] = 4
-  elseif string.find(smodifier,"b9") then
-    if degreeInChord[7] == 0 then degreeInChord[7] = 11 end
-    degreeInChord[2] = 2
-  end
-  --extension 11
-  if string.find(smodifier,"a[d]+11") then
-    degreeInChord[4] = 6
-  elseif string.find(smodifier,"a[d]+#11") then
-    degreeInChord[4] = 7
-  elseif string.find(smodifier,"a[d]+b11") then
-    degreeInChord[4] = 5
-  elseif string.find(smodifier,"11") then
-    if degreeInChord[7] == 0 then degreeInChord[7] = 11 end
-    if degreeInChord[2] == 0 then degreeInChord[2] = 3  end
-    degreeInChord[4] = 6
-  elseif string.find(smodifier,"#11") then
-    if degreeInChord[7] == 0 then degreeInChord[7] = 11 end
-    if degreeInChord[2] == 0 then degreeInChord[2] = 3 end
-    degreeInChord[4] = 7
-  elseif string.find(smodifier,"b11") then
-    if degreeInChord[7] == 0 then degreeInChord[7] = 11 end
-    if degreeInChord[2] == 0 then degreeInChord[2] = 3  end
-    degreeInChord[4] = 5
-  end
-    --extension 13
-  if string.find(smodifier,"a[d]+13") then
-    degreeInChord[6] = 10
-  elseif string.find(smodifier,"a[d]+#13") then
-    degreeInChord[6] = 11
-  elseif string.find(smodifier,"a[d]+b13") then
-    degreeInChord[6] = 9
-  elseif string.find(smodifier,"13") then
-    if degreeInChord[7] == 0 then degreeInChord[7] = 11 end
-    if degreeInChord[2] == 0 then degreeInChord[2] = 3  end
-    if degreeInChord[4] == 0 then degreeInChord[4] = 6  end
-    degreeInChord[6] = 10
-  elseif string.find(smodifier,"#13") then
-    if degreeInChord[7] == 0 then degreeInChord[7] = 11 end
-    if degreeInChord[2] == 0 then degreeInChord[2] = 3  end
-    if degreeInChord[4] == 0 then degreeInChord[4] = 6  end
-    degreeInChord[6] = 11
-  elseif string.find(smodifier,"b13") then
-    if degreeInChord[7] == 0 then degreeInChord[7] = 11 end
-    if degreeInChord[2] == 0 then degreeInChord[2] = 3  end
-    if degreeInChord[4] == 0 then degreeInChord[4] = 6  end
-    degreeInChord[6] = 9
-  end
+
   
   -- calculate the scale modifiers. e.g. "#4" in G(#4) 
   ----------------------------------------------------
@@ -1220,10 +1236,10 @@ end
 
 return E -- to export the functions
 
---[[]
+--[[
 -- test this module
 
-local mchords={"C[!.ionien]","C[.!dorien]","G7","Dm", "C[_!balkan]", "F" }
+local mchords={"C" , "Cm" , "C.m" ,  "C.#5" , "C7" } -- , "C[!.ionien]","C[.!dorien]","G7","Dm", "C[_!balkan]", "F" }
 for i, mchord in ipairs(mchords) do
   local minterpretedChord = E.stringToChord(mchord , nil)
   

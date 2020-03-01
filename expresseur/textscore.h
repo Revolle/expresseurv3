@@ -32,7 +32,7 @@ private:
 	bool editMode = false ;
 	void setFontSize(int t);
 	int sizeFont;
-
+	long previousLineNumber = -1;
 	int oldchordStart, oldchordEnd;
 	int oldsectionStart, oldsectionEnd;
 	int prevInsertionPoint = -1;

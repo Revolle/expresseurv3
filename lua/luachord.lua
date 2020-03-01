@@ -88,7 +88,14 @@ end
 function E.stringToPitch(s)
  -- return chromatic-range 1..12, string after the pitch-processed,  degree-range 1..7 , alteration -1..1
   return texttochord.stringToPitch(s)
-end   
+end 
+  
+function E.setiTone(valueTone)
+	texttochord.setiTone(valueTone)
+end
+function E.ptos(valueTone)
+	return texttochord.ptos(valueTone)
+end
 
 function E.getRecognizedScore()
  -- return start-end of recognized text, or -1 -1 if no more
@@ -170,7 +177,7 @@ function E.trace()
   luabass.logmsg()
   for nrChord=1 , #part ,  1 do
     luabass.logmsg("*********************************************")
-    luabass.logmsg( "part#" .. nrChord .. " " ..part[nrChord].name .. " " .. (part[nrChord].loop or "no loop") .. " " ..part[nrChord].posStart .. ".." .. part[nrChord].posEnd )
+    luabass.logmsg( "part#" .. nrChord .. " " ..part[nrChord].name )
     luabass.logmsg("*********************************************")
     for nrSection=1 , #(part[nrChord].section) ,  1 do
       luabass.logmsg ("       section#" .. part[nrChord].section[nrSection].nrSection .. " " .." = " .. " " ..section[part[nrChord].section[nrSection].nrSection].name )
@@ -291,17 +298,17 @@ local function extractParts()
     end
     pp.titleStart = pat[nbest].posStart
     pp.titleEnd = pat[nbest].posEnd
-    luabass.logmsg("extractParts : name="..pat[nbest].name)
+    --luabass.logmsg("extractParts : name="..pat[nbest].name)
     if ( string.find(pat[nbest].name,",") ) then
       -- there are additional information in the line
       -- extract the name of the section or part, and the additional parameter
       local sk
       pp.name , sk = string.match(pat[nbest].name,"%(%s*(%w+)%s*,%s*(%w+)%s*%)")
-	  luabass.logmsg("extractParts " .. pat[nbest].name .. " : pp.name , sk =".. (pp.name or "ppnil") .. " " .. (sk or "sknil"))
+	  --luabass.logmsg("extractParts " .. pat[nbest].name .. " : pp.name , sk =".. (pp.name or "ppnil") .. " " .. (sk or "sknil"))
       if ( nbest == 1 ) then
         -- tone of the section
         local k = texttochord.stringToPitch(string.lower(sk))
-		luabass.logmsg("extractParts sk=".. sk .. " k=" .. (k or "nil"))
+		--luabass.logmsg("extractParts sk=".. sk .. " k=" .. (k or "nil"))
         if ( k ) then
           pp.key = k % 12
         end
@@ -389,9 +396,12 @@ end
 local function extractChord()
   -- extract the chords fom the "section"
   -- chords are recognized according to the patterns
-  -- line starting with ponctuation is ignored 
 	local nrChord = 1
 	for nrSection=1 , #section , 1 do
+		--luabass.logmsg("extractChord #"..nrSection .. " setTone " .. (section[nrSection].key or "nokey" ))
+		if section[nrSection].key then
+			texttochord.setiTone(section[nrSection].key )
+		end
 		section[nrSection].chord = {}
 		local gstart
 		local gend = 0 
@@ -402,7 +412,7 @@ local function extractChord()
 			if ( gstart == nil ) then 
 				break 
 			end
-			luabass.logmsg("extractChord sg="..sg)
+			--luabass.logmsg("extractChord sg="..sg)
 			if (( sg ~= "[" ) and ( sg ~= "]" ) 
 			and ( sg ~= "(" ) and ( sg ~= ")" ) 
 			and ( sg ~= "|" ) and ( sg ~= "||" ) and ( sg ~= "/" )) then
@@ -425,11 +435,12 @@ local function extractChord()
 end  
 
 function supressComments(sscore)
-	luabass.logmsg("nscore....")
+	--luabass.logmsg("nscore....")
 	local nscore = ""
 	local nline 
 	local pl = 1 
 	local l = 1
+	posline = {}
 	local endl = false
 	-- analyse each line
 	while(endl == false) do
@@ -438,6 +449,7 @@ function supressComments(sscore)
 			endl = true 
 			l = string.len(sscore)
 		end
+		table.insert(posline,pl)
 		-- detect free-text-line with a ponctuation character  at the beginning of the line
 		local sl = string.sub(sscore,pl,l)
 		local ponctuation = string.find(sl,"^%p")
@@ -447,20 +459,20 @@ function supressComments(sscore)
 		else
 			nline = sl
 		end
-		luabass.logmsg(nline)
+		--luabass.logmsg(nline)
 		nscore = nscore .. nline
 		pl = l + 1
 	end
-	luabass.logmsg("...nscore")
+	--luabass.logmsg("...nscore")
 	return nscore
 end
 
 function analyseScore()
-  luabass.logmsg("analysescore extractParts")
+  --luabass.logmsg("analysescore extractParts")
   extractParts()
-  luabass.logmsg("analysescore extractSectionFromPart")
+  --luabass.logmsg("analysescore extractSectionFromPart")
   extractSectionFromPart()
-  luabass.logmsg("analysescore extractChord")
+  --luabass.logmsg("analysescore extractChord")
   extractChord()
   E.trace()
 end
@@ -678,14 +690,24 @@ function E.getPosition()
   --    part position <start> and <end>
   --    chord position <start> and <end> 
   --    chord number
+  --    line number
   if ( currentChord == nil ) then
-    return -1 , -1 , -1 , -1 , -1
+    return -1 , -1 , -1 , -1 , -1 , -1
   end
   local pscore = part[posPart]
   local posPart = pscore.section[posSection]
   local posSection = section[posPart.nrSection]
   local posChord = posSection.chord[posChord]
-  return  posPart.posStart , posPart.posEnd , posChord.posStart , posChord.posEnd , posChord.nrChord
+  local nrline = 0 
+  if posline then 
+	  for i,v in ipairs(posline) do
+		if posChord.posStart < v then
+			nrline = i - 1 
+			break
+		end
+	  end
+  end
+  return  posPart.posStart , posPart.posEnd , posChord.posStart , posChord.posEnd , posChord.nrChord, nrline
 end
 function E.setPosition(pos)
   -- set the position in the structure, according to given text position
@@ -863,7 +885,6 @@ function E.playPitches(bid,velocity,index,black,scale,track,pstart,pend,delay,de
   -- play the pitches of the scale, 
   -- pitch is calculated from the index and black, within the scale
   -- bid is the unique id of the MIDI-in button, ith its velocity ( 0 == note-off )
-  
   
   local typeLegato = legatoPlay[track]
   --luabass.logmsg("playPitches scale="..scale.." track="..track.." velo="..velocity.." legato="..typeLegato.." bid="..bid)

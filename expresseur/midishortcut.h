@@ -27,7 +27,6 @@ public:
 	void OnUp(wxCommandEvent& event);
 	void OnDown(wxCommandEvent& event);
 	void OnClose(wxCommandEvent& event);
-	void OnKeydown(wxCommandEvent& event);
 
 	void OnDevice(wxEvent& event);
 	void OnCurve(wxEvent& event);

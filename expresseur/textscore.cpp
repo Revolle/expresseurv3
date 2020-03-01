@@ -139,9 +139,9 @@ void textscore::compileText()
 }
 int textscore::scanPosition(bool editmode)
 {
-	int sectionStart, sectionEnd, chordStart, chordEnd , nrChord;
+	int sectionStart, sectionEnd, chordStart, chordEnd , nrChord , nrline;
 	bool userModification = this->IsModified();
-	basslua_call(moduleChord, functionChordGetPosition, ">iiiii", &sectionStart, &sectionEnd, &chordStart, &chordEnd, &nrChord);
+	basslua_call(moduleChord, functionChordGetPosition, ">iiiiii", &sectionStart, &sectionEnd, &chordStart, &chordEnd, &nrChord , &nrline);
 	if (nrChord >= 0)
 	{
 		if ((sectionStart != oldsectionStart) || (sectionEnd != oldsectionEnd))
@@ -162,7 +162,13 @@ int textscore::scanPosition(bool editmode)
 			oldchordStart = chordStart ;
 			oldchordEnd = chordEnd;
 			if (!editmode)
-				ShowPosition(chordStart);
+			{
+				if (nrline != previousLineNumber)
+				{
+					ShowPosition(chordStart);
+					previousLineNumber = nrline;
+				}
+			}
 		}
 	}
 	if (! userModification)
@@ -177,8 +183,8 @@ void textscore::scanTextPosition()
 	if ( insertionPoint != prevInsertionPoint)
 	{
 		wxString sl ;
-		sl.Printf("textscore::scanTextPosition %d %d",insertionPoint,prevInsertionPoint);
-		mlog_in(sl);
+		//sl.Printf("textscore::scanTextPosition %d %d",insertionPoint,prevInsertionPoint);
+		// mlog_in(sl);
 		basslua_call(moduleChord, functionChordSetPosition, "i", insertionPoint);
 	}
 	prevInsertionPoint = insertionPoint;

@@ -256,7 +256,7 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 	// locate the musescore exe for the rendering of the musical score
 	musescorev3 =  true;
 	musescoreexe = mConf->get(CONFIG_MUSESCOREV3, "");
-	if ( musescoreexe.IsEmpty())
+	if (false) // ( musescoreexe.IsEmpty())
 	{
 		musescoreexe = mConf->get(CONFIG_MUSESCORE, "");
 		musescorev3 =  false;
@@ -275,7 +275,7 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 		fm3.AppendDir(wxT("MuseScore 3"));
 		fm3.AppendDir(wxT("bin"));
 		fm3.SetFullName(wxT("MuseScore3.exe"));
-		if (fm3.IsFileExecutable())
+		if (false) // (fm3.IsFileExecutable())
 		{
 			musescoreexe = fm3.GetFullPath();
 			musescorev3 =  true;
@@ -302,7 +302,7 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 		fm3.AppendDir("MacOS");
 		fm3.SetName("mscore");
 		//wxMessageBox(fm.GetFullPath(),"musescore ?");
-		if (fm3.IsFileExecutable())
+		if (false) // (fm3.IsFileExecutable())
 		{
 			musescorev3 = true ;
 			musescoreexe = fm3.GetFullPath();
@@ -370,7 +370,7 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 				musescoreexe = openFileDialog.GetPath();
 				wxArrayString v ;
 				v.Add("Version 2");
-				v.Add("Version 3");
+				// v.Add("Version 3");
 				wxString sv = wxGetSingleChoice (_("MuseScore version ? "),_("MuseScore exe locator"),v,this);
 				if ( sv != "Version 2")
 					musescorev3 = true ;
@@ -379,7 +379,7 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 				wxMessageBox(fm.GetFullPath(),"MuseScore : not recognized as an exe");
 		}
 	}
-	if ( musescorev3 )
+	if (false) // ( musescorev3 )
 		mConf->set(CONFIG_MUSESCOREV3, musescoreexe);
 	else
 		mConf->set(CONFIG_MUSESCORE, musescoreexe);

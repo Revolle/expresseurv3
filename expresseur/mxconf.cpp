@@ -118,7 +118,7 @@ void mxconf::setDir()
 			wxMessageBox(tmpDir , "Directory tmp error");	
 
 #ifdef RUN_WIN
-		confPath = wxT("regedit.exe HKEY_CURRENT_USER\Software\ExpresseurV3");
+		confPath = wxT("regedit.exe HKEY_CURRENT_USER\\Software\\ExpresseurV3");
 #else
 		confPath = wxFileConfig::GetPath();
 #endif

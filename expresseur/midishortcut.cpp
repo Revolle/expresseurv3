@@ -52,7 +52,6 @@ enum
 	IDM_MIDISHORTCUT_DOWN,
 	IDM_MIDISHORTCUT_CLOSE,
 	IDM_MIDISHORTCUT_LIST,
-	IDM_MIDISHORTCUT_KEYDOWN,
 	IDM_MIDISHORTCUT_END,
 	IDM_MIDISHORTCUT_ID_START = ID_MIDISHORTCUT + 100,
 	IDM_MIDISHORTCUT_ID_END = IDM_MIDISHORTCUT_ID_START + 800
@@ -69,7 +68,6 @@ EVT_BUTTON(IDM_MIDISHORTCUT_EDIT, midishortcut::OnEdit)
 EVT_BUTTON(IDM_MIDISHORTCUT_UP, midishortcut::OnUp)
 EVT_BUTTON(IDM_MIDISHORTCUT_DOWN, midishortcut::OnDown)
 EVT_BUTTON(IDM_MIDISHORTCUT_CLOSE, midishortcut::OnClose)
-EVT_BUTTON(IDM_MIDISHORTCUT_KEYDOWN, midishortcut::OnKeydown)
 wxEND_EVENT_TABLE()
 
 
@@ -126,7 +124,6 @@ midishortcut::midishortcut(wxFrame *parent, wxWindowID id, const wxString &title
 	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_EDIT, _("Edit")), sizerFlagMinimumPlace.Border(wxALL, 10));
 	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_UP, _("Up")), sizerFlagMinimumPlace.Border(wxALL, 10));
 	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_DOWN, _("Down")), sizerFlagMinimumPlace.Border(wxALL, 10));
-	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_KEYDOWN, _("Keydown.lua")), sizerFlagMinimumPlace.Border(wxALL, 10));
 	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_CLOSE, _("Close")), sizerFlagMinimumPlace.Border(wxALL, 10));
 	topsizer->Add(button_sizer, sizerFlagMaximumPlace);
 
@@ -429,12 +426,6 @@ void midishortcut::OnDown(wxCommandEvent& WXUNUSED(event))
 	saveShortcut();
 	reset();
 
-}
-void midishortcut::OnKeydown(wxCommandEvent& WXUNUSED(event))
-{
-	bool ret = true ;
-	if (! basslua_call(moduleGlobal, "keydown", "sii>b", "", -1, -1, &ret) )
-		wxMessageBox("Error calling luauser.lua keydown()");
 }
 int midishortcut::edit(long i)
 {

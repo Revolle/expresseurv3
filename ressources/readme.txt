@@ -41,16 +41,5 @@ Expresseur can also use instruments from MIDI-sound-expanders :
      Example of MIDI-sound-expander hardware : Miditech-pianobox, SD-50 Roland, any electronic-piano...
      "gm.txt" is a standard list of instruments for MIDI-sound-explander compliant with General-MIDI.
 
-This directory can contains :
-- a script like "expresseur.lua", to embend personal LUA features (modifying the original one from the setup).
-- LUA scripts keyboard_xx.lu : these scripts describe the PC keyboard disposal. It contains :
-```
-local E={} -- to export the functions
-
-function E.keyboarDisposal()
-	-- return the four lines of the FR PC keyboard
-	return { "1234567890" , "QWERTYUIOP" "ASDFGHJKL" , "ZXCVBNM," }
-end
-return E
-```
+This directory can contains a script "expresseur.lua", to embend personal LUA features (modifying the original one from the setup).
 

@@ -896,7 +896,7 @@ bool Expresseur::OnKeyDown(wxKeyEvent& event)
 		wxString sin(keyc);
 		strcpy(bsin,sin.utf8_str());
 	}
-	basslua_call(moduleGlobal, "keydown", "sii>b", bsin, event.GetKeyCode(), modifiers, &ret);
+	basslua_call(moduleGlobal, "keydown", "siii>b", bsin, event.GetKeyCode(), modifiers, mode , &ret);
 	return ret;
 }
 void Expresseur::OnIdle(wxIdleEvent& evt)
@@ -1908,8 +1908,8 @@ void Expresseur::OnKeydowInfoLua(wxCommandEvent& WXUNUSED(event))
 {
 	editMode = true;
 	bool ret = true;
-	if (!basslua_call(moduleGlobal, "keydown", "sii>b", "", -1, -1, &ret))
-		wxMessageBox("Error calling luauser.lua keydown()");
+	if (!basslua_call(moduleGlobal, "keydown", "siii>b", "", -1, -1, mode ,  &ret))
+		wxMessageBox("Error calling expresseur.lua keydown()");
 	editMode = false;
 }
 void Expresseur::OnExpression(wxCommandEvent& WXUNUSED(event))

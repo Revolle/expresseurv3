@@ -595,9 +595,9 @@ function E.getPosition()
   	return -1 , 0 
   end
   if c_nrEvent_playing then
-    return c_nrEvent_playing[2] , 1 
+    return c_nrEvent_playing[2] , 1  , 0 , 0
   end
-  return c_nrEvent_noteOn , 0 
+  return c_nrEvent_noteOn , 0  , 0 , 0 
   -- memPos()
 end
 
