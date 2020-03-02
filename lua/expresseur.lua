@@ -517,9 +517,9 @@ function helpkeydownimprovisation()
 		chhelp= [[
 Shortcuts defined in expresseur.lua :
 Select disposal with -k option in LUA-parameter (qwerty,azerty,qwertz)
-* Chord   : I ti VII on the first line 
-* Chord 7 : I.M7 ti VII.7 on the second line 
-* chord modification on 3rd and 4th line : #/b M/m #5/b5 M7/7
+* Chord   : I , II.m, up to VII.m.b5 on the first line 
+* Chord 7 : I.M7, II.m.7, up to VII.m.b5.7 on the second line 
+* Chord modification on 3rd and 4th line : #/b M/m #5/b5 M7/7
 * Move smoothly between parts ans sections : arrows, page, home , end , backspace 
 * next chord and Play chord: space 
 * brush down/up : ]] .. string.sub(keyboarDisposal[1][8],1,1) .. " " .. string.sub(keyboarDisposal[1][9],1,1) .. [[ 
