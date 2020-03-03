@@ -2673,7 +2673,7 @@ defined in the interface.\n\
 Select the menu settings/MIDI to\n\
 list/edit all the MIDI shortcuts.\n\n\
 PC-keyboard shortcuts are defined\n\
-in LUA script ( mixer, move, ...)\n\
+in LUA script ( play with space-bar, mixer, move, ...)\n\
 Select the menu settings/LUA to\n\
 list all the LUA shortcuts.\n\n\
 Please select the PC-keyboard\n\

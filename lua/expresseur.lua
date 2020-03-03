@@ -523,6 +523,7 @@ Select disposal with -k option in LUA-parameter (qwerty,azerty,qwertz)
 * Move smoothly between parts ans sections : arrows, page, home , end , backspace 
 * next chord and Play chord: space 
 * brush down/up : ]] .. string.sub(keyboarDisposal[1][8],1,1) .. " " .. string.sub(keyboarDisposal[1][9],1,1) .. [[ 
+* legato/not legato : ]] .. string.sub(keyboarDisposal[2][8],1,1) .. " " .. string.sub(keyboarDisposal[3][8],1,1) .. [[ 
 * Set tone : ]] .. string.sub(keyboarDisposal[2][10],1,1) .. " " .. string.sub(keyboarDisposal[3][10],1,1) .. [[ 
 * Silence : ]] .. string.sub(keyboarDisposal[1][10],1,1) .. [[
 
@@ -733,6 +734,14 @@ function keydownImprovisation ( keyLetter, keyCode, modifiers)
 				if (i==1) then
 					info.status = "Brush down" 
 					luachord.playChord(0, 2565, 15, 9, 3, 64 , "down" )
+					return true 
+				elseif (i==2) then
+					info.status = "legato" 
+					luachord.pedal(0, 2565, 15, 9, 3, 64 , "legato" )
+					return true 
+				elseif (i==3) then
+					info.status = "non legato" 
+					luachord.pedal(0, 2565, 15, 9, 3, 64 , "off" )
 					return true 
 				end
 			elseif (p == 9) then
