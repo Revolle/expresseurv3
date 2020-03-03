@@ -1,13 +1,12 @@
 Configuration ExpresseurV3
 --improvisation chord & penta scales
---C3-C5 : chord scale
---C5-C7 : penta scale
+--C3-C7 :  scale
 --C2 : chord background
 --D2 : Bass
 --A#2 : note-off = Next chord
 --G#2 : note-on = Next chord
 /shortcut/midifunction=
-/shortcut/selectornb=9
+/shortcut/selectornb=8
 /shortcut/name/0=last move
 /shortcut/action/0=move/previous move
 /shortcut/key/0=L
@@ -85,16 +84,6 @@ Configuration ExpresseurV3
 /shortcut/channel/7=All channels
 /shortcut/event/7=note-on&off
 /shortcut/min/7=48
-/shortcut/max/7=72
+/shortcut/max/7=96
 /shortcut/stoponmatch/7=stop
-/shortcut/param/7=chord
-/shortcut/name/8=penta scale
-/shortcut/action/8=chord/play scale
-/shortcut/key/8=
-/shortcut/devicename/8=all Midi-In
-/shortcut/channel/8=All channels
-/shortcut/event/8=note-on&off
-/shortcut/min/8=72
-/shortcut/max/8=96
-/shortcut/stoponmatch/8=stop
-/shortcut/param/8=penta
+/shortcut/param/7=

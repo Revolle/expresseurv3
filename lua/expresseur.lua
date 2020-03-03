@@ -693,6 +693,9 @@ function keydownImprovisation ( keyLetter, keyCode, modifiers)
 							info.status = "add Major 7"
 							sept = "M7"
 						end
+					elseif p == 7 then
+						info.status = "scale penta"
+						luachord.setScale(0, 2565, 15, 9, 3, 64 , "penta")
 					end
 				elseif (i == 4) then
 					if p == 1 then
@@ -727,6 +730,9 @@ function keydownImprovisation ( keyLetter, keyCode, modifiers)
 							info.status = "add minor7"
 							sept = "7"
 						end
+					elseif p == 7 then
+						info.status = "scale chord"
+						luachord.setScale(0, 2565, 15, 9, 3, 64 , "chord")
 					end
 				end
 				return true 
@@ -736,12 +742,12 @@ function keydownImprovisation ( keyLetter, keyCode, modifiers)
 					luachord.playChord(0, 2565, 15, 9, 3, 64 , "down" )
 					return true 
 				elseif (i==2) then
-					info.status = "legato" 
-					luachord.pedal(0, 2565, 15, 9, 3, 64 , "legato" )
+					info.status = "scale legato" 
+					luachord.pedal(0, 2565, 15, 9, 3, 64 , "scale legato" )
 					return true 
 				elseif (i==3) then
-					info.status = "non legato" 
-					luachord.pedal(0, 2565, 15, 9, 3, 64 , "off" )
+					info.status = "scale non legato" 
+					luachord.pedal(0, 2565, 15, 9, 3, 64 , "scale off" )
 					return true 
 				end
 			elseif (p == 9) then

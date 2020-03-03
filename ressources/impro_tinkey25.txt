@@ -50,4 +50,4 @@ Configuration ExpresseurV3
 /shortcut/min/4=53
 /shortcut/max/4=72
 /shortcut/stoponmatch/4=stop
-/shortcut/param/4=chord
+/shortcut/param/4=

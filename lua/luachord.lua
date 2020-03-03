@@ -824,7 +824,7 @@ E.trackOctave = { ["scale"] = 1*12 ; ["background"] = 0*12 ; ["chord"] = 0*12 ; 
 --   1 = legato up to thext note of the scale
 --   2 = legato up to the next chord
 local legatoPlay = { ["scale"] = 1 ; ["background"] = 1 ; ["chord"] = 1 ; ["bass"] = 1 }
-
+local defaultScale = "chord"
 local currentBlack = 0
 local previousBlack = 0
 
@@ -938,8 +938,17 @@ function E.playPitches(bid,velocity,index,black,scale,track,pstart,pend,delay,de
      end
   end
 end
+function E.setScale(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+	defaultScale = param
+end
 function E.playScale(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-  E.playPitches(bid,velocity,whitemediane,black,param or "penta","scale",1,-1,values["scale_delay"],values["scale_decay"])
+	local sc 
+	if string.len(param or defaultScale) < 3 then
+		sc = defaultScale
+	else
+		sc = param
+	end
+  E.playPitches(bid,velocity,whitemediane,black,sc,"scale",1,-1,values["scale_delay"],values["scale_decay"])
 end
 function E.playChord(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   if (param or "up") == "up" then
