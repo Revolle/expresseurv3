@@ -256,7 +256,7 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 	// locate the musescore exe for the rendering of the musical score
 	musescorev3 =  true;
 	musescoreexe = mConf->get(CONFIG_MUSESCOREV3, "");
-	if (false) // ( musescoreexe.IsEmpty())
+	if (true) // ( musescoreexe.IsEmpty())
 	{
 		musescoreexe = mConf->get(CONFIG_MUSESCORE, "");
 		musescorev3 =  false;

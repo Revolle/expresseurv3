@@ -57,11 +57,16 @@ wxString resourceDir ;
 mxconf::mxconf()
 {
 	mConfig = new wxConfig(APP_NAME);
-	// Mac : stored in Library/Preferences/Expresser... 
+	// Mac : stored in Library/Preferences/Expresseur... 
 	mConfig->Write("creation",1);
 	if ( ! mConfig->Flush() )
 		wxMessageBox("error flush mxconf","mxconf");
 	mPrefix = "";
+#ifdef RUN_WIN
+	confPath = wxT("regedit.exe HKEY_CURRENT_USER\\Software\\ExpresseurV3");
+#else
+	confPath = ((wxFileConfig *)mConfig)->GetPath() ;
+#endif
 }
 mxconf::~mxconf()
 {
@@ -117,11 +122,6 @@ void mxconf::setDir()
 		if ( ! ftmpDir.DirExists() )
 			wxMessageBox(tmpDir , "Directory tmp error");	
 
-#ifdef RUN_WIN
-		confPath = wxT("regedit.exe HKEY_CURRENT_USER\\Software\\ExpresseurV3");
-#else
-		confPath = wxFileConfig::GetPath();
-#endif
 	}
 }
 wxString mxconf::getAppDir()
