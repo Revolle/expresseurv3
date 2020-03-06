@@ -1,4 +1,5 @@
 Configuration ExpresseurV3
+--mode score
 --Full MIDI kbd plays score. Score mixer PC kbd
 --C#2 : last move 
 --D#2 : beginning 

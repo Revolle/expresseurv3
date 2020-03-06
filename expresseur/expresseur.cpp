@@ -1,9 +1,6 @@
 /////////////////////////////////////////////////////////////////////////////
-// Name:        expresseur.cpp
 // Purpose:     expresseur V3
 // Author:      Franck REVOLLE
-// Modified by:
-// Created:     19/03/2015
 // Copyright:   (c) Franck REVOLLE Expresseur
 // Licence:    Expresseur licence
 /////////////////////////////////////////////////////////////////////////////
@@ -1973,13 +1970,16 @@ void Expresseur::settingSave()
 	tfile.Clear();
 
 	tfile.AddLine(CONFIG_FILE);
+	wxString lmode ;
+	lmode.Printf("--mode %s", ((mode == modeScore)?"score":((mode == modeChord)?"improvisation":"na")));
+	tfile.AddLine(lmode );
 	if (!comment.IsEmpty())
 	{
 		wxStringTokenizer tokenizer(comment, "\n");
 		while (tokenizer.HasMoreTokens())
 		{
 			wxString token = tokenizer.GetNextToken();
-			tfile.AddLine("--" + token);
+			tfile.AddLine(wxT("--") + token);
 		}
 	}
 
@@ -1996,6 +1996,22 @@ void Expresseur::settingSave()
 	}
 	tfile.Write();
 	tfile.Close();
+}
+bool Expresseur::testModeMidi()
+{
+	if ((mode == modeScore) and (mConf->get(CONFIG_MIDI_SETTING, modeScore) == modeChord))
+	{
+		wxMessageBox(_("MIDI setting seems not done for Score purpose (Menu Setting/MIDI presets)"),
+			"MIDI settings" , wxOK|wxCENTRE|wxICON_QUESTION );
+		return false ;
+	}
+	if ((mode == modeChord) and (mConf->get(CONFIG_MIDI_SETTING, modeScore) == modeScore))
+	{
+		wxMessageBox(_("MIDI setting seems not done for Improvisation purpose (Menu Setting/MIDI presets)"),
+			"MIDI settings" , wxOK|wxCENTRE|wxICON_QUESTION );
+		return false ;
+	}
+	return true ;
 }
 void Expresseur::settingOpen()
 {
@@ -2016,10 +2032,22 @@ void Expresseur::settingOpen()
 		return;
 	}
 	wxString comment;
+	bool firstLine = true ;
 	for (str = tfile.GetFirstLine(); !tfile.Eof(); str = tfile.GetNextLine())
 	{
 		if (str.StartsWith("--"))
 		{
+			if (firstLine )
+			{
+				if (str.StartsWith("--mode score"))
+				{
+					mConf->set(CONFIG_MIDI_SETTING, modeScore);
+				}
+				if (str.StartsWith("--mode improvisation"))
+				{
+					mConf->set(CONFIG_MIDI_SETTING, modeChord);
+				}
+			}
 			comment += str.Mid(2) + "\n";
 		}
 	}
@@ -2162,6 +2190,9 @@ bool Expresseur::settingReset(bool all)
 	editMenu->Enable(ID_MAIN_ORNAMENT_ADD_ABSOLUTE , mode == modeScore);
 	editMenu->Check(ID_MAIN_RECORD_PLAYBACK,false);
 	editMenu->Check(ID_MAIN_PLAYBACK,false);
+
+	testModeMidi() ;
+
 	if (mode != modeScore)
 	{
 		musicxmlcompile::clearLuaScore();
@@ -2270,14 +2301,19 @@ void Expresseur::OnSettingOpen(wxCommandEvent& WXUNUSED(event))
 }
 void Expresseur::OnSettingSaveas(wxCommandEvent& WXUNUSED(event))
 {
+	editMode = true ;
 	wxFileDialog
 		openFileDialog(this, _("Save setting file"), "", "",
 		"list files (*.txt)|*.txt", wxFD_SAVE);
 	if (openFileDialog.ShowModal() == wxID_CANCEL)
+	{
+		editMode = false ;
 		return; // the user changed idea...
+	}
 	settingName.Assign(openFileDialog.GetPath());
 	settingName.SetExt("txt");
 	settingSave();
+	editMode = false ;
 }
 void Expresseur::OnAbout(wxCommandEvent& WXUNUSED(event)) 
 {	
@@ -2982,6 +3018,7 @@ void Expresseur::Open(wxString f)
 		}
 		fileName.Assign(f);
 		FileOpen();
+		testModeMidi() ;
 	}
 	if ((ext == SUFFIXE_MUSICMXL) || (ext == SUFFIXE_MUSICXML))
 	{
@@ -2997,10 +3034,12 @@ void Expresseur::Open(wxString f)
 				return;
 		}
 		FileOpen();
+		testModeMidi() ;
 	}
 	if (ext == SUFFIXE_BITMAPCHORD)
 	{
 		fileName.Assign(f);
 		FileOpen();
+		testModeMidi() ;
 	}
 }

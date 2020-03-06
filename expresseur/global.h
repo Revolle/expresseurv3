@@ -24,7 +24,7 @@
 #define CONFIG_HARDWARE "/hardware"
 #define CONFIG_HARDWARE_LIST "/hardware/list"
 #define CONFIG_DEFAULT_AUDIO "/default_audio"
-
+#define CONFIG_MIDI_SETTING "/midi_setting"
 #define CONFIG_AUDIO_UPDATE "/audio/update"
 #define CONFIG_AUDIO_BUFFER "/audio/buffer"
 #define CONFIG_EXPRESSIONVALUE "/expression/value_"

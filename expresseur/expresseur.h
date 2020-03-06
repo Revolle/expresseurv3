@@ -103,6 +103,7 @@ public:
 	void OnSize(wxSizeEvent& event);
 	void postInit();
 	void preClose();
+	bool testModeMidi();
 
 	mixer *mMixer = NULL;
 	midishortcut *mMidishortcut = NULL;
@@ -205,7 +206,7 @@ private:
 
 	int mode = modeChord ;
 	bool playScoreOn = false ;
-	bool editMode;
+	bool editMode = true;
 	bool logMidiMsg;
 	bool localoff;
 	wxToolBar *toolBar;

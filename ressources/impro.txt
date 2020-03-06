@@ -1,4 +1,5 @@
 Configuration ExpresseurV3
+--mode improvisation
 --improvisation
 --C3-C7 :  scale (select chors/penta with PCkeyboard)
 --C2 : chord background
