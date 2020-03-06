@@ -1,11 +1,10 @@
 Configuration ExpresseurV3
---improvisation chord & penta scales
---C3-C7 :  scale
+--improvisation
+--C3-C7 :  scale (select chors/penta with PCkeyboard)
 --C2 : chord background
 --D2 : Bass
 --A#2 : note-off = Next chord
 --G#2 : note-on = Next chord
-/shortcut/midifunction=
 /shortcut/selectornb=8
 /shortcut/name/0=last move
 /shortcut/action/0=move/previous move
