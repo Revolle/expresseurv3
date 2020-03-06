@@ -2191,7 +2191,6 @@ bool Expresseur::settingReset(bool all)
 	editMenu->Check(ID_MAIN_RECORD_PLAYBACK,false);
 	editMenu->Check(ID_MAIN_PLAYBACK,false);
 
-	testModeMidi() ;
 
 	if (mode != modeScore)
 	{
