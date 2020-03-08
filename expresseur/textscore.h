@@ -19,7 +19,7 @@ public:
 
 	void setEditMode(bool editMode);
 	void compileText();
-	int scanPosition(bool editMode);
+	int scanPosition();
 	void scanTextPosition();
 	bool needToSave();
 	void noNeedToSave();

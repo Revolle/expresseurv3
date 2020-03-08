@@ -932,11 +932,13 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 		}
 
 
-		// scan the current position given by LUA module, according to MID events
-		int nrChord = mTextscore->scanPosition(editMode);
-		mViewerscore->setPosition(nrChord, true);
-		if (! editMode)
+		if (!editMode)
+		{
+			// scan the current position given by LUA module, according to MID events
+			int nrChord = mTextscore->scanPosition();
+			mViewerscore->setPosition(nrChord, true);
 			mTextscore->scanTextPosition();
+		}
 		break;
 	}
 	case modeScore:

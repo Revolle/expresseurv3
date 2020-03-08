@@ -609,7 +609,6 @@ function keydownImprovisation ( keyLetter, keyCode, modifiers)
 			luachord.nextChord(0, 2566, 15, 9, 2, 64 , "on")
 		end
 		luachord.playChord(0, 2565, 15, 9, 3, 64 , "up" )
-		info.status = "next chord and play chord"
 		return true
 	end
 	for i,v in ipairs(keyboarDisposal) do

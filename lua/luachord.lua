@@ -298,13 +298,15 @@ local function extractParts()
     end
     pp.titleStart = pat[nbest].posStart
     pp.titleEnd = pat[nbest].posEnd
-    --luabass.logmsg("extractParts : name="..pat[nbest].name)
+    luabass.logmsg("extractParts : name="..pat[nbest].name)
     if ( string.find(pat[nbest].name,",") ) then
       -- there are additional information in the line
       -- extract the name of the section or part, and the additional parameter
       local sk
       pp.name , sk = string.match(pat[nbest].name,"%(%s*(%w+)%s*,%s*(%w+)%s*%)")
-	  --luabass.logmsg("extractParts " .. pat[nbest].name .. " : pp.name , sk =".. (pp.name or "ppnil") .. " " .. (sk or "sknil"))
+	  luabass.logmsg("extractParts 1 " .. pat[nbest].name .. " : pp.name , sk =".. (pp.name or "ppnil") .. " " .. (sk or "sknil"))
+	  luabass.logmsg("extractParts 2 " .. (#part or "nopart") .. "  " .. (pp.name or "noname"))
+	  for i,v in ipairs(part)
       if ( nbest == 1 ) then
         -- tone of the section
         local k = texttochord.stringToPitch(string.lower(sk))
@@ -324,7 +326,7 @@ local function extractParts()
       -- extract the name of the section or part
       pp.name = string.match(pat[nbest].name,"%(%s*(%w+)%s*%)")
     end
-    if ( pp.name == nil ) then pp.name = "" end
+    if ( pp.name == nil ) then pp.name = "not defined" end
     local b ,nrChord 
     b = pat[nbest].posEnd + 1
     pbest = pmax
@@ -365,7 +367,8 @@ local function extractSectionFromPart()
       local pc = part[1].section[#(part[1].section)]
       pc.nrSection = nrSection
       pc.posStart = 0
-      pc.posEnd = 0          
+      pc.posEnd = 0 
+	  pc.name="no part"
     end
     return
   end
@@ -692,22 +695,16 @@ function E.getPosition()
   --    chord number
   --    line number
   if ( currentChord == nil ) then
-    return -1 , -1 , -1 , -1 , -1 , -1
+    return -1 , -1 , -1 
   end
   local pscore = part[posPart]
   local posPart = pscore.section[posSection]
   local posSection = section[posPart.nrSection]
   local posChord = posSection.chord[posChord]
-  local currentPosLine = 1 
-  if posline then 
-	  for i,v in ipairs(posline) do
-		if posChord.posStart < v then
-			break
-		end
-		currentPosLine = v
-	  end
-  end
-  return  posPart.posStart , posPart.posEnd , posChord.posStart , posChord.posEnd , posChord.nrChord, currentPosLine
+  
+  info.status = (posPart.name or "") .. "/" .. (posSection.name or "")
+  
+  return  posChord.posStart , posChord.posEnd , posChord.nrChord
 end
 function E.setPosition(pos)
   -- set the position in the structure, according to given text position
