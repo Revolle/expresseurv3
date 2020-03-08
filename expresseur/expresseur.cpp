@@ -1999,13 +1999,13 @@ void Expresseur::settingSave()
 }
 bool Expresseur::testModeMidi()
 {
-	if ((mode == modeScore) and (mConf->get(CONFIG_MIDI_SETTING, modeScore) == modeChord))
+	if ((mode == modeScore) && (mConf->get(CONFIG_MIDI_SETTING, modeScore) == modeChord))
 	{
 		wxMessageBox(_("MIDI setting seems not done for Score purpose (Menu Setting/MIDI presets)"),
 			"MIDI settings" , wxOK|wxCENTRE|wxICON_QUESTION );
 		return false ;
 	}
-	if ((mode == modeChord) and (mConf->get(CONFIG_MIDI_SETTING, modeScore) == modeScore))
+	if ((mode == modeChord) && (mConf->get(CONFIG_MIDI_SETTING, modeScore) == modeScore))
 	{
 		wxMessageBox(_("MIDI setting seems not done for Improvisation purpose (Menu Setting/MIDI presets)"),
 			"MIDI settings" , wxOK|wxCENTRE|wxICON_QUESTION );

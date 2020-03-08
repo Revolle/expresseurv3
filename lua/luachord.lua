@@ -698,16 +698,16 @@ function E.getPosition()
   local posPart = pscore.section[posSection]
   local posSection = section[posPart.nrSection]
   local posChord = posSection.chord[posChord]
-  local nrline = 0 
+  local currentPosLine = 1 
   if posline then 
 	  for i,v in ipairs(posline) do
 		if posChord.posStart < v then
-			nrline = i - 1 
 			break
 		end
+		currentPosLine = v
 	  end
   end
-  return  posPart.posStart , posPart.posEnd , posChord.posStart , posChord.posEnd , posChord.nrChord, nrline
+  return  posPart.posStart , posPart.posEnd , posChord.posStart , posChord.posEnd , posChord.nrChord, currentPosLine
 end
 function E.setPosition(pos)
   -- set the position in the structure, according to given text position

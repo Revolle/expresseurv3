@@ -139,11 +139,13 @@ void textscore::compileText()
 }
 int textscore::scanPosition(bool editmode)
 {
-	int sectionStart, sectionEnd, chordStart, chordEnd , nrChord , nrline;
+	int sectionStart, sectionEnd, chordStart, chordEnd , nrChord , posline;
 	bool userModification = this->IsModified();
-	basslua_call(moduleChord, functionChordGetPosition, ">iiiiii", &sectionStart, &sectionEnd, &chordStart, &chordEnd, &nrChord , &nrline);
+	basslua_call(moduleChord, functionChordGetPosition, ">iiiiii", &sectionStart, &sectionEnd, &chordStart, &chordEnd, &nrChord , &posline);
+	mlog_in("scanPosition nrChord=%d nrline=%d", nrChord, posline);
 	if (nrChord >= 0)
 	{
+		/*
 		if ((sectionStart != oldsectionStart) || (sectionEnd != oldsectionEnd))
 		{
 			if (oldsectionStart > 0)
@@ -153,6 +155,7 @@ int textscore::scanPosition(bool editmode)
 			oldsectionStart = sectionStart;
 			oldsectionEnd = sectionEnd;
 		}
+		*/
 		if ((chordStart != oldchordStart) || (chordEnd != oldchordEnd))
 		{
 			if (oldchordStart > 0)
@@ -161,14 +164,16 @@ int textscore::scanPosition(bool editmode)
 				SetStyle(chordStart - 1, chordEnd, textAttrPosition);
 			oldchordStart = chordStart ;
 			oldchordEnd = chordEnd;
-			if (!editmode)
+/*			if (!editmode)
 			{
-				if (nrline != previousLineNumber)
+
+				if (posline != previousLinePos)
 				{
-					ShowPosition(chordStart);
-					previousLineNumber = nrline;
+					ShowPosition(posline);
+					previousLinePos = posline;
 				}
 			}
+*/
 		}
 	}
 	if (! userModification)
