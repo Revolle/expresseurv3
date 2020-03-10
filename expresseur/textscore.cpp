@@ -152,6 +152,11 @@ int textscore::scanPosition()
 				SetStyle(chordStart - 1, chordEnd, textAttrPosition);
 			oldchordStart = chordStart ;
 			oldchordEnd = chordEnd;
+			wxString spos ;
+			char part[256] , section[256], chord[256];
+			basslua_call(moduleChord, "getTextPosition", ">sss", &part, &section, &chord);
+			spos.Printf("%s/%s/%s",part,section,chord);
+			((wxFrame *)mParent)->SetStatusText(spos, 0);
 		}
 	}
 	if (! userModification)

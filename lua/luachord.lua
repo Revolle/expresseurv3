@@ -304,9 +304,6 @@ local function extractParts()
       -- extract the name of the section or part, and the additional parameter
       local sk
       pp.name , sk = string.match(pat[nbest].name,"%(%s*(%w+)%s*,%s*(%w+)%s*%)")
-	  luabass.logmsg("extractParts 1 " .. pat[nbest].name .. " : pp.name , sk =".. (pp.name or "ppnil") .. " " .. (sk or "sknil"))
-	  luabass.logmsg("extractParts 2 " .. (#part or "nopart") .. "  " .. (pp.name or "noname"))
-	  for i,v in ipairs(part)
       if ( nbest == 1 ) then
         -- tone of the section
         local k = texttochord.stringToPitch(string.lower(sk))
@@ -477,7 +474,7 @@ function analyseScore()
   extractSectionFromPart()
   --luabass.logmsg("analysescore extractChord")
   extractChord()
-  E.trace()
+  --E.trace()
 end
 
 function E.setScore(sscore)
@@ -501,21 +498,6 @@ function E.setFile(fscore)
   local f = io.open(fscore)
   if f then
     E.setScore(f:read("a")) 
-  end
-end
-
-function E.getTextPosition()
-  -- return text :
-  --    part
-  --    section
-  --    chord
-  
-  if ( currentChord ~= nil ) then
-    local ph = part[posPart]
-    local ps = section[ph.section[posSection].nrSection]
-    local pc = ps.chord[posChord]
-    local schord = string.sub(score,pc.posStart, pc.posEnd)
-    return ph.name , ps.name , schord
   end
 end
 
@@ -688,6 +670,21 @@ function E.repeatPart(time,bid,ch,typemsg, nr,velocity,param)
   smoothPart = 0
   E.letChord()
 end
+function E.getTextPosition()
+  -- return text :
+  --    part
+  --    section
+  --    chord
+  
+  if ( currentChord ~= nil ) then
+    local ph = part[posPart]
+    local ps = section[ph.section[posSection].nrSection]
+    local pc = ps.chord[posChord]
+    local schord = string.sub(score,pc.posStart, pc.posEnd)
+    return ph.name , ps.name , schord
+  end
+  return "no position" , "", ""
+end
 function E.getPosition()
   -- return position in the original text-score :
   --    part position <start> and <end>
@@ -701,9 +698,6 @@ function E.getPosition()
   local posPart = pscore.section[posSection]
   local posSection = section[posPart.nrSection]
   local posChord = posSection.chord[posChord]
-  
-  info.status = (posPart.name or "") .. "/" .. (posSection.name or "")
-  
   return  posChord.posStart , posChord.posEnd , posChord.nrChord
 end
 function E.setPosition(pos)
