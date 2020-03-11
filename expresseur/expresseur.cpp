@@ -386,7 +386,7 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	wxMenu* menuRecent = new wxMenu;
 	fileMenu->AppendSubMenu(menuRecent, "Open Recent");
 	fileMenu->AppendSeparator();
-	fileMenu->Append(wxID_EXIT, wxT("Exit\tCtrl+Q"));
+	fileMenu->Append(wxID_EXIT, "Exit\tCtrl+Q");
 	fileHistory = new wxFileHistory();
 	fileHistory->UseMenu(menuRecent);
 	fileHistory->AddFilesToMenu(menuRecent);
@@ -608,59 +608,32 @@ wxString Expresseur::checkFile(wxString dir, wxString fullName)
 bool Expresseur::checkConfig()
 {
 	wxString merrors ;
-	merrors += checkFile(mxconf::getCwdDir(), wxT("test.wav"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("scan_position.qml"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("wizard_audio.jpg"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("wizard_end.jpg"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("wizard_improvise.jpg"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("wizard_playscore.jpg"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("wizard_midi_in.jpg"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("wizard_midi_out.jpg"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("wizard_welcome.jpg"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("all_note_off.png"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("edit.png"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("exit.png"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("expresseur.png"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("first_part.png"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("goto.png"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("help.png"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("last_part.png"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("mixer.png"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("next_chord.png"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("next_file.png"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("next_part.png"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("next_section.png"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("open.png"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("previous_chord.png"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("previous_move.png"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("previous_part.png"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("previous_section.png"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("save.png"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("expresscmd.lua"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("luachord.lua"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("luascore.lua"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("texttochord.lua"));
-	merrors += checkFile(mxconf::getCwdDir(), wxT("expresseur.lua"));
-	merrors += checkFile(mxconf::getResourceDir(), wxT("default_piano.sf2"));
-	merrors += checkFile(mxconf::getResourceDir(), wxT("guitare.sf2"));
-	merrors += checkFile(mxconf::getResourceDir(), wxT("default_piano.txt"));
-	merrors += checkFile(mxconf::getResourceDir(), wxT("default_setting.txt"));
-	merrors += checkFile(mxconf::getResourceDir(), wxT("gm.txt"));
-	merrors += checkFile(mxconf::getResourceDir(), wxT("guitare.txt"));
-	merrors += checkFile(mxconf::getUserDir(), wxT("A_la_claire_fontaine.txt"));
-	merrors += checkFile(mxconf::getUserDir(), wxT("A_la_claire_fontaine.mxl"));
-	merrors += checkFile(mxconf::getUserDir(), wxT("fairy_chords.txb"));
-	merrors += checkFile(mxconf::getUserDir(), wxT("fairy_chords.txt"));
-	merrors += checkFile(mxconf::getUserDir(), wxT("fairy_chords.png"));
+	merrors += checkFile(mxconf::getCwdDir(), "test.wav");
+	merrors += checkFile(mxconf::getCwdDir(), "scan_position.qml");
+	merrors += checkFile(mxconf::getCwdDir(), "wizard_audio.jpg");
+	merrors += checkFile(mxconf::getCwdDir(), "all_note_off.png");
+	merrors += checkFile(mxconf::getCwdDir(), "expresscmd.lua");
+	merrors += checkFile(mxconf::getCwdDir(), "luachord.lua");
+	merrors += checkFile(mxconf::getCwdDir(), "luascore.lua");
+	merrors += checkFile(mxconf::getCwdDir(), "texttochord.lua");
+	merrors += checkFile(mxconf::getCwdDir(), "expresseur.lua");
+	merrors += checkFile(mxconf::getResourceDir(), "default_piano.sf2");
+	merrors += checkFile(mxconf::getResourceDir(), "guitare.sf2");
+	merrors += checkFile(mxconf::getResourceDir(), "default_piano.txt");
+	merrors += checkFile(mxconf::getUserDir(), "A_la_claire_fontaine.txt");
+	merrors += checkFile(mxconf::getUserDir(), "A_la_claire_fontaine.mxl");
+	merrors += checkFile(mxconf::getUserDir(), "fairy_chords.txb");
+	merrors += checkFile(mxconf::getUserDir(), "fairy_chords.txt");
+	merrors += checkFile(mxconf::getUserDir(), "fairy_chords.png");
 	wxString msg;
 	bool ret = true;
 	if (merrors.IsEmpty())
 	{
-		msg = wxT("check files : OK\n");
+		msg = "check files : OK\n";
 	}
 	else
 	{
-		msg = wxT("check files : FAIL\n");
+		msg = "check files : FAIL\n";
 		msg += merrors;
 		ret = false;
 	}
@@ -668,54 +641,54 @@ bool Expresseur::checkConfig()
 	int nbIn = GetListMidiIn(&listMidiin);
 	if (nbIn == 0)
 	{
-		msg += wxT("No valid MIDI-in\n");
+		msg += "No valid MIDI-in\n";
 	}
 	else
 	{
 		wxString sv;
-		sv.Printf(wxT("%d valid Midi-in\n"), nbIn);
+		sv.Printf("%d valid Midi-in\n", nbIn);
 		msg += sv;
 	}
 	for (unsigned int i = 0; i < listMidiin.GetCount(); i++)
 	{
-		msg += wxT("    - ") + listMidiin[i] + wxT("\n");
+		msg += "    - " + listMidiin[i] + "\n";
 	}
 	wxArrayString listMidiout;
 	int nbOut = GetListMidiOut(&listMidiout);
 	if (nbOut == 0)
 	{
-		msg += wxT("No valid MIDI-out\n");
+		msg += "No valid MIDI-out\n";
 	}
 	else
 	{
 		wxString sv;
-		sv.Printf(wxT("%d valid Midi-out\n"), nbOut);
+		sv.Printf("%d valid Midi-out\n", nbOut);
 		msg += sv;
 	}
 	for (unsigned int i = 0; i < listMidiout.GetCount(); i++)
 	{
-		msg += wxT("    - ") + listMidiout[i] + wxT("\n");
+		msg += "    - " + listMidiout[i] + "\n";
 	}
 
 	int nbAudio = getListAudio();
 	if (nbAudio == 0)
 	{
-		msg += wxT("No valid Audio output\n");
+		msg += "No valid Audio output\n";
 	}
 	else
 	{
 		wxString sv;
-		sv.Printf(wxT("%d valid Audio output\n"), nbAudio);
+		sv.Printf("%d valid Audio output\n", nbAudio);
 		msg += sv;
 	}
 	for (unsigned int i = 0; i < nameaudioDevices.GetCount(); i++)
 	{
-		msg += wxT("    - ") + nameaudioDevices[i] + wxT("\n");
+		msg += "    - " + nameaudioDevices[i] + "\n";
 	}
-	msg += wxT("Conf=") + mConf->getConfPath() + wxT("\n");
-	msg += wxT("Working directory=") + mConf->getCwdDir() + wxT("\n");
+	msg += "Conf=" + mConf->getConfPath() + "\n";
+	msg += "Working directory=" + mConf->getCwdDir() + "\n";
 
-	wxMessageBox(msg,wxT("Config check"));
+	wxMessageBox(msg,"Config check");
 	return ret ;
 }
 void Expresseur::OnCheckConfig(wxCommandEvent& WXUNUSED(event))
@@ -1051,7 +1024,13 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 		}
 		if ((basslua_table(moduleGlobal, tableInfo, -1, fieldStatus, ch, NULL, tableGetKeyValue | tableNilKeyValue) & tableGetKeyValue) == tableGetKeyValue)
 		{
-			SetStatusText(ch,1);
+			wxString sch(ch);
+			if (sch.StartsWith("1"))
+				SetStatusText(sch.Mid(1),0);
+			else if (sch.StartsWith("2"))
+				SetStatusText(sch.Mid(1),1);
+			else SetStatusText(sch,1);
+
 		}
 
 		if (image_right != mViewerscore->GetClientSize())
@@ -1918,9 +1897,11 @@ void Expresseur::OnExpression(wxCommandEvent& WXUNUSED(event))
 }
 void Expresseur::OnLuafile(wxCommandEvent& WXUNUSED(event))
 {
+	editMode = true ;
 	luafile mLuafile(this, wxID_ANY, _("Lua script"), mConf);
 	if ( mLuafile.ShowModal() == 1 )
 		settingReset(true);
+	editMode = false ;
 }
 void Expresseur::settingSave()
 {
@@ -1981,7 +1962,7 @@ void Expresseur::settingSave()
 		while (tokenizer.HasMoreTokens())
 		{
 			wxString token = tokenizer.GetNextToken();
-			tfile.AddLine(wxT("--") + token);
+			tfile.AddLine("--" + token);
 		}
 	}
 
@@ -2716,10 +2697,10 @@ list all the LUA shortcuts.\n\n\
 Please select the PC-keyboard\n\
 configuration hereafter.");
 	topsizer_pckeyboard->Add(new wxStaticText(pwizard_pckeyboard, wxID_ANY, spckeyboard), sizerFlagMaximumPlace);
-	mConf->set(CONFIG_KEYBOARDCONFIG, wxT("qwerty"));
-	keyboardConfigs.Add(wxT("qwerty"));
-	keyboardConfigs.Add(wxT("azerty"));
-	keyboardConfigs.Add(wxT("qwertz"));
+	mConf->set(CONFIG_KEYBOARDCONFIG, "qwerty");
+	keyboardConfigs.Add("qwerty");
+	keyboardConfigs.Add("azerty");
+	keyboardConfigs.Add("qwertz");
 	mlistkeyboardConfigs = new	wxListBox(pwizard_pckeyboard, wxID_ANY, wxDefaultPosition, wxDefaultSize, keyboardConfigs);
 	mlistkeyboardConfigs->Bind(wxEVT_LISTBOX, &Expresseur::OnKeyboarConfigChoice, this);
 	topsizer_pckeyboard->Add(mlistkeyboardConfigs, sizerFlagMaximumPlace);

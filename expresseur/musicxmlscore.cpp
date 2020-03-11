@@ -270,11 +270,11 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 	if (musescoreexe.IsEmpty())
 	{
 #ifdef RUN_WIN
-		wxString x64folder = wxGetenv(wxT("programfiles"));
-		wxFileName fm3(x64folder + wxT("\\)") );
-		fm3.AppendDir(wxT("MuseScore 3"));
-		fm3.AppendDir(wxT("bin"));
-		fm3.SetFullName(wxT("MuseScore3.exe"));
+		wxString x64folder = wxGetenv("programfiles");
+		wxFileName fm3(x64folder + "\\)" );
+		fm3.AppendDir("MuseScore 3");
+		fm3.AppendDir("bin");
+		fm3.SetFullName("MuseScore3.exe");
 		if (false) // (fm3.IsFileExecutable())
 		{
 			musescoreexe = fm3.GetFullPath();
@@ -282,11 +282,11 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 		}
 		else
 		{
-			wxString x86folder = wxGetenv(wxT("ProgramFiles(x86)"));
-			wxFileName fm(x86folder + wxT("\\" ));
-			fm.AppendDir(wxT("MuseScore 2"));
-			fm.AppendDir(wxT("bin"));
-			fm.SetFullName(wxT("MuseScore.exe"));
+			wxString x86folder = wxGetenv("ProgramFiles(x86)");
+			wxFileName fm(x86folder + "\\" );
+			fm.AppendDir("MuseScore 2");
+			fm.AppendDir("bin");
+			fm.SetFullName("MuseScore.exe");
 			if (fm.IsFileExecutable())
 			{
 				musescoreexe = fm.GetFullPath();

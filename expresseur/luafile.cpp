@@ -120,9 +120,9 @@ luafile::luafile(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* 
 	mLuaParameter->SetToolTip(_("parameter for the LUA script. -k to select a keyboard disposal"));
 	paramsizer->Add(mLuaParameter, sizerFlagMaximumPlace);
 
-	keyboardConfigs.Add(wxT("qwerty"));
-	keyboardConfigs.Add(wxT("azerty"));
-	keyboardConfigs.Add(wxT("qwertz"));
+	keyboardConfigs.Add("qwerty");
+	keyboardConfigs.Add("azerty");
+	keyboardConfigs.Add("qwertz");
 	wxListBox *mlistkeyboardConfigs = new	wxListBox(this, IDM_LUAFILE_KEYBOARDCONFIG, wxDefaultPosition, wxDefaultSize, keyboardConfigs);
 	paramsizer->Add(new wxStaticText(this, wxID_ANY, _("Keyboard config")), sizerFlagMaximumPlace);
 	paramsizer->Add(mlistkeyboardConfigs, sizerFlagMaximumPlace);
@@ -171,7 +171,7 @@ void luafile::reset(mxconf* mConf, bool all, int timerDt)
 	wxString luascriptparameter = mConf->get(CONFIG_LUA_PARAMETER, DEFAULT_LUA_PARAMETER);
 	wxString luakeyboarconfig = mConf->get(CONFIG_KEYBOARDCONFIG, DEFAULT_KEYBOARDCONFIG);
 
-	luascriptparameter = luascriptparameter + wxT(" -k ") + luakeyboarconfig ;
+	luascriptparameter = luascriptparameter + " -k " + luakeyboarconfig ;
 
 	wxFileName fuser;
 	
@@ -184,7 +184,7 @@ void luafile::reset(mxconf* mConf, bool all, int timerDt)
 		if (! fuser.IsFileReadable())
 		{
 			wxString serr;
-			serr.Printf(wxT("Error : LUA file %s not available"),fuser.GetFullPath());
+			serr.Printf("Error : LUA file %s not available",fuser.GetFullPath());
 			wxMessageBox(serr);
 			return ;
 		}
@@ -195,12 +195,12 @@ void luafile::reset(mxconf* mConf, bool all, int timerDt)
 	luauserscriptfile = fuser.GetFullPath();
 
 	wxFileName dtmp(mxconf::getTmpDir());
-	dtmp.SetName(wxT("expresseur_log"));
+	dtmp.SetName("expresseur_log");
 	wxString slog = dtmp.GetFullPath();
 
 	wxFileName dressource(mxconf::getResourceDir());
 	wxString spathlua ;
-	spathlua.Printf(wxT("%s?.lua;%s?.lua") , mxconf::getResourceDir() , mxconf::getCwdDir()) ;
+	spathlua.Printf("%s?.lua;%s?.lua" , mxconf::getResourceDir() , mxconf::getCwdDir()) ;
 
 	wxFileName::SetCwd(mxconf::getCwdDir()) ;
 

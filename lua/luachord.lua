@@ -298,7 +298,7 @@ local function extractParts()
     end
     pp.titleStart = pat[nbest].posStart
     pp.titleEnd = pat[nbest].posEnd
-    luabass.logmsg("extractParts : name="..pat[nbest].name)
+    --luabass.logmsg("extractParts : name="..pat[nbest].name)
     if ( string.find(pat[nbest].name,",") ) then
       -- there are additional information in the line
       -- extract the name of the section or part, and the additional parameter

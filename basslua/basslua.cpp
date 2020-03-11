@@ -1404,9 +1404,9 @@ static void process_in_timer()
 	lua_pop(g_LUAstate, 1); // pop table moduleLuabass
 
 	// process the timer in LUA script
-	if (g_process_Timer)
+	if (g_process_Timer && g_LUAstate )
 	{
-		if ( lua_getfield(g_LUAstate, -1, LUAFunctionTimer) != LUA_TFUNCTION)
+		if ( lua_getglobal(g_LUAstate, LUAFunctionTimer) != LUA_TFUNCTION)
 		{
 			lua_pop(g_LUAstate, 1);
 			return;

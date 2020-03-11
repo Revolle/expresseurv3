@@ -9,13 +9,20 @@ Basslua loads in addition, by default, these modules, accessible as global :
 - luascore.lua : script-LUA-module to interpret score.
 
 Function onStart(param) : called by basslua ,when this LUA script is started.
+	param :
+		--preopen_midiout : pre-open midi-out to avoid system ressources issues
+		-k qwerty|azerty|qwertz : select the keyboar disposal
+		-u <user_lua> : user's lua module to load from ressource directory
+		
 Function onStop() : called by basslua , before to close this LUA script.
 
 basslua uses these tables :
 - midiinOpen = { 1, 3 } : LUA table which contains midiIn deviceNrs to open. Checked regularly by basslua.
 - midiinSelector = true/false : LUA boolean to unvalidate/validate selectors. Checked regularly by basslua.
 - It can write 
-	info.status = "status message to display in the gui" 
+	info.status = "status message to display in the gui status-bar 2" 
+	info.status = "1 status message to display in the gui status-bar 1" 
+	info.status = "2 status message to display in the gui status-bar 2" 
 	info.action = "!message-box to display in the gui" 
 	info.action = "=3/2" track to play=3/view=2
 	info.action = "+" increment file 
@@ -188,6 +195,21 @@ function onStart(param)
 	local typeKeyboard = (string.match(param,"-k (%a+)")) or "qwerty"
 	-- luabass.logmsg("param=" .. param .. " / typeKeyboard=" .. typeKeyboard )
 	keyboarDisposal = keyboardDisposals[typeKeyboard]
+	-- parameter -u luafile to load a user lua script in ressources
+        local luauser = (string.match(param,"-u (%a+)"))
+	if luauser then
+		luauserfunctions = require(luauser)
+		if type(luauserfunctions) == "table" then
+			-- copy functions from user's module to global
+			for luasuerfunction in pairs(luauserfunctions) do
+				luabass.logmsg("user's lua <" .. luauser .. "> : function loaded <" .. luasuerfunction .. ">" )
+				_G[luasuerfunction] = luauserfunctions[luasuerfunction]
+			end
+		else
+			luabass.logmsg("error loading user's lua " .. luauser .. " : does not return table of functions" )
+		end
+	end
+	
 end
 
 --===================== stop
@@ -609,6 +631,7 @@ function keydownImprovisation ( keyLetter, keyCode, modifiers)
 			luachord.nextChord(0, 2566, 15, 9, 2, 64 , "on")
 		end
 		luachord.playChord(0, 2565, 15, 9, 3, 64 , "up" )
+		info.status  = "next chord & play chord"
 		return true
 	end
 	for i,v in ipairs(keyboarDisposal) do
