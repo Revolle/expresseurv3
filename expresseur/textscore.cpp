@@ -96,8 +96,6 @@ textscore::textscore(wxWindow *parent, wxWindowID id, mxconf* lMxconf)
 
 	oldchordStart = -1;
 	oldchordEnd = -1;
-	oldsectionStart = -1;
-	oldsectionEnd = -1;
 	prevInsertionPoint = -1;
 }
 textscore::~textscore()
@@ -134,8 +132,6 @@ void textscore::compileText()
 	
 	oldchordStart = -1;
 	oldchordEnd = -1;
-	oldsectionStart = -1;
-	oldsectionEnd = -1;
 }
 int textscore::scanPosition()
 {
@@ -196,8 +192,6 @@ bool textscore::setFile(const wxFileName &filename)
 	{
 		oldchordStart = -1;
 		oldchordEnd = -1;
-		oldsectionStart = -1;
-		oldsectionEnd = -1;
 		retcode = true;
 	}
 	SetModified(false);

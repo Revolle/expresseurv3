@@ -34,7 +34,6 @@ private:
 	int sizeFont;
 	long previousLinePos = -1;
 	int oldchordStart, oldchordEnd;
-	int oldsectionStart, oldsectionEnd;
 	int prevInsertionPoint = -1;
 	wxTextAttr textAttrRecognized;
 	wxTextAttr textAttrNormal;
