@@ -111,8 +111,6 @@ public:
     	bool OnInit();
 	
 	int FilterEvent(wxEvent& event);
-private:
-	bool listEvent[20000];
 };
 
 // timer value for compilation in ms
