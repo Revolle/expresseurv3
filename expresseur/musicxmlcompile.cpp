@@ -3152,6 +3152,13 @@ void musicxmlcompile::buildMeasures()
 		int nbMeasure_current_part = current_part->measures.GetCount();
 		int newMeasureNr = 0;
 		int nbmeasureList = measureList.GetCount();
+		/*
+		for (int nrmeasureList = 0; nrmeasureList < nbmeasureList; nrmeasureList++)
+		{
+			int nrMeasure = measureList[nrmeasureList] - 1;
+			int h = nrMeasure;
+		}
+		*/
 		for (int nrmeasureList = 0; nrmeasureList < nbmeasureList; nrmeasureList++)
 		{
 			int nrMeasure = measureList[nrmeasureList] - 1;
