@@ -1,12 +1,15 @@
-d0 = 2 ;
-d_doigt= 20;
-l_doigt = 6 ;
-d_corde1 = [2,1]; // diametre cordes
-entre_corde = 12;
-nbcorde = 3 ;
-l0 = 15;
-e= 2;
-d_tirette = 2 ;
+e= 2; // epaisseur
+d0 = e ; // diametre de base
+d_doigt= 20; // longueur doigt
+l_doigt = 6 ; // largeur doigt
+d_corde = 1.2; // diametre cordes
+l_cordes_0 = 17 ; // 43 ;
+l_cordes_1 = 18; //51 ;
+
+nbcorde = 3 ; // nombre de cordes
+entre_corde = l_cordes_0/(nbcorde-1); // espace entre deux cordes
+d_entre_corde = (l_cordes_1/(nbcorde-1) - entre_corde)/10;// increment espace entre deux cordes
+d_tirette = 2 ; // diametre trou tirette
 
 module huitieme_cercle(d)
 {
@@ -26,7 +29,7 @@ module etoile(d, v)
    }
 }
 
-module doigt(l,d_ext,d_int, d_corde, corde)
+module doigt(l,d_ext,d_int, corde)
 {
     difference()
     {
@@ -60,14 +63,14 @@ module doigt(l,d_ext,d_int, d_corde, corde)
     }
 }
 
-module doit_fourchette(l,d_ext,d_int, d_corde)
+module doit_fourchette(l,d_ext,d_int)
 {
-    doigt(l,d_ext,d_int,d_corde,true);
-    translate([0,0,2*l-e+0.1]) rotate([0,180,-90]) 
-        doigt(l,d_ext,d_int,d_corde,false);
+    doigt(l/2,d_ext,d_int,true);
+    translate([0,0,l-e+0.1]) rotate([0,180,-90]) 
+        doigt(l/2,d_ext,d_int,false);
 }
-for(i=[0:nbcorde])
+for(i=[0:nbcorde - 1])
 {
-    translate([0,0,entre_corde * i])
-        doit_fourchette(entre_corde * nbcorde / 2 + 8  ,d0 *( i +1) ,d0 * i + 0.4 ,d_corde1[i]);
+    translate([0,0, entre_corde * i])
+        doit_fourchette(entre_corde * (nbcorde) - i*entre_corde + (nbcorde -1 -i)*(e+1) ,d0 *( i +2) ,d0 * (i + 1) + 0.4);
 }

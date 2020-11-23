@@ -601,6 +601,31 @@ function E.getPosition()
   -- memPos()
 end
 
+-- save minimum of the score in a txt file
+function E.savetxt(f)
+  f=io.open(f..".txt","w")
+  io.output(f)
+  -- save the events
+  for inil,t in ipairs(score.events) do
+	local s = t[ePitch] .. "," .. t[eVelocity] .. "," .. t[eTrackNr] .. "," .. t[eStopIndex] .. "," .. t[eWillStopIndex] .. "\n"
+    io.write(s) 
+	local sv = ""
+	for jnil,vs in ipairs(t[eStarts]) do
+	 s = s .. sv .. vs
+	 sv = ","
+	end
+	s = sv .. "\n"
+    io.write(s) 
+	sv = ""
+	for jnil,vs in ipairs(t[eStops]) do
+	 s = s .. sv .. vs
+	 sv = ","
+	end
+	s = sv .. "\n"
+    io.write(s) 
+  end
+  io.close(f)
+end
 -- save a score in a file
 function E.save(f)
   f=io.open(f..".pck","w")
@@ -782,7 +807,7 @@ function E.finishScore()
   c_nrEvent_noteOff = 1 -- current index for the next note-off
   c_partNr = 1 -- number of the current part
   c_measureNr = 1   -- number of the current measure
-
+  E.savetxt("fscorelua")
   E.firstPart()
 end
 
