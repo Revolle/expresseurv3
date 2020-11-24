@@ -1,20 +1,23 @@
+#define DEBUGON 1
+
+///////////////////////////////////////////////////////////////////////////////
+//                       Definition SD-Card
+///////////////////////////////////////////////////////////////////////////////
 #include <SD.h>
 #include <SPI.h>
-
 const int chipSelect = BUILTIN_SDCARD;
+
+///////////////////////////////////////////////////////////////////////////////
+//                       Definition Expresseur
+///////////////////////////////////////////////////////////////////////////////
+#define MAXEVENT 4096
+#define MAXEVENTSTOPSTART 8
+#define PITCHFILE 64
+#define MAXPITCH 128
 
 void expresseur_loadFile(int fileNr);
 void expresseur_play(int pitch, int velo);
 
-#define PITCHFILE 64
-#define VELODEFAULT 100
-#define MAXPITCH 128
-#define MAXSPLIT 2
-
-// Expresseur score 
-// definition of a score
-#define MAXEVENT 4096
-#define MAXEVENTSTOPSTART 8
 typedef struct
 {
   int velocity;
@@ -40,14 +43,16 @@ int c_nrEvent_noteOn = 0 ; // index of event for the next note-on
 int end_score = false;
 
 ///////////////////////////////////////////////////////////////////////////////
-//                       Mode Orgue
+//                       Definition Orgue
 ///////////////////////////////////////////////////////////////////////////////
+#define MAXSPLIT 2
+#define VELODEFAULT 100
 
 #define pinLed  11
 #define MaxOUT 10
 #define MaxIN 9
-byte pinOut[MaxOUT] = {12 , 13 , 14 , 15 , 16 , 4 , 5 , 6 , 9 , 10 } ;
-byte pinIn[MaxIN] = { 17 , 18 , 19 , 20 , 21 , 0 , 1 , 2 , 3 };
+byte pinOut[MaxOUT] = { 12 , 13 , 14 , 15 , 16 , 4 , 5 , 6 , 9 , 10 } ;
+byte pinIn[MaxIN]   = { 17 , 18 , 19 , 20 , 21 , 0 , 1 , 2 , 3 };
 byte buttonState[MaxOUT][MaxIN];
 unsigned long buttonSince[MaxOUT][MaxIN];
 //etats de l'automate
@@ -60,7 +65,7 @@ byte lastProg = -1 ;
 
 #define DELAY_NOISE_BUTTON 500 // ms
 #define DELAY_NOISE_KEYBOARD 250 // ms
-
+#define DELAY_DELAY_REPROG 4000 // max ms between two progs, to change the bank
 // two last buttons of pinOUT are for the CONTROL BUTTON
 #define O_BUTTON_1 8
 #define O_BUTTON_2 9
@@ -80,7 +85,7 @@ bool split = false ;
 byte psplit = 64 ;
 bool octaviaGauche = false ;
 bool octaviaDroite = false ;
-int midiPitchStatus[MAXSPLIT][MAXPITCH];
+int midiPitchNbNoteOn[MAXSPLIT][MAXPITCH];
 
 #define NBCHANNEL 16
 
@@ -88,7 +93,7 @@ int midiPitchStatus[MAXSPLIT][MAXPITCH];
 // program per channel, progs[bank[channel#]][channel#]
 int progs[MAXBANK][NBCHANNEL]=
   {
-    {17,17,18,20,21,53,57,58,69,71,72,74,76,89,90,99},
+    {17,17,18,20,21,53,57,58,69,71,72,74,76,89,90,99 },
     {17,17,18,20,22,54,57,59,70,71,72,73,77,83,95,100},
     {17,17,18,19,22,55,57,61,70,59,58,75,78,85,96,101}
   };
@@ -104,15 +109,16 @@ int prog[NBCHANNEL]={-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 // index of teh selected bank on a channel
 int bank[NBCHANNEL]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
+///////////////////////////////////////////////////////////////////////////////
+//                       MIDI management
+///////////////////////////////////////////////////////////////////////////////
 
 void sendMidiByte(byte b)
 {
   Serial.write(b);
 }
-void sendMidiCtrl(byte ni,byte vi)
+void sendMidiCtrl(byte n,byte v)
 {
-  byte v = constrain(vi, 0, 127);
-  byte n = constrain(ni, 0, 127);
   byte i0, i1 ;
   if (split)
   {
@@ -131,16 +137,58 @@ void sendMidiCtrl(byte ni,byte vi)
   }
   for(byte i = i0; i <= i1 ; i ++)
   {
+#ifdef DEBUGON
     Serial.print("CTRL #");
     Serial.print(i);
     Serial.print(" ");
     Serial.print(n);
     Serial.print("/");
     Serial.println(v);
+#endif
     sendMidiByte(0xB0 | i);
     sendMidiByte(n);
     sendMidiByte(v);
   }
+}
+void general_volume()
+{
+  /*
+  sendMidiByte(0xB0);
+  sendMidiByte(0x63);
+  sendMidiByte(0x37);
+
+  sendMidiByte(0xB0);
+  sendMidiByte(0x62);
+  sendMidiByte(0x7);
+
+  sendMidiByte(0xB0);
+  sendMidiByte(0x6);
+  sendMidiByte(vol_base + vol_delta);
+  */
+  sendMidiCtrl(7,(vol_base + vol_delta));
+}
+void init_x2()
+{
+  for(int i = 0; i < MAXSPLIT; i ++)
+    for(int j= 0 ; j < MAXPITCH; j ++)
+      midiPitchNbNoteOn[i][j] = 0 ;
+      
+  Serial1.begin(31250);
+  for(byte i = 0; i < 16; i ++)
+  {
+    sendMidiByte(0xF0);
+    sendMidiByte(0x41);
+    sendMidiByte(0x00);
+    sendMidiByte(0x42);
+    sendMidiByte(0x12);
+    sendMidiByte(0x40);
+    sendMidiByte(0x10 | i );
+    sendMidiByte(0x15);
+    sendMidiByte(0x00); // sound for all parts
+    sendMidiByte(0x00);
+    sendMidiByte(0xF7);
+  }
+  general_volume() ;
 }
 void sendProg(boolean on,byte nrprog,byte nrbank)
 {
@@ -167,7 +215,7 @@ void sendProg(boolean on,byte nrprog,byte nrbank)
     if (prog[i] == p)
       prog[i] = -1 ;
   }
-  if (on )
+  if (on)
   {
     byte slot = 0 ;
     boolean slotfound = false ;
@@ -182,10 +230,12 @@ void sendProg(boolean on,byte nrprog,byte nrbank)
     }
     if ( ! slotfound)
       slot = i0;
+#ifdef DEBUGON
     Serial.print("PROG #");
     Serial.print(slot);
     Serial.print(" ");
     Serial.print(p);
+#endif
     prog[slot] = p ;
     sendMidiByte(0xB0 | slot);
     sendMidiByte(0);
@@ -222,39 +272,43 @@ void sendMidiNote(byte pi,byte v, byte pspliti)
   }
   if ( v == 0 )
   {
-    (midiPitchStatus[canal][p]) -- ;
-    if (midiPitchStatus[canal][p] <= 0 )
+    (midiPitchNbNoteOn[canal][p]) -- ;
+    if (midiPitchNbNoteOn[canal][p] <= 0 )
     {
       for(byte i = i0; i <= i1 ; i ++)
       {
+#ifdef DEBUGON
         Serial.print("NOTE OFF #");
         Serial.print(i);
         Serial.print(" ");
         Serial.print(p);
         Serial.print("/");
         Serial.println(v);
+#endif
         sendMidiByte(0x80 | i);
         sendMidiByte(p);
         sendMidiByte(0x0);
-        midiPitchStatus[canal][p] = 0 ;
+        midiPitchNbNoteOn[canal][p] = 0 ;
       }
     }
   }
   else
   {
-    (midiPitchStatus[canal][p]) ++ ;
-    if (midiPitchStatus[canal][p] == 1 )
+    (midiPitchNbNoteOn[canal][p]) ++ ;
+    if (midiPitchNbNoteOn[canal][p] == 1 )
     {
       for(byte i = i0; i <= i1 ; i ++)
       {
         if (prog[i] != -1)
         {
+#ifdef DEBUGON
           Serial.print("NOTE ON  #");
           Serial.print(i);
           Serial.print(" ");
           Serial.print(p);
           Serial.print("/");
           Serial.println(v);
+#endif
           sendMidiByte(0x90 | i);
           sendMidiByte(p);
           sendMidiByte(v);
@@ -263,46 +317,11 @@ void sendMidiNote(byte pi,byte v, byte pspliti)
     }
   }
 }
-void general_volume()
-{
-  /*
-  sendMidiByte(0xB0);
-  sendMidiByte(0x63);
-  sendMidiByte(0x37);
 
-  sendMidiByte(0xB0);
-  sendMidiByte(0x62);
-  sendMidiByte(0x7);
+///////////////////////////////////////////////////////////////////////////////
+//                       Orgue management
+///////////////////////////////////////////////////////////////////////////////
 
-  sendMidiByte(0xB0);
-  sendMidiByte(0x6);
-  sendMidiByte(vol_base + vol_delta);
-  */
-  sendMidiCtrl(7,vol_base + vol_delta);
-}
-void init_x2()
-{
-  for(int i = 0; i < MAXSPLIT; i ++)
-    for(int j= 0 ; j < MAXPITCH; j ++)
-      midiPitchStatus[i][j] = 0 ;
-      
-  Serial1.begin(31250);
-  for(byte i = 0; i < 16; i ++)
-  {
-    sendMidiByte(0xF0);
-    sendMidiByte(0x41);
-    sendMidiByte(0x00);
-    sendMidiByte(0x42);
-    sendMidiByte(0x12);
-    sendMidiByte(0x40);
-    sendMidiByte(0x10 | i );
-    sendMidiByte(0x15);
-    sendMidiByte(0x00); // sound for all parts
-    sendMidiByte(0x00);
-    sendMidiByte(0xF7);
-  }
-  general_volume() ;
-}
 void ctrlButton(byte o, byte i, bool on)
 {
   if (( o == O_BUTTON_1 ) || ( o == O_BUTTON_2))
@@ -355,7 +374,7 @@ void ctrlButton(byte o, byte i, bool on)
       if ( on )
       {
         // le meme bouton de programme est selectionne plusieurs fois de suite dans un court laps de temps : on change de bank
-        if ((lastProg == nrcontrol) && (sinceProg < 2000))
+        if ((lastProg == nrcontrol) && (sinceProg < DELAY_DELAY_REPROG))
         {
           (bank[nrcontrol]) ++ ; 
           if (( bank[nrcontrol] >= MAXBANK ) || (progs[bank[nrcontrol]][nrcontrol] == -1))
@@ -430,7 +449,7 @@ void ctrlButton(byte o, byte i, bool on)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-//                               Mode Expresseur
+//                               Management Expresseur
 ///////////////////////////////////////////////////////////////////////////////
 
 
@@ -775,7 +794,9 @@ void setup()
       buttonState[o][i] = B_OFF;
     }
   }
+#ifdef DEBUGON
   Serial.begin(9600);
+#endif
   init_x2();
 }
 
