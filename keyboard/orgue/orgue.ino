@@ -10,7 +10,7 @@ const int chipSelect = BUILTIN_SDCARD;
 ///////////////////////////////////////////////////////////////////////////////
 //                       Definition Expresseur
 ///////////////////////////////////////////////////////////////////////////////
-#define MAXEVENT 4096
+#define MAXEVENT 2500
 #define MAXEVENTSTOPSTART 8
 #define PITCHFILE 64
 #define MAXPITCH 128
@@ -48,7 +48,7 @@ int end_score = false;
 #define MAXSPLIT 2
 #define VELODEFAULT 100
 
-#define pinLed  11
+#define pinLed  13
 #define MaxOUT 10
 #define MaxIN 9
 byte pinOut[MaxOUT] = { 12 , 13 , 14 , 15 , 16 , 4 , 5 , 6 , 9 , 10 } ;
@@ -93,21 +93,22 @@ int midiPitchNbNoteOn[MAXSPLIT][MAXPITCH];
 // program per channel, progs[bank[channel#]][channel#]
 int progs[MAXBANK][NBCHANNEL]=
   {
-    {17,17,18,20,21,53,57,58,69,71,72,74,76,89,90,99 },
-    {17,17,18,20,22,54,57,59,70,71,72,73,77,83,95,100},
-    {17,17,18,19,22,55,57,61,70,59,58,75,78,85,96,101}
+    {17,17,18,20,21,53,57,58,69,71,72,74,76,89, 7,99 },
+    {17,17,18,20,22,54,57,59,70,71,72,73,77,83, 7,100},
+    {17,17,18,19,22,55,57,61,70,59,58,75,78,85, 8,101}
   };
 // banks per channel, banks[bank[channel#]][channel#]
 byte banks[MAXBANK][NBCHANNEL]=
   {
     { 0,40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    { 1,33, 1, 8, 0, 0, 1, 0, 0, 1, 8, 0, 0, 0, 0, 0},
+    { 1,33, 1, 8, 0, 0, 1, 0, 0, 1, 8, 0, 0, 0, 8, 0},
     { 2, 9, 2, 0, 8, 0, 8, 0, 1, 0, 0, 0, 0, 0, 0, 0}
   };
 // status of a prog on a channel  
 int prog[NBCHANNEL]={-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 // index of teh selected bank on a channel
 int bank[NBCHANNEL]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+bool firstProg = true;
 
 ///////////////////////////////////////////////////////////////////////////////
 //                       MIDI management
@@ -115,7 +116,7 @@ int bank[NBCHANNEL]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 void sendMidiByte(byte b)
 {
-  Serial.write(b);
+  Serial1.write(b);
 }
 void sendMidiCtrl(byte n,byte v)
 {
@@ -137,7 +138,7 @@ void sendMidiCtrl(byte n,byte v)
   }
   for(byte i = i0; i <= i1 ; i ++)
   {
-#ifdef DEBUGON
+#if DEBUGON == 2
     Serial.print("CTRL #");
     Serial.print(i);
     Serial.print(" ");
@@ -167,32 +168,10 @@ void general_volume()
   */
   sendMidiCtrl(7,(vol_base + vol_delta));
 }
-void init_x2()
-{
-  for(int i = 0; i < MAXSPLIT; i ++)
-    for(int j= 0 ; j < MAXPITCH; j ++)
-      midiPitchNbNoteOn[i][j] = 0 ;
-      
-  Serial1.begin(31250);
-  for(byte i = 0; i < 16; i ++)
-  {
-    sendMidiByte(0xF0);
-    sendMidiByte(0x41);
-    sendMidiByte(0x00);
-    sendMidiByte(0x42);
-    sendMidiByte(0x12);
-    sendMidiByte(0x40);
-    sendMidiByte(0x10 | i );
-    sendMidiByte(0x15);
-    sendMidiByte(0x00); // sound for all parts
-    sendMidiByte(0x00);
-    sendMidiByte(0xF7);
-  }
-  general_volume() ;
-}
+
 void sendProg(boolean on,byte nrprog,byte nrbank)
 {
-  byte p = constrain(nrprog, 0, 127);
+  byte p = constrain(nrprog, 1, 128) - 1;
   byte b = constrain(nrbank, 0, 127);
   byte i0, i1 ;
   if (split)
@@ -210,9 +189,10 @@ void sendProg(boolean on,byte nrprog,byte nrbank)
   {
     i0=0; i1=15;
   }
+  int bp = b*128+p; 
   for(int i = i0; i <= i1; i ++)
   {
-    if (prog[i] == p)
+    if (prog[i] == bp)
       prog[i] = -1 ;
   }
   if (on)
@@ -230,19 +210,77 @@ void sendProg(boolean on,byte nrprog,byte nrbank)
     }
     if ( ! slotfound)
       slot = i0;
-#ifdef DEBUGON
-    Serial.print("PROG #");
+#if DEBUGON == 2
+    Serial.print("PROG ch#");
     Serial.print(slot);
     Serial.print(" ");
-    Serial.print(p);
+    Serial.print(b);
+    Serial.print("/");
+    Serial.println(p);
 #endif
-    prog[slot] = p ;
+    prog[slot] = bp ;
     sendMidiByte(0xB0 | slot);
     sendMidiByte(0);
     sendMidiByte(b);
     sendMidiByte(0xC0 | slot);
     sendMidiByte(p);
   }
+}
+void init_x2()
+{
+  for(int i = 0; i < MAXSPLIT; i ++)
+    for(int j= 0 ; j < MAXPITCH; j ++)
+      midiPitchNbNoteOn[i][j] = 0 ;
+      
+  Serial1.begin(31250);
+  delay(200);
+
+  for(byte i = 0; i < 16; i ++)
+  {
+    sendMidiByte(0xF0);
+    sendMidiByte(0x41);
+    sendMidiByte(0x00);
+    sendMidiByte(0x42);
+    sendMidiByte(0x12);
+    sendMidiByte(0x40);
+    sendMidiByte(0x10 | i );
+    sendMidiByte(0x15);
+    sendMidiByte(0x00); // sound for all parts
+    sendMidiByte(0x00);
+    sendMidiByte(0xF7);
+  }
+  for(byte i = 0; i < 16; i ++)
+  {
+    sendMidiByte(0xB0 | i);
+    sendMidiByte(120);
+    sendMidiByte(0);
+    sendMidiByte(0xB0 | i);
+    sendMidiByte(121);
+    sendMidiByte(0);
+    sendMidiByte(0xB0 | i);
+    sendMidiByte(123);
+    sendMidiByte(0);
+  }
+#ifdef false // DEBUGON
+  for(byte i= 0 ; i < 16; i ++ )
+  {
+    sendMidiByte(0xB0 | i);
+    sendMidiByte(0);
+    sendMidiByte(banks[0][i]);
+    sendMidiByte(0xC0 | i);
+    sendMidiByte(progs[0][i]);
+    Serial1.write(0x90 | i);
+    Serial1.write(0x40 | i);
+    Serial1.write(0x40);
+    delay(500);
+    Serial1.write(0x80 | i);
+    Serial1.write(0x40 | i);
+    Serial1.write(0x40);
+  }
+#endif
+  general_volume() ;
+  firstProg = true;
+  sendProg(true, progs[0][0],banks[0][0]);
 }
 void sendMidiNote(byte pi,byte v, byte pspliti)
 {
@@ -275,16 +313,16 @@ void sendMidiNote(byte pi,byte v, byte pspliti)
     (midiPitchNbNoteOn[canal][p]) -- ;
     if (midiPitchNbNoteOn[canal][p] <= 0 )
     {
+#if DEBUGON == 2
+        Serial.print("NOTE OFF ch#");
+        Serial.print(i0);
+        Serial.print("..");
+        Serial.print(i1);
+        Serial.print(" pitch=");
+        Serial.println(p);
+ #endif
       for(byte i = i0; i <= i1 ; i ++)
       {
-#ifdef DEBUGON
-        Serial.print("NOTE OFF #");
-        Serial.print(i);
-        Serial.print(" ");
-        Serial.print(p);
-        Serial.print("/");
-        Serial.println(v);
-#endif
         sendMidiByte(0x80 | i);
         sendMidiByte(p);
         sendMidiByte(0x0);
@@ -301,12 +339,12 @@ void sendMidiNote(byte pi,byte v, byte pspliti)
       {
         if (prog[i] != -1)
         {
-#ifdef DEBUGON
-          Serial.print("NOTE ON  #");
+#if DEBUGON == 2
+          Serial.print("NOTE ON  ch#");
           Serial.print(i);
-          Serial.print(" ");
+          Serial.print(" pitch=");
           Serial.print(p);
-          Serial.print("/");
+          Serial.print(" velo=");
           Serial.println(v);
 #endif
           sendMidiByte(0x90 | i);
@@ -373,6 +411,11 @@ void ctrlButton(byte o, byte i, bool on)
       byte nrcontrol = constrain((o - O_BUTTON_1)*9 + i,0,NBCHANNEL - 1 ) ;
       if ( on )
       {
+        if (firstProg)
+        {
+          firstProg = false ;
+          sendProg(false,progs[0][0],banks[0][0]);
+        }
         // le meme bouton de programme est selectionne plusieurs fois de suite dans un court laps de temps : on change de bank
         if ((lastProg == nrcontrol) && (sinceProg < DELAY_DELAY_REPROG))
         {
@@ -535,24 +578,36 @@ void noteOn_Event(int bid , int velo_in)
   // the button-id ( bid ) play the current group , and go to the next one
   
   if ( end_score ) return ;
-  
+
+#ifdef DEBUGON
+  Serial.print("noteOn_Event #");  Serial.println(c_nrEvent_noteOn);
+#endif
   T_event *event = &(score.events[c_nrEvent_noteOn]);
   
   int to_stop_index = event->stopIndex ;
   if (to_stop_index > 0)
   {
     T_event *event_stop = &(score.events[to_stop_index]) ;
-    for (int nrEvent = 0 ; nrEvent < event_stop->nbEventsStop ; nrEvent ++)
-  {
-      T_event *event_to_stop = &(score.events[nrEvent]);
+    for (int nrEventStop = 0 ; nrEventStop < event_stop->nbEventsStop ; nrEventStop ++)
+    {
+      T_event *event_to_stop = &(score.events[event_stop->eventsStop[nrEventStop]]);
+#ifdef DEBUGON
+      //Serial.print("noteOn_Event to_stop_index=") ; 
+      //Serial.print(to_stop_index);
+      //Serial.print(" stop_index ");  
+      //Serial.println(event_stop->eventsStop[nrEventStop]);
+#endif
       stopEvent(event_to_stop);
     }
   }
   if (event->nbEventsStart > 0)
   {
-    for (int nrEvent = 0 ; nrEvent < event->nbEventsStart ; nrEvent ++)
-  {
-      T_event *event_to_start = &(score.events[nrEvent]);
+    for (int nrEventStart = 0 ; nrEventStart < event->nbEventsStart ; nrEventStart ++)
+    {
+#ifdef DEBUGON
+      //Serial.print("noteOn_Event start_index ");  Serial.println(event->eventsStart[nrEventStart]);
+#endif
+      T_event *event_to_start = &(score.events[event->eventsStart[nrEventStart]]);
       startEvent(velo_in , event_to_start ,event->nbEventsStart);
     }
   }
@@ -570,10 +625,16 @@ void noteOff_Event(int bid)
   int toStopIndex = noteOffStops[bid];
   if (toStopIndex > 0)
   {
+#ifdef DEBUGON
+    //Serial.print("noteOff_Event toStop=");  Serial.println(toStopIndex);
+#endif
     T_event *event = &(score.events[toStopIndex]);
-    for (int nrEvent = 0 ; nrEvent < event->nbEventsStop ; nrEvent ++)
-  {
-        T_event * eventStop = &(score.events[nrEvent]) ;
+    for (int nrEventStop = 0 ; nrEventStop < event->nbEventsStop ; nrEventStop ++)
+    {
+#ifdef DEBUGON
+        //Serial.print("noteOff_Event #");  Serial.println(event->eventsStop[nrEventStop]);
+#endif
+        T_event * eventStop = &(score.events[event->eventsStop[nrEventStop]]) ;
         stopEvent(eventStop);
     }
   }
@@ -598,7 +659,7 @@ void expresseur_play(int pitch, int velo)
 
 void rewind_score()
 {
-  c_nrEvent_noteOn = 1 ;// current index for the next note-on 
+  c_nrEvent_noteOn = 0 ;// current index for the next note-on 
   end_score = false;
   for(int i = 0 ; i < MAXPITCH ; i ++)
     noteOffStops[i] = 0 ;
@@ -649,11 +710,18 @@ void expresseur_loadFile(int fileNr)
   fileName[6] = 'x' ;
   fileName[7] = 't' ;
   fileName[8] = '\0' ;
+#ifdef DEBUGON
+   Serial.print("filename : ");
+   Serial.println(fileName);
+#endif
   if ( !SD.exists(fileName)) return ;
   
   // open file
   File myFile = SD.open(fileName);
   if (! myFile) return ;
+#ifdef DEBUGON
+   Serial.println("file is opened");
+#endif
 
   // Groups of 3 lines :
   //     1st line with nt pitch, int velocity,  int trackNr , int stopIndex, int willStopIndex
@@ -663,87 +731,126 @@ void expresseur_loadFile(int fileNr)
   T_event *event = &(score.events[1]);
   int *ind ;
   char c ;
-  int etat = 0 ;
-  while ( (c=myFile.read()) != -1)
+  int etat = -1 ;
+  int minus = 1 ;
+  int index = 0  ;
+  while ( myFile.available())
   {
+    c = myFile.read();
     switch (etat)
     {
+      case -1 : //index
+        if ((c >= '0') && (c <= '9'))
+        {
+          index = 10* index + (c - '0') ;
+          break ;
+        }
+        else if (c == ',')
+        {
+          if (index < MAXEVENT)
+          {
+            event = &(score.events[index]);
+            if ( index > score.nbEvents )
+              score.nbEvents = index + 1 ;
+          }
+          else 
+          {
+#ifdef DEBUGON
+           Serial.print("ERROR : event overflow. Index=");
+           Serial.println(index);
+#endif
+            initScore(); 
+            return;
+          }
+          etat = 0 ;
+        } 
+        break ;
       case 0 : //pitch
       if ((c >= '0') && (c <= '9'))
       {
         if (event == NULL) { initScore() ; return ;} 
-        event->pitch = 10* event->pitch + (c - '0') ;
+        event->pitch = minus * (10* event->pitch + (c - '0')) ;
+        minus = 1 ;
         break ;
       }
-      if (c == ',')
+      else if (c == '-')
+        minus = -1 ; 
+      else if (c == ',')
         etat = 1 ; 
       break ;
       case 1 : //velocity
-      if ((c >= '0') && (c <= '9'))
-      {
-        event->velocity = 10* event->velocity + (c - '0') ;
-        break ;
-      }
-      if (c == ',')
+        if ((c >= '0') && (c <= '9'))
+        {
+          event->velocity = 10* event->velocity + (c - '0') ;
+          break ;
+        }
+        else if (c == ',')
         etat = 2 ; 
       break ;
       case 2 : //track
-      if ((c >= '0') && (c <= '9'))
-      {
-        event->trackNr = 10* event->trackNr + (c - '0') ;
-        break ;
-      }
-      if (c == ',')
-      {
-        if (event->trackNr >= score.trackMax)
-          score.trackMax = event->trackNr + 1 ;
-        etat = 3 ;
-      }
+        if ((c >= '0') && (c <= '9'))
+        {
+          event->trackNr = 10* event->trackNr + (c - '0') ;
+          break ;
+        }
+        else if (c == ',')
+        {
+          if (event->trackNr >= score.trackMax)
+            score.trackMax = event->trackNr + 1 ;
+          etat = 3 ;
+        }
       break ;
       case 3 : //stopIndex
-      if ((c >= '0') && (c <= '9'))
-      {
-        event->stopIndex = 10* event->stopIndex + (c - '0') ;
-        break ;
-      }
-      if (c == ',')
-        etat = 4 ;
-      break ;
-      case 4 : //willStopIndex
-      if ((c >= '0') && (c <= '9'))
-      {
-        event->willStopIndex = 10* event->willStopIndex + (c - '0') ;
-        break ;
-      }
-      if (c == '\n')
-      {
-        etat = 10 ;
-        event->nbEventsStart = 0 ;
-        ind = &(event->eventsStart[0]);
-      }       
-      break ;
-      case 10: //eventsStart
-      if ((c >= '0') && (c <= '9'))
-      {
-        if (ind == NULL) { initScore(); return;}
-        *ind = 10* (*ind) + (c - '0') ;
-        break ;
-      }
-      if ((c == ',') || (c == '\n'))
-      {
-        (event->nbEventsStart) ++ ;
-        if ( event->nbEventsStart < MAXEVENTSTOPSTART)
-          ind = &(event->eventsStart[event->nbEventsStart]); 
-        else
-          ind = NULL ;
-        if (c == '\n')
+        if ((c >= '0') && (c <= '9'))
         {
-          etat = 11 ;
-          event->nbEventsStop = 0 ;
-          ind = &(event->eventsStop[0]);
-        }         
-      }
-      break ;
+          event->stopIndex = 10* event->stopIndex + (c - '0') ;
+          break ;
+        }
+        else if (c == ',')
+          etat = 4 ;
+        break ;
+      case 4 : //willStopIndex
+        if ((c >= '0') && (c <= '9'))
+        {
+          event->willStopIndex = 10* event->willStopIndex + (c - '0') ;
+          break ;
+        }
+        else if (c == '\n')
+        {
+          etat = 10 ;
+          event->nbEventsStart = 0 ;
+          ind = &(event->eventsStart[0]);
+        }       
+        break ;
+      case 10: //eventsStart
+        if ((c >= '0') && (c <= '9'))
+        {
+          if (ind == NULL) { initScore(); return;}
+          *ind = 10* (*ind) + (c - '0') ;
+          break ;
+        }
+        else if (c == ',')
+        {
+          (event->nbEventsStart) ++ ;
+          if ( event->nbEventsStart < MAXEVENTSTOPSTART)
+            ind = &(event->eventsStart[event->nbEventsStart]); 
+          else
+          {
+            ind = NULL ;
+  #ifdef DEBUGON
+             Serial.println("ERROR : eventStart overflow");
+  #endif
+          }
+        }
+        else if (c == '\n')
+         {
+            if ( *ind > 0 )
+              (event->nbEventsStart) ++ ;
+            etat = 11 ;
+            event->nbEventsStop = 0 ;
+            ind = &(event->eventsStop[0]);
+          }        
+        break ;
       case 11 : //eventsStop
       if ((c >= '0') && (c <= '9'))
       {
@@ -751,37 +858,149 @@ void expresseur_loadFile(int fileNr)
         *ind = 10* (*ind) + (c - '0') ;
         break ;
       }
-      if ((c == ',') || (c == '\n'))
+      else if (c == ',')
       {
         (event->nbEventsStop) ++ ;
         if ( event->nbEventsStop < MAXEVENTSTOPSTART)
           ind = &(event->eventsStop[event->nbEventsStop]);
         else
-          ind = NULL ;
-        if (c == '\n')
         {
-          etat = 0 ;
-          (score.nbEvents) ++ ;
-          if ( score.nbEvents < MAXEVENT)
-            event = &(score.events[score.nbEvents]);
-          else
-            event = NULL ;
-        }         
+          ind = NULL ;
+#ifdef DEBUGON
+           Serial.println("ERROR : eventStop overflow");
+#endif
+        }
       }
+      else if (c == '\n')
+      {
+        if ( *ind > 0 )
+          (event->nbEventsStop) ++ ;
+#ifdef DEBUGON
+          if (( index == 66) || ( index == 69)) 
+          {
+             Serial.print("event#");
+             Serial.print(index);
+             Serial.print(" pitch#");
+             Serial.print(event->pitch);
+             if ( event->velocity != 64)
+             {
+               Serial.print(" velo=");
+               Serial.print(event->velocity);
+             }
+             Serial.print(" track#");
+             Serial.print(event->trackNr);
+             if ( event->stopIndex > 0 )
+             {
+               Serial.print(" stop#");
+               Serial.print(event->stopIndex);
+             }
+             if ( event->willStopIndex > 0 )
+             {
+                Serial.print(" willStop#");
+                Serial.print(event->willStopIndex);
+             }
+             Serial.println("");
+             if ( event->nbEventsStart > 0 )
+             {
+               Serial.print("    starts ");
+               for(int i = 0 ; i < event->nbEventsStart ; i ++)
+               {
+                   Serial.print(" #");
+                   Serial.print(event->eventsStart[i]);
+                   Serial.print("/p=");
+                   Serial.print(score.events[event->eventsStart[i]].pitch);
+               }
+               Serial.println("");
+             }
+             if ( event->nbEventsStop > 0 )
+             {
+                Serial.print("    stops ");
+                for(int i = 0 ; i < event->nbEventsStop ; i ++)
+                 {
+                     Serial.print(" #");
+                     Serial.print(event->eventsStop[i]);
+                     Serial.print("/p=");
+                     Serial.print(score.events[event->eventsStop[i]].pitch);
+                 }
+                 Serial.println("");
+             }
+          }
+#endif
+          index = 0 ;
+          etat = -1 ;
+        }         
       break ;
-      default : etat = 0 ; break ;
+      default : etat = -1 ; break ;
     }
   }
   myFile.close();
+#ifdef DEBUGON
+     Serial.print("last read event#");
+     Serial.println(score.nbEvents);
+#endif
   rewind_score() ;
 }
 
+void tester()
+{
+  /*
+  sendMidiNote(64 ,100,psplit);
+  delay(1000);
+  sendMidiNote(68 ,100,psplit);
+  delay(1000);
+  sendMidiNote(64 ,0,psplit);
+  sendMidiNote(68 ,0,psplit);
+  delay(1000);
+  sendProg(true, progs[1][0],banks[1][0]);
+  delay(1000);
+  sendMidiNote(68 ,100,psplit);
+  delay(1000);
+  sendMidiNote(68 ,0,psplit);
+  delay(1000);
+  sendProg(false, progs[0][0],banks[0][0]);
+  delay(1000);
+  sendMidiNote(68 ,100,psplit);
+  delay(1000);
+  sendMidiNote(68 ,0,psplit);
+  */
+
+  expresseur_loadFile(1);
+  sendProg(true, progs[0][1],banks[0][1]);
+  for(int i= 1 ; i < 600; i ++)
+  {
+    digitalWrite(pinLed,HIGH);
+    expresseur_play(50,100);
+    delay(10);
+    expresseur_play(51,0);
+    delay(100);
+    expresseur_play(51,100);
+    delay(10);
+    digitalWrite(pinLed,LOW);
+    expresseur_play(50,0);
+    delay(100);
+  }
+}
 ///////////////////////////////////////////////////////////////////////////////
 //                             SETUP
 ///////////////////////////////////////////////////////////////////////////////
 void setup() 
 {
   pinMode(pinLed, OUTPUT);
+#ifdef DEBUGON
+  Serial.begin(9600);
+  digitalWrite(pinLed,HIGH);
+  delay(200);
+  digitalWrite(pinLed,LOW); 
+  Serial.println("Debug");
+  delay(200);
+  digitalWrite(pinLed,HIGH);
+  Serial.println("organ");
+  init_x2();
+  delay(200);
+  digitalWrite(pinLed,LOW); 
+  tester();
+  return;
+#endif
   for(byte o=0;o < MaxOUT; o ++)
     pinMode(pinOut[o], OUTPUT);
   for(byte i=0;i < MaxIN; i ++)
@@ -794,10 +1013,6 @@ void setup()
       buttonState[o][i] = B_OFF;
     }
   }
-#ifdef DEBUGON
-  Serial.begin(9600);
-#endif
-  init_x2();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -805,6 +1020,7 @@ void setup()
 ///////////////////////////////////////////////////////////////////////////////
 void loop() 
 {
+  return;
   bool waitOn = false ;
   
   for(byte o=0;o < MaxOUT; o ++)

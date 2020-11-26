@@ -606,22 +606,24 @@ function E.savetxt(f)
   f=io.open(f..".txt","w")
   io.output(f)
   -- save the events
-  for inil,t in ipairs(score.events) do
-	local s = t[ePitch] .. "," .. t[eVelocity] .. "," .. t[eTrackNr] .. "," .. t[eStopIndex] .. "," .. t[eWillStopIndex] .. "\n"
+  for index,t in ipairs(score.events) do
+	local s = ">" .. index .. "," .. t[ePitch] .. "," .. t[eVelocity] .. "," .. t[eTrackNr] .. "," .. t[eStopIndex] .. "," .. t[eWillStopIndex] .. "\n"
     io.write(s) 
 	local sv = ""
+	s = ""
 	for jnil,vs in ipairs(t[eStarts]) do
 	 s = s .. sv .. vs
 	 sv = ","
 	end
-	s = sv .. "\n"
-    io.write(s) 
+	s = s .. "\n"
+    io.write(s)
+	s = ""	
 	sv = ""
 	for jnil,vs in ipairs(t[eStops]) do
 	 s = s .. sv .. vs
 	 sv = ","
 	end
-	s = sv .. "\n"
+	s = s .. "\n"
     io.write(s) 
   end
   io.close(f)
@@ -807,7 +809,7 @@ function E.finishScore()
   c_nrEvent_noteOff = 1 -- current index for the next note-off
   c_partNr = 1 -- number of the current part
   c_measureNr = 1   -- number of the current measure
-  E.savetxt("fscorelua")
+  E.savetxt("C:\\Users\\franc\\Documents\\ExpresseurV3\\ressources\\tmp\\fscorelua")
   E.firstPart()
 end
 
