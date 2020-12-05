@@ -809,7 +809,7 @@ function E.finishScore()
   c_nrEvent_noteOff = 1 -- current index for the next note-off
   c_partNr = 1 -- number of the current part
   c_measureNr = 1   -- number of the current measure
-  E.savetxt("C:\\Users\\franc\\Documents\\ExpresseurV3\\ressources\\tmp\\fscorelua")
+  --E.savetxt("C:\\Users\\franc\\Documents\\ExpresseurV3\\ressources\\tmp\\fscorelua")
   E.firstPart()
 end
 

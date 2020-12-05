@@ -51,24 +51,24 @@ int end_score = false;
 #define pinLed  13
 #define MaxOUT 10
 #define MaxIN 9
-byte pinOut[MaxOUT] = { 12 , 13 , 14 , 15 , 16 , 4 , 5 , 6 , 9 , 10 } ;
-byte pinIn[MaxIN]   = { 17 , 18 , 19 , 20 , 21 , 0 , 1 , 2 , 3 };
+// Pins Teensy 3.6
+byte pinOut[MaxOUT] = {  29, 30, 31, 5 ,  6 ,  7 ,  8,   9  , 14 , 15 } ;
+byte pinIn[MaxIN]   = { 36, 35, 33, 34, 16 , 18 , 17 , 19 , 20 };
 byte buttonState[MaxOUT][MaxIN];
-unsigned long buttonSince[MaxOUT][MaxIN];
+// two last buttons of pinOUT are for the Tirette
+#define O_TIRETTE 8
+
 //etats de l'automate
 enum { B_OFF ,B_WAIT_ON , B_ON , B_WAIT_OFF } ;
-
+unsigned long buttonSince[MaxOUT][MaxIN];
+elapsedMillis sinceProg;
 elapsedMillis sinceLed;
 elapsedMillis sinceButton;
-elapsedMillis sinceProg;
-byte lastProg = -1 ;
+byte lastTiretteNr = -1 ;
 
-#define DELAY_NOISE_BUTTON 500 // ms
+#define DELAY_NOISE_TIRETTE 500 // ms
 #define DELAY_NOISE_KEYBOARD 250 // ms
 #define DELAY_DELAY_REPROG 4000 // max ms between two progs, to change the bank
-// two last buttons of pinOUT are for the CONTROL BUTTON
-#define O_BUTTON_1 8
-#define O_BUTTON_2 9
 
 // management of volume
 #define VOL_PIANO 15
@@ -86,23 +86,58 @@ byte psplit = 64 ;
 bool octaviaGauche = false ;
 bool octaviaDroite = false ;
 int midiPitchNbNoteOn[MAXSPLIT][MAXPITCH];
+int nbLoop = 0 ;
+bool notesOpened = false ;
 
 #define NBCHANNEL 16
+#define NBTIRETTE ( 2 * MaxIN )
+#define MAXBANK 5
 
-#define MAXBANK 3
-// program per channel, progs[bank[channel#]][channel#]
-int progs[MAXBANK][NBCHANNEL]=
+/* 
+out/in definition
+
+0/0 Fa
+7/8 Mi
+
+8/0 0 voix celeste
+8/1 1 clairon
+8/2 2 expression
+8/3 3 flute
+8/4 4 bourdon
+8/5 5 hautbois
+8/6 6 percussion
+8/7 7 baryton
+8/8 8 forte
+
+9/0 9 basson
+9/1 10 clarinette
+9/2 11 forte
+9/3 12 tremolo
+9/4 13 cor_anglais 
+9/5 14 fifre 
+9/6 15 percussion
+9/7 16 musette
+9/8 17 sourdine
+
+*/
+// program per tirette, progs[bank[tirette#]][tirette#]
+#define DEFAULTPROG 4 
+int progs[MAXBANK][NBTIRETTE]=
   {
-    {17,17,18,20,21,53,57,58,69,71,72,74,76,89, 7,99 },
-    {17,17,18,20,22,54,57,59,70,71,72,73,77,83, 7,100},
-    {17,17,18,19,22,55,57,61,70,59,58,75,78,85, 8,101}
+    {53 ,57, 0,74,20,69, 18,54, 0, 71,72, 0, 0,70,75, 7,21,0},
+    {100,58, 0,73,20,65, 16,55, 0, 71,72, 0, 0,70,79, 7,22,0},
+    {101,59, 0,76,17,66, 16,86, 0,  0,58, 0, 0, 0,80, 9,23,0},
+    {99 ,60, 0,77,17,67,  8,61, 0,  0,58, 0, 0, 0, 0,10,24,0},
+    {97 ,61, 0,78,17,68,107, 0, 0,  0,58, 0, 0, 0, 0,11,22,0}
   };
-// banks per channel, banks[bank[channel#]][channel#]
-byte banks[MAXBANK][NBCHANNEL]=
+// banks per tirette, banks[tirette#]
+int banks[MAXBANK][NBTIRETTE]=
   {
-    { 0,40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    { 1,33, 1, 8, 0, 0, 1, 0, 0, 1, 8, 0, 0, 0, 8, 0},
-    { 2, 9, 2, 0, 8, 0, 8, 0, 1, 0, 0, 0, 0, 0, 0, 0}
+    {  0, 0,-1, 0, 0, 0,  0, 0,-1,  0, 0,-1,-1, 0, 0, 0 ,0,-1},
+    {  0, 0,-1, 0, 8, 0,  0, 0,-1,  1, 8,-1,-1, 1, 0, 8 ,0,-1},
+    {  0, 0,-1, 0, 0, 0,  1, 0,-1, -1,-1,-1,-1,-1, 0, 0 ,0,-1},
+    {  0, 0,-1, 0,40, 0,  0, 0,-1, -1,-1,-1,-1,-1,-1, 0 ,0,-1},
+    {  0, 0,-1, 0, 2, 0,  1,-1,-1, -1,-1,-1,-1,-1,-1, 0 ,8,-1}
   };
 // status of a prog on a channel  
 int prog[NBCHANNEL]={-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
@@ -110,13 +145,21 @@ int prog[NBCHANNEL]={-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 int bank[NBCHANNEL]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 bool firstProg = true;
 
+
 ///////////////////////////////////////////////////////////////////////////////
 //                       MIDI management
 ///////////////////////////////////////////////////////////////////////////////
 
-void sendMidiByte(byte b)
+void sendMidiByte(int b)
 {
-  Serial1.write(b);
+  if (( b >= 0 ) && ( b <= 127))
+  {
+    Serial1.write((byte)b);
+    return ;
+  }
+#ifdef DEBUGON
+  Serial.println("Error byte");
+#endif
 }
 void sendMidiCtrl(byte n,byte v)
 {
@@ -169,8 +212,9 @@ void general_volume()
   sendMidiCtrl(7,(vol_base + vol_delta));
 }
 
-void sendProg(boolean on,byte nrprog,byte nrbank)
+void sendProg(boolean on,int nrprog,int nrbank)
 {
+  if ((nrptog <= 0) || (nrbank == -1)) return ;
   byte p = constrain(nrprog, 1, 128) - 1;
   byte b = constrain(nrbank, 0, 127);
   byte i0, i1 ;
@@ -249,6 +293,7 @@ void init_x2()
     sendMidiByte(0x00);
     sendMidiByte(0xF7);
   }
+  //reste all controlers
   for(byte i = 0; i < 16; i ++)
   {
     sendMidiByte(0xB0 | i);
@@ -262,6 +307,7 @@ void init_x2()
     sendMidiByte(0);
   }
 #ifdef false // DEBUGON
+  // test de notes
   for(byte i= 0 ; i < 16; i ++ )
   {
     sendMidiByte(0xB0 | i);
@@ -280,12 +326,12 @@ void init_x2()
 #endif
   general_volume() ;
   firstProg = true;
-  sendProg(true, progs[0][0],banks[0][0]);
+  sendProg(true, progs[DEFAULTPROG][0],banks[DEFAULTPROG][0]);
 }
-void sendMidiNote(byte pi,byte v, byte pspliti)
+void sendMidiNote(int pi,int v, int pspliti)
 {
-  byte i0, i1 ;
-  byte p = pi ;
+  int i0, i1 ;
+  int p = pi ;
   int canal = 0 ;
   if (split)
   {
@@ -333,7 +379,7 @@ void sendMidiNote(byte pi,byte v, byte pspliti)
   else
   {
     (midiPitchNbNoteOn[canal][p]) ++ ;
-    if (midiPitchNbNoteOn[canal][p] == 1 )
+    if ((midiPitchNbNoteOn[canal][p] == 1 ) && (notesOpened))
     {
       for(byte i = i0; i <= i1 ; i ++)
       {
@@ -359,16 +405,11 @@ void sendMidiNote(byte pi,byte v, byte pspliti)
 ///////////////////////////////////////////////////////////////////////////////
 //                       Orgue management
 ///////////////////////////////////////////////////////////////////////////////
-
-void ctrlButton(byte o, byte i, bool on)
+void ctrlTirette(int tiretteNr, bool on)
 {
-  if (( o == O_BUTTON_1 ) || ( o == O_BUTTON_2))
+  switch(tiretteNr)
   {
-    // tirettes
-    buttonSince[o][i] = sinceButton + DELAY_NOISE_BUTTON ;
-
-    if (( o == O_BUTTON_2 ) && ( i == 0 ))
-    {
+    case  : 17
       // sourdine
       if ( on )
       {
@@ -379,9 +420,9 @@ void ctrlButton(byte o, byte i, bool on)
         vol_base = VOL_MESOFORTE  ;
       }
       general_volume() ;
-    }
-    else if ((( o == O_BUTTON_1 ) && ( i == 0 )) || (( o == O_BUTTON_2 ) && ( i == 5 )))
-    {
+      break ;
+    case 8 :
+    case 11 :
       // forte
       if (on)
       {
@@ -392,102 +433,129 @@ void ctrlButton(byte o, byte i, bool on)
         vol_delta -= VOL_DELTA_FORTE ;
       }
       general_volume() ;
-    }
-    else if (( o == O_BUTTON_1 ) && ( i == 5 ))
-    {
+      break ;
+    case 2 :
       // mode Expresseur
       expresseur = on ;
       if (expresseur)
         expresseur_loadFile(0);
-    }
-    else if (( o == O_BUTTON_2 ) && ( i == 6 ))
-    {
+      break ;
+    case 12 :
       // tremolo
       sendMidiCtrl(11,(on?127:0));
-    }
-    else
-    {
+      break ;
+    default :
       // selection instrument program
-      byte nrcontrol = constrain((o - O_BUTTON_1)*9 + i,0,NBCHANNEL - 1 ) ;
       if ( on )
       {
         if (firstProg)
         {
           firstProg = false ;
-          sendProg(false,progs[0][0],banks[0][0]);
+          sendProg(false,progs[DEFAULTPROG][0],banks[DEFAULTPROG][0]);
         }
         // le meme bouton de programme est selectionne plusieurs fois de suite dans un court laps de temps : on change de bank
-        if ((lastProg == nrcontrol) && (sinceProg < DELAY_DELAY_REPROG))
+        if ((lastTiretteNr == tiretteNr) && (sinceProg < DELAY_DELAY_REPROG))
         {
-          (bank[nrcontrol]) ++ ; 
-          if (( bank[nrcontrol] >= MAXBANK ) || (progs[bank[nrcontrol]][nrcontrol] == -1))
-            bank[nrcontrol] = 0 ;
+          (bank[tiretteNr]) ++ ; 
+          if (( bank[tiretteNr] >= MAXBANK ) || (progs[bank[tiretteNr]][tiretteNr] == -1))
+            bank[tiretteNr] = 0 ;
         }
-        lastProg = nrcontrol ;
+        lastTiretteNr = tiretteNr ;
         sinceProg = 0 ;
       }
       // changement de programme
-      sendProg(on,progs[bank[nrcontrol]][nrcontrol],banks[bank[nrcontrol]][nrcontrol]);
-    }
+      sendProg(on,progs[bank[tiretteNr]][tiretteNr],banks[bank[tiretteNr]][tiretteNr]);
+      break ;
+  }
+}
+void ctrlNote(int pitch, bool on)
+{
+  switch(pitch)
+  {
+    case 33 : 
+      gaucheOn= on ;
+      if (on)
+      {
+        if (droiteOn)
+          split = false ;
+        else
+        {
+          if ( split )
+            octaviaGauche = (! octaviaGauche) ;
+          split = true; gauche = true ;
+        }
+      }
+      break ;
+    case 93 :         
+      droiteOn = on ;
+      if (on)
+      {
+        if (gaucheOn)
+          split = false ;
+        else
+        {
+          if ( split )
+            octaviaDroite = (! octaviaDroite) ;
+          split = true; gauche = false ;
+        }
+      }
+      break ;
+    default :
+      if ( gaucheOn || droiteOn)
+        psplit = pitch ;
+      else
+        if (expresseur)
+        {
+          // mode expresseur
+          if (pitch >= PITCHFILE)
+          {
+            expresseur_loadFile(pitch - PITCHFILE);
+          }
+          else
+          {
+            expresseur_play(pitch, VELODEFAULT);
+          }
+        }
+        else
+        {
+          // mode orgue
+          sendMidiNote(pitch ,(on?VELODEFAULT:0),psplit);
+        }
+      break ;
+   }
+}
+void ctrlButton(byte o, byte i, bool on)
+{
+  if ( o >= O_TIRETTE)
+  {
+#if DEBUGON == 1
+  Serial.print("CtrlButton tirette o=");
+  Serial.print(o);
+  Serial.print(" i =");
+  Serial.print(o);
+  Serial.print(" on= ");
+  Serial.println(on);
+#endif
+    // tirettes
+    buttonSince[o][i] = sinceButton + DELAY_NOISE_TIRETTE ;
+    unsigned int tiretteNr = MaxIN*(o - O_TIRETTE) + i ;
+    ctrlTirette( tiretteNr,  on);
   }
   else
   {
+#if DEBUGON == 1
+  Serial.print("CtrlButton clavier o=");
+  Serial.print(o);
+  Serial.print(" i =");
+  Serial.print(o);
+  Serial.print(" on= ");
+  Serial.println(on);
+#endif
+
     // clavier
     buttonSince[o][i] = sinceButton + DELAY_NOISE_KEYBOARD ;
-    byte pitch = 32+(o*9)+i ;
-    switch(pitch)
-    {
-      case 33 : 
-        gaucheOn= on ;
-        if (on)
-        {
-          if (droiteOn)
-            split = false ;
-          else
-          {
-            if ( split )
-              octaviaGauche = (! octaviaGauche) ;
-            split = true; gauche = true ;
-          }
-        }
-        break ;
-      case 93 :         
-        droiteOn = on ;
-        if (on)
-        {
-          if (gaucheOn)
-            split = false ;
-          else
-          {
-            if ( split )
-              octaviaDroite = (! octaviaDroite) ;
-            split = true; gauche = false ;
-          }
-        }
-        break ;
-      default :
-        if ( gaucheOn || droiteOn)
-          psplit = pitch ;
-        else
-          if (expresseur)
-          {
-            // mode expresseur
-            if (pitch >= PITCHFILE)
-            {
-              expresseur_loadFile(pitch - PITCHFILE);
-            }
-            else
-            {
-              expresseur_play(pitch, VELODEFAULT);
-            }
-          }
-          else
-          {
-            // mode orgue
-            sendMidiNote(pitch ,(on?VELODEFAULT:0),psplit);
-          }
-        break ;
-     }
+    int pitch = 32+(o*MaxIN)+i ;
+    ctrlNote(pitch, on);
   }
 }
 
@@ -991,20 +1059,28 @@ void setup()
   digitalWrite(pinLed,HIGH);
   delay(200);
   digitalWrite(pinLed,LOW); 
-  Serial.println("Debug");
+  Serial.println("debug");
   delay(200);
   digitalWrite(pinLed,HIGH);
   Serial.println("organ");
   init_x2();
   delay(200);
   digitalWrite(pinLed,LOW); 
-  tester();
-  return;
+  //tester();
+  //return;
 #endif
+  for(byte i=0;i < 36; i ++)
+    pinMode(i, INPUT);     
+  Serial.println("init pinoOut");
   for(byte o=0;o < MaxOUT; o ++)
+  {
     pinMode(pinOut[o], OUTPUT);
+    digitalWrite(pinOut[o],HIGH);
+  }
+  Serial.println("init pinIn");
   for(byte i=0;i < MaxIN; i ++)
     pinMode(pinIn[i], INPUT_PULLUP);     
+  Serial.println("init buttonState");
   for(byte o=0;o < MaxOUT; o ++)
   {
     digitalWrite(pinOut[o],HIGH);
@@ -1013,6 +1089,8 @@ void setup()
       buttonState[o][i] = B_OFF;
     }
   }
+  nbLoop = 0 ;
+  notesOpened = false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1020,23 +1098,31 @@ void setup()
 ///////////////////////////////////////////////////////////////////////////////
 void loop() 
 {
-  return;
+  // to avoid blocked keys
+  if (! notesOpened) 
+    if (nbLoop < 10))
+      nbLoop ++ ;
+    else
+      notesOpened = true ;
+
+  // scan keys
   bool waitOn = false ;
-  
   for(byte o=0;o < MaxOUT; o ++)
   {
     digitalWrite(pinOut[o],LOW);
+    delayMicroseconds(500);
     for(byte i=0;i < MaxIN; i ++)
     {
+      bool vin = digitalRead(pinIn[i]) ;
       switch(buttonState[o][i])
       {
         case B_OFF : // etat repos
-          if (digitalRead(pinIn[i]) == LOW)
-            {
-              // debut appui 
-              buttonState[o][i] = B_WAIT_ON ;
-              ctrlButton(o, i, true);
-            }
+          if ( vin == LOW)
+          {
+            // debut appui 
+            buttonState[o][i] = B_WAIT_ON ;
+            ctrlButton(o, i, true);
+          }
           break;
         case B_WAIT_ON :
           waitOn =  true ;
@@ -1044,12 +1130,12 @@ void loop()
             buttonState[o][i] = B_ON ;
           break ;
         case B_ON : // etat appuye
-          if (digitalRead(pinIn[i]) == HIGH)
-            {
-              // debut relachement
-              buttonState[o][i] = B_WAIT_OFF ;
-              ctrlButton(o, i, false);
-            }
+          if (vin == HIGH)
+          {
+            // debut relachement
+            buttonState[o][i] = B_WAIT_OFF ;
+            ctrlButton(o, i, false);
+          }
           break;
         case B_WAIT_OFF :
           waitOn =  true ;
@@ -1061,6 +1147,7 @@ void loop()
       }
     }
     digitalWrite(pinOut[o],HIGH);
+    delayMicroseconds(500);
   }
 
   // led management
