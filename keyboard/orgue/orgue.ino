@@ -20,21 +20,21 @@ void expresseur_play(int pitch, int velo);
 
 typedef struct
 {
-  int velocity;
-  int pitch;
-  int trackNr;
-  int willStopIndex ; // on note-off
-  int stopIndex ; // on note-on
-  int eventsStart[MAXEVENTSTOPSTART]; // synchronous start
-  int nbEventsStart  ;
-  int eventsStop[MAXEVENTSTOPSTART]; // synchronous stop
-  int nbEventsStop  ;
+  short unsigned int velocity;
+  short unsigned int pitch;
+  short unsigned int trackNr;
+  short unsigned int willStopIndex ; // on note-off
+  short unsigned int stopIndex ; // on note-on
+  short unsigned int eventsStart[MAXEVENTSTOPSTART]; // synchronous start
+  short unsigned int nbEventsStart  ;
+  short unsigned int eventsStop[MAXEVENTSTOPSTART]; // synchronous stop
+  short unsigned int nbEventsStop  ;
 } T_event ; // more or less a "chord" to play
 typedef struct
 {
   T_event events[MAXEVENT];
-  int nbEvents  ;
-  int trackMax;
+  short unsigned int nbEvents  ;
+  short unsigned int trackMax;
 } T_score ; // a score is a sequential list of chords
 T_score score ;
 int noteOffStops[MAXPITCH]; // note of to stop on onte-off
@@ -54,14 +54,15 @@ int noteExpresseurOn = 0 ;
 #define MaxOUT 10
 #define MaxIN 9
 // Pins Teensy 3.6
-byte pinOut[MaxOUT] = {  29, 30, 31, 5 ,  6 ,  7 ,  8,   9  , 14 , 15 } ;
-byte pinIn[MaxIN]   = { 36, 35, 33, 34, 16 , 18 , 17 , 19 , 20 };
+byte pinOut[MaxOUT] = { 29, 30, 31, 5 ,  6,  7,  8,  9, 14, 15 } ;
+byte pinIn[MaxIN]   = { 36, 35, 33, 34, 16, 18, 17, 19, 20 };
 byte buttonState[MaxOUT][MaxIN];
 // two last buttons of pinOUT are for the Tirette
 #define O_TIRETTE 8
+#define OFFSETPITCH 29 
 
 //etats de l'automate
-enum { B_OFF ,B_WAIT_ON , B_ON , B_WAIT_OFF } ;
+enum { B_OFF ,B_WAIT_ON , B_ON , B_WAIT_OFF , B_OUT } ;
 unsigned long buttonSince[MaxOUT][MaxIN];
 elapsedMillis sinceLed;
 elapsedMillis sinceButton;
@@ -83,15 +84,11 @@ byte vol_delta = 0 ;
 
 bool expresseur = false ;
 bool gauche = false ;
-bool gaucheOn = false;
-bool droiteOn = false ;
 bool split = false ;
 byte psplit = 64 ; /* Mi-4 */
-bool octaviaGauche = false ;
-bool octaviaDroite = false ;
+int octaviaGauche = 0 ;
+int octaviaDroite = 0 ;
 int midiPitchNbNoteOn[MAXSPLIT][MAXPITCH];
-int nbLoop = 0 ;
-bool notesOpened = false ;
 
 #define NBCHANNEL 16
 #define MAXTIRETTE ( 2 * MaxIN )
@@ -142,8 +139,8 @@ int banks[MAXBANK][MAXTIRETTE]=
     {  0, 0,-1, 0, 2, 1,  0,-1,-1, -1,-1,-1,-1,-1, 0 ,-1,8,-1}
   };
 // status of a prog on a channel  
-int prog[NBCHANNEL]={-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
-int lastBankNr[MAXTIRETTE]={-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+int prog[NBCHANNEL]=        {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+int lastBankNr[MAXTIRETTE]= {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 bool firstProg = true;
 
 
@@ -153,26 +150,26 @@ bool firstProg = true;
 
 void sendMidiByte(int nbByte, int b1 , int b2, int b3)
 {
-  if (( b1 >= 0 ) && ( b1 <= 255) && ( b2 >= 0 ) && ( b2 <= 255) && ( b3 >= 0 ) && ( b3 <= 255) && (nbByte > 0) &&(nbByte <4))
+  if (( b1 < 0 ) || ( b1 > 255) || ( b2 < 0 ) || ( b2 > 255) || ( b3 < 0 ) || ( b3 > 255) || (nbByte < 1) ||  (nbByte > 3))
   {
-    #if DEBUGON > 3
-      Serial.print("sendMidiByte *"); Serial.print(nbByteX);   Serial.print(" ");
-      Serial.print(b1,HEX);   Serial.print("/"); Serial.print(b2,HEX);  Serial.print("/"); Serial.println(b3,HEX);
-    #endif
-    switch(nbByte)
-    {
-      case 1 : Serial1.write((byte)b1); break ;
-      case 2 : Serial1.write((byte)b1); Serial1.write((byte)b2); break ;
-      case 3 : Serial1.write((byte)b1); Serial1.write((byte)b2); Serial1.write((byte)b3); break ;
-      default : break ;
-    }
-    Serial1.flush();
-    return ;
-  }
-  #ifdef DEBUGON
+    #ifdef DEBUGON
     Serial.print("ERROR sendMidiByte *"); Serial.print(nbByte);   Serial.print(" ");
     Serial.print(b1,HEX);   Serial.print("/"); Serial.print(b2,HEX);  Serial.print("/"); Serial.println(b3,HEX);
+    #endif
+    return;
+  }
+  #if DEBUGON > 3
+    Serial.print("sendMidiByte *"); Serial.print(nbByteX);   Serial.print(" ");
+    Serial.print(b1,HEX);   Serial.print("/"); Serial.print(b2,HEX);  Serial.print("/"); Serial.println(b3,HEX);
   #endif
+  switch(nbByte)
+  {
+    case 1 : Serial1.write((byte)b1); break ;
+    case 2 : Serial1.write((byte)b1); Serial1.write((byte)b2); break ;
+    case 3 : Serial1.write((byte)b1); Serial1.write((byte)b2); Serial1.write((byte)b3); break ;
+    default : break ;
+  }
+  Serial1.flush();
 }
 void sendMidiCtrl(byte n,byte v)
 {
@@ -204,9 +201,9 @@ void sendMidiCtrl(byte n,byte v)
 void general_volume()
 {
   int vol = vol_base + vol_delta ;
-    #if DEBUGON > 1
-      Serial.print("General volume = "); Serial.println(vol);
-    #endif
+  #if DEBUGON > 1
+    Serial.print("General volume = "); Serial.println(vol);
+  #endif
   /*
   sendMidiByte(3, 0xB0, 0x63 , 0x37 );
   sendMidiByte(3 , 0xB0 , 0x62 , 0x7);
@@ -307,7 +304,6 @@ void reset_x2()
     Serial.println("default prog");
   #endif  
   sendProg(true, progs[0][DEFAULTPROG],banks[0][DEFAULTPROG]);
-
 }
 void init_x2()
 {
@@ -317,7 +313,6 @@ void init_x2()
       
   Serial1.begin(31250);
   delay(200);
-
   reset_x2();
 }
 void sendMidiNote(int pi,int v, int pspliti)
@@ -330,14 +325,12 @@ void sendMidiNote(int pi,int v, int pspliti)
     if (p < pspliti)
     {
       i0=0; i1=5;
-      if ( octaviaGauche )
-        p -= 12 ;
+      p += 12 * octaviaGauche ;
       canal = 0 ;
     }
     else
     {
-      if ( octaviaDroite )
-        p += 12 ;
+      p += 12 * octaviaDroite ;
       i0=6; i1=15;
       canal = 1 ;
     }
@@ -368,9 +361,8 @@ void sendMidiNote(int pi,int v, int pspliti)
       Serial.print(" canal=");Serial.print(canal);Serial.print(" pitch=");Serial.print(p);
       Serial.print(" velo=");Serial.print(v);
       Serial.print(" nbNoteOn=");Serial.print(midiPitchNbNoteOn[canal][p]);
-      Serial.print(" notesOpened=");Serial.println(notesOpened);
     #endif
-    if ((midiPitchNbNoteOn[canal][p] == 1 ) && (notesOpened))
+    if (midiPitchNbNoteOn[canal][p] == 1 )
     {
       for(byte i = i0; i <= i1 ; i ++)
       {
@@ -448,7 +440,7 @@ void ctrlTirette(int tiretteNr, bool on)
 }
 void shiftBank(int bankNr)
 {
-  if ((lastTiretteNr < 0 ) || (lastBankNr < 0 )) return ;
+  if ((lastTiretteNr < 0 ) || (lastBankNr[lastTiretteNr] < 0 )) return ;
   int mprog = progs[bankNr][lastTiretteNr] ;
   int mbank = banks[bankNr][lastTiretteNr] ;
   if ((mprog != -1) && (mbank != -1))
@@ -487,20 +479,25 @@ void ctrlShiftKey(int keyNr)
 {
   switch(keyNr)
   {
-    case KEYSHIFT : allNoteOff(); break ;
+      case KEYSHIFT : allNoteOff(); break ;
      // change bank
-    case 8 : shiftBank(0); break ;
-    case 10 : shiftBank(1); break ;
-    case 13 : shiftBank(2); break ;
-    case 15 : shiftBank(3); break ;
-    case 17 : shiftBank(4); break ;
-    case 9 : split = false ; break ;
-    case 11 : split = true ; break ;
-    case 12 : octaviaGauche = false ; break ;
-    case 14 : octaviaGauche = true ; break ;
-    case 16 : octaviaDroite = false ; break ;
-    case 18 : octaviaDroite = true ; break ;
-    default :  break ;      
+    case 6    :                                       break ;
+    case 7    :                                       break ;
+      case 8  : shiftBank(0)                        ; break ;
+    case 9    : split = false                       ; break ;
+      case 10 : shiftBank(1)                        ; break ;
+    case 11   : split = true                        ; break ;
+    case 12   : octaviaGauche = -1  ; gauche = true ; break ;
+      case 13 : shiftBank(2)                        ; break ;
+    case 14   : octaviaGauche =  0  ; gauche = true ; break ;
+      case 15 : shiftBank(3)                        ; break ;
+    case 16   : octaviaGauche =  1  ; gauche = true ; break ;
+      case 17 : shiftBank(4)                        ; break ;
+    case 18   : octaviaDroite = -1  ; gauche = false; break ;
+    case 19   : octaviaDroite =  0  ; gauche = false; break ;
+      case 20 :                                       break ;
+    case 21   : octaviaDroite =  1  ; gauche = false; break ;
+    default   : if (split) psplit = OFFSETPITCH + keyNr ;  break ;      
   }
 }
 void modeExpresseur(int pitch , bool on)
@@ -533,7 +530,7 @@ void modeExpresseur(int pitch , bool on)
 }
 void ctrlNote(int keyNr , bool on)
 {
-  int pitch = 29 /*Fa-1*/ + keyNr ;
+  int pitch = OFFSETPITCH /*Fa-1*/ + keyNr ;
   if (expresseur)
   {
     modeExpresseur(pitch , on);
@@ -863,7 +860,7 @@ void expresseur_loadFile(int fileNr)
   //     3rd line with int eventsSttop, ..
   initScore() ;
   T_event *event = &(score.events[1]);
-  int *ind ;
+  short unsigned int *ind ;
   char c ;
   int etat = -1 ;
   int minus = 1 ;
@@ -873,6 +870,7 @@ void expresseur_loadFile(int fileNr)
     c = myFile.read();
     switch (etat)
     {
+      case -2 : break ; // NOP
       case -1 : //index
         if ((c >= '0') && (c <= '9'))
         {
@@ -892,7 +890,8 @@ void expresseur_loadFile(int fileNr)
             #ifdef DEBUGON
               Serial.print("ERROR : event overflow. Index=");Serial.println(index);
             #endif
-            initScore(); 
+            etat = -2 ;
+            // initScore(); 
             return;
           }
           etat = 0 ;
@@ -958,7 +957,7 @@ void expresseur_loadFile(int fileNr)
       case 10: //eventsStart
         if ((c >= '0') && (c <= '9'))
         {
-          if (ind == NULL) { initScore(); return;}
+          if (ind == NULL) { etat = -2 ; break ;}
           *ind = 10* (*ind) + (c - '0') ;
           break ;
         }
@@ -987,7 +986,7 @@ void expresseur_loadFile(int fileNr)
       case 11 : //eventsStop
       if ((c >= '0') && (c <= '9'))
       {
-        if (ind == NULL) { initScore(); return;}
+        if (ind == NULL) { etat = -2 ; break ;}
         *ind = 10* (*ind) + (c - '0') ;
         break ;
       }
@@ -1140,21 +1139,32 @@ void setup()
     pinMode(pinOut[o], OUTPUT);
     digitalWrite(pinOut[o],HIGH);
   }
+
   Serial.println("init pinIn");
   for(byte i=0;i < MaxIN; i ++)
     pinMode(pinIn[i], INPUT_PULLUP);     
+
   Serial.println("init buttonState");
   for(byte o=0;o < MaxOUT; o ++)
   {
-    digitalWrite(pinOut[o],HIGH);
+    digitalWrite(pinOut[o],LOW);
+    delayMicroseconds(1000);
     for(byte i=0;i < MaxIN; i ++)
     {
-      buttonState[o][i] = B_OFF;
+      if ((digitalRead(pinIn[i]) == HIGH) && (o < O_TIRETTE))
+      {
+        buttonState[o][i] = B_OUT; // keyboark key is out of order
+        #ifdef DEBUGON
+          Serial.print("Key out of order ");Serial.print(o);Serial.print("/");Serial.println(i);
+        #endif
+      }
+      else
+        buttonState[o][i] = B_OFF;
     }
+    digitalWrite(pinOut[o],HIGH);
+    delayMicroseconds(1000);
   }
   initScore();
-  nbLoop = 0 ;
-  notesOpened = false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1162,14 +1172,6 @@ void setup()
 ///////////////////////////////////////////////////////////////////////////////
 void loop() 
 {
-  // to avoid blocked keys
-  if (! notesOpened) 
-  {
-    if (nbLoop < 10)
-      nbLoop ++ ;
-    else
-      notesOpened = true ;
-  }
   // scan keys
   bool sAllKeyStable = true ;
   bool sAllNoteOff = true ;
@@ -1245,7 +1247,12 @@ void loop()
             buttonState[o][i] = B_OFF ;
           }
           break ;
-         default :
+        ////////////////////////////////
+        // etat out of order 
+        ////////////////////////////////
+        case B_OUT :
+          break ;
+        default :
             #ifdef DEBUGON
               Serial.print("ERROR etat loop ");Serial.println(buttonState[o][i]);
             #endif
@@ -1260,7 +1267,7 @@ void loop()
   if ( sAllNoteOff && (noteExpresseurOn == 0)) allNoteOff();
 
   // reset timer button
-  if ( sAllKeyStable ) sinceButton = 0 ;
+  if (( sAllKeyStable ) && (sinceButton > 1000)) sinceButton = 0 ;
   
   // led management     
   if ( ! sAllKeyStable) // something is changing
