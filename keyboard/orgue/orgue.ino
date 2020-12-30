@@ -16,6 +16,7 @@ const int chipSelect = BUILTIN_SDCARD;
 #define PITCHFILE 64
 #define MAXPITCH 128
 #define MAXKEYNR 72
+#define KEYRANGEMIN 20
 
 void expresseur_loadFile(int fileNr);
 void expresseur_play(int pitch, int velo);
@@ -355,7 +356,7 @@ void sendMidiNote(int pi,int v, int pspliti)
   {
     if (p < pspliti)
     {
-      if (on)
+      if (v > 0)
       {
         splitChange = (gauche == false) ; 
         gauche = true ;
@@ -367,7 +368,7 @@ void sendMidiNote(int pi,int v, int pspliti)
     }
     else
     {
-      if (on)
+      if (v > 0)
       {
         splitChange = (gauche == true) ; 
         gauche = false ;
@@ -572,7 +573,7 @@ void tuneSplit(int keyNr)
   if ( blackNr == -1)
   {
     // balance droite/gauche
-    balanceGaucheDroite = (BALANCEMAX *(keyNr - 20 ))/ ( MAXKEYNR - 20 );
+    balanceGaucheDroite = (BALANCEMAX *(keyNr - KEYRANGEMIN ))/ ( MAXKEYNR - KEYRANGEMIN );
   }
   else
   {
@@ -586,23 +587,22 @@ void ctrlShiftKey(int keyNr)
   buf[0] = '\0' ;
   switch(keyNr)
   {
-      case KEYSHIFT :  allNoteOff();      break ;  
+    case KEYSHIFT :  allNoteOff();      break ;  
     case 6    :                                       break ;
-    case 7    :                                       break ;
+    case 7    : split = false                       ; strcpy(buf," split false"); break ;
       case 8  : shiftBank(0)                        ; strcpy(buf," bank(0)"); break ;
-    case 9    : split = false                       ; strcpy(buf," split false"); break ;
+    case 9    : split = true                        ; strcpy(buf," split true"); break ;
       case 10 : shiftBank(1)                        ; strcpy(buf," bank(1)"); break ;
-    case 11   : split = true                        ; strcpy(buf," split true"); break ;
-    case 12   : octaviaGauche = -1  ; splitChange = (gauche == false) ; gauche = true ; strcpy(buf," octavia Gauche -");break ;
+    case 11   : octaviaGauche = -1  ; splitChange = (gauche == false) ; gauche = true ; strcpy(buf," octavia Gauche -");break ;
+    case 12   : octaviaGauche =  0  ; splitChange = (gauche == false) ; gauche = true ; strcpy(buf," octavia Gauche 0"); break ;
       case 13 : shiftBank(2)                        ; strcpy(buf," bank(2)"); break ;
-    case 14   : octaviaGauche =  0  ; splitChange = (gauche == false) ; gauche = true ; strcpy(buf," octavia Gauche 0"); break ;
+    case 14   : octaviaGauche =  1  ; splitChange = (gauche == false) ; gauche = true ; strcpy(buf," octavia Gauche +"); break ;
       case 15 : shiftBank(3)                        ; strcpy(buf," bank(3)"); break ;
-    case 16   : octaviaGauche =  1  ; splitChange = (gauche == false) ; gauche = true ; strcpy(buf," octavia Gauche +"); break ;
+    case 16   : octaviaDroite = -1  ; splitChange = (gauche == true) ; gauche = false; strcpy(buf," octavia Droite -"); break ;
       case 17 : shiftBank(4)                        ; strcpy(buf," bank(4)"); break ;
-    case 18   : octaviaDroite = -1  ; splitChange = (gauche == true) ; gauche = false; strcpy(buf," octavia Droite -"); break ;
-    case 19   : octaviaDroite =  0  ; splitChange = (gauche == true) ; gauche = false; strcpy(buf," octavia Droite 0"); break ;
-      case 20 :                                       break ;
-    case 21   : octaviaDroite =  1  ; splitChange = (gauche == true) ; gauche = false; strcpy(buf," octavia Droite +"); break ;
+    case 18   : octaviaDroite =  0  ; splitChange = (gauche == true) ; gauche = false; strcpy(buf," octavia Droite 0"); break ;
+    case 19   : octaviaDroite =  1  ; splitChange = (gauche == true) ; gauche = false; strcpy(buf," octavia Droite +"); break ;
+    case KEYRANGEMIN :
     default   : tuneSplit(keyNr) ; strcpy(buf," split") ; break ;      
   }
   #if DEBUGON > 1
@@ -770,9 +770,9 @@ void startEvent(int velo_in_unused, T_event *event , int nbEvent , int bid)
     velo_in = VELOLOW ;
     bool paire = ((score.trackMax % 2) == 0) ;
     int nZone = score.trackMax + (paire?1:0) ;
-    int lZone = MAXKEYNR /nZone ;
+    int lZone = (MAXKEYNR - KEYRANGEMIN) /nZone ;
     int midZone = (score.trackMax - (paire?0:1)) / 2 ;
-    for(int i= 0 , mBid = lZone , ntrack = score.trackMax - 1 ; i < nZone ; i ++ , mBid += lZone , ntrack -- )
+    for(int i= 0 , mBid = KEYRANGEMIN + lZone , ntrack = score.trackMax - 1 ; i < nZone ; i ++ , mBid += lZone , ntrack -- )
     {
       if ( i == midZone)
       {
