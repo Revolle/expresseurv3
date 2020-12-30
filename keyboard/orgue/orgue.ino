@@ -1,4 +1,5 @@
 #define DEBUGON 2
+//#define MIDIUSB 1
 
 ///////////////////////////////////////////////////////////////////////////////
 //                       Definition SD-Card
@@ -14,6 +15,7 @@ const int chipSelect = BUILTIN_SDCARD;
 #define MAXEVENTSTOPSTART 8
 #define PITCHFILE 64
 #define MAXPITCH 128
+#define MAXKEYNR 72
 
 void expresseur_loadFile(int fileNr);
 void expresseur_play(int pitch, int velo);
@@ -43,13 +45,17 @@ int noteOffStops[MAXPITCH]; // note of to stop on onte-off
 int c_nrEvent_noteOn = 0 ; // index of event for the next note-on 
 int end_score = false;
 int noteExpresseurOn = 0 ;
+bool firstErrAllNoteOff = true ;
+bool newEvent = false ;
 
 ///////////////////////////////////////////////////////////////////////////////
 //                       Definition Orgue
 ///////////////////////////////////////////////////////////////////////////////
 #define MAXSPLIT 2
 #define VELODEFAULT 100
-
+#define VELOLOW 64
+#define VELOHIGH 100
+#define BALANCEMAX 100
 #define pinLed  13
 #define MaxOUT 10
 #define MaxIN 9
@@ -59,7 +65,7 @@ byte pinIn[MaxIN]   = { 36, 35, 33, 34, 16, 18, 17, 19, 20 };
 byte buttonState[MaxOUT][MaxIN];
 // two last buttons of pinOUT are for the Tirette
 #define O_TIRETTE 8
-#define OFFSETPITCH 29 
+#define OFFSETPITCH 17
 
 //etats de l'automate
 enum { B_OFF ,B_WAIT_ON , B_ON , B_WAIT_OFF , B_OUT } ;
@@ -68,6 +74,7 @@ elapsedMillis sinceLed;
 elapsedMillis sinceButton;
 int lastTiretteNr = -1 ;
 bool keyShift = false ;
+bool splitChange = false ;
 
 #define DELAY_NOISE_TIRETTE 500 // ms
 #define DELAY_NOISE_KEYBOARD 10 // ms
@@ -88,6 +95,8 @@ bool split = false ;
 byte psplit = 64 ; /* Mi-4 */
 int octaviaGauche = 0 ;
 int octaviaDroite = 0 ;
+int balanceGaucheDroite = BALANCEMAX / 2 ;
+
 int midiPitchNbNoteOn[MAXSPLIT][MAXPITCH];
 
 #define NBCHANNEL 16
@@ -170,10 +179,10 @@ void sendMidiByte(int nbByte, int b1 , int b2, int b3)
     default : break ;
   }
   Serial1.flush();
+  newEvent = true ;
 }
 void sendMidiCtrl(byte n,byte v)
 {
-  return;
   byte i0, i1 ;
   if (split)
   {
@@ -196,6 +205,9 @@ void sendMidiCtrl(byte n,byte v)
       Serial.print("CTRL #"); Serial.print(i); Serial.print(" "); Serial.print(n); Serial.print("/"); Serial.println(v);
     #endif
     sendMidiByte(3 , 0xB0 | i , n , v );
+    #ifdef MIDIUSB
+      usbMIDI.sendControlChange(n, v, i);
+    #endif
   }
 }
 void general_volume()
@@ -214,7 +226,6 @@ void general_volume()
 
 void sendProg(boolean on,int nrprog,int nrbank)
 {
-  if ((nrprog <= 0) || (nrbank < 0)) return ;
   byte p = constrain(nrprog, 1, 128) - 1;
   byte b = constrain(nrbank, 0, 127);
   byte i0, i1 ;
@@ -233,12 +244,27 @@ void sendProg(boolean on,int nrprog,int nrbank)
   {
     i0=0; i1=15;
   }
+  
+  if ((nrprog <= 0) || (nrbank < 0)) 
+  {
+    // reset
+    #if DEBUGON > 1
+      Serial.println("PROG reset"); 
+    #endif
+    for(int i = i0; i <= i1; i ++)
+         prog[i] = -1 ;
+    return ;  
+  }
+
+  // off prog
   int bp = b*128+p; 
   for(int i = i0; i <= i1; i ++)
   {
     if (prog[i] == bp)
       prog[i] = -1 ;
   }
+  
+  // on prog
   if (on)
   {
     byte slot = 0 ;
@@ -261,6 +287,10 @@ void sendProg(boolean on,int nrprog,int nrbank)
     prog[slot] = bp ;
     sendMidiByte(3 , 0xB0 | slot , 0 , b);
     sendMidiByte(2 , 0xC0 | slot , p , 0);
+    #ifdef MIDIUSB
+      usbMIDI.sendControlChange(0, b, slot);
+      usbMIDI.sendProgramChange(p, slot);
+    #endif
   }
 }
 void reset_x2()
@@ -317,6 +347,7 @@ void init_x2()
 }
 void sendMidiNote(int pi,int v, int pspliti)
 {
+  int velo = v ;
   int i0, i1 ;
   int p = pi ;
   int canal = 0 ;
@@ -324,19 +355,32 @@ void sendMidiNote(int pi,int v, int pspliti)
   {
     if (p < pspliti)
     {
+      if (on)
+      {
+        splitChange = (gauche == false) ; 
+        gauche = true ;
+      }
       i0=0; i1=5;
       p += 12 * octaviaGauche ;
       canal = 0 ;
+      velo = 127 - balanceGaucheDroite ;
     }
     else
     {
+      if (on)
+      {
+        splitChange = (gauche == true) ; 
+        gauche = false ;
+      }
       p += 12 * octaviaDroite ;
       i0=6; i1=15;
       canal = 1 ;
+      velo = 127 - BALANCEMAX + balanceGaucheDroite ;
     }
   }
   else
   {
+    p += 12 * octaviaDroite ;
     i0=0; i1=15;
   }
   if ( v == 0 )
@@ -350,7 +394,12 @@ void sendMidiNote(int pi,int v, int pspliti)
           Serial.print(" canal="); Serial.print(canal);Serial.print(" pitch=");Serial.println(p);
         #endif
       for(byte i = i0; i <= i1 ; i ++)
+      {
         sendMidiByte(3,0x80 | i,p,0);
+        #ifdef MIDIUSB
+          usbMIDI.sendNoteOff(p, 100, i);
+        #endif
+      }
     }
   }
   else
@@ -360,7 +409,7 @@ void sendMidiNote(int pi,int v, int pspliti)
       Serial.print("NOTE ON  ch#");Serial.print(i0);Serial.print("..");Serial.print(i1);
       Serial.print(" canal=");Serial.print(canal);Serial.print(" pitch=");Serial.print(p);
       Serial.print(" velo=");Serial.print(v);
-      Serial.print(" nbNoteOn=");Serial.print(midiPitchNbNoteOn[canal][p]);
+      Serial.print(" nbNoteOn=");Serial.println(midiPitchNbNoteOn[canal][p]);
     #endif
     if (midiPitchNbNoteOn[canal][p] == 1 )
     {
@@ -372,7 +421,10 @@ void sendMidiNote(int pi,int v, int pspliti)
             Serial.print("NOTE ON  ch#");Serial.print(i);Serial.print(" pitch=");
             Serial.print(p);Serial.print(" velo=");Serial.println(v);
           #endif
-          sendMidiByte(3,0x90 | i,p,v);
+          sendMidiByte(3,0x90 | i,p,velo);
+          #ifdef MIDIUSB
+            usbMIDI.sendNoteOn(p, velo, i);
+          #endif
         }
       }
     }
@@ -421,6 +473,11 @@ void ctrlTirette(int tiretteNr, bool on)
           firstProg = false ;
           sendProg(false,progs[0][DEFAULTPROG],banks[0][DEFAULTPROG]);
         }
+        if ( splitChange )
+        {
+          sendProg(false,-1,-1);
+          splitChange = false ;
+        }
         lastTiretteNr = tiretteNr ;
         lastBankNr[tiretteNr] = 0 ;
       }
@@ -458,122 +515,151 @@ void shiftBank(int bankNr)
 }
 void allNoteOff()
 {
+  bool errAllNoteOff = false ;
   for(byte i = 0; i < 16; i ++)
     sendMidiByte(3,0xB0 | i,123,0);
   for(int i = 0 ; i < MAXSPLIT; i ++ )
     for(int p = 0 ; p < MAXPITCH ; p++)
     {
       #ifdef DEBUGON
-        if ( midiPitchNbNoteOn[i][p] > 0 )
-          Serial.print("ERROR allNoteOff midiPitchNbNoteOn ");Serial.print(i);Serial.print("/");Serial.print(p);Serial.print("="); Serial.print(midiPitchNbNoteOn[i][p]);
+        if (( midiPitchNbNoteOn[i][p] > 0 ) && firstErrAllNoteOff )
+        {
+          Serial.print("ERROR allNoteOff midiPitchNbNoteOn ");Serial.print(i);Serial.print("/");Serial.print(p);Serial.print("="); Serial.println(midiPitchNbNoteOn[i][p]);
+          errAllNoteOff = true ;
+        }
       #endif
       midiPitchNbNoteOn[i][p] = 0 ;
     }
   #ifdef DEBUGON
     if ( noteExpresseurOn > 0 )
-      Serial.print("ERROR allNoteOff noteExpresseurOn ="); Serial.print(noteExpresseurOn);
+    {
+      Serial.print("ERROR allNoteOff noteExpresseurOn ="); Serial.println(noteExpresseurOn);
+    }
   #endif
   noteExpresseurOn = 0 ;
+  if ( errAllNoteOff )
+    firstErrAllNoteOff = false ;
+}
+void blackWhite(int pitch, int *blackNr, int *whiteNr, int *octave)
+{
+    int pit = pitch % 12;
+    *octave = pitch / 12 ;
+    *blackNr = -1 ;
+    *whiteNr = -1 ;
+    switch(pit)
+    {
+      case 0 : *whiteNr = 0 ; break ;
+      case 1 : *blackNr = 0 ; break ;
+      case 2 : *whiteNr = 1 ; break ;
+      case 3 : *blackNr = 1 ; break ;
+      case 4 : *whiteNr = 2 ; break ;
+      case 5 : *whiteNr = 3 ; break ;
+      case 6 : *blackNr = 2 ; break ;
+      case 7 : *whiteNr = 4 ; break ;
+      case 8 : *blackNr = 3 ; break ;
+      case 9 : *whiteNr = 5 ; break ;
+      case 10 : *blackNr = 4 ; break ;
+      case 11 : *whiteNr = 6 ; break ;
+      default : break ; 
+     }
+}
+void tuneSplit(int keyNr)
+{
+  int blackNr = 0 ;
+  int whiteNr = 0 ;
+  int octave = 0 ;
+  blackWhite(OFFSETPITCH + keyNr, &blackNr, &whiteNr, &octave);
+  if ( blackNr == -1)
+  {
+    // balance droite/gauche
+    balanceGaucheDroite = (BALANCEMAX *(keyNr - 20 ))/ ( MAXKEYNR - 20 );
+  }
+  else
+  {
+    // split
+    psplit = OFFSETPITCH + keyNr ;
+  }
 }
 void ctrlShiftKey(int keyNr)
 {
+  char buf[80];
+  buf[0] = '\0' ;
   switch(keyNr)
   {
-      case KEYSHIFT : allNoteOff(); break ;
-     // change bank
+      case KEYSHIFT :  allNoteOff();      break ;  
     case 6    :                                       break ;
     case 7    :                                       break ;
-      case 8  : shiftBank(0)                        ; break ;
-    case 9    : split = false                       ; break ;
-      case 10 : shiftBank(1)                        ; break ;
-    case 11   : split = true                        ; break ;
-    case 12   : octaviaGauche = -1  ; gauche = true ; break ;
-      case 13 : shiftBank(2)                        ; break ;
-    case 14   : octaviaGauche =  0  ; gauche = true ; break ;
-      case 15 : shiftBank(3)                        ; break ;
-    case 16   : octaviaGauche =  1  ; gauche = true ; break ;
-      case 17 : shiftBank(4)                        ; break ;
-    case 18   : octaviaDroite = -1  ; gauche = false; break ;
-    case 19   : octaviaDroite =  0  ; gauche = false; break ;
+      case 8  : shiftBank(0)                        ; strcpy(buf," bank(0)"); break ;
+    case 9    : split = false                       ; strcpy(buf," split false"); break ;
+      case 10 : shiftBank(1)                        ; strcpy(buf," bank(1)"); break ;
+    case 11   : split = true                        ; strcpy(buf," split true"); break ;
+    case 12   : octaviaGauche = -1  ; splitChange = (gauche == false) ; gauche = true ; strcpy(buf," octavia Gauche -");break ;
+      case 13 : shiftBank(2)                        ; strcpy(buf," bank(2)"); break ;
+    case 14   : octaviaGauche =  0  ; splitChange = (gauche == false) ; gauche = true ; strcpy(buf," octavia Gauche 0"); break ;
+      case 15 : shiftBank(3)                        ; strcpy(buf," bank(3)"); break ;
+    case 16   : octaviaGauche =  1  ; splitChange = (gauche == false) ; gauche = true ; strcpy(buf," octavia Gauche +"); break ;
+      case 17 : shiftBank(4)                        ; strcpy(buf," bank(4)"); break ;
+    case 18   : octaviaDroite = -1  ; splitChange = (gauche == true) ; gauche = false; strcpy(buf," octavia Droite -"); break ;
+    case 19   : octaviaDroite =  0  ; splitChange = (gauche == true) ; gauche = false; strcpy(buf," octavia Droite 0"); break ;
       case 20 :                                       break ;
-    case 21   : octaviaDroite =  1  ; gauche = false; break ;
-    default   : if (split) psplit = OFFSETPITCH + keyNr ;  break ;      
+    case 21   : octaviaDroite =  1  ; splitChange = (gauche == true) ; gauche = false; strcpy(buf," octavia Droite +"); break ;
+    default   : tuneSplit(keyNr) ; strcpy(buf," split") ; break ;      
   }
+  #if DEBUGON > 1
+     Serial.print("ctrlShiftKey = "); Serial.print(keyNr);  Serial.print(" : "); Serial.println(buf) ;
+  #endif
 }
-void modeExpresseur(int pitch , bool on)
+void modeExpresseur(int keyNr , bool on)
 {
-    int oct= pitch % 12;
-    int pit=pitch - oct * 12 ;
-    int nrFile = -1 ;
-    switch(pit)
+  int blackNr = 0 ;
+  int whiteNr = 0 ;
+  int octave = 0 ;
+  blackWhite(OFFSETPITCH + keyNr,  &blackNr,  &whiteNr,  &octave);
+  #if DEBUGON > 1
+    Serial.print("modeExpresseur keyNr= "); Serial.print(keyNr); Serial.print(" blackNr= "); Serial.println(blackNr); 
+  #endif
+  if (blackNr != -1)
+  {
+    if ( on )
     {
-      case 1 : nrFile = 0 ; break ;
-      case 3 : nrFile = 1 ; break ;
-      case 6 : nrFile = 2 ; break ;
-      case 8 : nrFile = 3 ; break ;
-      case 10 : nrFile = 4 ; break ;
-      default : nrFile = -1 ; break ; /* white key */
-     }
-    if (nrFile != -1)
-    {
-      nrFile = (oct - 3) * 5 + nrFile ;
+      int nrFile = (octave - 3) * 5 + blackNr ;
+      #if DEBUGON > 1
+        Serial.print("modeExpresseur loadFile nrFile = "); Serial.println(nrFile); 
+      #endif
       expresseur_loadFile(nrFile);
       if (score.nbEvents < 2)
+      {
+        #if DEBUGON > 1
+          Serial.print("err / modeExpresseur loadFile default nrFile = "); Serial.println(DEFAULTFILE); 
+        #endif
         expresseur_loadFile(DEFAULTFILE) ;
+      }
       if (score.nbEvents < 2)
+      {
         expresseur = false ;
+        #if DEBUGON > 1
+          Serial.println("err / modeExpresseur loadFile");  
+        #endif
+      }
     }
-    else
-    {
-      expresseur_play(pitch, (on?VELODEFAULT:0));
-    }
+  }
+  else
+  {
+    expresseur_play(keyNr, (on?VELODEFAULT:0));
+  }
 }
 void ctrlNote(int keyNr , bool on)
 {
-  int pitch = OFFSETPITCH /*Fa-1*/ + keyNr ;
   if (expresseur)
   {
-    modeExpresseur(pitch , on);
+    modeExpresseur(keyNr , on);
   }
   else
   {
     // mode orgue
-    sendMidiNote(pitch ,(on?VELODEFAULT:0),psplit);
+    sendMidiNote(OFFSETPITCH + keyNr ,(on?VELODEFAULT:0),psplit);
   }
 }
-/*
- *   switch(KeyNr)
-  {
-    case 33 : 
-      gaucheOn= KeyNr ;
-      if (on)
-      {
-        if (droiteOn)
-          split = false ;
-        else
-        {
-          if ( split )
-            octaviaGauche = (! octaviaGauche) ;
-          split = true; gauche = true ;
-        }
-      }
-      break ;
-    case 93 :         
-      droiteOn = on ;
-      if (on)
-      {
-        if (gaucheOn)
-          split = false ;
-        else
-        {
-          if ( split )
-            octaviaDroite = (! octaviaDroite) ;
-          split = true; gauche = false ;
-        }
-      }
-      break ;
-    default :
- */
 void ctrlButton(byte o, byte i, bool on)
 {
   if ( o >= O_TIRETTE)
@@ -598,6 +684,9 @@ void ctrlButton(byte o, byte i, bool on)
     if (keyNr == KEYSHIFT)
     {
       keyShift = on ;
+      #if DEBUGON > 1
+         Serial.print("Key-Shift = "); Serial.println(keyShift);
+      #endif
     }
     if (keyShift)
     {
@@ -637,7 +726,7 @@ void nextGroupEvent()
 
 void outPitch(int pitch, int velo_out, int track)
 {
-  if (track >= (int)(score.trackMax/2))
+  if (track <= (int)(score.trackMax/2))
   {
     sendMidiNote(pitch ,velo_out,pitch+1);
   }
@@ -675,18 +764,40 @@ void startEvent(int velo_in_unused, T_event *event , int nbEvent , int bid)
   int min_velo_out = 1 ;
   int max_velo_out = 128 ;
   int velo = event->velocity;
-  int velo_in = 64 ;
+  int velo_in = VELOHIGH ;
   if ( score.trackMax >  1)
   {
-    if (event->trackNr == 0)
+    velo_in = VELOLOW ;
+    bool paire = ((score.trackMax % 2) == 0) ;
+    int nZone = score.trackMax + (paire?1:0) ;
+    int lZone = MAXKEYNR /nZone ;
+    int midZone = (score.trackMax - (paire?0:1)) / 2 ;
+    for(int i= 0 , mBid = lZone , ntrack = score.trackMax - 1 ; i < nZone ; i ++ , mBid += lZone , ntrack -- )
     {
-      velo_in = (bid > 70)?bid:64 ;
-    }
-    else if (event->trackNr == (score.trackMax - 1))
-    {
-      velo_in = (bid < 60)?(127 - bid):64 ;
+      if ( i == midZone)
+      {
+        if ( bid < mBid)
+        {
+          velo_in = VELOHIGH ;
+          break ;
+        }
+        if ( paire )
+          ntrack ++ ;
+      }
+      else
+      {
+        if ( bid < mBid)
+        {
+          if (ntrack == event->trackNr )
+            velo_in = VELOHIGH ;
+          break ;
+        }
+      }
     }
   }
+  #if DEBUGON > 1
+    Serial.print("equilibrage tracks : trackMAx="); Serial.print(score.trackMax);Serial.print(" trackNr="); Serial.print(event->trackNr);Serial.print(" velo="); Serial.println(velo_in);
+  #endif
 
   if (velo < 64 )
   {
@@ -778,13 +889,13 @@ void noteOff_Event(int bid)
   noteOffStops[bid] = 0 ;
 }
 
-void expresseur_play(int pitch, int velo)
+void expresseur_play(int keyNr, int velo)
 {
   if (score.nbEvents == 0) return ;
   if (velo == 0) 
-    noteOff_Event(pitch);
+    noteOff_Event(keyNr);
   else
-    noteOn_Event(pitch , velo);
+    noteOn_Event(keyNr , velo);
 }
 
 void rewind_score()
@@ -1194,8 +1305,8 @@ void loop()
           if ( vin == HIGH)
           {
             // debut appui 
-            #if DEBUGON > 2
-              Serial.print("B_OFF => B_WAIT_ON ");Serial.print(o);Serial.print("/");Serial.println(i);
+            #if DEBUGON > 3
+              Serial.println("B_OFF => B_WAIT_ON ");Serial.print(o);Serial.print("/");Serial.println(i);
             #endif
             buttonState[o][i] = B_WAIT_ON ;
             ctrlButton(o, i, true);
@@ -1211,8 +1322,8 @@ void loop()
           sAllKeyStable =  false ;
           if ( sinceButton > buttonSince[o][i])
           {
-            #if DEBUGON > 2
-              Serial.print("B_WAIT_ON => B_ON ");Serial.print(o);Serial.print("/");Serial.println(i);
+            #if DEBUGON > 3
+              Serial.println("B_WAIT_ON => B_ON ");Serial.print(o);Serial.print("/");Serial.println(i);
             #endif
             buttonState[o][i] = B_ON ;
           }
@@ -1225,8 +1336,8 @@ void loop()
           if (vin == LOW)
           {
             // debut relachement
-            #if DEBUGON > 2
-              Serial.print("B_ON => B_WAIT_OFF ");Serial.print(o);Serial.print("/");Serial.println(i);
+            #if DEBUGON > 3
+              Serial.println("B_ON => B_WAIT_OFF ");Serial.print(o);Serial.print("/");Serial.println(i);
             #endif
             buttonState[o][i] = B_WAIT_OFF ;
             ctrlButton(o, i, false);
@@ -1241,8 +1352,8 @@ void loop()
           sAllKeyStable =  false ;
           if (sinceButton > buttonSince[o][i]) 
           {
-            #if DEBUGON > 2
-              Serial.print("B_WAIT_OFF => B_OFF ");Serial.print(o);Serial.print("/");Serial.println(i);
+            #if DEBUGON > 3
+              Serial.println("B_WAIT_OFF => B_OFF ");Serial.print(o);Serial.print("/");Serial.println(i);
             #endif
             buttonState[o][i] = B_OFF ;
           }
@@ -1254,7 +1365,7 @@ void loop()
           break ;
         default :
             #ifdef DEBUGON
-              Serial.print("ERROR etat loop ");Serial.println(buttonState[o][i]);
+              Serial.println("ERROR etat loop ");Serial.println(buttonState[o][i]);
             #endif
           break ;
       }
@@ -1264,7 +1375,11 @@ void loop()
   }
 
   // antibug ...
-  if ( sAllNoteOff && (noteExpresseurOn == 0)) allNoteOff();
+  if ( sAllNoteOff && (noteExpresseurOn == 0) && ( newEvent == true) ) 
+  {
+    allNoteOff();
+    newEvent = false ;
+  }
 
   // reset timer button
   if (( sAllKeyStable ) && (sinceButton > 1000)) sinceButton = 0 ;
