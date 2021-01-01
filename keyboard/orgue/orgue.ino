@@ -17,6 +17,7 @@ const int chipSelect = BUILTIN_SDCARD;
 #define MAXPITCH 128
 #define MAXKEYNR 72
 #define KEYRANGEMIN 20
+#define KEYRANGEMAX (MAXKEYNR-20)
 
 void expresseur_loadFile(int fileNr);
 void expresseur_play(int pitch, int velo);
@@ -53,10 +54,11 @@ bool newEvent = false ;
 //                       Definition Orgue
 ///////////////////////////////////////////////////////////////////////////////
 #define MAXSPLIT 2
-#define VELODEFAULT 100
+#define VELODEFAULT 77
 #define VELOLOW 64
 #define VELOHIGH 100
 #define BALANCEMAX 100
+#define BALANCEMIN 40
 #define pinLed  13
 #define MaxOUT 10
 #define MaxIN 9
@@ -96,7 +98,7 @@ bool split = false ;
 byte psplit = 64 ; /* Mi-4 */
 int octaviaGauche = 0 ;
 int octaviaDroite = 0 ;
-int balanceGaucheDroite = BALANCEMAX / 2 ;
+int balanceGaucheDroite = BALANCEMIN + (BALANCEMAX - BALANCEMIN) / 2 ;
 
 int midiPitchNbNoteOn[MAXSPLIT][MAXPITCH];
 
@@ -149,9 +151,10 @@ int banks[MAXBANK][MAXTIRETTE]=
     {  0, 0,-1, 0, 2, 1,  0,-1,-1, -1,-1,-1,-1,-1, 0 ,-1,8,-1}
   };
 // status of a prog on a channel  
-int prog[NBCHANNEL]=        {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+int progNrTirette[NBCHANNEL]=        {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+int progSlot[NBCHANNEL]=        {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+int bankSlot[NBCHANNEL]=        {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 int lastBankNr[MAXTIRETTE]= {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
-bool firstProg = true;
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -160,7 +163,7 @@ bool firstProg = true;
 
 void sendMidiByte(int nbByte, int b1 , int b2, int b3)
 {
-  if (( b1 < 0 ) || ( b1 > 255) || ( b2 < 0 ) || ( b2 > 255) || ( b3 < 0 ) || ( b3 > 255) || (nbByte < 1) ||  (nbByte > 3))
+  if (( b1 < 0 ) || ( b1 > 255) || ( b2 < 0 ) || ( b2 > 127) || ( b3 < 0 ) || ( b3 > 127) || (nbByte < 1) ||  (nbByte > 3))
   {
     #ifdef DEBUGON
     Serial.print("ERROR sendMidiByte *"); Serial.print(nbByte);   Serial.print(" ");
@@ -189,18 +192,18 @@ void sendMidiCtrl(byte n,byte v)
   {
     if (gauche)
     {
-      i0=0; i1=5;
+      i0=0; i1=NBCHANNEL / 2;
     }
     else
     {
-      i0=6; i1=15;
+      i0=NBCHANNEL / 2; i1=NBCHANNEL;
     }
   }
   else
   {
-    i0=0; i1=15;
+    i0=0; i1=NBCHANNEL;
   }
-  for(byte i = i0; i <= i1 ; i ++)
+  for(byte i = i0; i < i1 ; i ++)
   {
     #if DEBUGON > 1
       Serial.print("CTRL #"); Serial.print(i); Serial.print(" "); Serial.print(n); Serial.print("/"); Serial.println(v);
@@ -225,44 +228,41 @@ void general_volume()
   sendMidiCtrl(7,vol);
 }
 
-void sendProg(boolean on,int nrprog,int nrbank)
+void sendProg(boolean on,int nrProg,int nrBank , int nrTirette)
 {
-  byte p = constrain(nrprog, 1, 128) - 1;
-  byte b = constrain(nrbank, 0, 127);
   byte i0, i1 ;
   if (split)
   {
     if (gauche)
     {
-      i0=0; i1=5;
+      i0=0; i1=NBCHANNEL/2;
     }
     else
     {
-      i0=6; i1=15;
+      i0=NBCHANNEL/2; i1=NBCHANNEL;
     }
   }
   else
   {
-    i0=0; i1=15;
+    i0=0; i1=NBCHANNEL;
   }
   
-  if ((nrprog <= 0) || (nrbank < 0)) 
+  if ((nrProg <= 0) || (nrBank < 0)) 
   {
     // reset
     #if DEBUGON > 1
       Serial.println("PROG reset"); 
     #endif
     for(int i = i0; i <= i1; i ++)
-         prog[i] = -1 ;
+         progNrTirette[i] = -1 ;
     return ;  
   }
 
   // off prog
-  int bp = b*128+p; 
-  for(int i = i0; i <= i1; i ++)
+  for(int i = i0; i < i1; i ++)
   {
-    if (prog[i] == bp)
-      prog[i] = -1 ;
+    if (progNrTirette[i] == nrTirette)
+      progNrTirette[i] = -1 ;
   }
   
   // on prog
@@ -270,9 +270,9 @@ void sendProg(boolean on,int nrprog,int nrbank)
   {
     byte slot = 0 ;
     boolean slotfound = false ;
-    for(byte i = i0; i <= i1 ; i ++)
+    for(byte i = i0; i < i1 ; i ++)
     {
-      if (prog[i] == -1)
+      if (progNrTirette[i] == -1)
       {
         slotfound = true ;
         slot = i ;
@@ -283,16 +283,63 @@ void sendProg(boolean on,int nrprog,int nrbank)
       slot = i0;
     #if DEBUGON > 1
       Serial.print("PROG ch#"); Serial.print(slot); Serial.print(" ");
-      Serial.print(b); Serial.print("/"); Serial.println(p);
+      Serial.print(nrBank); Serial.print("/"); Serial.println(nrProg);
     #endif
-    prog[slot] = bp ;
-    sendMidiByte(3 , 0xB0 | slot , 0 , b);
-    sendMidiByte(2 , 0xC0 | slot , p , 0);
+    progNrTirette[slot] = nrTirette ;
+    progSlot[slot] = nrProg ;
+    bankSlot[slot] = nrBank ;
+    sendMidiByte(3 , 0xB0 | slot , 0 , nrBank);
+    sendMidiByte(2 , 0xC0 | slot , nrProg - 1, 0);
     #ifdef MIDIUSB
-      usbMIDI.sendControlChange(0, b, slot);
-      usbMIDI.sendProgramChange(p, slot);
+      usbMIDI.sendControlChange(0, nrBank, slot);
+      usbMIDI.sendProgramChange(nrProg - 1, slot);
     #endif
   }
+}
+void switchSplit(bool splitOn)
+{
+  if (splitOn)
+  {
+    if ( split) return ;
+    split = true ;
+    // duplication programme full => droite
+    gauche=false;
+    for(int i = NBCHANNEL / 2 ; i < NBCHANNEL ; i ++ )
+    {
+      progNrTirette[i] = -1 ;
+    }
+    for(int i = 0 ; i < NBCHANNEL / 2 ; i ++ )
+    {
+      if (progNrTirette[i] != -1)
+      {
+        sendProg(true,progSlot[i],bankSlot[i] , progNrTirette[i]);
+      }
+    }
+  }
+  else
+  {
+    if (! split) return ;
+    split = false ;
+    for(int i = NBCHANNEL/2 ; i < NBCHANNEL; i ++ )
+    {
+      progNrTirette[i] = -1 ;
+    }
+  }
+}
+void initOrgue()
+{
+  general_volume() ;
+  gauche = false ;
+  split = false ;
+  psplit = 64 ; /* Mi-4 */
+  octaviaGauche = 0 ;
+  octaviaDroite = 0 ;
+  balanceGaucheDroite = BALANCEMIN + (BALANCEMAX - BALANCEMIN) / 2 ;
+  for(int i = 0 ; i < NBCHANNEL ; i ++ )
+    progNrTirette[i]= -1 ;
+  for(int i = 0 ; i < MAXTIRETTE ; i ++ )
+    lastBankNr[i]= -1 ;
+
 }
 void reset_x2()
 {
@@ -315,26 +362,6 @@ void reset_x2()
     sendMidiByte(3,0xB0 | i,121,0);
     sendMidiByte(3,0xB0 | i,123,0);
   }
-  #if DEBUGON > 1
-  Serial.println("test notes");
-  for(byte i= 0 ; i < 2 /*MAXTIRETTE*/ ; i ++ )
-  {
-    if ( progs[0][i] > 0 )
-    {
-      sendMidiByte(3,0xB0,0,banks[0][i]);
-      sendMidiByte(2,0xC0,progs[0][i],0);
-      sendMidiByte(3,0x90,0x40 | i,0x40);
-      delay(500);
-      sendMidiByte(2,0x90,0x40 | i,0x40);
-    }
-  }
-  #endif
-  general_volume() ;
-  firstProg = true;
-  #if DEBUGON > 1
-    Serial.println("default prog");
-  #endif  
-  sendProg(true, progs[0][DEFAULTPROG],banks[0][DEFAULTPROG]);
 }
 void init_x2()
 {
@@ -361,10 +388,10 @@ void sendMidiNote(int pi,int v, int pspliti)
         splitChange = (gauche == false) ; 
         gauche = true ;
       }
-      i0=0; i1=5;
+      i0=0; i1= NBCHANNEL/2;
       p += 12 * octaviaGauche ;
       canal = 0 ;
-      velo = 127 - balanceGaucheDroite ;
+      velo = constrain(map(balanceGaucheDroite, BALANCEMIN, BALANCEMAX, BALANCEMAX, BALANCEMIN),BALANCEMIN,BALANCEMAX); 
     }
     else
     {
@@ -374,15 +401,15 @@ void sendMidiNote(int pi,int v, int pspliti)
         gauche = false ;
       }
       p += 12 * octaviaDroite ;
-      i0=6; i1=15;
+      i0=NBCHANNEL/2; i1=NBCHANNEL;
       canal = 1 ;
-      velo = 127 - BALANCEMAX + balanceGaucheDroite ;
+      velo = constrain(map(balanceGaucheDroite, BALANCEMIN, BALANCEMAX, BALANCEMIN, BALANCEMAX),BALANCEMIN,BALANCEMAX);
     }
   }
   else
   {
     p += 12 * octaviaDroite ;
-    i0=0; i1=15;
+    i0=0; i1=NBCHANNEL;
   }
   if ( v == 0 )
   {
@@ -394,7 +421,7 @@ void sendMidiNote(int pi,int v, int pspliti)
           Serial.print("NOTE OFF ch#"); Serial.print(i0);Serial.print("..");Serial.print(i1);
           Serial.print(" canal="); Serial.print(canal);Serial.print(" pitch=");Serial.println(p);
         #endif
-      for(byte i = i0; i <= i1 ; i ++)
+      for(byte i = i0; i < i1 ; i ++)
       {
         sendMidiByte(3,0x80 | i,p,0);
         #ifdef MIDIUSB
@@ -406,21 +433,21 @@ void sendMidiNote(int pi,int v, int pspliti)
   else
   {
     (midiPitchNbNoteOn[canal][p]) ++ ;
-    #if DEBUGON > 1
+    #if DEBUGON > 3
       Serial.print("NOTE ON  ch#");Serial.print(i0);Serial.print("..");Serial.print(i1);
       Serial.print(" canal=");Serial.print(canal);Serial.print(" pitch=");Serial.print(p);
-      Serial.print(" velo=");Serial.print(v);
+      Serial.print(" velo=");Serial.print(velo);
       Serial.print(" nbNoteOn=");Serial.println(midiPitchNbNoteOn[canal][p]);
     #endif
     if (midiPitchNbNoteOn[canal][p] == 1 )
     {
-      for(byte i = i0; i <= i1 ; i ++)
+      for(byte i = i0; i < i1 ; i ++)
       {
-        if (prog[i] != -1)
+        if (progNrTirette[i] != -1)
         {
           #if DEBUGON > 1
             Serial.print("NOTE ON  ch#");Serial.print(i);Serial.print(" pitch=");
-            Serial.print(p);Serial.print(" velo=");Serial.println(v);
+            Serial.print(p);Serial.print(" balance=");Serial.print (balanceGaucheDroite);Serial.print(" velo=");Serial.println(velo);
           #endif
           sendMidiByte(3,0x90 | i,p,velo);
           #ifdef MIDIUSB
@@ -469,14 +496,9 @@ void ctrlTirette(int tiretteNr, bool on)
       // selection instrument program
       if ( on )
       {
-        if (firstProg)
-        {
-          firstProg = false ;
-          sendProg(false,progs[0][DEFAULTPROG],banks[0][DEFAULTPROG]);
-        }
         if ( splitChange )
         {
-          sendProg(false,-1,-1);
+          sendProg(false,-1,-1,tiretteNr);
           splitChange = false ;
         }
         lastTiretteNr = tiretteNr ;
@@ -492,7 +514,7 @@ void ctrlTirette(int tiretteNr, bool on)
       #if DEBUGON > 1
         Serial.print(on);Serial.print(" Program #");Serial.print(mprog);Serial.print(" bank#");Serial.println(mbank);
       #endif
-      sendProg(on,mprog,mbank);
+      sendProg(on,mprog,mbank, tiretteNr);
       break ;
   }
 }
@@ -509,8 +531,8 @@ void shiftBank(int bankNr)
     #endif
     int pprog = progs[lastBankNr[lastTiretteNr]][lastTiretteNr] ;
     int pbank = banks[lastBankNr[lastTiretteNr]][lastTiretteNr] ;
-    sendProg(false,pprog,pbank);
-    sendProg(true,mprog,mbank);
+    sendProg(false,pprog,pbank,lastTiretteNr);
+    sendProg(true,mprog,mbank,lastTiretteNr);
     lastBankNr[lastTiretteNr] = bankNr ;
   }
 }
@@ -573,12 +595,19 @@ void tuneSplit(int keyNr)
   if ( blackNr == -1)
   {
     // balance droite/gauche
-    balanceGaucheDroite = (BALANCEMAX *(keyNr - KEYRANGEMIN ))/ ( MAXKEYNR - KEYRANGEMIN );
+    balanceGaucheDroite = constrain(map(keyNr, KEYRANGEMIN, KEYRANGEMAX, BALANCEMIN, BALANCEMAX),BALANCEMIN,BALANCEMAX);
+    
+    #if DEBUGON > 1
+       Serial.print("tuneSplit  balanceGaucheDroite= "); Serial.println(balanceGaucheDroite);  
+    #endif
   }
   else
   {
     // split
     psplit = OFFSETPITCH + keyNr ;
+    #if DEBUGON > 1
+       Serial.print("tuneSplit  psplit= "); Serial.println(psplit);  
+    #endif
   }
 }
 void ctrlShiftKey(int keyNr)
@@ -587,21 +616,21 @@ void ctrlShiftKey(int keyNr)
   buf[0] = '\0' ;
   switch(keyNr)
   {
-    case KEYSHIFT :  allNoteOff();      break ;  
-    case 6    :                                       break ;
-    case 7    : split = false                       ; strcpy(buf," split false"); break ;
+    case KEYSHIFT :  allNoteOff(); rewind_score() ;      break ;  
+    case 6    : initOrgue()                         ; strcpy(buf," init orgue");break ;
+    case 7    : switchSplit( false );               ; strcpy(buf," split false"); break ;
       case 8  : shiftBank(0)                        ; strcpy(buf," bank(0)"); break ;
-    case 9    : split = true                        ; strcpy(buf," split true"); break ;
+    case 9    : switchSplit( true  );               ; strcpy(buf," split true"); break ;
       case 10 : shiftBank(1)                        ; strcpy(buf," bank(1)"); break ;
-    case 11   : octaviaGauche = -1  ; splitChange = (gauche == false) ; gauche = true ; strcpy(buf," octavia Gauche -");break ;
-    case 12   : octaviaGauche =  0  ; splitChange = (gauche == false) ; gauche = true ; strcpy(buf," octavia Gauche 0"); break ;
+    case 11   : switchSplit( true  ); octaviaGauche = -1  ; splitChange = (gauche == false) ; gauche = true ; strcpy(buf," octavia Gauche -");break ;
+    case 12   : switchSplit( true  );octaviaGauche =  0  ; splitChange = (gauche == false) ; gauche = true ; strcpy(buf," octavia Gauche 0"); break ;
       case 13 : shiftBank(2)                        ; strcpy(buf," bank(2)"); break ;
-    case 14   : octaviaGauche =  1  ; splitChange = (gauche == false) ; gauche = true ; strcpy(buf," octavia Gauche +"); break ;
+    case 14   : switchSplit( true  );octaviaGauche =  1  ; splitChange = (gauche == false) ; gauche = true ; strcpy(buf," octavia Gauche +"); break ;
       case 15 : shiftBank(3)                        ; strcpy(buf," bank(3)"); break ;
-    case 16   : octaviaDroite = -1  ; splitChange = (gauche == true) ; gauche = false; strcpy(buf," octavia Droite -"); break ;
+    case 16   : switchSplit( true  );octaviaDroite = -1  ; splitChange = (gauche == true) ; gauche = false; strcpy(buf," octavia Droite -"); break ;
       case 17 : shiftBank(4)                        ; strcpy(buf," bank(4)"); break ;
-    case 18   : octaviaDroite =  0  ; splitChange = (gauche == true) ; gauche = false; strcpy(buf," octavia Droite 0"); break ;
-    case 19   : octaviaDroite =  1  ; splitChange = (gauche == true) ; gauche = false; strcpy(buf," octavia Droite +"); break ;
+    case 18   : switchSplit( true  );octaviaDroite =  0  ; splitChange = (gauche == true) ; gauche = false; strcpy(buf," octavia Droite 0"); break ;
+    case 19   : switchSplit( true  );octaviaDroite =  1  ; splitChange = (gauche == true) ; gauche = false; strcpy(buf," octavia Droite +"); break ;
     case KEYRANGEMIN :
     default   : tuneSplit(keyNr) ; strcpy(buf," split") ; break ;      
   }
@@ -645,6 +674,7 @@ void modeExpresseur(int keyNr , bool on)
   }
   else
   {
+    if (on) tuneSplit(keyNr);
     expresseur_play(keyNr, (on?VELODEFAULT:0));
   }
 }
@@ -695,7 +725,7 @@ void ctrlButton(byte o, byte i, bool on)
     }
     else
       ctrlNote(keyNr, on);
-  }
+   }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -726,13 +756,13 @@ void nextGroupEvent()
 
 void outPitch(int pitch, int velo_out, int track)
 {
-  if (track <= (int)(score.trackMax/2))
+  if (track < (int)(score.trackMax/2))
   {
-    sendMidiNote(pitch ,velo_out,pitch+1);
+    sendMidiNote(pitch ,velo_out,pitch-1);
   }
   else
   {
-    sendMidiNote(pitch ,velo_out,pitch-1);
+    sendMidiNote(pitch ,velo_out,pitch+1);
   }
 }
 
@@ -760,7 +790,10 @@ void startEvent(int velo_in_unused, T_event *event , int nbEvent , int bid)
   noteExpresseurOn ++ ;
   
   if ((event->pitch <= 0) || (event->pitch >= 127) || (event->velocity < 2))  return; 
+
+  int velo_out = VELOHIGH ;
   
+/*  
   int min_velo_out = 1 ;
   int max_velo_out = 128 ;
   int velo = event->velocity;
@@ -810,16 +843,16 @@ void startEvent(int velo_in_unused, T_event *event , int nbEvent , int bid)
     max_velo_out = 128;
   }
   // rescale the velocity out 
-  int velo_out = min_velo_out + ((max_velo_out - min_velo_out ) * velo_in ) / 128 ;
-/*  
+  velo_out = min_velo_out + ((max_velo_out - min_velo_out ) * velo_in ) / 128 ;
+  
   // compensation of nbEvent note within one single key-in
-  int compensation = 15 ; // [0..30]
-  velo_out = ((200 - (compensation * (nbEvent - 1))) * velo_out) / 200;
-*/
+  // int compensation = 15 ; // [0..30]
+  // velo_out = ((200 - (compensation * (nbEvent - 1))) * velo_out) / 200;
+
   // cap the velocity-out
   if (velo_out < 1 ) velo_out = 1 ;
   if (velo_out > 127)  velo_out = 127 ;
-
+*/
   outPitch(event->pitch,velo_out,event->trackNr);
 }
 
@@ -937,6 +970,7 @@ void initScore()
 // load an expresseur-score from a txt file in SD card
 void expresseur_loadFile(int fileNr)
 {
+  rewind_score() ;
   if ( !SD.begin(chipSelect) ) return ;
 
   // filename f<nnn>.txt
@@ -1038,8 +1072,9 @@ void expresseur_loadFile(int fileNr)
         }
         else if (c == ',')
         {
+          event->trackNr -- ; // to restart from 0
           if (event->trackNr >= score.trackMax)
-            score.trackMax = event->trackNr + 1 ;
+            score.trackMax = event->trackNr + 1  ;
           etat = 3 ;
         }
       break ;
@@ -1183,44 +1218,12 @@ void expresseur_loadFile(int fileNr)
   rewind_score() ;
 }
 
-void tester()
+void init()
 {
-  /*
-  sendMidiNote(64 ,100,psplit);
-  delay(1000);
-  sendMidiNote(68 ,100,psplit);
-  delay(1000);
-  sendMidiNote(64 ,0,psplit);
-  sendMidiNote(68 ,0,psplit);
-  delay(1000);
-  sendProg(true, progs[1][0],banks[1][0]);
-  delay(1000);
-  sendMidiNote(68 ,100,psplit);
-  delay(1000);
-  sendMidiNote(68 ,0,psplit);
-  delay(1000);
-  sendProg(false, progs[0][0],banks[0][0]);
-  delay(1000);
-  sendMidiNote(68 ,100,psplit);
-  delay(1000);
-  sendMidiNote(68 ,0,psplit);
-  */
-
-  expresseur_loadFile(DEFAULTFILE);
-  sendProg(true, progs[0][1],banks[0][1]);
-  for(int i= 1 ; i < 600; i ++)
-  {
-    digitalWrite(pinLed,HIGH);
-    expresseur_play(50,100);
-    delay(10);
-    expresseur_play(51,0);
-    delay(100);
-    expresseur_play(51,100);
-    delay(10);
-    digitalWrite(pinLed,LOW);
-    expresseur_play(50,0);
-    delay(100);
-  }
+  init_x2();
+  delay(200);
+  initOrgue();
+  initScore();
 }
 ///////////////////////////////////////////////////////////////////////////////
 //                             SETUP
@@ -1240,8 +1243,7 @@ void setup()
     Serial.println("organ");
   #endif
 
-  init_x2();
-  delay(200);
+  
   digitalWrite(pinLed,LOW); 
 
   Serial.println("init pinOut");
@@ -1275,7 +1277,7 @@ void setup()
     digitalWrite(pinOut[o],HIGH);
     delayMicroseconds(1000);
   }
-  initScore();
+  init() ;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
