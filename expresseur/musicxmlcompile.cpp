@@ -278,22 +278,78 @@ int pedal_barCompare(const void *pa, const void *pb)
 		return (1);
 	return 0;
 }
-void musicxmlcompile::dump_musicxmlevents()
+void musicxmlcompile::fillStartStopNext()
 {
-	/*
+	// lMusicxmlevents  : index nr sorted by the Start-time
+	lMusicxmlevents.Sort(musicXmlEventsCompareStart);
 	l_musicxmlevent::iterator iter_musicxmlevent;
+	int nr_musicxmlevent = 0 ;
+	for (iter_musicxmlevent = lMusicxmlevents.begin(), nr_musicxmlevent = 0; iter_musicxmlevent != lMusicxmlevents.end(); iter_musicxmlevent++, nr_musicxmlevent++)
+	{
+		c_musicxmlevent *current_musicxmlevent = *iter_musicxmlevent;
+		nb_measure = current_musicxmlevent->stop_measureNr;
+		current_musicxmlevent->nr = nr_musicxmlevent;
+	}
+		
+	nbEvents = lMusicxmlevents.GetCount() ;
+
+	// index Stop : indes sorted by the Stop-time
+	lMusicxmlevents.Sort(musicXmlEventsCompareStop);
+	indexStop.Clear();
 	for (iter_musicxmlevent = lMusicxmlevents.begin(); iter_musicxmlevent != lMusicxmlevents.end(); iter_musicxmlevent++)
 	{
 		c_musicxmlevent *current_musicxmlevent = *iter_musicxmlevent;
+		indexStop.Add(current_musicxmlevent->nr);
+	}
+
+	lMusicxmlevents.Sort(musicXmlEventsCompareStart);
+	for (int nrEvent = 0; nrEvent < nbEvents; nrEvent++)
+	{
+		c_musicxmlevent *current_musicxmlevent = lMusicxmlevents[nrEvent];
+		int nrEventNext;
+		for (nrEventNext = nrEvent + 1; nrEventNext < nbEvents; nrEventNext++)
+		{
+			c_musicxmlevent *next_musicxmlevent = lMusicxmlevents[nrEventNext];
+			if (!next_musicxmlevent->played) continue;
+			if (next_musicxmlevent->start_measureNr < current_musicxmlevent->stop_measureNr) continue;
+			if (next_musicxmlevent->start_measureNr > current_musicxmlevent->stop_measureNr) break;
+			if (next_musicxmlevent->start_t < current_musicxmlevent->stop_t) continue;
+			if (next_musicxmlevent->start_t > current_musicxmlevent->stop_t) break;
+			if (next_musicxmlevent->start_order < current_musicxmlevent->stop_order) continue;
+			if (next_musicxmlevent->start_order >= current_musicxmlevent->stop_order) break;
+		}
+		lMusicxmlevents[nrEvent]->nextNr = nrEventNext;
+	}
+
+	// add a fake element at the end 
+	c_musicxmlevent *last_musicxmlevent = new c_musicxmlevent();
+	last_musicxmlevent->nr = nr_musicxmlevent + 1;
+	last_musicxmlevent->visible = false;
+	last_musicxmlevent->played = false;
+	last_musicxmlevent->start_measureNr = nb_measure + 1;
+	last_musicxmlevent->stop_measureNr = nb_measure + 1;
+	last_musicxmlevent->start_t = 0;
+	last_musicxmlevent->stop_t = 0;
+	last_musicxmlevent->end_score = true;
+	lMusicxmlevents.Append(last_musicxmlevent);
+}
+void musicxmlcompile::dump_musicxmlevents()
+{
+	for (int nrEvent = 0 ; nrEvent < nbEvents ; nrEvent++)
+	{
+		c_musicxmlevent *current_musicxmlevent = lMusicxmlevents[nrEvent] ;
 		int nr = current_musicxmlevent->nr;
 		int start = current_musicxmlevent->start_t;
 		int stop = current_musicxmlevent->stop_t;
 		int track = current_musicxmlevent->partNr;
 		int pitch = current_musicxmlevent->pitch;
 		int duration = current_musicxmlevent->duration;
+		int will_stop_index = current_musicxmlevent->will_stop_index;
+		int stop_index = current_musicxmlevent->stop_index;
+		int nextNr = current_musicxmlevent->nextNr;
 		int i = 1;
 	}
-	*/
+	
 }
 musicxmlcompile::musicxmlcompile()
 {
@@ -463,8 +519,6 @@ void musicxmlcompile::compileScore(bool useMarkFile)
 
 	// add the part for Expresseur, according to lMusicxmlevents
 	compileExpresseurPart();
-
-	nbEvents = lMusicxmlevents.GetCount();
 
 	// push the events to play to the LUA-script
 	pushLuaMusicxmlevents();
@@ -1731,6 +1785,8 @@ void musicxmlcompile::readMarks(bool full)
 int musicxmlcompile::compileNote(c_part *part, c_note *note, int measureNr, int originalMeasureNr, int t, int division_measure, int division_beat, int division_quarter, int repeat, int key_fifths)
 {
 	// compile a note in the lMusicxmlevents
+
+	// calcul du position dans le temps de la note
 	if ((note->grace)  || (note->rest) || (note->cue) || ((note->tie) && ((note->tie->stop) || (note->tie->compiled))))
 	{
 		if (! note->chord)
@@ -2674,231 +2730,117 @@ void musicxmlcompile::addOrnaments()
 	compilePedalBar();
 
 }
-void musicxmlcompile::compileMusicxmlevents(bool second_time)
+void musicxmlcompile::compileMusicxmlevents()
 {
 	// lMusicxmlevents contains the notes to play. Compile lMusicxmlevents
 
-	lMusicxmlevents.Sort(musicXmlEventsCompareStart);
-	/////////////////////////////////////////////////
-
 	// set musicxmlevent->nr in the order
-	l_musicxmlevent::iterator iter_musicxmlevent;
-	int nr_musicxmlevent;
-	int nb_measure = 0;
-	for (iter_musicxmlevent = lMusicxmlevents.begin(), nr_musicxmlevent = 0; iter_musicxmlevent != lMusicxmlevents.end(); iter_musicxmlevent++, nr_musicxmlevent++)
-	{
-		c_musicxmlevent *current_musicxmlevent = *iter_musicxmlevent;
-		nb_measure = current_musicxmlevent->stop_measureNr;
-		current_musicxmlevent->nr = nr_musicxmlevent;
-		if (second_time)
-		{
-			// resset the calculation in the second time pass
-			current_musicxmlevent->stop_orpheline = true;
-			current_musicxmlevent->stops.Clear();
-			current_musicxmlevent->starts.Clear();
-			current_musicxmlevent->stop_index = -1;
-			current_musicxmlevent->will_stop_index = -1;
-		}
-	}
-	if ( ! second_time )
-	{ 
-		// add a fake element at the end 
-		c_musicxmlevent *last_musicxmlevent = new c_musicxmlevent();
-		last_musicxmlevent->nr = nr_musicxmlevent + 1;
-		last_musicxmlevent->visible = false;
-		last_musicxmlevent->played = false;
-		last_musicxmlevent->start_measureNr = nb_measure + 1;
-		last_musicxmlevent->stop_measureNr = last_musicxmlevent->start_measureNr;
-		last_musicxmlevent->start_t = 0;
-		last_musicxmlevent->stop_t = 0;
-		last_musicxmlevent->end_score = true;
-		lMusicxmlevents.Append(last_musicxmlevent);
-	}
+	fillStartStopNext();
 
 	// links the starts and stops in the list of Musicxmlevents to play
+
 	int p_MeasureNr = -1;
 	int p_t = -1;
 	int p_order = -1;
 	bool p_tenuto = false;
 	c_musicxmlevent *p_musicxmlevent = NULL;
 
-	lMusicxmlevents.Sort(musicXmlEventsCompareStop);
-	/////////////////////////////////////////////////
-	
-	// link synchronous-stops
-	for (iter_musicxmlevent = lMusicxmlevents.begin(); iter_musicxmlevent != lMusicxmlevents.end(); iter_musicxmlevent++)
+
+	// link synchronous-stops : fill musicxmlevent->stops[] (list of synchronous OFF events )
+	for (int nrStopEvent = 0; nrStopEvent <  nbEvents; nrStopEvent++)
 	{
-		c_musicxmlevent *current_musicxmlevent = *iter_musicxmlevent;
-		if (current_musicxmlevent->played)
+		c_musicxmlevent *current_musicxmlevent = lMusicxmlevents[indexStop[nrStopEvent]];
+		if (!current_musicxmlevent->played) continue ;
+		if ((current_musicxmlevent->stop_measureNr != p_MeasureNr)
+			||(current_musicxmlevent->stop_t != p_t)
+			|| (current_musicxmlevent->stop_order != p_order)
+			|| (current_musicxmlevent->tenuto != p_tenuto))
+			p_musicxmlevent = current_musicxmlevent;
+		if (p_musicxmlevent)
 		{
-			if ((current_musicxmlevent->stop_measureNr != p_MeasureNr)
-				||(current_musicxmlevent->stop_t != p_t)
-				|| (current_musicxmlevent->stop_order != p_order)
-				|| (current_musicxmlevent->tenuto != p_tenuto))
-				p_musicxmlevent = current_musicxmlevent;
-			if (p_musicxmlevent)
-			{
-				p_musicxmlevent->stops.Add(current_musicxmlevent->nr);
-				if (p_musicxmlevent != current_musicxmlevent)
-					current_musicxmlevent->stop_orpheline = false;
-			}
-			p_MeasureNr = current_musicxmlevent->stop_measureNr;
-			p_t = current_musicxmlevent->stop_t;
-			p_order = current_musicxmlevent->stop_order;
-			p_tenuto = current_musicxmlevent->tenuto;
+			p_musicxmlevent->stops.Add(current_musicxmlevent->nr);
+			if (p_musicxmlevent != current_musicxmlevent)
+				current_musicxmlevent->stop_orpheline = false;
 		}
+		p_MeasureNr = current_musicxmlevent->stop_measureNr;
+		p_t = current_musicxmlevent->stop_t;
+		p_order = current_musicxmlevent->stop_order;
+		p_tenuto = current_musicxmlevent->tenuto;
 	}
 
-	lMusicxmlevents.Sort(musicXmlEventsCompareStart);
-	/////////////////////////////////////////////////
-
-
-	// link synchronous-starts
+	// link synchronous-starts : fill musicxmlevent->starts[] (list of synchronous ON events)
 	p_MeasureNr = -1;
 	p_t = -1;
 	p_order = -1;
 	p_musicxmlevent = NULL;
-	for (iter_musicxmlevent = lMusicxmlevents.begin(); iter_musicxmlevent != lMusicxmlevents.end(); iter_musicxmlevent++)
+	for (int nrEvent = 0; nrEvent < nbEvents; nrEvent++)
 	{
-		c_musicxmlevent *current_musicxmlevent = *iter_musicxmlevent;
-		if (current_musicxmlevent->played)
-		{
-			if ((current_musicxmlevent->start_measureNr != p_MeasureNr) || (current_musicxmlevent->start_t != p_t) || (current_musicxmlevent->start_order != p_order))
-				p_musicxmlevent = current_musicxmlevent;
-			if (p_musicxmlevent)
-				p_musicxmlevent->starts.Add(current_musicxmlevent->nr);
+		c_musicxmlevent *current_musicxmlevent = lMusicxmlevents[nrEvent];
+		if (! current_musicxmlevent->played) continue ;
+		if ((current_musicxmlevent->start_measureNr != p_MeasureNr) || (current_musicxmlevent->start_t != p_t) || (current_musicxmlevent->start_order != p_order))
+			p_musicxmlevent = current_musicxmlevent;
+		if (p_musicxmlevent)
+			p_musicxmlevent->starts.Add(current_musicxmlevent->nr);
 
-			p_MeasureNr = current_musicxmlevent->start_measureNr;
-			p_t = current_musicxmlevent->start_t;
-			p_order = current_musicxmlevent->start_order;
-		}
+		p_MeasureNr = current_musicxmlevent->start_measureNr;
+		p_t = current_musicxmlevent->start_t;
+		p_order = current_musicxmlevent->start_order;
 	}
 
-	// links starts with stops-non-tenuto
+	// links starts with stops-non-tenuto : fill musicxmlevent->will_stop_index ( event which will be stopped on trigger-OFF )
 	p_MeasureNr = -1;
 	p_t = -1;
 	p_order = -1;
 	p_tenuto = false;
 	p_musicxmlevent = NULL;
-	for (iter_musicxmlevent = lMusicxmlevents.begin(); iter_musicxmlevent != lMusicxmlevents.end(); iter_musicxmlevent++)
+	dump_musicxmlevents();
+	for (int nrEvent = 0; nrEvent < nbEvents ; nrEvent++)
 	{
-		c_musicxmlevent *current_musicxmlevent = *iter_musicxmlevent;
-		if (current_musicxmlevent->played)
+		c_musicxmlevent *current_musicxmlevent = lMusicxmlevents[nrEvent];
+		if (! current_musicxmlevent->played) continue;
+		if (current_musicxmlevent->starts.IsEmpty()) continue;
+		if (current_musicxmlevent->will_stop_index != -1) continue;
+		bool triggerOnFound = false; // become true if a trigger-on event appears before the end of this event
+		for (int nrTriggerEvent = nrEvent + 1 ; nrTriggerEvent < nbEvents ; nrTriggerEvent++)
 		{
-			if (! current_musicxmlevent->starts.IsEmpty())
-				p_musicxmlevent = current_musicxmlevent;
-			if (p_musicxmlevent && (p_musicxmlevent->will_stop_index == -1))
-			{
-				l_musicxmlevent::iterator iter_reverse_musicxmlevent = iter_musicxmlevent ;
-				while (true)
-				{
-					c_musicxmlevent *current_reverse_musicxmlevent = *iter_reverse_musicxmlevent;
-					if (    current_reverse_musicxmlevent->played
-						&& (current_reverse_musicxmlevent->stops.IsEmpty() == false)
-						&& (current_reverse_musicxmlevent->tenuto == false)
-						&& (current_reverse_musicxmlevent->stop_measureNr == p_musicxmlevent->stop_measureNr)
-						&& (current_reverse_musicxmlevent->stop_t == p_musicxmlevent->stop_t)
-						&& (current_reverse_musicxmlevent->stop_order == p_musicxmlevent->stop_order))
-					{
-						p_musicxmlevent->will_stop_index = current_reverse_musicxmlevent->nr;
-						current_reverse_musicxmlevent->stop_orpheline = false;
-						break;
-					}
-					if (iter_reverse_musicxmlevent == lMusicxmlevents.begin())
-						break;
-					iter_reverse_musicxmlevent--;
-				} 
-			}
+			c_musicxmlevent *current_trigger_musicxmlevent = lMusicxmlevents[nrTriggerEvent];
+			if (!current_trigger_musicxmlevent->played) continue;
+			if (current_trigger_musicxmlevent->starts.IsEmpty()) continue;
+			if (current_trigger_musicxmlevent->start_measureNr > current_musicxmlevent->stop_measureNr) break;
+			if (current_trigger_musicxmlevent->start_measureNr < current_musicxmlevent->stop_measureNr) { triggerOnFound = true; break; }
+			if (current_trigger_musicxmlevent->start_t > current_musicxmlevent->stop_t) break;
+			if (current_trigger_musicxmlevent->start_t < current_musicxmlevent->stop_t) { triggerOnFound = true; break; }
+			if (current_trigger_musicxmlevent->start_order > current_musicxmlevent->stop_order) break;
+			if (current_trigger_musicxmlevent->start_order < current_musicxmlevent->stop_order) { triggerOnFound = true; break; }
 		}
+		if (triggerOnFound) continue;
+		// reverse search for a trigger-off synchronous
+		for(int nrReverseEvent = nrEvent; nrReverseEvent >= 0; nrReverseEvent--)
+		{
+			c_musicxmlevent *current_reverse_musicxmlevent = lMusicxmlevents[nrReverseEvent];
+			if (! current_reverse_musicxmlevent->played) continue;
+			if (current_reverse_musicxmlevent->stops.IsEmpty()) continue;
+			if (current_reverse_musicxmlevent->tenuto) continue;
+			if (current_reverse_musicxmlevent->stop_measureNr != current_musicxmlevent->stop_measureNr) continue;
+			if (current_reverse_musicxmlevent->stop_t != current_musicxmlevent->stop_t) continue;
+			if (current_reverse_musicxmlevent->stop_order != current_musicxmlevent->stop_order) continue;
+			current_reverse_musicxmlevent->will_stop_index = current_musicxmlevent->nr;
+			current_musicxmlevent->stop_orpheline = false;
+			break;
+		} 
 	}
 	
-	// links stops-tenuto and orpheline-stops-non-tenuto with synchronous starts 
-	// lMusicxmlevents.Sort(musicXmlEventsCompareStop);
+	// links stops-tenuto and orpheline-stops with synchronous starts : fill musicxmlevent->stop_index ( event which are stopped on trigger-ON )
 	p_MeasureNr = -1;
 	p_t = -1;
 	p_order = -1;
 	p_tenuto = false;
-	for (iter_musicxmlevent = lMusicxmlevents.begin(); iter_musicxmlevent != lMusicxmlevents.end(); iter_musicxmlevent++)
+	for (int nrEvent = 0; nrEvent < nbEvents; nrEvent++)
 	{
-		c_musicxmlevent *current_musicxmlevent = *iter_musicxmlevent;
-		if ((current_musicxmlevent->played) && (current_musicxmlevent->stops.IsEmpty() == false) && ((current_musicxmlevent->tenuto == true) || (current_musicxmlevent->stop_orpheline == true)))
-		{
-			l_musicxmlevent::iterator iter_musicxmlevent_to;
-			for (iter_musicxmlevent_to = iter_musicxmlevent, iter_musicxmlevent_to++; iter_musicxmlevent_to != lMusicxmlevents.end(); iter_musicxmlevent_to++)
-			{
-				c_musicxmlevent *musicxmlevent_to = *iter_musicxmlevent_to;
-				if ((musicxmlevent_to->starts.IsEmpty() == false) && (musicxmlevent_to->start_measureNr == current_musicxmlevent->stop_measureNr) && (musicxmlevent_to->start_t == current_musicxmlevent->stop_t))
-				{
-					musicxmlevent_to->stop_index = current_musicxmlevent->nr;
-					current_musicxmlevent->stop_orpheline = false;
-					break;
-				}
-				if (musicxmlevent_to->start_measureNr > current_musicxmlevent->stop_measureNr)
-					break;
-			}
-		}
-	}
-
-	// lMusicxmlevents.Sort(musicXmlEventsCompareStart);
-	// residual stop-orpheline==true will be triggered like a start
-	bool orpheline_found = false;
-	l_musicxmlevent orpheline_musicxmlevents;
-	for (iter_musicxmlevent = lMusicxmlevents.begin(); iter_musicxmlevent != lMusicxmlevents.end(); iter_musicxmlevent++)
-	{
-		c_musicxmlevent *current_musicxmlevent = *iter_musicxmlevent;
-		if ((current_musicxmlevent->played) && (current_musicxmlevent->stop_orpheline))
-		{
-			c_musicxmlevent *orpheline_event = new c_musicxmlevent(*current_musicxmlevent);
-			orpheline_event->start_measureNr = current_musicxmlevent->stop_measureNr;
-			orpheline_event->start_t = current_musicxmlevent->stop_t;
-			orpheline_event->start_order = current_musicxmlevent->stop_order;
-			orpheline_event->stop_measureNr = current_musicxmlevent->stop_measureNr;
-			orpheline_event->stop_t = current_musicxmlevent->stop_t + 12; //exact calculation is made after
-			orpheline_event->stop_order = current_musicxmlevent->stop_order;
-			orpheline_event->velocity = 0;
-			orpheline_event->pitch = 0;
-			orpheline_event->starts.Add(-1);
-			orpheline_event->played = true;
-			orpheline_event->visible = true;
-			orpheline_event->cross = true;
-			l_musicxmlevent::iterator iter_musicxmlevent_after;
-			bool found = false;
-			for (iter_musicxmlevent_after = iter_musicxmlevent, iter_musicxmlevent_after++; iter_musicxmlevent_after != lMusicxmlevents.end(); iter_musicxmlevent_after++)
-			{
-				c_musicxmlevent *musicxmlevent_after = *iter_musicxmlevent_after;
-				if ((musicxmlevent_after->played == false) || (musicxmlevent_after->starts.IsEmpty()))
-					continue;
-				if (musicxmlevent_after->start_measureNr < orpheline_event->start_measureNr)
-					continue;
-				if ((musicxmlevent_after->start_measureNr == orpheline_event->start_measureNr) && (musicxmlevent_after->start_t <= orpheline_event->start_t))
-					continue;
-				orpheline_event->stop_measureNr = musicxmlevent_after->stop_measureNr;
-				orpheline_event->stop_t = musicxmlevent_after->stop_t;
-				found = true;
-				break;
-			}
-			if (found)
-			{
-				orpheline_musicxmlevents.Append(orpheline_event);
-				orpheline_found = true;
-			}
-			else
-				delete orpheline_event;
-		}
-	}
-	if (second_time) // finish the secund round
-		return;
-	if (orpheline_found)
-	{
-		// orpheline are added. Need to recompile in a second round
-		for (iter_musicxmlevent = orpheline_musicxmlevents.begin(); iter_musicxmlevent != orpheline_musicxmlevents.end(); iter_musicxmlevent++)
-		{
-			c_musicxmlevent *current_orpheline_musicxmlevent = *iter_musicxmlevent;
-			lMusicxmlevents.Append(current_orpheline_musicxmlevent);
-		}
-		orpheline_musicxmlevents.DeleteContents(false);
-		orpheline_musicxmlevents.Clear();
-		compileMusicxmlevents(true);
+		c_musicxmlevent *current_musicxmlevent = lMusicxmlevents[nrEvent];
+		if (!current_musicxmlevent->played) continue;
+		if (!current_musicxmlevent->stop_orpheline) continue;
+		lMusicxmlevents[current_musicxmlevent->nextNr]->stop_index = nrEvent ;
 	}
 
 	// count ornaments per note
@@ -2906,9 +2848,9 @@ void musicxmlcompile::compileMusicxmlevents(bool second_time)
 	int prev_start_measureNr = -1;
 	int nb_order_start_blind = 0;
 	l_musicxmlevent lmusicxmlevents_visible;
-	for (iter_musicxmlevent = lMusicxmlevents.begin(), nr_musicxmlevent = 0; iter_musicxmlevent != lMusicxmlevents.end(); iter_musicxmlevent++, nr_musicxmlevent++)
+	for (int nrEvent = 0; nrEvent < nbEvents; nrEvent++)
 	{
-		c_musicxmlevent *current_musicxmlevent = *iter_musicxmlevent;
+		c_musicxmlevent *current_musicxmlevent = lMusicxmlevents[nrEvent];
 		if ((current_musicxmlevent->start_t != prev_start_t) || (current_musicxmlevent->start_measureNr != prev_start_measureNr))
 		{
 			if (lmusicxmlevents_visible.GetCount() > 0)
@@ -3265,12 +3207,14 @@ void musicxmlcompile::compileScore()
 	int key_fifths = 0;
 	for (iter_compiled_part = compiled_score->parts.begin(), iter_score_part = compiled_score->part_list->score_parts.begin(); iter_compiled_part != compiled_score->parts.end(); ++iter_compiled_part, ++iter_score_part)
 	{
+		// pour chaque partie de la partition
 		c_part *current_compiled_part = *iter_compiled_part;
 		current_compiled_part->idNr = getTrackNr(current_compiled_part->id);
 		c_score_part *current_score_part = *iter_score_part;
 		l_measure::iterator iter_measure;
 		for (iter_measure = current_compiled_part->measures.begin(); iter_measure != current_compiled_part->measures.end(); iter_measure++)
 		{
+			// pour chaque mesure de la partie
 			int current_t = 0;
 			c_measure *current_measure = *iter_measure;
 			if (current_measure->key_fifths != NULL_INT)
@@ -3278,6 +3222,7 @@ void musicxmlcompile::compileScore()
 			l_measure_sequence::iterator iter_measure_sequence;
 			for (iter_measure_sequence = current_measure->measure_sequences.begin(); iter_measure_sequence != current_measure->measure_sequences.end(); iter_measure_sequence++)
 			{
+				// pour chacun des elements de la mesure
 				c_measure_sequence *current_measure_sequence = *iter_measure_sequence;
 				switch (current_measure_sequence->type)
 				{

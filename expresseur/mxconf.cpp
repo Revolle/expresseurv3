@@ -176,7 +176,7 @@ void mxconf::setPrefix()
 	while (true)
 	{
 		basslua_call(moduleLuabass, soutGetMidiName, "i>s", nbMidioutDevice + 1, ch);
-		if ((*ch == '\0') || (nbMidioutDevice >= MAX_MIDIOUT_DEVICE))
+		if ((*ch == '\0') || (nbMidioutDevice >= MIDIOUT_MAX))
 			break;
 		nbMidioutDevice++;
 		bool valid = false;
@@ -305,7 +305,10 @@ bool mxconf::readFile(wxTextFile *lfile, wxString key, long defaultvalue, bool p
 	this->set(key, l, prefix , name);
 	return(true);
 }
-
+bool mxconf::exist(wxString key, bool prefix, wxString name)
+{
+	return (mConfig->Exists(prefixKey(key, prefix, name)));
+}
 wxString mxconf::get(wxString key, wxString defaultvalue, bool prefix, wxString name)
 {
 	wxString s;

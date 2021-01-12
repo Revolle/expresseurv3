@@ -11,7 +11,7 @@ class mixer
 {
 
 public:
-	mixer(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf , viewerscore *mscore );
+	mixer(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf , viewerscore *mscore, wxArrayString lMidiout, wxArrayString lValideMidiout, bool audio );
 	~mixer();
 
 	void reset(bool localoff = true, bool doreset = false);
@@ -42,7 +42,6 @@ public:
 
 	void allNoteOff();
 
-	wxArrayString getMidiOutDevices();
 
 private:
 	wxFrame *mParent;
@@ -53,6 +52,7 @@ private:
 	wxCheckBox *mCheckBox ;
 	
 	bool loading = true;
+	int nbMidioutDevice; 
 
 	wxStaticText *txtValue;
 
@@ -76,16 +76,14 @@ private:
 	void AddMixerVolume(int nrTrack);
 
 	wxArrayString nameChannel;
-	wxArrayString listMidioutDevice[MAX_MIDIOUT_DEVICE];
-	bool valideMidioutDevice[MAX_MIDIOUT_DEVICE];
-	wxArrayString nameMidioutDevice;
+	wxArrayString listInstrumensDevices[OUT_MAX_DEVICE];
+	wxArrayString nameDevices;
+	wxArrayString nameMidiDevices;
 	wxString defaultDevice , lastDevice ;
 
 	bool createViList(wxString fileName, wxString ext);
 
 	void InitListChannel();
-	int nbMidioutDevice; 
-	int nbOutDevice;
 
 	int mainVolume;
 	wxSlider *slmainVolume;
@@ -97,11 +95,11 @@ private:
 
 	wxArrayString listVIused;
 
-	void getMidioutDevices();
+	void getMidioutDevices(wxArrayString lMidiout, wxArrayString lValideMidiout, bool audio);
 	void getListMidioutDevice(wxString fileName , int nrDevice);
 
 	void getMidiVi(wxString fullNameDevice, int *nrMidiDevice, wxString *nameVi);
-	wxString setMidiVi(bool valid , wxString nameMidi, wxString nameVi , wxString extVi);
+	wxString setMidiVi( wxString nameMidi, wxString nameVi , wxString extVi);
 
 	void AddSoundDevice(int nrTrack);
 	void AddSoundChannel(int nrTrack);

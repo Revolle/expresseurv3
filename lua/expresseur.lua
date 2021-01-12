@@ -183,14 +183,6 @@ end
 
 --===================== initialization
 function onStart(param)
-  -- after init of the LUA bass module
-	if ( string.find(param,"--preopen_midiout") ~= nil) then
-  	     lOut = luabass.outGetMidiList() -- list of midi-out ports
-		for i,v in ipairs(lOut) do
-    	  		luabass.outSetMidiValide(i,midiOutIsValid(v)) -- make midi-out valide or not
-		end
-  	luabass.outPreOpenMidi() -- pre-open valid midi-out, to avoid later conflict 
-	end
 	-- change keyboard for shortcuts,using -k option
 	local typeKeyboard = (string.match(param,"-k (%a+)")) or "qwerty"
 	-- luabass.logmsg("param=" .. param .. " / typeKeyboard=" .. typeKeyboard )

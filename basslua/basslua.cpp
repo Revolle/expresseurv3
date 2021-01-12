@@ -1696,6 +1696,20 @@ bool basslua_openMidiIn(int *nrDevices, int nbDevices)
 	unlock_mutex_in();
 	return (retCode);
 }
+bool basslua_openMidiOut(int *nrDevices, int nbDevices)
+{
+	lock_mutex_in();
+	bool retCode = true;
+	midi_in_close_devices();
+	//mlog_in("basslua / basslua_openMidiIn , nbDevices=%d",nbDevices);
+	for (int n = 0; n < nbDevices; n++)
+	{
+		if (midiopen_device(nrDevices[n]) == false)
+			retCode = false;
+	}
+	unlock_mutex_in();
+	return (retCode);
+}
 
 void basslua_external_timer()
 {

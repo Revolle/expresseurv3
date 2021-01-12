@@ -67,14 +67,14 @@ EVT_BUTTON(ID_MIXER_SETTING_ALLNOTEOFF, mixer::OnSettingAllNoteOff)
 EVT_BUTTON(IDM_MIXER_CLOSE, mixer::OnClose)
 wxEND_EVENT_TABLE()
 
-mixer::mixer(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf, viewerscore *lviewerscore)
+mixer::mixer(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf, viewerscore *lviewerscore , wxArrayString lMidiout, wxArrayString lValideMidiout, bool audio)
 : wxDialog(parent, id, title, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 {
 	mParent = parent;
 	mThis = this;
 	mConf = lMxconf;
 	mViewerscore = lviewerscore;
-
+	nbMidioutDevice = lMidiout.GetCount();
 	topsizer = NULL;
 	// some sizerFlags commonly used
 	sizerFlagMaximumPlace.Proportion(1);
@@ -89,7 +89,7 @@ mixer::mixer(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxc
 	// get info about the tracks
 	getTracks();
 	// get info about the midi out devices
-	getMidioutDevices();
+	getMidioutDevices(lMidiout, lValideMidiout, audio);
 
 	BuildSizer();
 }
@@ -97,7 +97,7 @@ mixer::~mixer()
 {
 	for (int i = 0; i < MAX_TRACK; i++)
 	{
-		listMidioutDevice[i].Clear();
+		listInstrumensDevices[i].Clear();
 	}
 }
 void mixer::close()
@@ -332,12 +332,12 @@ void mixer::InitListChannel()
 		nameChannel.Add(s);
 	}
 }
-void mixer::getMidiVi(wxString fullNameDevice, int *nrMidiDevice, wxString *nameVi)
+void mixer::getMidiVi(wxString fullNameDevice, int *nrDevice, wxString *nameVi)
 {
 	wxString nameDevice;
 	wxString typeDevice = fullNameDevice.BeforeFirst(':', &nameDevice);
 	*nameVi = NULL_STRING;
-	*nrMidiDevice = NULL_INT;
+	*nrDevice = NULL_INT;
 	if (nameDevice.IsEmpty())
 	{
 		return;
@@ -350,90 +350,76 @@ void mixer::getMidiVi(wxString fullNameDevice, int *nrMidiDevice, wxString *name
 			*nameVi = nameDevice + "." + SVST;
 		if (listVIused.Index(nameDevice) == wxNOT_FOUND)
 			listVIused.Add(nameDevice);
-		*nrMidiDevice = VI_ZERO + listVIused.Index(nameDevice);
+		*nrDevice = VI_ZERO + listVIused.Index(nameDevice);
 	}
 	else
 	{
-		for (unsigned int i = 0; i < nameMidioutDevice.GetCount(); i++)
+		for (unsigned int i = 0; i < nameMidiDevices.GetCount(); i++)
 		{
-			wxString s = nameMidioutDevice[i].AfterFirst(':');
+			wxString s = nameMidiDevices[i].AfterFirst(':');
 			if (s == nameDevice)
-				*nrMidiDevice = i;
+				*nrDevice = i;
 		}
 	}
 }
-wxString mixer::setMidiVi(bool valid, wxString nameMidi, wxString nameVi, wxString extVi)
+wxString mixer::setMidiVi( wxString nameMidi, wxString nameVi, wxString extVi)
 {
 	wxString s;
-	wxString v;
-	if (valid)
-		v = "";
-	else
-		v = _("invalid") + " ";
 	if (nameVi.IsEmpty())
-		s.Printf("%s%s:%s", v, SMIDI, nameMidi);
+		s.Printf("%s:%s", SMIDI, nameMidi);
 	else
 	{
 		if (extVi.IsSameAs(SSF2,false))
-			s.Printf("%s%s:%s", v, NSF2, nameVi);
+			s.Printf("%s:%s", NSF2, nameVi);
 		else
-			s.Printf("%s%s:%s", v, NVST, nameVi);
+			s.Printf("%s:%s", NVST, nameVi);
 	}
 	return s;
 }
-void mixer::getMidioutDevices()
+void mixer::getMidioutDevices(wxArrayString lMidiout, wxArrayString lValideMidiout, bool audio)
 {
 	// list all midi devices ( midiout and VI )
 
 	wxString s ;
-	char ch[MAXBUFCHAR];
 	wxString name;
-	nameMidioutDevice.Clear();
-	nameMidioutDevice.Add(_("(no output)"));
+	nameDevices.Clear();
+	nameMidiDevices.Clear();
+	nameDevices.Add(_("(no output)"));
 
-	nbMidioutDevice = 0;
-	for (int i = 0; i < MAX_MIDIOUT_DEVICE; i++)
-		valideMidioutDevice[i] = false;
-	while (true)
+	for (int i = 0; i < lValideMidiout.GetCount(); i++)
 	{
-		*ch = '\0';
-		basslua_call(moduleLuabass, soutGetMidiName, "i>s", nbMidioutDevice + 1, ch);
-
-		if ((*ch == '\0') || (nbMidioutDevice >= MAX_MIDIOUT_DEVICE))
-			break;
-		bool valid = false ;
-		basslua_call(moduleGlobal, soutMidiIsValid, "s>b", ch , &valid);
-		name = setMidiVi(valid, ch, "" , "" );
-		nameMidioutDevice.Add(name);
-		if ((valid) && (defaultDevice.IsEmpty()))
-			defaultDevice = name;
-		valideMidioutDevice[nameMidioutDevice.GetCount() - 1] = valid;
-		nbMidioutDevice++;
-		if ( valid )
-			getListMidioutDevice(ch, nameMidioutDevice.GetCount() - 1);
+		nameDevices.Add(setMidiVi(lValideMidiout[i], "", ""));
+	}
+	for (int i = 0; i < lMidiout.GetCount(); i++)
+	{
+		nameMidiDevices.Add(setMidiVi(lMidiout[i], "", ""));
 	}
 
 	wxString firstDeviceDefault;
 
-	wxArrayString filesVI;
-	wxString sdir = mxconf::getResourceDir() ;
-	wxFileName fvi;
-	fvi.AssignDir(sdir);
-	wxDir::GetAllFiles(sdir, &filesVI, "*.sf2", wxDIR_DEFAULT);
-	wxDir::GetAllFiles(sdir, &filesVI, "*.dll", wxDIR_DEFAULT);
-	for (unsigned int nrVi = 0; nrVi < filesVI.Count(); nrVi++)
+	if (audio)
 	{
-		fvi.Assign(filesVI[nrVi]);
-		bool valid = createViList(fvi.GetName(), fvi.GetExt());
-		name = setMidiVi(valid, "", fvi.GetName(), fvi.GetExt());
-		nameMidioutDevice.Add(name);
-		valideMidioutDevice[nameMidioutDevice.GetCount() - 1] = valid;
-		if ((valid) && (defaultDevice.IsEmpty()))
-			defaultDevice = name;
-		if ((valid) && (name.Contains("default_")))
-			firstDeviceDefault = name;
-		if (valid)
-			getListMidioutDevice(fvi.GetName(), nameMidioutDevice.GetCount() - 1);
+
+		wxArrayString filesVI;
+		wxString sdir = mxconf::getResourceDir();
+		wxFileName fvi;
+		fvi.AssignDir(sdir);
+		wxDir::GetAllFiles(sdir, &filesVI, "*.sf2", wxDIR_DEFAULT);
+#ifdef VST
+		wxDir::GetAllFiles(sdir, &filesVI, "*.dll", wxDIR_DEFAULT);
+#endif
+		for (unsigned int nrVi = 0; nrVi < filesVI.Count(); nrVi++)
+		{
+			fvi.Assign(filesVI[nrVi]);
+			if ( createViList(fvi.GetName(), fvi.GetExt()) )
+				name = setMidiVi("", fvi.GetName(), fvi.GetExt());
+			nameDevices.Add(name);
+			if (defaultDevice.IsEmpty())
+				defaultDevice = name;
+			if (name.Contains("default_"))
+				firstDeviceDefault = name;
+			getListMidioutDevice(fvi.GetName(), nameDevices.GetCount() - 1);
+		}
 	}
 	if (firstDeviceDefault.IsEmpty() == false)
 		defaultDevice = firstDeviceDefault;
@@ -496,7 +482,7 @@ void mixer::getListMidioutDevice(wxString fileName , int nrDevice)
 	{
 		if (str.IsEmpty() == false)
 		{
-			listMidioutDevice[nrDevice].Add(str);
+			listInstrumensDevices[nrDevice].Add(str);
 		}
 		str = tfile.GetNextLine();
 	}
@@ -504,7 +490,7 @@ void mixer::getListMidioutDevice(wxString fileName , int nrDevice)
 }
 void mixer::AddSoundDevice(int nrTrack)
 {
-	mSoundDevice[nrTrack] = new wxChoice(this, ID_MIXER_SOUND_DEVICE + nrTrack, wxDefaultPosition, wxDefaultSize, nameMidioutDevice);
+	mSoundDevice[nrTrack] = new wxChoice(this, ID_MIXER_SOUND_DEVICE + nrTrack, wxDefaultPosition, wxDefaultSize, nameDevices);
 
 	wxString svalue = mConf->get(CONFIG_MIXERDEVICENAME, defaultDevice, true, nameTrack[nrTrack]);
 
@@ -534,16 +520,16 @@ void mixer::OnSoundDevice(wxEvent& event)
 	unsigned int nrDevice = mControl->GetSelection();
 
 	wxString s1;
-	mConf->set(CONFIG_MIXERDEVICENAME, nameMidioutDevice[nrDevice], true, nameTrack[nrTrack]);
+	mConf->set(CONFIG_MIXERDEVICENAME, nameDevices[nrDevice], true, nameTrack[nrTrack]);
 	
-	lastDevice = nameMidioutDevice[nrDevice];
+	lastDevice = nameDevices[nrDevice];
 
 	wxString instrument;
-	if (nrDevice < listMidioutDevice->GetCount())
+	if (nrDevice < listInstrumensDevices->GetCount())
 	{
-		mInstrument[nrTrack]->Set(listMidioutDevice[nrDevice]);
-		if (listMidioutDevice[nrDevice].GetCount() > 0)
-			instrument = listMidioutDevice[nrDevice].Item(0);
+		mInstrument[nrTrack]->Set(listInstrumensDevices[nrDevice]);
+		if (listInstrumensDevices[nrDevice].GetCount() > 0)
+			instrument = listInstrumensDevices[nrDevice].Item(0);
 		else
 			instrument = "";
 		mInstrument[nrTrack]->SetValue(instrument);
@@ -589,7 +575,7 @@ void mixer::AddSoundInstrument(int nrTrack)
 	if (mSoundDevice[nrTrack]->GetSelection() != wxNOT_FOUND)
 	{
 		instrument = mConf->get(CONFIG_MIXERINSTRUMENT, "", true, nameTrack[nrTrack]);
-		mInstrument[nrTrack] = new wxComboBox(this, ID_MIXER_INSTRUMENT + nrTrack, instrument, wxDefaultPosition, wxDefaultSize,  listMidioutDevice[mSoundDevice[nrTrack]->GetSelection()]  );
+		mInstrument[nrTrack] = new wxComboBox(this, ID_MIXER_INSTRUMENT + nrTrack, instrument, wxDefaultPosition, wxDefaultSize,  listInstrumensDevices[mSoundDevice[nrTrack]->GetSelection()]  );
 	}
 	else
 	{
@@ -633,10 +619,6 @@ void mixer::replicate(int nrTrack)
 		}
 	}
 }
-wxArrayString mixer::getMidiOutDevices()
-{
-	return nameMidioutDevice;
-}
 void mixer::reset(bool localoff ,bool doreset)
 {
 	//mlog_in("mixer / reset / start");
@@ -649,13 +631,13 @@ void mixer::reset(bool localoff ,bool doreset)
 	// reset all the MIDI out configuration
 
 	wxString s1, sdevice[MAX_TRACK], instrument[MAX_TRACK], nameVi[MAX_TRACK];
-	int channel[MAX_TRACK], volume[MAX_TRACK], nrMidiDevice[MAX_TRACK];
+	int channel[MAX_TRACK], volume[MAX_TRACK], nrDevice[MAX_TRACK];
 
 	for (int i = 0; i < MAX_TRACK; i++)
 	{
 		channel[i] = NULL_INT;
 		volume[i] = NULL_INT;
-		nrMidiDevice[i] = NULL_INT;
+		nrDevice[i] = NULL_INT;
 		sdevice[i] = NULL_STRING;
 		instrument[i] = NULL_STRING;
 		nameVi[i] = NULL_STRING;
@@ -667,7 +649,7 @@ void mixer::reset(bool localoff ,bool doreset)
 	for (int nrTrack = 0; nrTrack < nbTrack; nrTrack++)
 	{
 		sdevice[nrTrack] = mConf->get(CONFIG_MIXERDEVICENAME, defaultDevice, true, nameTrack[nrTrack]);
-		getMidiVi(sdevice[nrTrack], &(nrMidiDevice[nrTrack]), &(nameVi[nrTrack]));
+		getMidiVi(sdevice[nrTrack], &(nrDevice[nrTrack]), &(nameVi[nrTrack]));
 		channel[nrTrack] = mConf->get(CONFIG_MIXERCHANNEL, 0, true, nameTrack[nrTrack]);
 		volume[nrTrack] = mConf->get(CONFIG_MIXERVOLUME, 64, true, nameTrack[nrTrack]);
 		instrument[nrTrack] = mConf->get(CONFIG_MIXERINSTRUMENT, "", true, nameTrack[nrTrack]);
@@ -683,9 +665,9 @@ void mixer::reset(bool localoff ,bool doreset)
 			channelUsed[nr_device][nr_channel] = false;
 	for (int nr_track = 0; nr_track < nbTrack; nr_track++)
 	{
-		if (nrMidiDevice[nr_track] != NULL_INT)
+		if (nrDevice[nr_track] != NULL_INT)
 		{
-			channelUsed[nrMidiDevice[nr_track]][channel[nr_track]] = true;
+			channelUsed[nrDevice[nr_track]][channel[nr_track]] = true;
 		}
 	}
 	for (int nr_device = 0; nr_device < OUT_MAX_DEVICE; nr_device++)
@@ -717,7 +699,7 @@ void mixer::reset(bool localoff ,bool doreset)
 	//mlog_in("mixer / reset / setTracks");
 	for (int nrTrack = nbTrack - 1; nrTrack >= 0; nrTrack--)
 	{
-		if ((nrMidiDevice[nrTrack] != NULL_INT) && (nrMidiDevice[nrTrack] < VI_ZERO))
+		if ((nrDevice[nrTrack] != NULL_INT) && (nrDevice[nrTrack] < VI_ZERO))
 		{
 			char bufNameTrack[MAXBUFCHAR];
 			strcpy(bufNameTrack, nameTrack[nrTrack].c_str());
@@ -725,7 +707,7 @@ void mixer::reset(bool localoff ,bool doreset)
 			strcpy(bufInstrument, instrument[nrTrack].c_str());
 			int n = nrTrack + 1;
 			//mlog_in("mixer / reset / setTrack %s(%d)",soutTrackOpenMidi,nrTrack);
-			basslua_call(moduleLuabass, soutTrackOpenMidi, "iisiisi", n, channel[nrTrack] + 1, bufInstrument, nrMidiDevice[nrTrack], additionnalChannelPerDevice[nrMidiDevice[nrTrack]], bufNameTrack, localoff);
+			basslua_call(moduleLuabass, soutTrackOpenMidi, "iisiisi", n, channel[nrTrack] + 1, bufInstrument, nrDevice[nrTrack] + 1, additionnalChannelPerDevice[nrDevice[nrTrack]], bufNameTrack, localoff);
 			//mlog_in("mixer / reset / setTrack tableSetKeyValue");
 			basslua_table(moduleGlobal, tableTracks, -1, bufNameTrack, NULL, &n, tableSetKeyValue);
 			//mlog_in("mixer / reset / setTrack tableCallKeyFunction");
@@ -745,7 +727,7 @@ void mixer::reset(bool localoff ,bool doreset)
 			strcpy(bufNameVi, svi.c_str());
 			int n = nrTrack + 1;
 			//mlog_in("mixer / reset / setTrack VI=%d",nrTrack);
-			basslua_call(moduleLuabass, soutTrackOpenVi, "iissi", n, channel[nrTrack] + 1, bufInstrument, bufNameVi, additionnalChannelPerDevice[nrMidiDevice[nrTrack]]);
+			basslua_call(moduleLuabass, soutTrackOpenVi, "iissi", n, channel[nrTrack] + 1, bufInstrument, bufNameVi, additionnalChannelPerDevice[nrDevice[nrTrack]]);
 			basslua_table(moduleGlobal, tableTracks, -1, bufNameTrack, NULL, &n, tableSetKeyValue);
 			basslua_table(moduleGlobal, tableTracks, n, fieldCallFunction, bufNameTrack, &n, tableCallKeyFunction | tableCallTableFunction);
 		}

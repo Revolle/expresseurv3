@@ -11,7 +11,7 @@ const int chipSelect = BUILTIN_SDCARD;
 ///////////////////////////////////////////////////////////////////////////////
 //                       Definition Expresseur
 ///////////////////////////////////////////////////////////////////////////////
-#define MAXEVENT 2500
+#define MAXEVENT 2950
 #define MAXEVENTSTOPSTART 8
 #define PITCHFILE 64
 #define MAXPITCH 128
@@ -1091,6 +1091,15 @@ void expresseur_loadFile(int fileNr)
         if ((c >= '0') && (c <= '9'))
         {
           event->willStopIndex = 10* event->willStopIndex + (c - '0') ;
+          break ;
+        }
+        else if (c == ',')
+          etat = 5 ;
+        break ;
+      case 5 : //measurenr (not used)
+        if ((c >= '0') && (c <= '9'))
+        {
+          // not used
           break ;
         }
         else if (c == '\n')

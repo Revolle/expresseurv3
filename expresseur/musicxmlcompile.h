@@ -152,7 +152,8 @@ public:
 		start_order = iorder;
 		fifths = ififths;
 	}
-	int nr = 0; // index sorted
+	int nr = 0; // index sorted with start_* as key
+	int nextNr = 0; // next element just which starts after the stop ;
 	int uid; // technial unique id
 
 	int partNr = 0;
@@ -310,6 +311,7 @@ public:
 
 private:
 	void dump_musicxmlevents();
+	void fillStartStopNext();
 	void compileScore(bool reanalyse);
 	void writeMarks();
 	void readMarks(bool full = true);
@@ -325,7 +327,7 @@ private:
 	int getDivision(int measure_nr, int *division_quarter, int *division_measure);
 	int compileNote(c_part *part,c_note *note, int measureNr, int originalMeasureNr, int t, int division_measure, int division_beat, int division_quarter, int repeat, int key_fifths);
 	void compileTie(c_part *part, c_note *note, int *measureNr, int *t, int nbDivision);
-	void compileMusicxmlevents(bool second_time = false);
+	void compileMusicxmlevents();
 	void pushLuaMusicxmlevents();
 	void addOrnaments();
 	void clearOrnaments();
@@ -363,6 +365,9 @@ private:
 	l_arpeggiate_toapply lArpeggiate_toapply;
 	l_pedal_bar_toapply lPedal_bar_toapply;
 	int nbEvents = 0;
+	int nb_measure = 0;
+	wxArrayInt indexStop; // inex des lMusicxmlevents classes par stop
+
 
 	l_eventPlayback lEventPlaybacks;
 	l_eventPlayback::iterator playback_iter_eventPlayback;

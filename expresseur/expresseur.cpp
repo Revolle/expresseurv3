@@ -186,6 +186,7 @@ enum
 
 	ID_MAIN_LOCAL_OFF,
 	ID_MAIN_AUDIO_SETTING,
+	ID_MAIN_MIDI_SETTING,
 
 	ID_MAIN_PREVIOUS_PAGE,
 	ID_MAIN_NEXT_PAGE,
@@ -232,6 +233,7 @@ EVT_MENU(ID_MAIN_ORNAMENT_ADD_ABSOLUTE, Expresseur::OnOrnamentAddAbsolute)
 EVT_MENU(wxID_EDIT, Expresseur::OnEdit)
 EVT_MENU(ID_MAIN_LOCAL_OFF, Expresseur::OnLocaloff)
 EVT_MENU(ID_MAIN_AUDIO_SETTING, Expresseur::OnAudioSetting)
+EVT_MENU(ID_MAIN_MIDI_SETTING, Expresseur::OnMidiSetting)
 
 EVT_MENU(ID_MAIN_PREVIOUS_PAGE,Expresseur::OnPreviousPage)
 EVT_MENU(ID_MAIN_NEXT_PAGE, Expresseur::OnNextPage)
@@ -484,6 +486,7 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	settingMenu->AppendSeparator();
 	settingMenu->AppendCheckItem(ID_MAIN_LOCAL_OFF, _("Send MIDI local-off"), _("Send local-off on MIDI-out opening, i.e. to unlink keyboard and soud-generator on electronic piano"));
 	settingMenu->Append(ID_MAIN_AUDIO_SETTING, _("Audio..."), _("Audio settings, to decrease latency, and to select the default audio output"));
+	settingMenu->Append(ID_MAIN_MIDI_SETTING, _("Midi..."), _("Midi settings, to select MIDI Inputs and Outputs, and the default MIDI output"));
 	settingMenu->Append(ID_MAIN_LUAFILE, _("LUA Files..."));
 	settingMenu->Append(ID_MAIN_UPDATE, _("Check update") , _("check if an update is available on the www.expresseur.com web site"));
 	settingMenu->Append(ID_MAIN_RESET, _("Reset audio/midi"), _("Reset the audio/midi configuration"));
@@ -635,8 +638,7 @@ bool Expresseur::checkConfig()
 		msg += merrors;
 		ret = false;
 	}
-	wxArrayString listMidiin;
-	int nbIn = GetListMidiIn(&listMidiin);
+	int nbIn = GetListMidiIn();
 	if (nbIn == 0)
 	{
 		msg += "No valid MIDI-in\n";
@@ -647,12 +649,11 @@ bool Expresseur::checkConfig()
 		sv.Printf("%d valid Midi-in\n", nbIn);
 		msg += sv;
 	}
-	for (unsigned int i = 0; i < listMidiin.GetCount(); i++)
+	for (int i = 0; i < nbIn; i++)
 	{
-		msg += "    - " + listMidiin[i] + "\n";
+		msg += "    - " + nameValideMidiInDevices[i] + "\n";
 	}
-	wxArrayString listMidiout;
-	int nbOut = GetListMidiOut(&listMidiout);
+	int nbOut = GetListMidiOut();
 	if (nbOut == 0)
 	{
 		msg += "No valid MIDI-out\n";
@@ -663,9 +664,9 @@ bool Expresseur::checkConfig()
 		sv.Printf("%d valid Midi-out\n", nbOut);
 		msg += sv;
 	}
-	for (unsigned int i = 0; i < listMidiout.GetCount(); i++)
+	for (int i = 0; i < nbOut ; i++)
 	{
-		msg += "    - " + listMidiout[i] + "\n";
+		msg += "    - " + nameValideMidiOutDevices[i] + "\n";
 	}
 
 	int nbAudio = getListAudio();
@@ -1056,8 +1057,8 @@ void Expresseur::OnTimer(wxTimerEvent& WXUNUSED(event))
 	if (firstTimer)
 	{
 
-		postInit();
 		firstTimer = false;
+		postInit();
 		return;
 	}
 	// trigger external timer for luabass and basslua
@@ -1281,7 +1282,7 @@ void Expresseur::OnMenuSettings(wxCommandEvent& event)
 	fn.SetExt("txt");
 	settingName.Assign(fn.GetFullPath());
 	settingOpen();
-	settingReset(true);
+	settingReset(false);
 }
 void Expresseur::OnRecordPlayback(wxCommandEvent& event)
 {
@@ -2061,6 +2062,11 @@ bool Expresseur::settingReset(bool all)
 
 	// close and load the right LUA script
 	luafile::reset(mConf , all , timerDt );
+	if (all)
+	{
+		openMidiIn();
+		openMidiOut();
+	}
 
 	basslua_call(moduleLuabass, soutAllNoteOff, "s", "a");
 	getLuaAction(false, NULL);
@@ -2072,7 +2078,7 @@ bool Expresseur::settingReset(bool all)
 		delete mMidishortcut;
 	}
 	mMidishortcut = NULL;
-	mMidishortcut = new midishortcut(this, wxID_ANY, _("shortcut"), mConf, nameAction);
+	mMidishortcut = new midishortcut(this, wxID_ANY, _("shortcut"), mConf, nameAction, nameValideMidiInDevices);
 
 	// load the expression
 	if (mExpression != NULL)
@@ -2198,7 +2204,7 @@ bool Expresseur::settingReset(bool all)
 		delete mMixer;
 	}
 	mMixer = NULL;
-	mMixer = new mixer(this, wxID_ANY, _("mixer"), mConf, mViewerscore);
+	mMixer = new mixer(this, wxID_ANY, _("mixer"), mConf, mViewerscore, nameMidiOutDevices , nameValideMidiOutDevices, true );
 
 	// set the size of the windows
 	int x, y, width, height;
@@ -2381,8 +2387,11 @@ void Expresseur::initFirstUse(bool force)
 {
 	// is is the first time the Expresseur start ?
 	bool initialized = mConf->get(CONFIG_INITIALIZED, false);
-	if ((initialized) && (! force))
+	if ((initialized) && (!force))
+	{
+		testMidisetting();
 		return;
+	}
 
 	// set as already initialized
 	mConf->set(CONFIG_INITIALIZED, true);
@@ -2399,7 +2408,7 @@ void Expresseur::initFirstUse(bool force)
 	getLuaAction(false, NULL);
 
 	// run the wizard to tune up the audio, and to inform the user
-	wizard();
+	wizard(false, false);
 
 	// clean everything
 	if (mMixer != NULL) delete mMixer;
@@ -2409,9 +2418,9 @@ void Expresseur::initFirstUse(bool force)
 	mMidishortcut = NULL;
 	mExpression = NULL;
 
-	mMidishortcut = new midishortcut(this, wxID_ANY, _("shortcut"), mConf, nameAction);
+	mMidishortcut = new midishortcut(this, wxID_ANY, _("shortcut"), mConf, nameAction, nameValideMidiInDevices);
 	mExpression = new expression(this, wxID_ANY, _("Expression"), mConf);
-	mMixer = new mixer(this, wxID_ANY, _("mixer"), mConf, mViewerscore);
+	mMixer = new mixer(this, wxID_ANY, _("mixer"), mConf, mViewerscore, nameMidiOutDevices, nameValideMidiOutDevices, true);
 
 	// load the dfautl setting for the shorcuts, ...
 	settingName.AssignDir(mxconf::getResourceDir());
@@ -2430,12 +2439,18 @@ void Expresseur::initFirstUse(bool force)
 }
 void Expresseur::OnAudioSetting(wxCommandEvent& WXUNUSED(event))
 {
-	wizard(true);
+	wizard(true,false);
 	settingReset();
 }
-int Expresseur::GetListMidiIn(wxArrayString *listMidiIn)
+void Expresseur::OnMidiSetting(wxCommandEvent& WXUNUSED(event))
 {
-	listMidiIn->Clear();
+	wizard(false, true);
+	settingReset();
+}
+int Expresseur::GetListMidiIn()
+{
+	nameValideMidiInDevices.Clear();
+	nameMidiInDevices.Clear();
 	int nrMidiInDevice = 0;
 	int nbMidiInDevice = 0;
 	char nameMidiInDevice[MAXBUFCHAR];
@@ -2445,26 +2460,46 @@ int Expresseur::GetListMidiIn(wxArrayString *listMidiIn)
 		basslua_call(moduleLuabass, sinGetMidiName, "i>s", nrMidiInDevice + 1, nameMidiInDevice);
 		if (*nameMidiInDevice == '\0')
 			break;
+		nameMidiInDevices.Add(nameMidiInDevice);
 		bool valid = false;
 		basslua_call(moduleGlobal, sinMidiIsValid, "s>b", nameMidiInDevice, &valid);
 		if (valid)
 		{
-			listMidiIn->Add(nameMidiInDevice);
+			nameValideMidiInDevices.Add(nameMidiInDevice);
 			nbMidiInDevice++;
-		}
-		else
-		{
-			wxString sinv;
-			sinv.Printf("invalid [%s]", nameMidiInDevice);
-			listMidiIn->Add(sinv);
 		}
 		nrMidiInDevice++;
 	}
 	return nbMidiInDevice;
 }
-int Expresseur::GetListMidiOut(wxArrayString *listMidiOut)
+void Expresseur::testMidisetting()
 {
-	listMidiOut->Clear();
+	if (mConf->exist(CONFIG_MIDIIN, false, wxString::Format("%d", 0)))
+		return;
+	wizard(false,true);
+}
+void Expresseur::openMidiIn()
+{
+	// open the device in
+	int nrDevicesToOpen[MIDIIN_MAX];
+	int nbDevicesToOpen = 0;
+	GetListMidiIn();
+	for (unsigned int i = 0; i < MIDIIN_MAX; i++)
+	{
+		wxString smididevice = mConf->get(CONFIG_MIDIIN, "", false, wxString::Format("%d", i));
+		int nrDevice = nameMidiInDevices.Index(smididevice);
+		if (nrDevice != wxNOT_FOUND)
+		{
+			nrDevicesToOpen[nbDevicesToOpen] = nrDevice;
+			nbDevicesToOpen++;
+		}
+	}
+	basslua_openMidiIn(nrDevicesToOpen, nbDevicesToOpen);
+}
+int Expresseur::GetListMidiOut()
+{
+	nameValideMidiOutDevices.Clear();
+	nameMidiOutDevices.Clear();
 	int nrMidiOutDevice = 0;
 	int nbMidiOutDevice = 0;
 	char nameMidiOutDevice[MAXBUFCHAR];
@@ -2474,25 +2509,36 @@ int Expresseur::GetListMidiOut(wxArrayString *listMidiOut)
 		basslua_call(moduleLuabass, soutGetMidiName, "i>s", nrMidiOutDevice + 1, nameMidiOutDevice);
 		if (*nameMidiOutDevice == '\0')
 			break;
+		nameMidiOutDevices.Add(nameMidiOutDevice);
 		bool valid = false;
 		basslua_call(moduleGlobal, soutMidiIsValid, "s>b", nameMidiOutDevice, &valid);
 		if (valid)
 		{
-			listMidiOut->Add(nameMidiOutDevice);
+			nameValideMidiOutDevices.Add(nameMidiOutDevice);
 			nbMidiOutDevice++;
-		}
-		else
-		{
-			wxString sinv;
-			sinv.Printf("invalid [%s]", nameMidiOutDevice);
-			listMidiOut->Add(sinv);
 		}
 		nrMidiOutDevice++;
 	}
 	return nbMidiOutDevice;
 }
-void Expresseur::wizard(bool audio_only)
+void Expresseur::openMidiOut()
 {
+	// open the device in
+	GetListMidiOut();
+	for (unsigned int i = 0; i < MIDIOUT_MAX; i++)
+	{
+		wxString smididevice = mConf->get(CONFIG_MIDIOUT, "", false, wxString::Format("%d", i));
+		int nrMidiOutDevice = nameMidiOutDevices.Index(smididevice);
+		if (nrMidiOutDevice != wxNOT_FOUND)
+		{
+			basslua_call(moduleLuabass, soutOpenMidi, "i", nrMidiOutDevice + 1);
+		}
+	}
+}
+void Expresseur::wizard(bool audio_only, bool midi_only)
+{
+	luafile::reset(mConf, true , timerDt);
+
 	wxFileName fWizardJpeg ;
 	fWizardJpeg.AssignDir(mxconf::getCwdDir());
 	fWizardJpeg.SetExt("jpg");
@@ -2508,6 +2554,8 @@ void Expresseur::wizard(bool audio_only)
 	wxString labelWizard;
 	if (audio_only)
 		labelWizard = "Audio setting";
+	else if (midi_only)
+		labelWizard = "Midi setting";
 	else
 		labelWizard = "Wizard Expresseur";
 	wxWizard *mwizard = new wxWizard(this, wxID_ANY, labelWizard);
@@ -2535,8 +2583,7 @@ basic tunings to play.\n");
 	wxBoxSizer *topsizer_midi_in = new wxBoxSizer(wxVERTICAL);
 	topsizer_midi_in->Add(new wxStaticBitmap(pwizard_midi_in,wxID_ANY,wxBitmap(fWizardJpeg.GetFullPath(), wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
 	wxString smidi_in;
-	wxArrayString nameMidiInDevices;
-	int nbMidiInDevice = GetListMidiIn(&nameMidiInDevices);
+	int nbMidiInDevice = GetListMidiIn();
 	if (nbMidiInDevice == 0)
 	{
 		smidi_in = _("\
@@ -2550,26 +2597,27 @@ and velocity.\n\n");
 	}
 	else
 	{
-	  wxListBox *mlistMidiin = new	wxListBox(pwizard_midi_in, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameMidiInDevices);
-		topsizer_midi_in->Add(mlistMidiin, sizerFlagMaximumPlace);
+	  mlistMidiin = new	wxListBox(pwizard_midi_in, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameValideMidiInDevices, wxLB_MULTIPLE);
+	  mlistMidiin->Bind(wxEVT_LISTBOX, &Expresseur::OnMidiinChoice, this);
+	  topsizer_midi_in->Add(mlistMidiin, sizerFlagMaximumPlace);
 		smidi_in += _("\
 MIDI-in detected : it can be used to\n\
 play music, adding sensivity and velocity.\n\
-All these MIDI-in will be used.\n\
+Select the MIDI-inputs you want to use.\n\
 Menu Settings/MIDI-keyboard can be used\n\
-to tune Midi-inputs .\n\n");
+to tune triggers from these Midi-inputs.\n\n");
 	}
 	topsizer_midi_in->Add(new wxStaticText(pwizard_midi_in, wxID_ANY, smidi_in), sizerFlagMaximumPlace);
 	pwizard_midi_in->SetSizerAndFit(topsizer_midi_in);
 
 	///// Midi-out
-
+	mConf->set(CONFIG_MIXERDEVICEDEFAULT, "" , true);
 	wxWizardPageSimple *pwizard_midi_out = new wxWizardPageSimple(mwizard);
 	wxBoxSizer *topsizer_midi_out = new wxBoxSizer(wxVERTICAL);
 	fWizardJpeg.SetName("wizard_midi_out");
 	topsizer_midi_out->Add(new wxStaticBitmap(pwizard_midi_out,wxID_ANY,wxBitmap(fWizardJpeg.GetFullPath(), wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
 	wxString smidi_out;
-	int nbMidiOutDevice = GetListMidiOut(&nameMidiOutDevices) ;
+	int nbMidiOutDevice = GetListMidiOut() ;
 	if (nbMidiOutDevice == 0)
 	{
 		smidi_out = _("\
@@ -2580,14 +2628,17 @@ Next screen will help you for the tuning.\n\n");
 	}
 	else
 	{
-		nameMidiOutDevices.Add(_("no Midi-out as default"));
-		mlistMidiout = new	wxListBox(pwizard_midi_out, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameMidiOutDevices);
+		mlistMidiout = new	wxListBox(pwizard_midi_out, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameValideMidiOutDevices, wxLB_MULTIPLE);
 		mlistMidiout->Bind(wxEVT_LISTBOX, &Expresseur::OnMidioutChoice, this);
 		topsizer_midi_out->Add(mlistMidiout, sizerFlagMaximumPlace);
+		wxButton *mDefaultMidiOut = new wxButton(pwizard_midi_out, wxID_ANY, _("Default Midi Out"));
+		mDefaultMidiOut->Bind(wxEVT_BUTTON, &Expresseur::OnDefaultMidiOut, this);
+		topsizer_midi_out->AddSpacer(5);
+		topsizer_midi_out->Add(mDefaultMidiOut);
 		smidi_out = _("\
 MIDI-out sound expander detected.\n\
-Select the MIDI-out you want as default\n\
-sound expander\n\n");
+1) Select the defaut MIDI-output with the button.\n\
+2) Select the MIDI-outputs you want to use.\n\n");
 	}
 	topsizer_midi_out->Add(new wxStaticText(pwizard_midi_out, wxID_ANY, smidi_out + _("\
 With an electronic piano, you will\n\
@@ -2609,13 +2660,12 @@ on the virtual midi-out cable.\n")), sizerFlagMaximumPlace);
 	int defaultNrDevice = setAudioDefault();
 	wxString saudio = _("\
 Audio is used to play VSTi & SF2.\n\
-Select an audio device to use\n\
-by default.\n\
+Select the audio device to use.\n\
 Decrease the buffer sizes to\n\
 decrease latency.\n\
 VALIDATE THE GOOD QUALITY OF SOUND\n");
 	topsizer_audio->Add(new wxStaticText(pwizard_audio, wxID_ANY, saudio));
-	mlistAudio = new	wxListBox(pwizard_audio, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameaudioDevices);
+	mlistAudio = new	wxListBox(pwizard_audio, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameaudioDevices, wxLB_SINGLE);
 	mlistAudio->Bind(wxEVT_LISTBOX, &Expresseur::OnAudioChoice, this);
 	if (( defaultNrDevice >= 0 ) && ( defaultNrDevice < (int)(nameaudioDevices.GetCount())))
 		mlistAudio->SetSelection(defaultNrDevice);
@@ -2728,8 +2778,16 @@ select the menu setup/wizard.");
 		pwizard_audio->SetNext(NULL);
 		mwizard->RunWizard(pwizard_audio);
 	}
-	else
+	else if (midi_only)
 	{
+		pwizard_midi_in->SetPrev(NULL);
+		pwizard_midi_in->SetNext(pwizard_midi_out);
+		pwizard_midi_out->SetPrev(pwizard_midi_in);
+		pwizard_midi_out->SetNext(NULL);
+		 mwizard->RunWizard(pwizard_midi_in);
+	}
+	else
+		{
 		pwizard_welcome->SetPrev(NULL);
 		pwizard_welcome->SetNext(pwizard_midi_in);
 		pwizard_midi_in->SetPrev(pwizard_welcome);
@@ -2773,14 +2831,46 @@ void Expresseur::OnKeyboarConfigChoice(wxCommandEvent& event)
 	wxString s = keyboardConfigs[nrKeyboard]; 
 	mConf->set(CONFIG_KEYBOARDCONFIG, s);
 }
-void Expresseur::OnMidioutChoice(wxCommandEvent& event)
+void Expresseur::OnMidioutChoice(wxCommandEvent& WXUNUSED(event))
 {
-	unsigned int nrDevice = event.GetSelection();
-	if ( nrDevice == ( nameMidiOutDevices.GetCount() - 1 ))
-		return ; // "select the lat which is "no midiout as default"
+	wxArrayInt selections;
+	mlistMidiout->GetSelections(selections);
+	for (unsigned int i = 0; i < MIDIOUT_MAX; i++)
+	{
+		if ( i < selections.GetCount())
+		{
+			mConf->set(CONFIG_MIDIOUT, nameValideMidiOutDevices[selections[i]], false, wxString::Format("%d", i));
+		}
+		else
+			mConf->set(CONFIG_MIDIOUT, "" , false, wxString::Format("%d", i));
+	}
+}
+void Expresseur::OnDefaultMidiOut(wxCommandEvent& WXUNUSED(event))
+{
+	wxArrayInt selections;
+	mlistMidiout->GetSelections(selections);
+	if ((selections.GetCount() == 0) || (selections.GetCount() > 1))
+	{
+		wxMessageBox("Select one Midi-Out as default", "Default error");
+		return;
+	}
 	wxString s;
-	s.Printf("%s:%s", SMIDI, nameMidiOutDevices[nrDevice]);
-	mConf->set(CONFIG_MIXERDEVICEDEFAULT, s , true);
+	s.Printf("%s:%s", SMIDI, nameValideMidiOutDevices[selections[0]]);
+	mConf->set(CONFIG_MIXERDEVICEDEFAULT, s, true);
+}
+void Expresseur::OnMidiinChoice(wxCommandEvent& WXUNUSED(event))
+{
+	wxArrayInt selections;
+	mlistMidiin->GetSelections(selections);
+	for (unsigned int i = 0; i < MIDIIN_MAX; i++)
+	{
+		if (i < selections.GetCount())
+		{
+			mConf->set(CONFIG_MIDIIN, nameValideMidiInDevices[selections[i]], false, wxString::Format("%d", i));
+		}
+		else
+			mConf->set(CONFIG_MIDIIN, "", false, wxString::Format("%d", i));
+	}
 }
 void Expresseur::OnAudioChoice(wxCommandEvent& event)
 {

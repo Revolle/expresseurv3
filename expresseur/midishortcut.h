@@ -9,7 +9,7 @@ class midishortcut
 {
 
 public:
-	midishortcut(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf, wxArrayString inameAction);
+	midishortcut(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf, wxArrayString inameAction, wxArrayString lmidiin);
 	~midishortcut();
 
 	void reset();
@@ -77,18 +77,11 @@ private:
 
 	wxChoice *listFunctionMidi;
 
-	void openMidiIn(bool allValid);
 
 	void loadShortcut();
 	void saveShortcut();
 
 	void InitLists();
-
-	int nbDevice;
-	bool valideMidiinDevice[MAX_MIDIIN_DEVICE];
-	bool deviceToOpen[MAX_MIDIIN_DEVICE];
-
-	void getMidiinDevices();
 
 	int edit(long i);
 	void close();

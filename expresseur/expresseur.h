@@ -34,6 +34,7 @@ public:
 	void OnEdit(wxCommandEvent& WXUNUSED(event));
 	void OnLocaloff(wxCommandEvent& WXUNUSED(event));
 	void OnAudioSetting(wxCommandEvent& WXUNUSED(event));
+	void OnMidiSetting(wxCommandEvent& WXUNUSED(event));
 	void OnZoom(wxCommandEvent& WXUNUSED(event));
 	void OnPlayviewSolo(wxCommandEvent& WXUNUSED(event));
 	void OnSaveImpro(wxCommandEvent& WXUNUSED(event));
@@ -81,9 +82,11 @@ public:
 
 	void OnAudioChoice(wxCommandEvent& event);
 	void OnMidioutChoice(wxCommandEvent& event);
+	void OnMidiinChoice(wxCommandEvent& event);
 	void OnKeyboarConfigChoice(wxCommandEvent& event);
 	void OnAsioSet(wxCommandEvent& event);
 	void OnAudioTest(wxCommandEvent& WXUNUSED(event));
+	void OnDefaultMidiOut(wxCommandEvent& WXUNUSED(event));
 	int setAudioDefault();
 
 	void OnAbout(wxCommandEvent& WXUNUSED(event));
@@ -181,18 +184,25 @@ private:
 	void ornamentAdd(bool absolute);
 
 	void Open(wxString s);
-	void wizard(bool audio_only = false);
-	int GetListMidiIn(wxArrayString *listMidiIn);
-	int GetListMidiOut(wxArrayString *listMidiOut);
+	void wizard(bool audio_only = false, bool midi_only = false );
+	int GetListMidiIn();
+	void openMidiIn();
+	void openMidiOut();
+	void testMidisetting();
+	int GetListMidiOut();
 	void initFirstUse(bool force);
 	void CreateExpresseurV3();
 	wxSpinCtrl *mupdatems , *mbufferms;
 	wxButton *mAsioSet;
+	wxListBox *mlistMidiout;
+	wxListBox *mlistMidiin;
 	wxListBox *mlistAudio;
 	wxArrayString nameaudioDevices;
-	wxListBox *mlistMidiout;
 	wxArrayString nameMidiOutDevices;
- 	wxArrayString keyboardConfigs ;
+	wxArrayString nameMidiInDevices;
+	wxArrayString nameValideMidiOutDevices;
+	wxArrayString nameValideMidiInDevices;
+	wxArrayString keyboardConfigs ;
 	wxListBox *mlistkeyboardConfigs ;
 	int getListAudio();
 	void setAudioChoice(int nrDevice);

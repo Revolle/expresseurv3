@@ -315,7 +315,6 @@ static int g_nb_midi_out = 0 ; // nb of midi_out
 static int g_nb_midi_in = 0 ; // nb of midi_in
 static char g_name_midi_out[MIDIOUT_MAX][512]; // names of midi_out
 static char g_name_midi_in[MIDIIN_MAX][512]; // names of midi_in
-static bool g_valid_midi_out[MIDIOUT_MAX]; // validity of midi_out
 
 static bool g_audio_open[MAX_AUDIO_DEVICE];
 static T_vi_opened g_vi_opened[VI_MAX];
@@ -2721,7 +2720,6 @@ static void midi_out_init()
 	{
 		g_midiout_rt[n] = 0;
 		g_name_midi_out[n][0] = '\0';
-		g_valid_midi_out[n] = true;
 	}
 	g_midiout_max_nr_device =  0;
 
@@ -2784,22 +2782,6 @@ static void midi_out_init()
 		{
 			g_nb_midi_in = MIDIIN_MAX - 1 ;
 			mlog_out("midi_out_init : only first %d Midi-in are managed",MIDIIN_MAX);
-		}
-	}
-}
-static void midi_out_pre_open()
-{
-	// prealloc the midiout
-	for(int n = 0 ; n < g_nb_midi_out ; n ++)
-	{
-		if ( g_valid_midi_out[n] )
-		{
-			g_midiout_rt[n] =  new RtMidiOut();			
-			g_midiout_rt[n]->openPort(n);
-			if ( g_midiout_rt[n]->isPortOpen() == false )
-				mlog_out("Error : midi_out_init midi_out pre-open#%d : open ko",n+1);
-			else
-				mlog_out("Information : pre-open midi_out#%d", n + 1);
 		}
 	}
 }
@@ -3282,11 +3264,25 @@ static int LoutGetMidiName(lua_State *L)
 	char name_device[MAXBUFCHAR] = "";
 	midiout_name(nrDevice, name_device);
 	lua_pushstring(L, name_device);
-	
+
 	unlock_mutex_out();
 	return(1);
 }
-
+static int LoutOpenMidi(lua_State *L)
+{
+	// open the midi Out device nr
+	// parameter #1 : device nr
+	lock_mutex_out();
+	int nr_devicemidi = cap((int)lua_tointeger(L, 1), 0, OUT_MAX_DEVICE, 1);
+	midi_out_open(nr_devicemidi);
+	unlock_mutex_out();
+	return(0);
+}
+static int LoutPreOpenMidi(lua_State *L)
+{
+	// deprecated
+	return(0);
+}
 static int LoutSetChordCompensation(lua_State *L)
 {
 	// set the Chord Compensation for the chords
@@ -4155,23 +4151,6 @@ static int LoutTrackOpenVi(lua_State *L)
 	unlock_mutex_out();
 	return (1);
 }
-static int LoutSetMidiValide(lua_State *L)
-{
-	// valide midi out port
-	// parameter #1 : midi out device nr
-	// parameter #2 : valid
-	int nr_devicemidi = cap((int)lua_tointeger(L, 1), 0, MIDIOUT_MAX, 1);
-	bool validmidi = lua_toboolean(L, 2);
-	g_valid_midi_out[nr_devicemidi] = validmidi;
-	mlog_out("Information : midi_out#%d valide ? %d",(nr_devicemidi + 1),validmidi);
-	return 0;
-}
-static int LoutPreOpenMidi(lua_State *L)
-{
-	// preopen valide midi out port
-	midi_out_pre_open();
-	return 0;
-}
 static int LoutTrackOpenMidi(lua_State *L)
 {
 	// open the track on a midi out
@@ -4386,8 +4365,8 @@ static const struct luaL_Reg luabass[] =
 
 	{ "outGetMidiList", LoutGetMidiList }, // list the midiout ports 
 	{ soutGetMidiName, LoutGetMidiName }, // return name of midiout port 
-	{ "outSetMidiValide", LoutSetMidiValide }, // set the validity of midiout port 
-	{ "outPreOpenMidi", LoutPreOpenMidi }, // preopen the valide  midiout port 
+	{ soutOpenMidi, LoutOpenMidi }, // open an MIDI-out
+	{ soutPreOpenMidi, LoutPreOpenMidi }, // deprecated : NIL
 
 	{ soutListProgramVi, LoutListProgramVi }, // create list of programs available in a Virtual Instrument ( SF2 or VST )
 	{ soutTrackOpenVi, LoutTrackOpenVi }, // open a track on Virtual Instrument ( SF2 or VST )

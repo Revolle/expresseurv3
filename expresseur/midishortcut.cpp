@@ -71,7 +71,7 @@ EVT_BUTTON(IDM_MIDISHORTCUT_CLOSE, midishortcut::OnClose)
 wxEND_EVENT_TABLE()
 
 
-midishortcut::midishortcut(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf, wxArrayString inameAction)
+midishortcut::midishortcut(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf, wxArrayString inameAction, wxArrayString lMidiin)
 : wxDialog(parent, id, title, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 {
 
@@ -90,6 +90,11 @@ midishortcut::midishortcut(wxFrame *parent, wxWindowID id, const wxString &title
 
 	sizerFlagMinimumPlace.Proportion(0);
 	sizerFlagMinimumPlace.Border(wxALL, 1);
+
+	nameDevice.Clear();
+	nameDevice.Add(SALLMIDIIN);
+	for (unsigned int i = 0; i < lMidiin.GetCount(); i++)
+		nameDevice.Add(lMidiin[i]);
 
 	InitLists();
 
@@ -277,8 +282,6 @@ void midishortcut::InitLists()
 {
 	wxString s;
 
-	getMidiinDevices();
-
 	nameEvent.Clear();
 	nameEvent.Add(_("(none)"));
 	nameEvent.Add(snoteonoff);
@@ -317,37 +320,6 @@ void midishortcut::InitLists()
 	nameStopOnMatch.Add("continue");
 
 
-}
-void midishortcut::getMidiinDevices()
-{
-	wxString s;
-	char ch[MAXBUFCHAR];
-	nameDevice.Clear();
-	nameDevice.Add(SALLMIDIIN);
-	nbDevice = 1;
-	for (int i = 0; i < MAX_MIDIIN_DEVICE; i++)
-		valideMidiinDevice[i] = false;
-	while (true)
-	{
-		basslua_call(moduleLuabass, sinGetMidiName, "i>s", nbDevice, ch);
-		if ((*ch == '\0') || (nbDevice >= MAX_MIDIIN_DEVICE))
-			break;
-		bool valid = false;
-		basslua_call(moduleGlobal, sinMidiIsValid, "s>b", ch, &valid);
-		if (valid)
-		{
-			s.Printf("%s:%s", SMIDI , ch);
-			nameDevice.Add(s);
-			valideMidiinDevice[nbDevice] = true;
-		}
-		else
-		{
-			s.Printf("%s %s:%s", _("invalid"), SMIDI, ch);
-			nameDevice.Add(s);
-		}
-		nbDevice++;
-	}
-	// mlog_in("midishircut / getMidiinDevices nbDevice=%d",nbDevice);
 }
 void midishortcut::OnDelete(wxCommandEvent& WXUNUSED(event))
 {
@@ -448,8 +420,6 @@ int midishortcut::edit(long i)
 	wxString lparam = listShortchut->GetItemText(i, 8);
 	wxString lstopOnMatch = listShortchut->GetItemText(i, 9);
 
-	openMidiIn(true);
-
 	medit = new editshortcut (this, wxID_ANY, ("edit midishortcut"), 
 		&lname,
 		&laction, nameAction ,
@@ -502,8 +472,6 @@ void midishortcut::reset()
 	int nbSelector = mConf->get(CONFIG_SHORTCUTNB, 0);
 	wxString name, saction, key;
 	wxString sdevice, sevent, smin, smax, sparam, schannel, stopOnMatch;
-	for (int nrDevice = 0; nrDevice < MAX_MIDIIN_DEVICE; nrDevice++)
-		deviceToOpen[nrDevice] = false;
 	for (int nrSelector = 0; nrSelector < nbSelector; nrSelector++)
 	{
 		name = mConf->get(CONFIG_SHORTCUTNAME, "", false, wxString::Format("%d", nrSelector));
@@ -516,32 +484,6 @@ void midishortcut::reset()
 		smax = mConf->get(CONFIG_SHORTCUTMAX, "", false, wxString::Format("%d", nrSelector));
 		stopOnMatch = mConf->get(CONFIG_STOPONMATCH, SSTOP,  false, wxString::Format("%d", nrSelector));
 		sparam = mConf->get(CONFIG_SHORTCUTPARAM, "", false, wxString::Format("%d", nrSelector));
-		int nrDevice = nameDevice.Index(sdevice);
-		//char bufsdevice[512];
-		//strcpy(bufsdevice,sdevice.c_str());
-		//mlog_in("midishortcut / reset , selector(%s)=%d",bufsdevice,nrDevice);
-		if (nrDevice != wxNOT_FOUND)
-		{
-			if (nrDevice > 0)
-			{
-				deviceToOpen[nrDevice-1] = true;
-			}
-			else
-			{
-				// all midiin valid devices
-				for (unsigned int nrDevice2 = 1; nrDevice2 < nameDevice.GetCount(); nrDevice2++)
-				{
-					wxString s = nameDevice[nrDevice2];
-					if (s.BeforeFirst(':') == SMIDI)
-					{
-						//char bufs[512];
-						//strcpy(bufs,s.c_str());
-						//mlog_in("midishortcut / reset / tobeopened, nrDevice2#%d name=<%s>",nrDevice2,bufs);
-						deviceToOpen[nrDevice2 - 1] = true;
-					}
-				}
-			}
-		}
 		long min; smin.ToLong(&min);
 		long nrAction = nameAction.Index(saction);
 		long nrChannel = nameChannel.Index(schannel);
@@ -559,37 +501,13 @@ void midishortcut::reset()
 			strcpy(bufevent, sevent.c_str());
 			char bufparam[MAXBUFCHAR];
 			strcpy(bufparam, sparam.c_str());
-			basslua_setSelector(nrSelector, nrAction, 'b', nrDevice - 1, nrChannel - 1, bufevent, tp, 2, stopOnMatch.Contains("stop"), bufparam);
+			int nrDevice = nameDevice.Index(sdevice);
+			if (nrDevice != wxNOT_FOUND)
+			{
+				basslua_setSelector(nrSelector, nrAction, 'b', nrDevice - 1, nrChannel - 1, bufevent, tp, 2, stopOnMatch.Contains("stop"), bufparam);
+			}
 		}
 	}
-	openMidiIn(false);
-}
-void midishortcut::openMidiIn( bool allValid)
-{
-	if (allValid)
-	{
-		for (int nrDevice = 0; nrDevice < MAX_MIDIIN_DEVICE; nrDevice++)
-			deviceToOpen[nrDevice] = false;
-		// all midiin valid devices
-		for (unsigned int nrDevice = 1; nrDevice < nameDevice.GetCount(); nrDevice++)
-		{
-			wxString s = nameDevice[nrDevice];
-			if (s.BeforeFirst(':') == SMIDI)
-				deviceToOpen[nrDevice-1] = true;
-		}
-	}
-	// open the device in
-	int nrDevicesToOpen[MAX_MIDIIN_DEVICE];
-	int nbDevicesToOpen = 0;
-	for (int nrDevice = 0; nrDevice < MAX_MIDIIN_DEVICE; nrDevice++)
-	{
-		if (deviceToOpen[nrDevice])
-		{
-			nrDevicesToOpen[nbDevicesToOpen] = nrDevice;
-			nbDevicesToOpen++;
-		}
-	}
-	basslua_openMidiIn(nrDevicesToOpen, nbDevicesToOpen);
 }
 void midishortcut::write(wxTextFile *lfile)
 {

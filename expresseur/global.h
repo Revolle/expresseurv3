@@ -22,7 +22,6 @@
 #define CONFIG_BEGINNER "/beginner"
 #define CONFIG_INITIALIZED "/initialized"
 #define CONFIG_HARDWARE "/hardware"
-#define CONFIG_HARDWARE_LIST "/hardware/list"
 #define CONFIG_DEFAULT_AUDIO "/default_audio"
 #define CONFIG_MIDI_SETTING "/midi_setting"
 #define CONFIG_AUDIO_UPDATE "/audio/update"
@@ -34,6 +33,8 @@
 #define CONFIG_EXPRESSIONHEIGHT "/expression/height"
 #define CONFIG_EXPRESSIONVISIBLE "/expression/visible"
 
+#define CONFIG_MIDIOUT "/mididevice/midiout"
+#define CONFIG_MIDIIN "/mididevice/midiin"
 
 #define CONFIG_MAINMAXIMIZED "/main/maximized"
 #define CONFIG_MAINWIDTH "/main/width"
@@ -97,8 +98,6 @@
 #define CONFIG_MUSESCORE "/script/musescore"
 #define CONFIG_MUSESCOREV3 "/script/musescorev3"
 
-#define MAX_MIDIOUT_DEVICE 32 
-#define MAX_MIDIIN_DEVICE 32 
 #define MIDIOUT_MAX 16
 #define MIDIIN_MAX 16
 #define MAXPITCH 128
