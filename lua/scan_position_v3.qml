@@ -26,6 +26,7 @@ MuseScore {
       // to read positions of the chords
       function scanPosition() {
 
+            curScore.startCmd();
             // scan the ticks of the measures
             var cursor = curScore.newCursor();
             cursor.rewind(0);
@@ -54,7 +55,7 @@ MuseScore {
             }
             
             // For MAC Version ( for PC version : lines deleted )
-            	curScore.pageFormat.evenBottomMargin = __margin__ ; // will be replaced with the margin in inch 
+             	curScore.pageFormat.evenBottomMargin = __margin__ ; // will be replaced with the margin in inch 
             	curScore.pageFormat.evenLeftMargin = __margin__ ;
             	curScore.pageFormat.evenTopMargin = __margin__ ;
             	curScore.pageFormat.oddBottomMargin = __margin__ ;
@@ -63,8 +64,10 @@ MuseScore {
             	curScore.pageFormat.size.width = __width__ ; //  for MAC versionwill be replaced with the width in inch
             	curScore.pageFormat.size.height = __height__ ; //  will be replaced with the height in inch
             	curScore.pageFormat.printableWidth = __pwidth__  ;//  will be replaced with the printable width in inch
-            
-			curScore.doLayout();
+           
+            curScore.endCmd();
+            // startCmd endCmd to replace doLayout
+            //curScore.doLayout();
             var reswrite = writeScore(curScore,"__expresseur_out.png__","png"); // will be replaced with the full path on runtime
             cursor.rewind(0);
             cursor.voice = 0; 
@@ -73,6 +76,7 @@ MuseScore {
             var nbmeasure = tmeasure.length ;
             var offsett = 0 ;
             var toWrite = "" ;
+            // logInspect(cursor.measure.parent, "cursor.measure.parent")
             while (cursor.segment) {
                   var pagenr = cursor.measure.parent.parent.pagenumber;
                   if (cursor.element && cursor.element.type == Element.CHORD) {
@@ -87,11 +91,12 @@ MuseScore {
                               nrmeasure ++ ;
                               offsett = tmeasure[nrmeasure - 1];
                         }
+                       //  logInspect(mnote.pagePos, "mnote.pagePos")
                         // add the information in the string to write 
                         toWrite += 
                               nrmeasure + " " +
                               (t - offsett) +  " " +
-                              (pagenr + 1) +  " " +
+                              (pagenr + 1) +  " "   +
                               mnote.pagePos.x.toPrecision(6) +  " " +
                               mnote.pagePos.y.toPrecision(6) +  " " +
                               mnote.bbox.width.toPrecision(6) +  " " +

@@ -663,6 +663,7 @@ static int midi_out_open(int nr_device)
 			mlog_out("Error : midi_out_open : not opened");
 			return -1 ; // not opened
 		}
+		mlog_out("Information : midiOut open device#%d : OK", nr_device + 1);
 	}
 
 	if (nr_device >= g_midiout_max_nr_device)
@@ -4183,12 +4184,18 @@ static int LoutTrackOpenMidi(lua_State *L)
 		string_to_control(nrTrack, tuning);
 		char name_device[MAXBUFCHAR] = "";
 		midiout_name(nr_device, name_device);
-		mlog_out("Information : midiOut open device#%d<%s> for track#%d<%s> channel#%d %s : OK", nr_device + 1, name_device, nrTrack + 1, trackName,nr_channelmidi + 1, localoff?"with localoff":"");
+		char buf_ext[MAXCHANNEL+1];
+		buf_ext[MAXCHANNEL] = '\0';
 		for (int n = 0; n < MAXCHANNEL; n++)
 		{
 			if (g_channels[nr_device][n].extended == nr_channelmidi)
-				mlog_out("           extended channel#%d", n + 1);
+			{
+				buf_ext[n] = '0' + ((n+1) % 10);
+			}
+			else
+				buf_ext[n] = '_';
 		}
+		mlog_out("Information : midiOut open channel#%d (extended %s) device#%d<%s> for track#%d<%s>  %s : OK", nr_channelmidi + 1, buf_ext, nr_device + 1, name_device, nrTrack + 1, trackName,  localoff ? "with localoff" : "");
 	}
 	else
 		mlog_out("Error : midiOut open device#%d for track#%d<%s>", nr_device + 1, nrTrack + 1, trackName);

@@ -256,7 +256,7 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 	// locate the musescore exe for the rendering of the musical score
 	musescorev3 =  true;
 	musescoreexe = mConf->get(CONFIG_MUSESCOREV3, "");
-	if (true) // ( musescoreexe.IsEmpty())
+	if ( musescoreexe.IsEmpty())
 	{
 		musescoreexe = mConf->get(CONFIG_MUSESCORE, "");
 		musescorev3 =  false;
@@ -275,7 +275,7 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 		fm3.AppendDir("MuseScore 3");
 		fm3.AppendDir("bin");
 		fm3.SetFullName("MuseScore3.exe");
-		if (false) // (fm3.IsFileExecutable())
+		if (fm3.IsFileExecutable())
 		{
 			musescoreexe = fm3.GetFullPath();
 			musescorev3 =  true;
@@ -302,7 +302,7 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 		fm3.AppendDir("MacOS");
 		fm3.SetName("mscore");
 		//wxMessageBox(fm.GetFullPath(),"musescore ?");
-		if (false) // (fm3.IsFileExecutable())
+		if (fm3.IsFileExecutable())
 		{
 			musescorev3 = true ;
 			musescoreexe = fm3.GetFullPath();
@@ -370,7 +370,7 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 				musescoreexe = openFileDialog.GetPath();
 				wxArrayString v ;
 				v.Add("Version 2");
-				// v.Add("Version 3");
+				v.Add("Version 3");
 				wxString sv = wxGetSingleChoice (_("MuseScore version ? "),_("MuseScore exe locator"),v,this);
 				if ( sv != "Version 2")
 					musescorev3 = true ;
@@ -379,7 +379,7 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 				wxMessageBox(fm.GetFullPath(),"MuseScore : not recognized as an exe");
 		}
 	}
-	if (false) // ( musescorev3 )
+	if ( musescorev3 )
 		mConf->set(CONFIG_MUSESCOREV3, musescoreexe);
 	else
 		mConf->set(CONFIG_MUSESCORE, musescoreexe);
@@ -1061,7 +1061,6 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	// the file to store position of notes
 	fm.SetFullName(FILE_SCORE_PNG);
 	musescorepng = fm.GetFullPath();
-
 
 	// prepare the script for MuseScore
 	fm.SetFullName(FILE_SCAN_QML);

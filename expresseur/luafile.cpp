@@ -40,7 +40,7 @@
 #include "luafile.h"
 
 #define DEFAULT_LUA_USER_FILE "expresseur.lua"
-#define DEFAULT_LUA_PARAMETER "--preopen_midiout"
+#define DEFAULT_LUA_PARAMETER ""
 #define DEFAULT_KEYBOARDCONFIG "qwerty"
 
 #include <wx/listimpl.cpp>

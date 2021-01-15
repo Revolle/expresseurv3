@@ -3484,7 +3484,7 @@ void musicxmlcompile::addSymbolNote(c_measure *measure, bool after_measure, int 
 			{
 				c_pitch *pitch = new c_pitch();
 				pitch->unpitched = true;
-				pitch->step = "C";
+				pitch->step = "E";
 				pitch->octave = 5;
 				note->stem = "up";
 				note->pitch = pitch;
