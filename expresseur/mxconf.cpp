@@ -305,7 +305,7 @@ bool mxconf::readFile(wxTextFile *lfile, wxString key, long defaultvalue, bool p
 	this->set(key, l, prefix , name);
 	return(true);
 }
-bool mxconf::exist(wxString key, bool prefix, wxString name)
+bool mxconf::exists(wxString key, bool prefix, wxString name)
 {
 	return (mConfig->Exists(prefixKey(key, prefix, name)));
 }
@@ -337,11 +337,6 @@ void mxconf::remove(wxString key, bool prefix, wxString name)
 {
 	mConfig->DeleteEntry(prefixKey(key, prefix = false, name));
 }
-bool mxconf::exists(wxString key, bool prefix, wxString name)
-{
-	return (mConfig->Exists(prefixKey(key, prefix, name)));
-}
-
 wxString mxconf::prefixKey(wxString key, bool prefix, wxString name)
 {
 	wxString s1;

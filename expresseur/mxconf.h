@@ -19,8 +19,6 @@ public:
 	bool readFile(wxTextFile *lfile, wxString key, wxString default_value, bool prefix = false, wxString name = "");
 	bool readFile(wxTextFile *lfile, wxString key, long default_value, bool prefix = false, wxString name = "");
 	
-	bool mxconf::exist(wxString key, bool prefix, wxString name);
-
 	wxString get(wxString key, wxString default_value, bool prefix = false, wxString name = "");
 	long get(wxString key, long default_value, bool prefix = false, wxString name = "");
 

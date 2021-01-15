@@ -777,8 +777,9 @@ void Expresseur::postInit()
 		delete mViewerscore;
 	mViewerscore = new emptyscore(this, wxID_ANY, mConf);
 	setOrientation(posScrollVertical, posScrollHorizontal);
-
+wxMessageBox("coucou A");
 	FileOpen(true);
+wxMessageBox("coucou B");
 }
 void Expresseur::setRightDisplay(bool right)
 {
@@ -2056,18 +2057,22 @@ bool Expresseur::settingReset(bool all)
 	wxBusyCursor wait;
 
 	bool retcode = true;
-
+wxMessageBox("coucou C");
 	// stop the timer to be quite
 	mtimer->Stop();
+wxMessageBox("coucou C1");
 
 	// close and load the right LUA script
 	luafile::reset(mConf , all , timerDt );
 	if (all)
 	{
+wxMessageBox("coucou C9");
 		openMidiIn();
+wxMessageBox("coucou C2");
 		openMidiOut();
 	}
 
+wxMessageBox("coucou D");	
 	basslua_call(moduleLuabass, soutAllNoteOff, "s", "a");
 	getLuaAction(false, NULL);
 
@@ -2101,6 +2106,7 @@ bool Expresseur::settingReset(bool all)
 
 
 	setAudioDefault();
+	wxMessageBox("coucou e");
 
 	viewerscore *newViewerscore = NULL;
 	typeViewer = EMPTYVIEWER;
@@ -2188,6 +2194,8 @@ bool Expresseur::settingReset(bool all)
 	{
 		mTextscore->setFile(fileName);
 	}
+	
+	wxMessageBox("coucou f");
 
 	waitToCompile = periodCompile / timerDt;
 
@@ -2235,7 +2243,7 @@ bool Expresseur::settingReset(bool all)
 	mMixer->reset(localoff,true);
 	mMidishortcut->reset();
 	mExpression->reset();
-
+wxMessageBox("coucou g");
 	setZoom();
 
 	waitToCompile = 1 ;
@@ -2245,7 +2253,7 @@ bool Expresseur::settingReset(bool all)
 
 	// restart the timer
 	mtimer->Start(timerDt);
-
+wxMessageBox("coucou H");
 	return retcode;
 }
 void Expresseur::OnReset(wxCommandEvent& WXUNUSED(event))
@@ -2474,7 +2482,7 @@ int Expresseur::GetListMidiIn()
 }
 void Expresseur::testMidisetting()
 {
-	if (mConf->exist(CONFIG_MIDIIN, false, wxString::Format("%d", 0)))
+	if (mConf->exists(CONFIG_MIDIIN, false, wxString::Format("%d", 0)))
 		return;
 	wizard(false,true);
 }
@@ -2483,7 +2491,9 @@ void Expresseur::openMidiIn()
 	// open the device in
 	int nrDevicesToOpen[MIDIIN_MAX];
 	int nbDevicesToOpen = 0;
+wxMessageBox("coucou C8");
 	GetListMidiIn();
+wxMessageBox("coucou C4");
 	for (unsigned int i = 0; i < MIDIIN_MAX; i++)
 	{
 		wxString smididevice = mConf->get(CONFIG_MIDIIN, "", false, wxString::Format("%d", i));
@@ -2494,8 +2504,11 @@ void Expresseur::openMidiIn()
 			nbDevicesToOpen++;
 		}
 	}
+wxMessageBox("coucou C5");
 	basslua_openMidiIn(nrDevicesToOpen, nbDevicesToOpen);
+wxMessageBox("coucou C6");
 }
+
 int Expresseur::GetListMidiOut()
 {
 	nameValideMidiOutDevices.Clear();
