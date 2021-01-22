@@ -70,6 +70,8 @@
 
 #ifdef V_PC
 #include <ctgmath>
+#include <windows.h>   /* required before including mmsystem.h */
+#include <mmsystem.h>  /* multimedia functions (such as MIDI) for Windows */
 #endif
 #include <assert.h>
 
@@ -2725,23 +2727,29 @@ static void midi_out_init()
 	g_midiout_max_nr_device =  0;
 
 	// pre-count/names of midiout
-	RtMidiOut ls_midiout_rt;// list of midiout
-	g_nb_midi_out = ls_midiout_rt.getPortCount() ;
+	RtMidiOut *midiout = 0;
+	try {
+		midiout = new RtMidiOut();
+	}
+	catch (RtMidiError &error) {
+		mlog_out("Error reading MidiOut configuration : %s", error.getMessage());
+		return;
+	}
+	g_nb_midi_out = midiout->getPortCount();
 	if ( g_nb_midi_out >= MIDIOUT_MAX)
 	{
 		g_nb_midi_out = MIDIOUT_MAX - 1 ;
 		mlog_out("midi_out_init : only first %d Midi-out are managed",MIDIOUT_MAX);
 	}
-	for(int nr_device = 0 ; nr_device < g_nb_midi_out ; nr_device ++)
+	for(unsigned int nr_device = 0 ; nr_device < g_nb_midi_out ; nr_device ++)
 	{
 		std::string portName;
-		portName = ls_midiout_rt.getPortName(nr_device) ;
-		strcpy(g_name_midi_out[nr_device],portName.c_str());
-
+		portName = midiout->getPortName(nr_device) ;
+		strcpy(g_name_midi_out[nr_device], portName.c_str());
 		// delete the index nr added at the end of the name by rtmidiout
 		char *pt = g_name_midi_out[nr_device] + strlen(g_name_midi_out[nr_device]);
 		bool cont = true;
-		while ((pt != g_name_midi_out[nr_device] ) && (cont))
+		while ((pt != g_name_midi_out[nr_device]) && (cont))
 		{
 			switch (*pt)
 			{
@@ -2766,8 +2774,11 @@ static void midi_out_init()
 			}
 			pt--;
 		}
+
 		mlog_out("Information : midiout#%d <%s> ", nr_device + 1, g_name_midi_out[nr_device]);
 	}
+	delete midiout;
+
 	for (int n = 0; n < MIDIIN_MAX; n++)
 	{
 		g_name_midi_in[n][0] = '\0';
