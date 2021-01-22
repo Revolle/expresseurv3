@@ -239,15 +239,6 @@ function onStart(param)
   listin()
   print()
   listout()
-	if ( string.find(param,"--preopen_midiout") ~= nil) then
-    io.write(">>\n")
-    io.write(">>\n")
-    io.write("preopen midiout ? (y/n) ")
-    local retCode = io.read()
-    if retCode == "y" then
-    	luabass.outPreOpenMidi() -- pre-open valid midi-out, to avoid later conflict 
-    end
-	end
   print ()
   help()
   print()

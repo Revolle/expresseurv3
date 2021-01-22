@@ -777,9 +777,7 @@ void Expresseur::postInit()
 		delete mViewerscore;
 	mViewerscore = new emptyscore(this, wxID_ANY, mConf);
 	setOrientation(posScrollVertical, posScrollHorizontal);
-wxMessageBox("coucou A");
 	FileOpen(true);
-wxMessageBox("coucou B");
 }
 void Expresseur::setRightDisplay(bool right)
 {
@@ -2057,22 +2055,17 @@ bool Expresseur::settingReset(bool all)
 	wxBusyCursor wait;
 
 	bool retcode = true;
-wxMessageBox("coucou C");
 	// stop the timer to be quite
 	mtimer->Stop();
-wxMessageBox("coucou C1");
 
 	// close and load the right LUA script
 	luafile::reset(mConf , all , timerDt );
 	if (all)
 	{
-wxMessageBox("coucou C9");
 		openMidiIn();
-wxMessageBox("coucou C2");
 		openMidiOut();
 	}
 
-wxMessageBox("coucou D");	
 	basslua_call(moduleLuabass, soutAllNoteOff, "s", "a");
 	getLuaAction(false, NULL);
 
@@ -2106,8 +2099,7 @@ wxMessageBox("coucou D");
 
 
 	setAudioDefault();
-	wxMessageBox("coucou e");
-
+	
 	viewerscore *newViewerscore = NULL;
 	typeViewer = EMPTYVIEWER;
 	mode = modeNil;
@@ -2195,8 +2187,6 @@ wxMessageBox("coucou D");
 		mTextscore->setFile(fileName);
 	}
 	
-	wxMessageBox("coucou f");
-
 	waitToCompile = periodCompile / timerDt;
 
 	sizer_text_viewer->Replace(mViewerscore, newViewerscore);
@@ -2243,7 +2233,6 @@ wxMessageBox("coucou D");
 	mMixer->reset(localoff,true);
 	mMidishortcut->reset();
 	mExpression->reset();
-wxMessageBox("coucou g");
 	setZoom();
 
 	waitToCompile = 1 ;
@@ -2253,7 +2242,7 @@ wxMessageBox("coucou g");
 
 	// restart the timer
 	mtimer->Start(timerDt);
-wxMessageBox("coucou H");
+
 	return retcode;
 }
 void Expresseur::OnReset(wxCommandEvent& WXUNUSED(event))
@@ -2491,9 +2480,7 @@ void Expresseur::openMidiIn()
 	// open the device in
 	int nrDevicesToOpen[MIDIIN_MAX];
 	int nbDevicesToOpen = 0;
-wxMessageBox("coucou C8");
 	GetListMidiIn();
-wxMessageBox("coucou C4");
 	for (unsigned int i = 0; i < MIDIIN_MAX; i++)
 	{
 		wxString smididevice = mConf->get(CONFIG_MIDIIN, "", false, wxString::Format("%d", i));
@@ -2504,9 +2491,8 @@ wxMessageBox("coucou C4");
 			nbDevicesToOpen++;
 		}
 	}
-wxMessageBox("coucou C5");
-	basslua_openMidiIn(nrDevicesToOpen, nbDevicesToOpen);
-wxMessageBox("coucou C6");
+	if (nbDevicesToOpen > 0 )
+		basslua_openMidiIn(nrDevicesToOpen, nbDevicesToOpen);
 }
 
 int Expresseur::GetListMidiOut()

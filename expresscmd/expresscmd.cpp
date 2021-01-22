@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
 {
 	// define the default lua-script and its empty parameter
 	char fname[1024] = "expresscmd.lua";
-	char param[1024] = "--preopen_midiout";
+	char param[1024] = "";
 	char line_read[1024] ;
 
 	// use arguments of the command-line to change the lua-scipt and its parameters

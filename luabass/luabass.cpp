@@ -310,13 +310,13 @@ typedef struct t_queue_msg
 //////////////////////////////
 //  static statefull variables
 //////////////////////////////
-static RtMidiOut *g_midiout_rt[MIDIOUT_MAX];// list of midiout
+static RtMidiOut *g_midiout_rt[MIDIOUT_MAX] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };// list of midiout
 static int g_nb_midi_out = 0 ; // nb of midi_out
 static int g_nb_midi_in = 0 ; // nb of midi_in
-static char g_name_midi_out[MIDIOUT_MAX][512]; // names of midi_out
-static char g_name_midi_in[MIDIIN_MAX][512]; // names of midi_in
+static char g_name_midi_out[MIDIOUT_MAX][512] = { "" , "" ,  "" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" }; // names of midi_out
+static char g_name_midi_in[MIDIIN_MAX][512] = { "" , "" ,  "" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" } ; // names of midi_in
 
-static bool g_audio_open[MAX_AUDIO_DEVICE];
+static bool g_audio_open[MAX_AUDIO_DEVICE] = { false, false,false, false,false, false,false, false,false, false,false, false,false, false,false, false,false, false,false, false,false, false,false, false,false, false,false, false,false, false,false, false };
 static T_vi_opened g_vi_opened[VI_MAX];
 static int g_vi_opened_nb = 0;
 static HSTREAM g_mixer_stream[MAX_AUDIO_DEVICE];

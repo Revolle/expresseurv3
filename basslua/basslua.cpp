@@ -211,8 +211,8 @@ static char g_path_in_error_txt[MAXBUFCHAR] = "basslua_log_in.txt";
 //  static statefull variables
 //////////////////////////////
 
-static bool g_midiopened[MIDIIN_MAX]; // list of midiin status. true if midin is open.
-static int g_nb_midi_in = 0 ;
+// list of midiin status. true if midin is open.
+static bool g_midiopened[MIDIIN_MAX] = { false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false } ;
 
 static bool g_collectLog = false;
 static int nrOutBufLog = 0;
@@ -225,12 +225,19 @@ static char bufLog[MAXNBLOGOUT][MAXBUFCHAR];
 
 static lua_State *g_LUAstate = 0; // LUA state, loaded with the script which manage midiIn messages
 
-static bool g_process_Midi ;
-static bool g_process_NoteOn, g_process_NoteOff;
-static bool g_process_Control, g_process_Program;
-static bool g_process_PitchBend, g_process_KeyPressure, g_process_ChannelPressure;
-static bool g_process_Sysex, g_process_SystemCommon, g_process_Clock, g_process_Activesensing;
-static bool g_process_Timer ;
+static bool g_process_Midi = false ;
+static bool g_process_NoteOn = false;
+static bool g_process_NoteOff = false;
+static bool g_process_Control = false;
+static bool g_process_Program = false;
+static bool g_process_PitchBend = false;
+static bool g_process_KeyPressure = false;
+static bool g_process_ChannelPressure = false ;
+static bool g_process_Sysex = false;
+static bool g_process_SystemCommon = false;
+static bool g_process_Clock = false;
+static bool g_process_Activesensing = false;
+static bool g_process_Timer = false;
 static int g_countmidiin = 0;
 
 static T_selector g_selectors[SELECTORMAX];
@@ -1235,11 +1242,6 @@ static int midiopen_device(int nr_device)
 {
 	assert((nr_device>=0)&&(nr_device<MIDIIN_MAX));
 
-	if ( nr_device >= g_nb_midi_in )
-	{
-		mlog_in("Error midiopen_device device#%d > max midi_in devices %d", nr_device + 1,g_nb_midi_in);
-		return -1 ;
-	}
 	if (g_midiopened[nr_device])
 		return nr_device; // already open
 #ifdef V_VST
@@ -1835,11 +1837,6 @@ bool basslua_open(const char* fluaname, const char* luaparam, bool reset, long d
 	if ( ! basslua_call(moduleLuabass, sinit, "sii", (logpath == NULL) ? "" : logpath, true, timerDt )) // ask for the luabass.init out-process : init the module 
 		mlog_in("debug basslua_open error : luabass.init()");
 	//mlog_in("debug basslua_open OK : luabass.init()");
-
-	// count midi in devices
-	if ( ! basslua_call(moduleLuabass, "inCountMidi", ">i", &g_nb_midi_in ))  
-		mlog_in("debug basslua_open error : luabass.inCountMidi()");
-	//mlog_in("debug basslua_open OK : luabass.inCountMidi()=%d",g_nb_midi_in);
 
 	// init the lua script
 	basslua_call(moduleGlobal, sonStart, "s", luaparam) ; // ask for the userlua.onStart() : init user's settings
