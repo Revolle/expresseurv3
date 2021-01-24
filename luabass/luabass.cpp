@@ -313,6 +313,7 @@ typedef struct t_queue_msg
 //  static statefull variables
 //////////////////////////////
 static RtMidiOut *g_midiout_rt[MIDIOUT_MAX] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };// list of midiout
+static RtMidiOut g_g_midiout_rt ;
 static int g_nb_midi_out = 0 ; // nb of midi_out
 static int g_nb_midi_in = 0 ; // nb of midi_in
 static char g_name_midi_out[MIDIOUT_MAX][512] = { "" , "" ,  "" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" }; // names of midi_out
@@ -2717,8 +2718,26 @@ static void track_init()
 		g_volume = 64;
 	}
 }
+static void midi_out_free()
+{
+	for (int n = 0; n < MIDIOUT_MAX; n++)
+		midiout_close_device(n);
+	for (int n = 0; n < MIDIOUT_MAX; n++)
+	{
+		if (g_midiout_rt[n] != 0 )
+			g_midiout_rt[n]->closePort();
+	}
+	for (int n = 0; n < MIDIOUT_MAX; n++)
+	{
+		if (g_midiout_rt[n] != 0 )
+			delete g_midiout_rt[n] ;
+		g_midiout_rt[n] = 0;
+	}
+	g_midiout_max_nr_device = 0;
+}
 static void midi_out_init()
 {
+	midi_out_free();
 	for (int n = 0; n < MIDIOUT_MAX; n++)
 	{
 		g_midiout_rt[n] = 0;
@@ -2726,16 +2745,7 @@ static void midi_out_init()
 	}
 	g_midiout_max_nr_device =  0;
 
-	// pre-count/names of midiout
-	RtMidiOut *midiout = 0;
-	try {
-		midiout = new RtMidiOut();
-	}
-	catch (RtMidiError &error) {
-		mlog_out("Error reading MidiOut configuration : %s", error.getMessage());
-		return;
-	}
-	g_nb_midi_out = midiout->getPortCount();
+	g_nb_midi_out = g_g_midiout_rt.getPortCount();
 	if ( g_nb_midi_out >= MIDIOUT_MAX)
 	{
 		g_nb_midi_out = MIDIOUT_MAX - 1 ;
@@ -2744,7 +2754,7 @@ static void midi_out_init()
 	for(unsigned int nr_device = 0 ; nr_device < g_nb_midi_out ; nr_device ++)
 	{
 		std::string portName;
-		portName = midiout->getPortName(nr_device) ;
+		portName = g_g_midiout_rt.getPortName(nr_device) ;
 		strcpy(g_name_midi_out[nr_device], portName.c_str());
 		// delete the index nr added at the end of the name by rtmidiout
 		char *pt = g_name_midi_out[nr_device] + strlen(g_name_midi_out[nr_device]);
@@ -2777,7 +2787,6 @@ static void midi_out_init()
 
 		mlog_out("Information : midiout#%d <%s> ", nr_device + 1, g_name_midi_out[nr_device]);
 	}
-	delete midiout;
 
 	for (int n = 0; n < MIDIIN_MAX; n++)
 	{
@@ -2796,23 +2805,6 @@ static void midi_out_init()
 			mlog_out("midi_out_init : only first %d Midi-in are managed",MIDIIN_MAX);
 		}
 	}
-}
-static void midi_out_free()
-{
-	for (int n = 0; n < MIDIOUT_MAX; n++)
-		midiout_close_device(n);
-	for (int n = 0; n < MIDIOUT_MAX; n++)
-	{
-		if (g_midiout_rt[n] != 0 )
-			g_midiout_rt[n]->closePort();
-	}
-	for (int n = 0; n < MIDIOUT_MAX; n++)
-	{
-		if (g_midiout_rt[n] != 0 )
-			delete g_midiout_rt[n] ;
-		g_midiout_rt[n] = 0;
-	}
-	g_midiout_max_nr_device = 0;
 }
 static void fifo_out_init()
 {

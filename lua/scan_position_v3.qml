@@ -55,15 +55,16 @@ MuseScore {
             }
             
             // For MAC Version ( for PC version : lines deleted )
-             	curScore.pageFormat.evenBottomMargin = __margin__ ; // will be replaced with the margin in inch 
-            	curScore.pageFormat.evenLeftMargin = __margin__ ;
-            	curScore.pageFormat.evenTopMargin = __margin__ ;
-            	curScore.pageFormat.oddBottomMargin = __margin__ ;
-            	curScore.pageFormat.oddLeftMargin = __margin__ ;
-            	curScore.pageFormat.oddTopMargin = __margin__ ;
-            	curScore.pageFormat.size.width = __width__ ; //  for MAC versionwill be replaced with the width in inch
-            	curScore.pageFormat.size.height = __height__ ; //  will be replaced with the height in inch
-            	curScore.pageFormat.printableWidth = __pwidth__  ;//  will be replaced with the printable width in inch
+             	var style = curScore.style; 
+             	style.setValue("pageEvenBottomMargin", __margin__ ); // will be replaced with the margin in inch 
+            	style.setValue("pageEvenLeftMargin",  __margin__ ) ;
+            	style.setValue("pageEvenTopMargin" ,  __margin__ ) ;
+            	style.setValue("pageOddBottomMargin" , __margin__ );
+            	style.setValue("pageOddLeftMargin" ,  __margin__ );
+            	style.setValue("pageOddTopMargin" ,  __margin__ );
+            	style.setValue("pageWidth" , __width__ ); //  for MAC versionwill be replaced with the width in inch
+            	style.setValue("pageHeight" ,  __height__ ); //  will be replaced with the height in inch
+            	style.setValue("pagePrintableWidth" ,  __pwidth__ ) ;//  will be replaced with the printable width in inch
            
             curScore.endCmd();
             // startCmd endCmd to replace doLayout
