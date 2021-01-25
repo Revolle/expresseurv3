@@ -2848,7 +2848,7 @@ void musicxmlcompile::compileMusicxmlevents()
 	int prev_start_measureNr = -1;
 	int nb_order_start_blind = 0;
 	l_musicxmlevent lmusicxmlevents_visible;
-	for (int nrEvent = 0; nrEvent < nbEvents; nrEvent++)
+	for (int nrEvent = 0; nrEvent < ( nbEvents + 1); nrEvent++)
 	{
 		c_musicxmlevent *current_musicxmlevent = lMusicxmlevents[nrEvent];
 		if ((current_musicxmlevent->start_t != prev_start_t) || (current_musicxmlevent->start_measureNr != prev_start_measureNr))
