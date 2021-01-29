@@ -472,7 +472,7 @@ function keydownScore ( keyLetter, keyCode, modifiers)
 				elseif (i == 3) then
 					info.status = "track ".. p .. " piano"
 					info.action = "=+" .. p
-					luabass.outSetTrackVolume (30,i)
+					luabass.outSetTrackVolume (30,p)
 				elseif (i == 4) then
 					luabass.outAllNoteOff()
 					info.status = "track ".. p .. " tacet"

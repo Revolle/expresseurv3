@@ -58,6 +58,7 @@
 #include "wx/tokenzr.h"
 #include "wx/kbdstate.h"
 
+#include "version.h"
 #include "global.h"
 #include "basslua.h"
 #include "luabass.h"

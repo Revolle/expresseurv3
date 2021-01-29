@@ -1,7 +1,5 @@
 // Entries of the configuration parameters :
 
-#define VERSION_EXPRESSEUR 42
-
 #ifdef _MSC_VER
 #pragma warning(disable: 4800) //  'int' : forcing value to bool 'true' or 'false' (performance warning)
 #pragma warning(disable: 4305) //  trunncation from double to float
