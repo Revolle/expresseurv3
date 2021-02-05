@@ -42,7 +42,7 @@ typedef struct
 } T_score ; // a score is a sequential list of chords
 T_score score ;
 int noteOffStops[MAXPITCH]; // note of to stop on onte-off
-#define DEFAULTFILE 1
+#define DEFAULTFILE 0
 
 int c_nrEvent_noteOn = 0 ; // index of event for the next note-on 
 int end_score = false;
@@ -1007,7 +1007,7 @@ void expresseur_loadFile(int fileNr)
   T_event *event = &(score.events[1]);
   short unsigned int *ind ;
   char c ;
-  int etat = -1 ;
+  int etat = -2 ;
   int minus = 1 ;
   int index = 0  ;
   while ( myFile.available())
@@ -1015,14 +1015,18 @@ void expresseur_loadFile(int fileNr)
     c = myFile.read();
     switch (etat)
     {
-      case -2 : break ; // NOP
+      case -10 : break ; // NOP
+      case -2 : //debut de ligne
+        if (c == '>')
+          etat= -1 ;
+        break ;
       case -1 : //index
         if ((c >= '0') && (c <= '9'))
         {
           index = 10* index + (c - '0') ;
           break ;
         }
-        else if (c == ',')
+        else
         {
           if (index < MAXEVENT)
           {
@@ -1035,7 +1039,7 @@ void expresseur_loadFile(int fileNr)
             #ifdef DEBUGON
               Serial.print("ERROR : event overflow. Index=");Serial.println(index);
             #endif
-            etat = -2 ;
+            etat = -10 ;
             // initScore(); 
             return;
           }
@@ -1043,26 +1047,26 @@ void expresseur_loadFile(int fileNr)
         } 
         break ;
       case 0 : //pitch
-      if ((c >= '0') && (c <= '9'))
-      {
-        if (event == NULL) { initScore() ; return ;} 
-        event->pitch = minus * (10* event->pitch + (c - '0')) ;
-        minus = 1 ;
+        if ((c >= '0') && (c <= '9'))
+        {
+          if (event == NULL) { initScore() ; return ;} 
+          event->pitch = minus * (10* event->pitch + (c - '0')) ;
+          minus = 1 ;
+          break ;
+        }
+        else if (c == '-')
+          minus = -1 ; 
+        else
+          etat = 1 ; 
         break ;
-      }
-      else if (c == '-')
-        minus = -1 ; 
-      else if (c == ',')
-        etat = 1 ; 
-      break ;
       case 1 : //velocity
         if ((c >= '0') && (c <= '9'))
         {
           event->velocity = 10* event->velocity + (c - '0') ;
           break ;
         }
-        else if (c == ',')
-        etat = 2 ; 
+        else
+          etat = 2 ; 
       break ;
       case 2 : //track
         if ((c >= '0') && (c <= '9'))
@@ -1070,21 +1074,21 @@ void expresseur_loadFile(int fileNr)
           event->trackNr = 10* event->trackNr + (c - '0') ;
           break ;
         }
-        else if (c == ',')
+        else
         {
           event->trackNr -- ; // to restart from 0
           if (event->trackNr >= score.trackMax)
             score.trackMax = event->trackNr + 1  ;
           etat = 3 ;
         }
-      break ;
+        break ;
       case 3 : //stopIndex
         if ((c >= '0') && (c <= '9'))
         {
           event->stopIndex = 10* event->stopIndex + (c - '0') ;
           break ;
         }
-        else if (c == ',')
+        else 
           etat = 4 ;
         break ;
       case 4 : //willStopIndex
@@ -1093,16 +1097,9 @@ void expresseur_loadFile(int fileNr)
           event->willStopIndex = 10* event->willStopIndex + (c - '0') ;
           break ;
         }
-        else if (c == ',')
-          etat = 5 ;
-        break ;
-      case 5 : //measurenr (not used)
-        if ((c >= '0') && (c <= '9'))
-        {
-          // not used
-          break ;
-        }
-        else if (c == '\n')
+        etat = 5 ;
+      case 5 : // next fields not used
+        if (c == '\n')
         {
           etat = 10 ;
           event->nbEventsStart = 0 ;
@@ -1112,7 +1109,7 @@ void expresseur_loadFile(int fileNr)
       case 10: //eventsStart
         if ((c >= '0') && (c <= '9'))
         {
-          if (ind == NULL) { etat = -2 ; break ;}
+          if (ind == NULL) { etat = -10 ; break ;}
           *ind = 10* (*ind) + (c - '0') ;
           break ;
         }
@@ -1141,7 +1138,7 @@ void expresseur_loadFile(int fileNr)
       case 11 : //eventsStop
       if ((c >= '0') && (c <= '9'))
       {
-        if (ind == NULL) { etat = -2 ; break ;}
+        if (ind == NULL) { etat = -10 ; break ;}
         *ind = 10* (*ind) + (c - '0') ;
         break ;
       }
@@ -1214,10 +1211,10 @@ void expresseur_loadFile(int fileNr)
           }
           #endif
           index = 0 ;
-          etat = -1 ;
+          etat = -2 ;
         }         
       break ;
-      default : etat = -1 ; break ;
+      default : etat = -2 ; break ;
     }
   }
   myFile.close();
