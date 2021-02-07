@@ -1,4 +1,4 @@
-#define DEBUGON 2
+#define DEBUGON 0
 //#define MIDIUSB 1
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -83,9 +83,9 @@ bool splitChange = false ;
 #define DELAY_NOISE_KEYBOARD 10 // ms
 
 // management of volume
-#define VOL_PIANO 15
-#define VOL_MESOFORTE 60
-#define VOL_DELTA_FORTE 30
+#define VOL_PIANO 27
+#define VOL_MESOFORTE 87
+#define VOL_DELTA_FORTE 20
 byte vol_base = VOL_MESOFORTE ;
 byte vol_delta = 0 ;
 
@@ -172,7 +172,7 @@ void sendMidiByte(int nbByte, int b1 , int b2, int b3)
     return;
   }
   #if DEBUGON > 3
-    Serial.print("sendMidiByte *"); Serial.print(nbByteX);   Serial.print(" ");
+    Serial.print("sendMidiByte *"); Serial.print(nbByte);   Serial.print(" ");
     Serial.print(b1,HEX);   Serial.print("/"); Serial.print(b2,HEX);  Serial.print("/"); Serial.println(b3,HEX);
   #endif
   switch(nbByte)
@@ -220,11 +220,7 @@ void general_volume()
   #if DEBUGON > 1
     Serial.print("General volume = "); Serial.println(vol);
   #endif
-  /*
-  sendMidiByte(3, 0xB0, 0x63 , 0x37 );
-  sendMidiByte(3 , 0xB0 , 0x62 , 0x7);
-  sendMidiByte(3, 0xB0 , 0x6 , vol_base + vol_delta );
-  */
+
   sendMidiCtrl(7,vol);
 }
 
@@ -344,14 +340,15 @@ void initOrgue()
 void reset_x2()
 {
   #if DEBUGON > 1
-    Serial.println("sount note all parts");
+    Serial.println("sound note all parts");
   #endif
   for(byte i = 0; i < 16; i ++)
   {
     sendMidiByte(3, 0xF0 ,0x41, 0x00);
     sendMidiByte(3 , 0x42 , 0x12 , 0x40);
     sendMidiByte(3 , 0x10 | i , 0x15 , 0x00 ); // sound for all parts
-    sendMidiByte(2, 0x00 ,0xF7 , 0 );
+    sendMidiByte(1, 0x00 ,0 , 0 );
+    sendMidiByte(1, 0xF7 , 0 , 0);
   }
   #if DEBUGON > 1
   Serial.println("reset all controlers");
@@ -361,7 +358,13 @@ void reset_x2()
     sendMidiByte(3,0xB0 | i,120,0);
     sendMidiByte(3,0xB0 | i,121,0);
     sendMidiByte(3,0xB0 | i,123,0);
-  }
+  }  
+  #if DEBUGON > 1
+    Serial.println("MASTER VOLUME");
+  #endif
+  sendMidiByte(3,0xB0 , 99 , 55 );
+  sendMidiByte(3,0xB0 , 98 , 7 );
+  sendMidiByte(3,0xB0 , 6 , 127 );
 }
 void init_x2()
 {
@@ -410,6 +413,17 @@ void sendMidiNote(int pi,int v, int pspliti)
   {
     p += 12 * octaviaDroite ;
     i0=0; i1=NBCHANNEL;
+    if (expresseur)
+    {
+      if (p < pspliti)
+      {
+        velo = constrain(map(balanceGaucheDroite, BALANCEMIN, BALANCEMAX, BALANCEMAX, BALANCEMIN),BALANCEMIN,BALANCEMAX); 
+      }
+      else
+      {
+        velo = constrain(map(balanceGaucheDroite, BALANCEMIN, BALANCEMAX, BALANCEMIN, BALANCEMAX),BALANCEMIN,BALANCEMAX);
+      }
+    }
   }
   if ( v == 0 )
   {
@@ -439,21 +453,28 @@ void sendMidiNote(int pi,int v, int pspliti)
       Serial.print(" velo=");Serial.print(velo);
       Serial.print(" nbNoteOn=");Serial.println(midiPitchNbNoteOn[canal][p]);
     #endif
-    if (midiPitchNbNoteOn[canal][p] == 1 )
+    for(byte i = i0; i < i1 ; i ++)
     {
-      for(byte i = i0; i < i1 ; i ++)
+      if (progNrTirette[i] != -1)
       {
-        if (progNrTirette[i] != -1)
+        if (midiPitchNbNoteOn[canal][p] > 1 )
         {
           #if DEBUGON > 1
-            Serial.print("NOTE ON  ch#");Serial.print(i);Serial.print(" pitch=");
-            Serial.print(p);Serial.print(" balance=");Serial.print (balanceGaucheDroite);Serial.print(" velo=");Serial.println(velo);
+            Serial.print("NOTE OFF repeat  ch#");Serial.print(i);Serial.print(" pitch=");
           #endif
-          sendMidiByte(3,0x90 | i,p,velo);
+          sendMidiByte(3,0x80 | i,p,velo);
           #ifdef MIDIUSB
-            usbMIDI.sendNoteOn(p, velo, i);
+            usbMIDI.sendNoteOff(p, velo, i);
           #endif
         }
+        #if DEBUGON > 1
+          Serial.print("NOTE ON  ch#");Serial.print(i);Serial.print(" pitch=");
+          Serial.print(p);Serial.print(" balance=");Serial.print (balanceGaucheDroite);Serial.print(" velo=");Serial.println(velo);
+        #endif
+        sendMidiByte(3,0x90 | i,p,velo);
+        #ifdef MIDIUSB
+          usbMIDI.sendNoteOn(p, velo, i);
+        #endif
       }
     }
   }
