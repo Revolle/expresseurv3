@@ -1,4 +1,4 @@
-#define DEBUGON 0
+#define DEBUGON 2
 //#define MIDIUSB 1
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -42,7 +42,7 @@ typedef struct
 } T_score ; // a score is a sequential list of chords
 T_score score ;
 int noteOffStops[MAXPITCH]; // note of to stop on onte-off
-#define DEFAULTFILE 0
+#define DEFAULTFILE 1
 
 int c_nrEvent_noteOn = 0 ; // index of event for the next note-on 
 int end_score = false;
@@ -83,9 +83,9 @@ bool splitChange = false ;
 #define DELAY_NOISE_KEYBOARD 10 // ms
 
 // management of volume
-#define VOL_PIANO 27
-#define VOL_MESOFORTE 87
-#define VOL_DELTA_FORTE 20
+#define VOL_PIANO 15
+#define VOL_MESOFORTE 60
+#define VOL_DELTA_FORTE 30
 byte vol_base = VOL_MESOFORTE ;
 byte vol_delta = 0 ;
 
@@ -172,7 +172,7 @@ void sendMidiByte(int nbByte, int b1 , int b2, int b3)
     return;
   }
   #if DEBUGON > 3
-    Serial.print("sendMidiByte *"); Serial.print(nbByte);   Serial.print(" ");
+    Serial.print("sendMidiByte *"); Serial.print(nbByteX);   Serial.print(" ");
     Serial.print(b1,HEX);   Serial.print("/"); Serial.print(b2,HEX);  Serial.print("/"); Serial.println(b3,HEX);
   #endif
   switch(nbByte)
@@ -220,7 +220,11 @@ void general_volume()
   #if DEBUGON > 1
     Serial.print("General volume = "); Serial.println(vol);
   #endif
-
+  /*
+  sendMidiByte(3, 0xB0, 0x63 , 0x37 );
+  sendMidiByte(3 , 0xB0 , 0x62 , 0x7);
+  sendMidiByte(3, 0xB0 , 0x6 , vol_base + vol_delta );
+  */
   sendMidiCtrl(7,vol);
 }
 
@@ -340,15 +344,14 @@ void initOrgue()
 void reset_x2()
 {
   #if DEBUGON > 1
-    Serial.println("sound note all parts");
+    Serial.println("sount note all parts");
   #endif
   for(byte i = 0; i < 16; i ++)
   {
     sendMidiByte(3, 0xF0 ,0x41, 0x00);
     sendMidiByte(3 , 0x42 , 0x12 , 0x40);
     sendMidiByte(3 , 0x10 | i , 0x15 , 0x00 ); // sound for all parts
-    sendMidiByte(1, 0x00 ,0 , 0 );
-    sendMidiByte(1, 0xF7 , 0 , 0);
+    sendMidiByte(2, 0x00 ,0xF7 , 0 );
   }
   #if DEBUGON > 1
   Serial.println("reset all controlers");
@@ -358,13 +361,7 @@ void reset_x2()
     sendMidiByte(3,0xB0 | i,120,0);
     sendMidiByte(3,0xB0 | i,121,0);
     sendMidiByte(3,0xB0 | i,123,0);
-  }  
-  #if DEBUGON > 1
-    Serial.println("MASTER VOLUME");
-  #endif
-  sendMidiByte(3,0xB0 , 99 , 55 );
-  sendMidiByte(3,0xB0 , 98 , 7 );
-  sendMidiByte(3,0xB0 , 6 , 127 );
+  }
 }
 void init_x2()
 {
@@ -413,17 +410,6 @@ void sendMidiNote(int pi,int v, int pspliti)
   {
     p += 12 * octaviaDroite ;
     i0=0; i1=NBCHANNEL;
-    if (expresseur)
-    {
-      if (p < pspliti)
-      {
-        velo = constrain(map(balanceGaucheDroite, BALANCEMIN, BALANCEMAX, BALANCEMAX, BALANCEMIN),BALANCEMIN,BALANCEMAX); 
-      }
-      else
-      {
-        velo = constrain(map(balanceGaucheDroite, BALANCEMIN, BALANCEMAX, BALANCEMIN, BALANCEMAX),BALANCEMIN,BALANCEMAX);
-      }
-    }
   }
   if ( v == 0 )
   {
@@ -453,28 +439,21 @@ void sendMidiNote(int pi,int v, int pspliti)
       Serial.print(" velo=");Serial.print(velo);
       Serial.print(" nbNoteOn=");Serial.println(midiPitchNbNoteOn[canal][p]);
     #endif
-    for(byte i = i0; i < i1 ; i ++)
+    if (midiPitchNbNoteOn[canal][p] == 1 )
     {
-      if (progNrTirette[i] != -1)
+      for(byte i = i0; i < i1 ; i ++)
       {
-        if (midiPitchNbNoteOn[canal][p] > 1 )
+        if (progNrTirette[i] != -1)
         {
           #if DEBUGON > 1
-            Serial.print("NOTE OFF repeat  ch#");Serial.print(i);Serial.print(" pitch=");
+            Serial.print("NOTE ON  ch#");Serial.print(i);Serial.print(" pitch=");
+            Serial.print(p);Serial.print(" balance=");Serial.print (balanceGaucheDroite);Serial.print(" velo=");Serial.println(velo);
           #endif
-          sendMidiByte(3,0x80 | i,p,velo);
+          sendMidiByte(3,0x90 | i,p,velo);
           #ifdef MIDIUSB
-            usbMIDI.sendNoteOff(p, velo, i);
+            usbMIDI.sendNoteOn(p, velo, i);
           #endif
         }
-        #if DEBUGON > 1
-          Serial.print("NOTE ON  ch#");Serial.print(i);Serial.print(" pitch=");
-          Serial.print(p);Serial.print(" balance=");Serial.print (balanceGaucheDroite);Serial.print(" velo=");Serial.println(velo);
-        #endif
-        sendMidiByte(3,0x90 | i,p,velo);
-        #ifdef MIDIUSB
-          usbMIDI.sendNoteOn(p, velo, i);
-        #endif
       }
     }
   }
@@ -1028,7 +1007,7 @@ void expresseur_loadFile(int fileNr)
   T_event *event = &(score.events[1]);
   short unsigned int *ind ;
   char c ;
-  int etat = -2 ;
+  int etat = -1 ;
   int minus = 1 ;
   int index = 0  ;
   while ( myFile.available())
@@ -1036,18 +1015,14 @@ void expresseur_loadFile(int fileNr)
     c = myFile.read();
     switch (etat)
     {
-      case -10 : break ; // NOP
-      case -2 : //debut de ligne
-        if (c == '>')
-          etat= -1 ;
-        break ;
+      case -2 : break ; // NOP
       case -1 : //index
         if ((c >= '0') && (c <= '9'))
         {
           index = 10* index + (c - '0') ;
           break ;
         }
-        else
+        else if (c == ',')
         {
           if (index < MAXEVENT)
           {
@@ -1060,7 +1035,7 @@ void expresseur_loadFile(int fileNr)
             #ifdef DEBUGON
               Serial.print("ERROR : event overflow. Index=");Serial.println(index);
             #endif
-            etat = -10 ;
+            etat = -2 ;
             // initScore(); 
             return;
           }
@@ -1068,26 +1043,26 @@ void expresseur_loadFile(int fileNr)
         } 
         break ;
       case 0 : //pitch
-        if ((c >= '0') && (c <= '9'))
-        {
-          if (event == NULL) { initScore() ; return ;} 
-          event->pitch = minus * (10* event->pitch + (c - '0')) ;
-          minus = 1 ;
-          break ;
-        }
-        else if (c == '-')
-          minus = -1 ; 
-        else
-          etat = 1 ; 
+      if ((c >= '0') && (c <= '9'))
+      {
+        if (event == NULL) { initScore() ; return ;} 
+        event->pitch = minus * (10* event->pitch + (c - '0')) ;
+        minus = 1 ;
         break ;
+      }
+      else if (c == '-')
+        minus = -1 ; 
+      else if (c == ',')
+        etat = 1 ; 
+      break ;
       case 1 : //velocity
         if ((c >= '0') && (c <= '9'))
         {
           event->velocity = 10* event->velocity + (c - '0') ;
           break ;
         }
-        else
-          etat = 2 ; 
+        else if (c == ',')
+        etat = 2 ; 
       break ;
       case 2 : //track
         if ((c >= '0') && (c <= '9'))
@@ -1095,21 +1070,21 @@ void expresseur_loadFile(int fileNr)
           event->trackNr = 10* event->trackNr + (c - '0') ;
           break ;
         }
-        else
+        else if (c == ',')
         {
           event->trackNr -- ; // to restart from 0
           if (event->trackNr >= score.trackMax)
             score.trackMax = event->trackNr + 1  ;
           etat = 3 ;
         }
-        break ;
+      break ;
       case 3 : //stopIndex
         if ((c >= '0') && (c <= '9'))
         {
           event->stopIndex = 10* event->stopIndex + (c - '0') ;
           break ;
         }
-        else 
+        else if (c == ',')
           etat = 4 ;
         break ;
       case 4 : //willStopIndex
@@ -1118,9 +1093,16 @@ void expresseur_loadFile(int fileNr)
           event->willStopIndex = 10* event->willStopIndex + (c - '0') ;
           break ;
         }
-        etat = 5 ;
-      case 5 : // next fields not used
-        if (c == '\n')
+        else if (c == ',')
+          etat = 5 ;
+        break ;
+      case 5 : //measurenr (not used)
+        if ((c >= '0') && (c <= '9'))
+        {
+          // not used
+          break ;
+        }
+        else if (c == '\n')
         {
           etat = 10 ;
           event->nbEventsStart = 0 ;
@@ -1130,7 +1112,7 @@ void expresseur_loadFile(int fileNr)
       case 10: //eventsStart
         if ((c >= '0') && (c <= '9'))
         {
-          if (ind == NULL) { etat = -10 ; break ;}
+          if (ind == NULL) { etat = -2 ; break ;}
           *ind = 10* (*ind) + (c - '0') ;
           break ;
         }
@@ -1159,7 +1141,7 @@ void expresseur_loadFile(int fileNr)
       case 11 : //eventsStop
       if ((c >= '0') && (c <= '9'))
       {
-        if (ind == NULL) { etat = -10 ; break ;}
+        if (ind == NULL) { etat = -2 ; break ;}
         *ind = 10* (*ind) + (c - '0') ;
         break ;
       }
@@ -1232,10 +1214,10 @@ void expresseur_loadFile(int fileNr)
           }
           #endif
           index = 0 ;
-          etat = -2 ;
+          etat = -1 ;
         }         
       break ;
-      default : etat = -2 ; break ;
+      default : etat = -1 ; break ;
     }
   }
   myFile.close();

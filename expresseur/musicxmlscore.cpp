@@ -367,7 +367,7 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 #endif
 			if (fm.IsFileExecutable())
 			{
-				musescoreexe = openFileDialog.GetPath();
+				musescoreexe = fm.GetFullPath();;
 				wxArrayString v ;
 				v.Add("Version 2");
 				v.Add("Version 3");
