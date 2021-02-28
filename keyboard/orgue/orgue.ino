@@ -16,8 +16,8 @@ const int chipSelect = BUILTIN_SDCARD;
 #define PITCHFILE 64
 #define MAXPITCH 128
 #define MAXKEYNR 72
-#define KEYRANGEMIN 20
-#define KEYRANGEMAX (MAXKEYNR-20)
+#define KEYRANGEMIN 23
+#define KEYRANGEMAX (MAXKEYNR-KEYRANGEMIN)
 
 void expresseur_loadFile(int fileNr);
 void expresseur_play(int pitch, int velo);
@@ -98,6 +98,7 @@ bool split = false ;
 byte psplit = 64 ; /* Mi-4 */
 int octaviaGauche = 0 ;
 int octaviaDroite = 0 ;
+int transpose = 0 ; 
 int balanceGaucheDroite = BALANCEMIN + (BALANCEMAX - BALANCEMIN) / 2 ;
 
 int midiPitchNbNoteOn[MAXSPLIT][MAXPITCH];
@@ -329,6 +330,7 @@ void switchSplit(bool splitOn)
 void initOrgue()
 {
   general_volume() ;
+  transpose = 0 ;
   gauche = false ;
   split = false ;
   psplit = 64 ; /* Mi-4 */
@@ -377,7 +379,7 @@ void sendMidiNote(int pi,int v, int pspliti)
 {
   int velo = v ;
   int i0, i1 ;
-  int p = pi ;
+  int p = pi  ;
   int canal = 0 ;
   if (split)
   {
@@ -411,6 +413,7 @@ void sendMidiNote(int pi,int v, int pspliti)
     p += 12 * octaviaDroite ;
     i0=0; i1=NBCHANNEL;
   }
+  p += transpose ;
   if ( v == 0 )
   {
     (midiPitchNbNoteOn[canal][p]) -- ;
@@ -432,6 +435,23 @@ void sendMidiNote(int pi,int v, int pspliti)
   }
   else
   {
+    if (midiPitchNbNoteOn[canal][p] > 0 )
+    {
+      // note-off on an already note-on, before to restart the note-on
+      #if DEBUGON > 3
+        Serial.print("NOTE ON-OFF  ch#");Serial.print(i0);Serial.print("..");Serial.print(i1);
+        Serial.print(" canal=");Serial.print(canal);Serial.print(" pitch=");Serial.print(p);
+        Serial.print(" velo=");Serial.print(velo);
+        Serial.print(" nbNoteOn=");Serial.println(midiPitchNbNoteOn[canal][p]);
+      #endif
+      for(byte i = i0; i < i1 ; i ++)
+      {
+        sendMidiByte(3,0x80 | i,p,0);
+        #ifdef MIDIUSB
+          usbMIDI.sendNoteOff(p, 100, i);
+        #endif
+      }
+    }
     (midiPitchNbNoteOn[canal][p]) ++ ;
     #if DEBUGON > 3
       Serial.print("NOTE ON  ch#");Serial.print(i0);Serial.print("..");Serial.print(i1);
@@ -439,21 +459,18 @@ void sendMidiNote(int pi,int v, int pspliti)
       Serial.print(" velo=");Serial.print(velo);
       Serial.print(" nbNoteOn=");Serial.println(midiPitchNbNoteOn[canal][p]);
     #endif
-    if (midiPitchNbNoteOn[canal][p] == 1 )
+    for(byte i = i0; i < i1 ; i ++)
     {
-      for(byte i = i0; i < i1 ; i ++)
+      if (progNrTirette[i] != -1)
       {
-        if (progNrTirette[i] != -1)
-        {
-          #if DEBUGON > 1
-            Serial.print("NOTE ON  ch#");Serial.print(i);Serial.print(" pitch=");
-            Serial.print(p);Serial.print(" balance=");Serial.print (balanceGaucheDroite);Serial.print(" velo=");Serial.println(velo);
-          #endif
-          sendMidiByte(3,0x90 | i,p,velo);
-          #ifdef MIDIUSB
-            usbMIDI.sendNoteOn(p, velo, i);
-          #endif
-        }
+        #if DEBUGON > 1
+          Serial.print("NOTE ON  ch#");Serial.print(i);Serial.print(" pitch=");
+          Serial.print(p);Serial.print(" balance=");Serial.print (balanceGaucheDroite);Serial.print(" velo=");Serial.println(velo);
+        #endif
+        sendMidiByte(3,0x90 | i,p,velo);
+        #ifdef MIDIUSB
+          usbMIDI.sendNoteOn(p, velo, i);
+        #endif
       }
     }
   }
@@ -631,6 +648,9 @@ void ctrlShiftKey(int keyNr)
       case 17 : shiftBank(4)                        ; strcpy(buf," bank(4)"); break ;
     case 18   : switchSplit( true  );octaviaDroite =  0  ; splitChange = (gauche == true) ; gauche = false; strcpy(buf," octavia Droite 0"); break ;
     case 19   : switchSplit( true  );octaviaDroite =  1  ; splitChange = (gauche == true) ; gauche = false; strcpy(buf," octavia Droite +"); break ;
+      case 20 : transpose -- ; strcpy(buf," transpose --"); break ;
+    case 21   :  break ;
+      case 22 : transpose ++ ; strcpy(buf," transpose ++"); break ;
     case KEYRANGEMIN :
     default   : tuneSplit(keyNr) ; strcpy(buf," split") ; break ;      
   }
@@ -651,7 +671,7 @@ void modeExpresseur(int keyNr , bool on)
   {
     if ( on )
     {
-      int nrFile = (octave - 3) * 5 + blackNr ;
+      int nrFile = (octave - 3) * 5 + blackNr - 2 ;
       #if DEBUGON > 1
         Serial.print("modeExpresseur loadFile nrFile = "); Serial.println(nrFile); 
       #endif
