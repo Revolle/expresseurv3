@@ -107,40 +107,15 @@ int midiPitchNbNoteOn[MAXSPLIT][MAXPITCH];
 #define MAXTIRETTE ( 2 * MaxIN )
 #define MAXBANK 5
 
-/* 
-out/in definition
-
-0/0 Fa ... 7/8 Mi
-
-8/0 0 voix celeste
-8/1 1 clairon
-8/2 2 expression
-8/3 3 flute
-8/4 4 bourdon
-8/5 5 percussion
-8/6 6 hautbois 
-8/7 7 baryton
-8/8 8 forte
-
-9/0 9 basson
-9/1 10 clarinette
-9/2 11 forte
-9/3 12 tremolo
-9/4 13 cor_anglais 
-9/5 14 percussion 
-9/6 15 fifre percussion
-9/7 16 musette
-9/8 17 sourdine
-*/
 // program per tirette, progs[bank[tirette#]][tirette#]
 #define DEFAULTPROG 4 
 int progs[MAXBANK][MAXTIRETTE]=
   {
     {53 ,57, 0,74,20, 18,69,54, 0, 71,72, 0,19,70, 7,75,21,0},
     {100,58, 0,73,20, 16,65,55, 0, 71,72, 0,19,70, 7,79,22,0},
-    {101,59, 0,76,17, 16,66,86, 0,  0,58, 0,19, 0, 9,80,23,0},
-    {99 ,60, 0,77,17,  8,67,61, 0,  0,58, 0, 0, 0,10, 0,24,0},
-    {97 ,61, 0,78,17,107,68, 0, 0,  0,58, 0, 0, 0,11, 0,22,0}
+    {101,59, 0,76,17, 16,66,86, 0,  0,0 , 0,19, 0, 9,80,23,0},
+    {99 ,60, 0,77,17,  8,67,92, 0,  0,0 , 0, 0, 0,10, 0,24,0},
+    {97 ,61, 0,78,17,107,68, 0, 0,  0,0 , 0, 0, 0,11, 0,22,0}
   };
 // banks per tirette, banks[tirette#]
 int banks[MAXBANK][MAXTIRETTE]=
@@ -149,7 +124,7 @@ int banks[MAXBANK][MAXTIRETTE]=
     {  0, 0,-1, 0, 8, 0,  0, 0,-1,  1, 8,-1,16, 1, 8 , 0,0,-1},
     {  0, 0,-1, 0, 0, 1,  0, 0,-1, -1,-1,-1,24,-1, 0 , 0,0,-1},
     {  0, 0,-1, 0,40, 0,  0, 0,-1, -1,-1,-1,-1,-1, 0 ,-1,0,-1},
-    {  0, 0,-1, 0, 2, 1,  0,-1,-1, -1,-1,-1,-1,-1, 0 ,-1,8,-1}
+    {  0, 0,-1, 0, 2, 0,  0,-1,-1, -1,-1,-1,-1,-1, 0 ,-1,8,-1}
   };
 // status of a prog on a channel  
 int progNrTirette[NBCHANNEL]=        {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
@@ -393,7 +368,6 @@ void sendMidiNote(int pi,int v, int pspliti)
       i0=0; i1= NBCHANNEL/2;
       p += 12 * octaviaGauche ;
       canal = 0 ;
-      velo = constrain(map(balanceGaucheDroite, BALANCEMIN, BALANCEMAX, BALANCEMAX, BALANCEMIN),BALANCEMIN,BALANCEMAX); 
     }
     else
     {
@@ -405,13 +379,24 @@ void sendMidiNote(int pi,int v, int pspliti)
       p += 12 * octaviaDroite ;
       i0=NBCHANNEL/2; i1=NBCHANNEL;
       canal = 1 ;
-      velo = constrain(map(balanceGaucheDroite, BALANCEMIN, BALANCEMAX, BALANCEMIN, BALANCEMAX),BALANCEMIN,BALANCEMAX);
     }
   }
   else
   {
     p += 12 * octaviaDroite ;
     i0=0; i1=NBCHANNEL;
+  }
+  if ( split || expresseur )
+  {
+    if (p < pspliti)
+    {
+      velo = constrain(map(balanceGaucheDroite, BALANCEMIN, BALANCEMAX, BALANCEMAX, BALANCEMIN),BALANCEMIN,BALANCEMAX); 
+    }
+    else
+    {
+      velo = constrain(map(balanceGaucheDroite, BALANCEMIN, BALANCEMAX, BALANCEMIN, BALANCEMAX),BALANCEMIN,BALANCEMAX);
+    }
+  
   }
   p += transpose ;
   if ( v == 0 )
