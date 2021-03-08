@@ -257,7 +257,16 @@ void midishortcut::saveShortcut()
 		action = listShortchut->GetItemText(nrItem, 7); valueAction.Add(action);
 		param = listShortchut->GetItemText(nrItem, 8); valueParam.Add(param);
 		stopOnMatch = listShortchut->GetItemText(nrItem, 9); 
-		long nrDevice = nameDevice.Index(sdevice); nrDevice--;  valueDevice.Add(nrDevice);
+		long nrDevice;
+		if (nameOpenDevice.Index(sdevice) == 0)
+			nrDevice = -1;
+		else
+		{
+			nrDevice = nameDevice.Index(sdevice);
+			if (nrDevice == wxNOT_FOUND)
+				nrDevice = -1;
+		}
+		valueDevice.Add(nrDevice);
 		long channel = nameChannel.Index(schannel); channel--; valueChannel.Add(channel);
 		long min; smin.ToLong(&min); valueMin.Add(min);
 		long max;
@@ -503,9 +512,18 @@ void midishortcut::reset()
 			strcpy(bufevent, sevent.c_str());
 			char bufparam[MAXBUFCHAR];
 			strcpy(bufparam, sparam.c_str());
-			int nrDevice = nameDevice.Index(sdevice);
-			if (nrDevice != wxNOT_FOUND)
-				basslua_setSelector(nrSelector, nrAction, 'b', nrDevice - 1, nrChannel - 1, bufevent, tp, 2, stopOnMatch.Contains("stop"), bufparam);
+			int nrDevice;
+			if (nameOpenDevice.Index(sdevice) == 0)
+				nrDevice = -1;
+			else
+			{
+				nrDevice = nameDevice.Index(sdevice);
+				if (nrDevice == wxNOT_FOUND)
+					nrDevice = -2;
+			}
+				
+			if (nrDevice != -2)
+				basslua_setSelector(nrSelector, nrAction, 'b', nrDevice , nrChannel - 1, bufevent, tp, 2, stopOnMatch.Contains("stop"), bufparam);
 		}
 	}
 }
