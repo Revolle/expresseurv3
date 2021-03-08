@@ -71,7 +71,7 @@ EVT_BUTTON(IDM_MIDISHORTCUT_CLOSE, midishortcut::OnClose)
 wxEND_EVENT_TABLE()
 
 
-midishortcut::midishortcut(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf, wxArrayString inameAction, wxArrayString lOpenedMidiin)
+midishortcut::midishortcut(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf, wxArrayString inameAction, wxArrayString lMidiin, wxArrayString lOpenedMidiin)
 : wxDialog(parent, id, title, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 {
 
@@ -91,10 +91,11 @@ midishortcut::midishortcut(wxFrame *parent, wxWindowID id, const wxString &title
 	sizerFlagMinimumPlace.Proportion(0);
 	sizerFlagMinimumPlace.Border(wxALL, 1);
 
-	nameDevice.Clear();
-	nameDevice.Add(SALLMIDIIN);
+	nameDevice = lMidiin;
+	nameOpenDevice.Clear();
+	nameOpenDevice.Add(SALLMIDIIN);
 	for (unsigned int i = 0; i < lOpenedMidiin.GetCount(); i++)
-		nameDevice.Add(lOpenedMidiin[i]);
+		nameOpenDevice.Add(lOpenedMidiin[i]);
 
 	InitLists();
 
@@ -408,6 +409,7 @@ int midishortcut::edit(long i)
 
 	wxString ldevice = listShortchut->GetItemText(i, 2);
 	if (ldevice.IsEmpty()) ldevice = nameDevice[0];
+
 	wxString lchannel = listShortchut->GetItemText(i, 3);
 
 	wxString levent = listShortchut->GetItemText(i, 4);
@@ -424,7 +426,7 @@ int midishortcut::edit(long i)
 		&lname,
 		&laction, nameAction ,
 		&lkey , nameKey ,
-		&ldevice, nameDevice ,
+		&ldevice, nameDevice , nameOpenDevice ,
 		&lchannel , nameChannel ,
 		&levent, nameEvent ,
 		&lmin, nameValueMin ,

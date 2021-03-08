@@ -53,7 +53,7 @@ editshortcut::editshortcut(wxWindow *parent, wxWindowID id, const wxString &titl
 wxString *lname,
 wxString *laction, wxArrayString nameAction,
 wxString *lkey, wxArrayString nameKey,
-wxString *ldevice, wxArrayString nameDevice,
+wxString *ldevice, wxArrayString lnameDevice, wxArrayString lnameOpenDevice,
 wxString *lchannel, wxArrayString nameChannel,
 wxString *levent, wxArrayString nameEvent,
 wxString *lmin, wxArrayString nameValueMin,
@@ -88,8 +88,10 @@ wxString *lstopOnMatch, wxArrayString nameStopOnMatch
 	fkey->SetToolTip("a key from the computer keyboard, to be adde din the menu Action");
 	fieldsizer->Add(fkey, sizerFlagMaximumPlace);
 
+	nameOpenDevice = lnameOpenDevice;
+	nameDevice = lnameDevice;
 	fieldsizer->Add(new wxStaticText(this, wxID_ANY, _("Device")), sizerFlagMinimumPlace);
-	fTdevice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameDevice, 0, wxGenericValidator(ldevice));
+	fTdevice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameOpenDevice, 0, wxGenericValidator(ldevice));
 	fTdevice->SetToolTip(_("Midiin device trigger"));
 	fieldsizer->Add(fTdevice, sizerFlagMaximumPlace);
 
@@ -201,7 +203,11 @@ void editshortcut::OnMidi(wxCommandEvent& event)
 		token = tokenizer.GetNextToken();
 		token = tokenizer.GetNextToken();
 		long d; token.ToLong(&d);
-		fTdevice->SetSelection(d);
+		wxString ndev = nameDevice[d - 1];
+		int ps = nameOpenDevice.Index(ndev);
+		if (ps == wxNOT_FOUND)
+			ps = 0;
+		fTdevice->SetSelection(ps);
 
 		//channel
 		token = tokenizer.GetNextToken();

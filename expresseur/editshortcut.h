@@ -13,7 +13,7 @@ public:
 		wxString *lname,
 		wxString *laction, wxArrayString nameAction,
 		wxString *lkey, wxArrayString nameKey,
-		wxString *ltrack, wxArrayString nameTrack,
+		wxString *ldevice, wxArrayString nameDevice,  wxArrayString nameOpenDevice ,
 		wxString *lchannel, wxArrayString nameChannel,
 		wxString *levent, wxArrayString nameEvent,
 		wxString *lmin, wxArrayString nameValueMin,
@@ -33,6 +33,8 @@ private:
 	wxChoice *fTdevice;
 	wxChoice *fTchannel;
 	wxChoice *fMin;
+	wxArrayString nameDevice;
+	wxArrayString nameOpenDevice;
 	wxDECLARE_EVENT_TABLE();
 
 };

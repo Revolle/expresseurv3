@@ -2093,7 +2093,7 @@ bool Expresseur::settingReset(bool all)
 		delete mMidishortcut;
 	}
 	mMidishortcut = NULL;
-	mMidishortcut = new midishortcut(this, wxID_ANY, _("shortcut"), mConf, nameAction, nameOpenMidiInDevices);
+	mMidishortcut = new midishortcut(this, wxID_ANY, _("shortcut"), mConf, nameAction, nameMidiInDevices , nameOpenMidiInDevices);
 
 	// load the expression
 	if (mExpression != NULL)
@@ -2433,7 +2433,7 @@ void Expresseur::initFirstUse(bool force)
 	mMidishortcut = NULL;
 	mExpression = NULL;
 
-	mMidishortcut = new midishortcut(this, wxID_ANY, _("shortcut"), mConf, nameAction, nameOpenMidiInDevices);
+	mMidishortcut = new midishortcut(this, wxID_ANY, _("shortcut"), mConf, nameAction, nameMidiInDevices, nameOpenMidiInDevices);
 	mExpression = new expression(this, wxID_ANY, _("Expression"), mConf);
 	mMixer = new mixer(this, wxID_ANY, _("mixer"), mConf, mViewerscore, nameMidiOutDevices, nameOpenMidiOutDevices, true);
 
