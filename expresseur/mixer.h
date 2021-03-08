@@ -11,7 +11,7 @@ class mixer
 {
 
 public:
-	mixer(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf , viewerscore *mscore, wxArrayString lMidiout, wxArrayString lValideMidiout, bool audio );
+	mixer(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf , viewerscore *mscore, wxArrayString lMidiout, wxArrayString lOpenMidiout, bool audio );
 	~mixer();
 
 	void reset(bool localoff = true, bool doreset = false);

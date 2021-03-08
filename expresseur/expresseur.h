@@ -198,10 +198,13 @@ private:
 	wxListBox *mlistMidiin;
 	wxListBox *mlistAudio;
 	wxArrayString nameaudioDevices;
+	wxString nameDefaultaudioDevices;
 	wxArrayString nameMidiOutDevices;
 	wxArrayString nameMidiInDevices;
 	wxArrayString nameValideMidiOutDevices;
 	wxArrayString nameValideMidiInDevices;
+	wxArrayString nameOpenMidiOutDevices;
+	wxArrayString nameOpenMidiInDevices;
 	wxArrayString keyboardConfigs ;
 	wxListBox *mlistkeyboardConfigs ;
 	int getListAudio();

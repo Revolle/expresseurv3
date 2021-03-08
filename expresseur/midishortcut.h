@@ -9,7 +9,7 @@ class midishortcut
 {
 
 public:
-	midishortcut(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf, wxArrayString inameAction, wxArrayString lmidiin);
+	midishortcut(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf, wxArrayString inameAction, wxArrayString lOpenedMidiin);
 	~midishortcut();
 
 	void reset();

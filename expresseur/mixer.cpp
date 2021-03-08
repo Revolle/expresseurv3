@@ -67,7 +67,7 @@ EVT_BUTTON(ID_MIXER_SETTING_ALLNOTEOFF, mixer::OnSettingAllNoteOff)
 EVT_BUTTON(IDM_MIXER_CLOSE, mixer::OnClose)
 wxEND_EVENT_TABLE()
 
-mixer::mixer(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf, viewerscore *lviewerscore , wxArrayString lMidiout, wxArrayString lValideMidiout, bool audio)
+mixer::mixer(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf, viewerscore *lviewerscore , wxArrayString lMidiout, wxArrayString lOpenMidiout, bool audio)
 : wxDialog(parent, id, title, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 {
 	mParent = parent;
@@ -89,7 +89,7 @@ mixer::mixer(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxc
 	// get info about the tracks
 	getTracks();
 	// get info about the midi out devices
-	getMidioutDevices(lMidiout, lValideMidiout, audio);
+	getMidioutDevices(lMidiout, lOpenMidiout, audio);
 
 	BuildSizer();
 }
@@ -376,7 +376,7 @@ wxString mixer::setMidiVi( wxString nameMidi, wxString nameVi, wxString extVi)
 	}
 	return s;
 }
-void mixer::getMidioutDevices(wxArrayString lMidiout, wxArrayString lValideMidiout, bool audio)
+void mixer::getMidioutDevices(wxArrayString lMidiout, wxArrayString lOpenMidiout, bool audio)
 {
 	// list all midi devices ( midiout and VI )
 
@@ -386,9 +386,9 @@ void mixer::getMidioutDevices(wxArrayString lMidiout, wxArrayString lValideMidio
 	nameMidiDevices.Clear();
 	nameDevices.Add(_("(no output)"));
 
-	for (int i = 0; i < lValideMidiout.GetCount(); i++)
+	for (int i = 0; i < lOpenMidiout.GetCount(); i++)
 	{
-		nameDevices.Add(setMidiVi(lValideMidiout[i], "", ""));
+		nameDevices.Add(setMidiVi(lOpenMidiout[i], "", ""));
 	}
 	for (int i = 0; i < lMidiout.GetCount(); i++)
 	{

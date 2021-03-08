@@ -160,7 +160,10 @@ void editshortcut::scanMidi(int nr_device, int type_msg, int channel, int value1
 		chTypeMsg = sprogram;
 		break;
 	case NOTEON:
-		chTypeMsg = snoteononly;
+		if ( value2 > 0 )
+			chTypeMsg = snoteononly;
+		else
+			chTypeMsg = snoteonoff;
 		break;
 	case NOTEOFF:
 		chTypeMsg = snoteonoff;

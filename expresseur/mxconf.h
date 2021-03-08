@@ -9,7 +9,7 @@ public:
 	mxconf();
 	~mxconf();
 
-	void setPrefix();
+	void setPrefix(wxArrayString nameOpenMidiOutDevices);
 	wxConfig *getConfig();
 	void deleteConf();
 

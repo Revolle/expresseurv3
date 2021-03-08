@@ -163,89 +163,31 @@ void mxconf::deleteConf()
 {
 	mConfig->DeleteAll() ;
 }
-void mxconf::setPrefix()
+void mxconf::setPrefix(wxArrayString nameOpenMidiOutDevices)
 {
 	// the prefix is a checksum of all valid midiout's name
-	char ch[MAXBUFCHAR] = "";
 	wxString name;
 	wxString names;
 	wxString spipe;
-	int nbMidioutDevice = 0;
-	int nbMidioutValidDevice = 0;
-	int checksum = 0;
-	while (true)
-	{
-		basslua_call(moduleLuabass, soutGetMidiName, "i>s", nbMidioutDevice + 1, ch);
-		if ((*ch == '\0') || (nbMidioutDevice >= MIDIOUT_MAX))
-			break;
-		nbMidioutDevice++;
-		bool valid = false;
-		basslua_call(moduleGlobal, soutMidiIsValid, "s>b", ch, &valid);
-		if (valid)
-		{
-			nbMidioutValidDevice ++ ;
-			char *pt = ch;
-			if ((strlen(ch) > 4) && (strncmp(ch + 1, "- ", 2) == 0))
-				pt = ch + 3; // suppress the prefix "X- "
-			if (names.Length() < 128 )
-				names += spipe + wxString(pt);
-			spipe = "|";
-			while (*pt != '\0')
-			{
-				checksum += *pt;
-				pt++;
-			}
-		}
-	}
-	if (nbMidioutValidDevice == 0)
+	int nbOut = nameOpenMidiOutDevices.GetCount();
+	if (nbOut == 0)
 	{
 		names = "no midi-out valid device";
 	}
-	checksum = checksum % 1024;
-	// names : contains a human eadable name of the midiout config
-	// checksum is a summary of the names.
-	wxString keyPrefix;
-	keyPrefix.Printf("%s/%d", CONFIG_HARDWARE , checksum);
-	wxString prefixConfig = mConfig->Read(keyPrefix, "");
-	if (prefixConfig.IsEmpty())
+	else
 	{
-		mConfig->SetPath(CONFIG_HARDWARE);
-		int nbGroups = mConfig->GetNumberOfGroups();
-		if (nbGroups > 0)
+		for (int i = 0; i < nbOut; i++)
 		{
-			if (wxMessageBox("The hardware midi-out configuration is a new one.\nDo you want to create a new setting of the mixer from scratch ? ",
-				"New hardware midi-out", wxYES_NO) == wxNO)
-			{
-				// get the list of existing configs already available
-				wxArrayString listConfig;
-				// first enum all entries
-				long dummy;
-				wxString mgroup;
-				bool bCont = mConfig->GetFirstGroup(mgroup, dummy);
-				while (bCont)
-				{
-					listConfig.Add(mgroup);
-					bCont = mConfig->GetNextGroup(mgroup, dummy);
-				}
-				prefixConfig = wxGetSingleChoice("Select a midi-out configuration to reuse for the mixer",
-					"Midi-out mixer setting", listConfig, 0);
-			}
-			if (prefixConfig.IsEmpty())
-			{
-				prefixConfig = wxGetTextFromUser("Name of this new midi-out configuration", "Midi-out mixer setting", names);
-			}
+			wxString s= nameOpenMidiOutDevices[i] ;
+			if ((s.length() > 4) && (s.Mid(2, 2) == "- "))
+				s = s.Mid(3); // suppress the prefix "X- "
+			s = s.ToAscii(); 
+			s.Replace("/", "_", true);
+			names += spipe + s ;
+			spipe = "|";
 		}
-		if (prefixConfig.IsEmpty())
-		{
-			prefixConfig = names ;
-		}
-		prefixConfig = prefixConfig.ToAscii();
-		prefixConfig.Replace("/", "_", true);
-	
-		mConfig->Write(keyPrefix, prefixConfig);
-		mConfig->SetPath("/");
 	}
-	mPrefix.Printf("%s/%s/", CONFIG_HARDWARE, prefixConfig);
+	mPrefix.Printf("%s/%s/", CONFIG_HARDWARE, names);
 }
 
 long mxconf::writeFile(wxTextFile *lfile, wxString key, long defaultvalue, bool prefix, wxString name)

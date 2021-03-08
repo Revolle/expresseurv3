@@ -489,16 +489,16 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	settingMenu->Append(ID_MAIN_AUDIO_SETTING, _("Audio..."), _("Audio settings, to decrease latency, and to select the default audio output"));
 	settingMenu->Append(ID_MAIN_MIDI_SETTING, _("Midi..."), _("Midi settings, to select MIDI Inputs and Outputs, and the default MIDI output"));
 	settingMenu->Append(ID_MAIN_LUAFILE, _("LUA Files..."));
-	settingMenu->Append(ID_MAIN_UPDATE, _("Check update") , _("check if an update is available on the www.expresseur.com web site"));
-	settingMenu->Append(ID_MAIN_RESET, _("Reset audio/midi"), _("Reset the audio/midi configuration"));
-	settingMenu->Append(ID_MAIN_DELETE_CACHE, _("Delete cache"), _("Delete the MuseScore pages, kept in cache to save computing"));
+	//settingMenu->Append(ID_MAIN_RESET, _("Reset audio/midi"), _("Reset the audio/midi configuration"));
+	//settingMenu->Append(ID_MAIN_DELETE_CACHE, _("Delete cache"), _("Delete the MuseScore pages, kept in cache to save computing"));
 	settingMenu->Append(ID_MAIN_FIRSTUSE, _("Reset configuration"), _("Restart the initialization wizard"));
-	settingMenu->AppendCheckItem(ID_MAIN_MIDILOG, _("Log MIDI"), _("log output MIDI messages in log file"));
+	// settingMenu->AppendCheckItem(ID_MAIN_MIDILOG, _("Log MIDI"), _("log output MIDI messages in log file"));
 	settingMenu->Append(ID_MAIN_CHECK_CONFIG, _("Check config"), _("Check the configuration (files, .. )"));
 
 	wxMenu *helpMenu = new wxMenu;
 	helpMenu->Append(wxID_HELP, _("help"));
 	helpMenu->Append(wxID_ABOUT, _("About"));
+	helpMenu->Append(ID_MAIN_UPDATE, _("Check update"), _("check if an update is available on the www.expresseur.com web site"));
 
     mMenuBar = new wxMenuBar( wxMB_DOCKABLE );
 
@@ -518,7 +518,7 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	editMode = false;
 	editMenu->Check(wxID_EDIT, false);
 	logMidiMsg = false;
-	settingMenu->Check(ID_MAIN_MIDILOG, false);
+	//settingMenu->Check(ID_MAIN_MIDILOG, false);
 
 	localoff = (bool)(mConf->get(CONFIG_LOCALOFF, true));
 	settingMenu->Check(ID_MAIN_LOCAL_OFF, localoff);
@@ -639,7 +639,8 @@ bool Expresseur::checkConfig()
 		msg += merrors;
 		ret = false;
 	}
-	int nbIn = GetListMidiIn();
+	msg += "\n";
+	int nbIn = nameValideMidiInDevices.GetCount();
 	if (nbIn == 0)
 	{
 		msg += "No valid MIDI-in\n";
@@ -652,9 +653,13 @@ bool Expresseur::checkConfig()
 	}
 	for (int i = 0; i < nbIn; i++)
 	{
-		msg += "    - " + nameValideMidiInDevices[i] + "\n";
+		if (nameOpenMidiInDevices.Index(nameValideMidiInDevices[i]) == wxNOT_FOUND)
+			msg += "    - " + nameValideMidiInDevices[i] + " : NOT opened (cf. MIDI configuration)\n";
+		else
+			msg += "    - " + nameValideMidiInDevices[i] + " : opened\n";
 	}
-	int nbOut = GetListMidiOut();
+	msg += "\n";
+	int nbOut = nameValideMidiOutDevices.GetCount();
 	if (nbOut == 0)
 	{
 		msg += "No valid MIDI-out\n";
@@ -667,8 +672,12 @@ bool Expresseur::checkConfig()
 	}
 	for (int i = 0; i < nbOut ; i++)
 	{
-		msg += "    - " + nameValideMidiOutDevices[i] + "\n";
+		if (nameOpenMidiOutDevices.Index(nameValideMidiOutDevices[i]) == wxNOT_FOUND)
+			msg += "    - " + nameValideMidiOutDevices[i] + " : NOT opened (cf. MIDI configuration)\n";
+		else
+			msg += "    - " + nameValideMidiOutDevices[i] + " : opened\n";
 	}
+	msg += "\n";
 
 	int nbAudio = getListAudio();
 	if (nbAudio == 0)
@@ -683,10 +692,17 @@ bool Expresseur::checkConfig()
 	}
 	for (unsigned int i = 0; i < nameaudioDevices.GetCount(); i++)
 	{
-		msg += "    - " + nameaudioDevices[i] + "\n";
+		if (nameDefaultaudioDevices == nameaudioDevices[i])
+			msg += "    - " + nameaudioDevices[i] + " : DEFAULT sound output\n";
+		else
+			msg += "    - " + nameaudioDevices[i] + "\n";
 	}
-	msg += "Conf=" + mConf->getConfPath() + "\n";
+
+	msg += "\nConf=" + mConf->getConfPath() + "\n";
 	msg += "Working directory=" + mConf->getCwdDir() + "\n";
+	msg += "User directory=" + mConf->getUserDir() + "\n";
+	msg += "Temp directory=" + mConf->getTmpDir() + "\n";
+	msg += "App directory=" + mConf->getAppDir() + "\n";
 
 	wxMessageBox(msg,"Config check");
 	return ret ;
@@ -2077,7 +2093,7 @@ bool Expresseur::settingReset(bool all)
 		delete mMidishortcut;
 	}
 	mMidishortcut = NULL;
-	mMidishortcut = new midishortcut(this, wxID_ANY, _("shortcut"), mConf, nameAction, nameValideMidiInDevices);
+	mMidishortcut = new midishortcut(this, wxID_ANY, _("shortcut"), mConf, nameAction, nameOpenMidiInDevices);
 
 	// load the expression
 	if (mExpression != NULL)
@@ -2092,8 +2108,8 @@ bool Expresseur::settingReset(bool all)
 	SetMenuAction(true);
 
 
-	// caculate the prefix of settings, according to valid midi-out devices connected
-	mConf->setPrefix();
+	// caculate the prefix of settings, according to valid midi-out devices opened
+	mConf->setPrefix(nameOpenMidiOutDevices);
 
 	int h = posScrollHorizontal;
 	int v = posScrollVertical;
@@ -2203,7 +2219,7 @@ bool Expresseur::settingReset(bool all)
 		delete mMixer;
 	}
 	mMixer = NULL;
-	mMixer = new mixer(this, wxID_ANY, _("mixer"), mConf, mViewerscore, nameMidiOutDevices , nameValideMidiOutDevices, true );
+	mMixer = new mixer(this, wxID_ANY, _("mixer"), mConf, mViewerscore, nameMidiOutDevices , nameOpenMidiOutDevices, true );
 
 	// set the size of the windows
 	int x, y, width, height;
@@ -2400,7 +2416,8 @@ void Expresseur::initFirstUse(bool force)
 	luafile::reset(mConf, true, timerDt);
 
 	// set a prefix on the actual Midi config
-	mConf->setPrefix();
+	GetListMidiOut();
+	mConf->setPrefix(nameValideMidiOutDevices);
 	
 	// get the actions from the LUA script
 	getLuaAction(false, NULL);
@@ -2416,9 +2433,9 @@ void Expresseur::initFirstUse(bool force)
 	mMidishortcut = NULL;
 	mExpression = NULL;
 
-	mMidishortcut = new midishortcut(this, wxID_ANY, _("shortcut"), mConf, nameAction, nameValideMidiInDevices);
+	mMidishortcut = new midishortcut(this, wxID_ANY, _("shortcut"), mConf, nameAction, nameOpenMidiInDevices);
 	mExpression = new expression(this, wxID_ANY, _("Expression"), mConf);
-	mMixer = new mixer(this, wxID_ANY, _("mixer"), mConf, mViewerscore, nameMidiOutDevices, nameValideMidiOutDevices, true);
+	mMixer = new mixer(this, wxID_ANY, _("mixer"), mConf, mViewerscore, nameMidiOutDevices, nameOpenMidiOutDevices, true);
 
 	// load the dfautl setting for the shorcuts, ...
 	settingName.AssignDir(mxconf::getResourceDir());
@@ -2431,9 +2448,6 @@ void Expresseur::initFirstUse(bool force)
 	mMixer = NULL;
 	mMidishortcut = NULL;
 	mExpression = NULL;
-
-
-
 }
 void Expresseur::OnAudioSetting(wxCommandEvent& WXUNUSED(event))
 {
@@ -2482,12 +2496,14 @@ void Expresseur::openMidiIn()
 	int nrDevicesToOpen[MIDIIN_MAX];
 	int nbDevicesToOpen = 0;
 	GetListMidiIn();
+	nameOpenMidiInDevices.Clear();
 	for (unsigned int i = 0; i < MIDIIN_MAX; i++)
 	{
 		wxString smididevice = mConf->get(CONFIG_MIDIIN, "", false, wxString::Format("%d", i));
 		int nrDevice = nameMidiInDevices.Index(smididevice);
 		if (nrDevice != wxNOT_FOUND)
 		{
+			nameOpenMidiInDevices.Add(smididevice);
 			nrDevicesToOpen[nbDevicesToOpen] = nrDevice;
 			nbDevicesToOpen++;
 		}
@@ -2525,12 +2541,14 @@ void Expresseur::openMidiOut()
 {
 	// open the device in
 	GetListMidiOut();
+	nameOpenMidiOutDevices.Clear();
 	for (unsigned int i = 0; i < MIDIOUT_MAX; i++)
 	{
 		wxString smididevice = mConf->get(CONFIG_MIDIOUT, "", false, wxString::Format("%d", i));
 		int nrMidiOutDevice = nameMidiOutDevices.Index(smididevice);
 		if (nrMidiOutDevice != wxNOT_FOUND)
 		{
+			nameOpenMidiOutDevices.Add(smididevice);
 			basslua_call(moduleLuabass, soutOpenMidi, "i", nrMidiOutDevice + 1);
 		}
 	}
@@ -2925,10 +2943,10 @@ void Expresseur::OnAudioTest(wxCommandEvent& WXUNUSED(event))
 }
 int Expresseur::setAudioDefault()
 {
-	wxString name_device= mConf->get(CONFIG_DEFAULT_AUDIO,"");
+	nameDefaultaudioDevices = mConf->get(CONFIG_DEFAULT_AUDIO,"");
 	basslua_call(moduleLuabass, "audioClose", "");
 	getListAudio();
-	int nrDevice = nameaudioDevices.Index(name_device);
+	int nrDevice = nameaudioDevices.Index(nameDefaultaudioDevices);
 	if (nrDevice == wxNOT_FOUND)
 	{
 		switch ( nameaudioDevices.GetCount() )

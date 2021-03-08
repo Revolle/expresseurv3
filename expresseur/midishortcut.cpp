@@ -71,7 +71,7 @@ EVT_BUTTON(IDM_MIDISHORTCUT_CLOSE, midishortcut::OnClose)
 wxEND_EVENT_TABLE()
 
 
-midishortcut::midishortcut(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf, wxArrayString inameAction, wxArrayString lMidiin)
+midishortcut::midishortcut(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf, wxArrayString inameAction, wxArrayString lOpenedMidiin)
 : wxDialog(parent, id, title, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 {
 
@@ -93,8 +93,8 @@ midishortcut::midishortcut(wxFrame *parent, wxWindowID id, const wxString &title
 
 	nameDevice.Clear();
 	nameDevice.Add(SALLMIDIIN);
-	for (unsigned int i = 0; i < lMidiin.GetCount(); i++)
-		nameDevice.Add(lMidiin[i]);
+	for (unsigned int i = 0; i < lOpenedMidiin.GetCount(); i++)
+		nameDevice.Add(lOpenedMidiin[i]);
 
 	InitLists();
 
@@ -503,9 +503,7 @@ void midishortcut::reset()
 			strcpy(bufparam, sparam.c_str());
 			int nrDevice = nameDevice.Index(sdevice);
 			if (nrDevice != wxNOT_FOUND)
-			{
 				basslua_setSelector(nrSelector, nrAction, 'b', nrDevice - 1, nrChannel - 1, bufevent, tp, 2, stopOnMatch.Contains("stop"), bufparam);
-			}
 		}
 	}
 }
