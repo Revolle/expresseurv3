@@ -2104,10 +2104,6 @@ bool Expresseur::settingReset(bool all)
 	mExpression = NULL;
 	mExpression = new expression(this, wxID_ANY, _("Expression"), mConf);
 
-	// setup the menus
-	SetMenuAction(true);
-
-
 	// caculate the prefix of settings, according to valid midi-out devices opened
 	mConf->setPrefix(nameOpenMidiOutDevices);
 
@@ -2251,6 +2247,8 @@ bool Expresseur::settingReset(bool all)
 	mMidishortcut->reset();
 	mExpression->reset();
 	setZoom();
+	// setup the menus
+	SetMenuAction(true);
 
 	waitToCompile = 1 ;
 	waitToRefresh = 1 ;
