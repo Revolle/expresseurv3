@@ -349,7 +349,7 @@ function helpkeydownscore()
 	local chhelp
 	if keyboarDisposal and keyboarDisposal[1] and keyboarDisposal[4] and keyboarDisposal[1][10] and keyboarDisposal[4][10] then
 		chhelp= [[
-Shortcuts defined in expresseur.lua :
+Shortcuts defined in expresseur.lua ( http://www.expresseur.com/home/user-guide/ ):
 Select disposal with -k option in LUA-parameter (qwerty,azerty,qwertz)
 * Mixer : 8 tracks ( tacet/p/mf/f) on the left of the four lines of the keyboard 
 * Move : arrows, page, home , end , backspace 
@@ -529,7 +529,7 @@ function helpkeydownimprovisation()
 	local chhelp
 	if keyboarDisposal and keyboarDisposal[1] and keyboarDisposal[4] and keyboarDisposal[1][10] and keyboarDisposal[4][10] then
 		chhelp= [[
-Shortcuts defined in expresseur.lua :
+Shortcuts defined in expresseur.lua ( http://www.expresseur.com/home/user-guide/ ):
 Select disposal with -k option in LUA-parameter (qwerty,azerty,qwertz)
 * Chord   : I , II.m, up to VII.m.b5 on the first line 
 * Chord 7 : I.M7, II.m.7, up to VII.m.b5.7 on the second line 

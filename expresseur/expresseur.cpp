@@ -2094,6 +2094,9 @@ bool Expresseur::settingReset(bool all)
 	}
 	mMidishortcut = NULL;
 	mMidishortcut = new midishortcut(this, wxID_ANY, _("shortcut"), mConf, nameAction, nameMidiInDevices , nameOpenMidiInDevices);
+	// setup the menus
+	mMidishortcut->reset();
+	SetMenuAction(true);
 
 	// load the expression
 	if (mExpression != NULL)
@@ -2103,6 +2106,7 @@ bool Expresseur::settingReset(bool all)
 	}
 	mExpression = NULL;
 	mExpression = new expression(this, wxID_ANY, _("Expression"), mConf);
+	mExpression->reset();
 
 	// caculate the prefix of settings, according to valid midi-out devices opened
 	mConf->setPrefix(nameOpenMidiOutDevices);
@@ -2216,6 +2220,7 @@ bool Expresseur::settingReset(bool all)
 	}
 	mMixer = NULL;
 	mMixer = new mixer(this, wxID_ANY, _("mixer"), mConf, mViewerscore, nameMidiOutDevices , nameOpenMidiOutDevices, true );
+	mMixer->reset(localoff, true);
 
 	// set the size of the windows
 	int x, y, width, height;
@@ -2243,12 +2248,7 @@ bool Expresseur::settingReset(bool all)
 		mExpression->SetSize(x, y, width, height);
 	mExpression->Show(mConf->get(CONFIG_EXPRESSIONVISIBLE, false));
 
-	mMixer->reset(localoff,true);
-	mMidishortcut->reset();
-	mExpression->reset();
 	setZoom();
-	// setup the menus
-	SetMenuAction(true);
 
 	waitToCompile = 1 ;
 	waitToRefresh = 1 ;

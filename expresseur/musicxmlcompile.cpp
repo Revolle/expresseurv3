@@ -335,6 +335,7 @@ void musicxmlcompile::fillStartStopNext()
 }
 void musicxmlcompile::dump_musicxmlevents()
 {
+	/*
 	for (int nrEvent = 0 ; nrEvent < nbEvents ; nrEvent++)
 	{
 		c_musicxmlevent *current_musicxmlevent = lMusicxmlevents[nrEvent] ;
@@ -349,7 +350,7 @@ void musicxmlcompile::dump_musicxmlevents()
 		int nextNr = current_musicxmlevent->nextNr;
 		int i = 1;
 	}
-	
+	*/	
 }
 musicxmlcompile::musicxmlcompile()
 {
@@ -1631,8 +1632,8 @@ bool musicxmlcompile::readMarkLine(wxString s, wxString sectionName)
 int musicxmlcompile::getDivision(int measure_nr, int *division_quarter, int *division_measure)
 {
 	c_part *part = compiled_score->parts[0];
-	int nb_measure = part->measures.GetCount();
-	if ((measure_nr < 1) || (measure_nr > nb_measure))
+	int lnb_measure = part->measures.GetCount();
+	if ((measure_nr < 1) || (measure_nr > lnb_measure))
 	{
 		*division_quarter = 1;
 		*division_measure = 4;
@@ -4041,7 +4042,10 @@ int musicxmlcompile::stringToEventNr(wxString s)
 			if (repeat == -1)
 			{	
 				if (current_musicxmlevent->original_measureNr == measureNr)
-					return current_musicxmlevent->nr;
+				{
+					int m = current_musicxmlevent->nr;
+					return m;
+				}
 			}
 			else
 			{
