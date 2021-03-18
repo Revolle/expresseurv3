@@ -1894,7 +1894,10 @@ void Expresseur::OnMidishortcut(wxCommandEvent& WXUNUSED(event))
 {
 	editMode = true;
 	if (mMidishortcut->ShowModal() == wxOK)
+	{
+		editMode = false;
 		settingReset(true);
+	}
 	editMode = false;
 }
 void Expresseur::OnKeydowInfoLua(wxCommandEvent& WXUNUSED(event))
@@ -2113,7 +2116,6 @@ bool Expresseur::settingReset(bool all)
 
 	int h = posScrollHorizontal;
 	int v = posScrollVertical;
-
 
 	setAudioDefault();
 	

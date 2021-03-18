@@ -123,7 +123,9 @@ luafile::luafile(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* 
 	keyboardConfigs.Add("qwerty");
 	keyboardConfigs.Add("azerty");
 	keyboardConfigs.Add("qwertz");
+	wxString luakeyboarconfig = mConf->get(CONFIG_KEYBOARDCONFIG, DEFAULT_KEYBOARDCONFIG);
 	wxListBox *mlistkeyboardConfigs = new	wxListBox(this, IDM_LUAFILE_KEYBOARDCONFIG, wxDefaultPosition, wxDefaultSize, keyboardConfigs);
+	mlistkeyboardConfigs->SetStringSelection(luakeyboarconfig);
 	paramsizer->Add(new wxStaticText(this, wxID_ANY, _("Keyboard config")), sizerFlagMaximumPlace);
 	paramsizer->Add(mlistkeyboardConfigs, sizerFlagMaximumPlace);
 
