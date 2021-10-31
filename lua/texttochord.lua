@@ -2,6 +2,14 @@
 Translate a string which contains a chord description.
 Return the pitches for : bass, chord, penta, scale
 
+A pitch = midi_pitch[1..127] + 128*scale_degree
+e.g. : 
+   in chord-C, C4(64) is degree 1 , midi_pitch = 64+1*128
+   in chord-C, G4(72) is degree 5, midi-pitch = 72 + 5*128
+To retrieve :
+  - midi_pitch = pitch % 128
+  - degree (if any) = floor(pitch/128)
+  
 The chord starts with the root and its optional modifiers ( e.g. C7 )
 The chord can have options: /bass (scale_modifiers) [mode/root] @center
 
@@ -93,21 +101,27 @@ local blackScale = true -- if true then black key tries to be part of scale, els
 local prevBass = nill 
 
 --================
-function E.ptos(p)
+function E.ptos(x)
 --================
-  -- return the english notation of pitch p
-  if p == nil then
+  -- return the english notation of pitch x (pitch+ rolechord*128)
+  if x == nil then
     return "?"
   end
+  d = math.floor(x/128)
+  p = x % 128
   o = math.floor(p/12)
   i = ( p % 12 ) + 1
   local sp = { "C" ,"Db" , "D" , "Eb" , "E" , "F", "F#" , "G" , "G#" , "A", "Bb" , "B" }
   local s
   if o > 0  then
-    return ( sp[i] .. tostring(o))
+    s = sp[i] .. tostring(o)
   else
-    return sp[i]
+    s = sp[i]
   end
+  if d > 0  then
+    s = s .. "." .. tostring(d) 
+  end
+  return s
 end
 
 --========================
@@ -411,7 +425,7 @@ end
 --=========================
 function E.setBlackScale(v)
 --=========================
-  -- set the compilation environment for blak keys : if true, black keys tries to use the scale, if falte black keys uses chromatic approach
+  -- set the compilation environment for black keys : if true, black keys tries to use the scale, if false black keys uses chromatic approach
   blackScale = v
 end
 
@@ -475,7 +489,7 @@ function blackKeys(listScale , t )
   for i , v in pairs(t) do
     v[-1] = {}
     v[1] = {}
-    local p = v[0][1]
+    local p = (v[0][1]) % 128
     -- calculate the flat
     local prevP 
     if blackScale == true and t[i - 1] then
@@ -514,7 +528,7 @@ function addChordNotsorted(lroot,chord,pitchRole,j,o)
   local oj = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1}
   local p = degreeToPitch(lroot,j,o)
   -- root j,o is obliged
-  chord[1] = p
+  chord[1] = p 
   oj[j] = o
   local iv = 1
   local v
@@ -594,6 +608,9 @@ function addChord(lroot,chord,pitchRole,j,o)
     if found == false then
       table.remove(cwhite)
     end
+  end
+  if pitchRole[j].chord then
+    cwhite[1] = cwhite[1] + (pitchRole[j].chord) * 128
   end
 end
 

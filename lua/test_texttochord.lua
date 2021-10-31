@@ -6,13 +6,12 @@ function interpret(chord , next_chord , tone )
     texttochord.setTone(tone)
     local r 
     r = texttochord.stringToChord(chord  ,next_chord)
-    print("root=" .. r.root, "bass=" .. r.bass , "nextBass=" .. (r.nextBass or "") , "text="..r.text)
-    print("root=" .. texttochord.ptos(r.root - 1 ), "bass=" .. texttochord.ptos(degreeToPitch(r.root,r.bass,0)) , "nextBass=" .. texttochord.ptos(degreeToPitch(currentTone,r.nextBass,0)) , "chord","chord","penta","scale",r.text)
+    print("root=" .. texttochord.ptos(r.root - 1 ), "bass=" .. texttochord.ptos(degreeToPitch(r.root,r.bass,0)) , "nextBass=" .. texttochord.ptos(degreeToPitch(r.root,r.nextBass,0)) , "chord","penta","scale",r.text)
     local pitchNames = {"I","IIb","II","IIIb","III","IV","IV#", "V", "V#" , "VI", "VII", "VIIM" }
     for j,v in pairs(r.pitchRole) do
       if v.chord or v.scale or v.penta then
         if v.chord then schord = v.chord else schord = " " end
-        if v.penta then spenta = v.scale else spenta = " " end
+        if v.penta then spenta = v.penta else spenta = " " end
         if v.scale then sscale = v.scale else sscale = " " end
         print ( "", "","", pitchNames[j] ,schord, spenta , sscale )
       end
@@ -27,49 +26,49 @@ end
 function automatic_test()
 --=========================  
   print ( "===========================")
-  print ( "test the E.stringToDegree()")
+  print ( "test the texttochord.stringToDegree()")
   print ( "===========================")
   
-  print ( "c/c" , E.stringToDegree("c",1))
-  print ( "f/c" , E.stringToDegree("f",1))
-  print ( "g/d" , E.stringToDegree("g",E.stringToDegree("d")))
-  print ( "c/g" , E.stringToDegree("c",E.stringToDegree("g")))
+  print ( "c/c" , texttochord.stringToDegree("c",1))
+  print ( "f/c" , texttochord.stringToDegree("f",1))
+  print ( "g/d" , texttochord.stringToDegree("g",texttochord.stringToDegree("d")))
+  print ( "c/g" , texttochord.stringToDegree("c",texttochord.stringToDegree("g")))
   local snote = { "b" , "do" , "do#" , "#do" , "#IV",  "3", "e",  "2#", "2b" , "b2", "g" , "gb", "bg", "g#", "#g", "II", "7", "-", "M7" , "Solb.x" , "xyz" }
   for i,v in ipairs(snote) do
-    print(i,v, E.stringToDegree(string.lower(v),E.stringToDegree("c")))
+    print(i,v, texttochord.stringToDegree(string.lower(v),texttochord.stringToDegree("c")))
   end
   --
 
 --
   --
   print ( "==========================")
-  print ( "test the E.stringToChord()")
+  print ( "test the texttochord.stringToChord()")
   print ( "==========================")
 
   local stest = { 
     { schord="Do" , stone="C" } ,
-    { schord="A-" , stone="C" } ,
-    { schord="G7"} ,
+    { schord="A.-" , stone="C" } ,
+    { schord="G.7"} ,
     { schord="Do-" } ,
-    { schord="DoM7" } ,
-    { schord="DomM7" } ,
-    { schord="I0" } ,
-    { schord="IO" } ,
-    { schord="CAdd9" } ,
-    { schord="C9" } ,
-    { schord="A-9" } ,
-    { schord="A-" } ,
-    { schord="Csus4" } ,
-    { schord="Dsus4" } ,
-    { schord="D11" } ,
-    { schord="D-9" } ,
-    { schord="D-9(#4-)/G" } ,
-    { schord="D9(-#4)" } ,
-    { schord="D-11(7)" }, 
+    { schord="Do.M7" } ,
+    { schord="Do.m.M7" } ,
+    { schord="I.0" } ,
+    { schord="I.O" } ,
+    { schord="C.Add9" } ,
+    { schord="C.9" } ,
+    { schord="A.-.9" } ,
+    { schord="A.-" } ,
+    { schord="C.sus4" } ,
+    { schord="D.sus4" } ,
+    { schord="D.11" } ,
+    { schord="D.-.9" } ,
+    { schord="D.-.9(#4-)/G" } ,
+    { schord="D.9(-#4)" } ,
+    { schord="D.-.11(7)" }, 
     { schord="Sol"} ,
-    { schord="G7" , stone="G" } ,
+    { schord="G.7" , stone="G" } ,
     { schord="D" } ,
-    { schord="Re7" },
+    { schord="Re.7" },
     { schord="C/G" , stone="C" },
     { schord="G/B" },
     { schord="G/I" },
@@ -133,3 +132,4 @@ function manual_test()
 end
 
 manual_test()
+--automatic_test()

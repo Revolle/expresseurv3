@@ -3364,7 +3364,9 @@ static int LoutChordSet(lua_State *L)
 			chord->nbPitch = 0;
 			for (int nrArg = startArg; (startArg <= endArg) ? (nrArg <= endArg) : (nrArg >= endArg); nrArg += (startArg <= endArg) ? 1 : -1)
 			{
-				int p = (int)lua_tointeger(L, nrArg) + transpose;
+				int p = (int)lua_tointeger(L, nrArg);
+				p %= 128 ;
+				p += transpose;
 				while (p < 0)
 					p += 12;
 				while (p > 127)
@@ -3534,10 +3536,7 @@ static int LoutNoteOn(lua_State *L)
 	unsigned long retCode = -1;
 	T_midioutmsg u;
 	int p = (int)lua_tointeger(L, 1);
-	while (p > 127)
-		p -= 12;
-	while (p < 0)
-		p += 12;
+	p %= 128;
 	u.midimsg.bData[1] = p;
 	u.midimsg.bData[2] = cap((int)luaL_optinteger(L, 2, 64), 1, 128, 0);
 	u.id = (int)luaL_optinteger(L, 3, 0);
@@ -3572,10 +3571,7 @@ static int LoutNoteOff(lua_State *L)
 	int retCode = -1;
 	T_midioutmsg u;
 	int p = (int)lua_tointeger(L, 1);
-	while (p > 127)
-		p -= 12;
-	while (p < 0)
-		p += 12;
+	p %= 128;
 	u.midimsg.bData[1] = p;
 	u.midimsg.bData[2] = cap((int)luaL_optinteger(L, 2, 0), 0, 128, 0);
 	u.id = (int)luaL_optinteger(L, 3, 0);

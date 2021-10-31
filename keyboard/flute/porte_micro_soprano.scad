@@ -1,32 +1,13 @@
-de2=19.4;// diamètre flute bas
-de1=19.6; // diamètre flute haut
+de2=19.0;// diamètre flute bas
+de1=19.2; // diamètre flute haut
 de=(de1+de2)/2;
 he=12; // largeur pince
 e=4;
 
 dmicro=6;
 douverture=dmicro-1.6;
-$fn=40;
-module serre_micro()
-{
-    translate([de/2+e/2+dmicro/2,0,1])
-        union()
-        {
-            difference()
-            {
-                cylinder(d=dmicro+2*e,h=he,center=true);
-                cylinder(d=dmicro+e,h=he,center=true);
-                translate([-6,0,0])
-                        cube([5,de,he],center=true);        
-            }
-            difference()
-            {
-                translate([dmicro/2,0,0])
-                    cube([e,douverture-0.5,he],center=true);
-                cylinder(d=dmicro,h=he,center=true);
-            }
-        }
-}
+$fn=10;
+
 module porte_micro()
 {
     difference()
@@ -61,6 +42,6 @@ module porte_micro()
     }
 }
 porte_micro();
-*serre_micro();
+
 
 

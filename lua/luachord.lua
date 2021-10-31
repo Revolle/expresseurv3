@@ -78,6 +78,61 @@ local keyword = { "section" , "part" }
 -- position for getRecognizedText
 local typeRecognizedPosition , NrRecognizedPosition , NrRecognizedSubPosition
 
+-- information for the light-keyboard
+local light_driver = nil -- nameof the MIDI light-keyboard
+local light_opened_driver = nil -- nameof the opened MIDI light-keyboard
+local light_extend = 32 -- number of white keys
+local light_min = 32 -- min pitch
+local light_max = 80 -- max pitch 
+local light_scale = "penta" 
+
+function E.function light_init(ilight_scale, ilight_driver, ilight_extend,ilight_min,ilight_max )
+  if ilight_driver then
+    light_driver = ilight_driver
+  end
+  if ilight_extend then
+    light_extend = ilight_extend
+  end
+  if ilight_min then
+    light_min = ilight_min
+  end
+  if ilight_max then
+    light_max = ilight_max
+  end
+  if ilight_scale then
+    light_scale = ilight_scale
+  end
+  if light_driver == nil then
+    return  
+  end
+  -- open the midiout driver
+  if light_opened_driver ~= light_driver then
+    light_opened_driver = light_driver
+    local lmidiout = luabass.outGetMidiList()
+    local nrMidiDevice = nil
+    for  n , value in pairs(lmidiout) do
+      if value == light_driver then
+        nrMidiDevice =  n
+      end
+    end
+    if nrMidiDevice then
+      luabass.outTrackOpenMidi(32,1,"",nrMidiDevice,0,"light_keyboard",false)
+    end
+  end
+  local dp , d , p
+  for index= (-(light_extend/2)) , light_extend/2, 1 do
+    dp = getIndexPitches(scale,index,0)
+    d = math.floor(dp / 128)
+    p = dp % 128
+    if (( p >= light_min ) and ( p <= light_max )) then
+      luabass.outControl(41,d+1,0,32)
+    else
+      luabass.outControl(41,0,0,32)
+    end
+  end
+  
+end
+
 function E.pitchToString(p)
   local d = (p%12) + 1
   local o = math.floor(p/12)
@@ -570,6 +625,7 @@ function E.letChord()
     end
   end
   currentChord = section[part[posPart].section[posSection].nrSection].chord[posChord]
+  light_init()
 end
 
 function E.isRestart()
@@ -939,6 +995,7 @@ function E.playScale(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whitei
 	else
 		sc = param
 	end
+  light_scale = sc
   E.playPitches(bid,velocity,whitemediane,black,sc,"scale",1,-1,values["scale_delay"],values["scale_decay"])
 end
 function E.playChord(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
@@ -974,18 +1031,19 @@ end
 function E.changeChord(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   -- change to next chord on noteOn
   local v =  param or "on"
+  light_driver, light_extend, light_min, light_max = string.match(v,"-light (%w+) (%d+) (%d+) (%d+)")
   --luabass.logmsg("changechord:" .. v)
-  if v == "on" then
+  if string.gsub(v,1,2) == "on" then
 	  if E.isRestart() or (velocity == 0) then
 		return
 	  end
 	  E.changeNextChord()
-   elseif v == "off" then
+   elseif string.gsub(v,1,2) == "of" then
      -- change to next chord on noteOff ( for anticipation )
      if velocity == 0 then
         E.changeNextChord()
       end
-   elseif v == "alternate" then
+   elseif string.gsub(v,1,2) == "al" then
 	  -- change to next chord when alternate white <=> black
 	  if E.isRestart() then 
 		previousBlack = black
