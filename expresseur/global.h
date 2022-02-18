@@ -61,7 +61,7 @@
 #define CONFIG_MIXERCHANNEL "/mixer/channel"
 #define CONFIG_MIXERCURVENAME "/mixer/curvename"
 #define CONFIG_MIXERINSTRUMENT "/mixer/instrument"
-#define CONFIG_MIXER_EXTENSION "mixer/extendedchannel"
+#define CONFIG_MIXER_EXTENSION "/mixer/extendedchannel"
 
 #define CONFIG_SHORTCUTNB "/shortcut/selectornb"
 #define CONFIG_SHORTCUTCHANNEL "/shortcut/channel"
@@ -81,6 +81,7 @@
 #define CONFIG_SHORTCUTHEIGHT "/shortcut/height"
 #define CONFIG_SHORTCUTWIDTHLIST "/shortcut/widthlist"
 
+#define CONFIG_LUAKEYSHORTCUT "/shortcut/keyboardenable"
 #define CONFIG_KEYBOARDCONFIG "/shortcut/keyboardconfig"
 
 #define CONFIG_EMPTYSCOREWARNING "/warningscore"
@@ -113,6 +114,7 @@
 #define ID_EDITSHORTCUT 2000
 #define ID_EXPRESSION 3000
 #define ID_LUAFILE 4000
+#define ID_LUAKEYDOWN 4500
 #define ID_MIDISHORTCUT 5000
 #define ID_MIXER 6000
 #define ID_MUSICXML 7000
@@ -157,6 +159,8 @@
 #define MAXBUFCHAR 2048
 #define NULL_INT -9999
 #define NULL_STRING "-9999"
+
+#define MAXKEYBOARDDISPOSAL 4*10
 
 enum{ EMPTYVIEWER, BITMAPVIEWER, MUSICXMLVIEWER };
 

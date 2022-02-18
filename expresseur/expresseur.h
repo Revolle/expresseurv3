@@ -79,6 +79,7 @@ public:
 	void OnSettingOpen(wxCommandEvent& WXUNUSED(event));
 	void OnSettingSaveas(wxCommandEvent& WXUNUSED(event));
 	void OnCheckConfig(wxCommandEvent& WXUNUSED(event));
+	void OnHelpluashortcut(wxCommandEvent& WXUNUSED(event));
 
 	void OnAudioChoice(wxCommandEvent& event);
 	void OnMidioutChoice(wxCommandEvent& event);
@@ -94,7 +95,7 @@ public:
 	void OnUpdate(wxCommandEvent& WXUNUSED(event));
 	void OnResetConfiguration(wxCommandEvent& WXUNUSED(event));
 
-	void OnActivate(wxActivateEvent& event);
+	//void OnActivate(wxActivateEvent& event);
 
 	bool OnKeyDown(wxKeyEvent& event );
 
@@ -229,6 +230,9 @@ private:
 	bool playback = false;
 	bool recordPlayback = false ;
 	
+	int keyboardDisposal[MAXKEYBOARDDISPOSAL];
+	int nbkeydown = -1;
+
 	wxSize image_right =  wxSize(0,0);
 
 	wxDECLARE_EVENT_TABLE();

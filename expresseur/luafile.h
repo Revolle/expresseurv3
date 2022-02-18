@@ -29,14 +29,12 @@ public:
 	static void functioncallback(double time , int nr_device , int type_msg , int channel , int value1 , int value2 , bool isProcessed );
 	static bool isCalledback(wxLongLong *time , int *nr_device , int *type_msg , int *channel , int *value1 , int *value2, bool *isProcessed, bool *oneIsProcessed);
 	void OnLuaUserFile(wxCommandEvent& event);
-	void OnKeyboardconfig(wxCommandEvent& event);
 	void OnLuaParameter(wxCommandEvent&  event);
 
 private:
 	wxFrame *mParent;
 	wxDialog *mThis;
 	mxconf* mConf;
-	wxArrayString keyboardConfigs;
 	wxSizerFlags sizerFlagMinimumPlace;
 	wxSizerFlags sizerFlagMaximumPlace;
 	wxDECLARE_EVENT_TABLE();

@@ -127,6 +127,22 @@ wxString GetStringContent(wxXmlNode *xmlnode)
 	wxString s = xmlnode->GetNodeContent();
 	return s;
 }
+wxString GetCleanStringContent(wxXmlNode *xmlnode)
+{
+	// return the string value in a node, cleaned as alphanumeric. Return NULL_STRING if no content
+	if (xmlnode == NULL)
+		return NULL_STRING;
+	wxString s = xmlnode->GetNodeContent();
+	wxString sclean;
+	for (int i = 0; i < s.length(); i++)
+	{
+		int c = static_cast<int>(s[i]);
+		if (((c >= 'a') && (c <= 'z')) || ((c >= 'A') && (c <= 'Z')) || ((c >= '0') && (c <= '9')) || (c == '_'))
+			sclean += static_cast<char>(c);
+	}
+	return sclean;
+}
+
 // default attribute of a MusicXML object
 //---------------------------------------
 c_default_xy::c_default_xy()
@@ -169,12 +185,12 @@ c_score_part::c_score_part(wxXmlNode *xmlnode)
 		wxString name = child->GetName();
 		if (name == "part-name")
 		{
-			part_name = child->GetNodeContent();
+			part_name = GetCleanStringContent(child);
 			part_alias = part_name;
 		}
 		else if (name == "part-abbreviation")
 		{
-			part_abbreviation = child->GetNodeContent();
+			part_abbreviation = GetCleanStringContent(child);
 			part_alias_abbreviation = part_abbreviation;
 		}
 		child = child->GetNext();

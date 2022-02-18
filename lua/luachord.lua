@@ -86,53 +86,6 @@ local light_min = 32 -- min pitch
 local light_max = 80 -- max pitch 
 local light_scale = "penta" 
 
-function E.function light_init(ilight_scale, ilight_driver, ilight_extend,ilight_min,ilight_max )
-  if ilight_driver then
-    light_driver = ilight_driver
-  end
-  if ilight_extend then
-    light_extend = ilight_extend
-  end
-  if ilight_min then
-    light_min = ilight_min
-  end
-  if ilight_max then
-    light_max = ilight_max
-  end
-  if ilight_scale then
-    light_scale = ilight_scale
-  end
-  if light_driver == nil then
-    return  
-  end
-  -- open the midiout driver
-  if light_opened_driver ~= light_driver then
-    light_opened_driver = light_driver
-    local lmidiout = luabass.outGetMidiList()
-    local nrMidiDevice = nil
-    for  n , value in pairs(lmidiout) do
-      if value == light_driver then
-        nrMidiDevice =  n
-      end
-    end
-    if nrMidiDevice then
-      luabass.outTrackOpenMidi(32,1,"",nrMidiDevice,0,"light_keyboard",false)
-    end
-  end
-  local dp , d , p
-  for index= (-(light_extend/2)) , light_extend/2, 1 do
-    dp = getIndexPitches(scale,index,0)
-    d = math.floor(dp / 128)
-    p = dp % 128
-    if (( p >= light_min ) and ( p <= light_max )) then
-      luabass.outControl(41,d+1,0,32)
-    else
-      luabass.outControl(41,0,0,32)
-    end
-  end
-  
-end
-
 function E.pitchToString(p)
   local d = (p%12) + 1
   local o = math.floor(p/12)

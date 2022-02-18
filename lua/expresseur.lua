@@ -11,7 +11,6 @@ Basslua loads in addition, by default, these modules, accessible as global :
 Function onStart(param) : called by basslua ,when this LUA script is started.
 	param :
 		--preopen_midiout : pre-open midi-out to avoid system ressources issues
-		-k qwerty|azerty|qwertz : select the keyboar disposal
 		-u <user_lua> : user's lua module to load from ressource directory
 		
 Function onStop() : called by basslua , before to close this LUA script.
@@ -119,33 +118,6 @@ invalid_midiout = { "teensy", "wavetable" , "sd%-50 midi" , "sd%-50 control" , "
 valid_midiin = { "sd%-50 midi" }
 invalid_midiin = { "bus" , "iac" , "loop" , "sd%-50" , "internal" , "through", "buran" }
 
--- disposal of the four lines of keyboard
-keyboarDisposal = nil
-keyboardDisposals=
-	{
-		qwerty = 
-		{ 
-			{ "1!" , "2@" , "3#" , "4$" , "5%^" , "6&" , "7*" , "8(" , "9)" , "0_" } , 
-			{ "Qq" , "Ww" , 'Ee' , "Rr" , "Tt" , "Yy" , "Uu" , "Ii" , "Oo" , "Pp" } , 
-			{ "Aa" , "Ss" , 'Dd' , "Ff" , "Gg" , "Hh" , "Jj" , "Kk" , "Ll" , ":;" } , 
-			{ "Zz" , "Xx" , "Cc" , "Vv" , "Bb" , "Nn" , "Mm" , "<?" , ">." , "/?"  } 
-		} ,
-		azerty = 
-		{
-			{ "1&" , "2éÉ" , '3"' , "4'" , "5(" , "6-§" , "7èÈ" , "8_!" , "9çÇ" , "0àÀ"  } , 
-			{ "Aa" , "Zz" , 'Ee' , "Rr" , "Tt" , "Yy" , "Uu" , "Ii" , "Oo" , "Pp"  } , 
-			{ "Qq" , "Ss" , 'Dd' , "Ff" , "Gg" , "Hh" , "Jj" , "Kk" , "Ll" , "Mm"  } , 
-			{ "Ww" , 'Xx' , "Cc" , "Vv" , "Bb" , "Nn" , "?," , ".;" , ":/" , "!§"  } 
-		} ,
-		qwertz = 
-		{
-			{ "1+" , '2"' , "3*" , "4ç" , "5%" , "6&" , "7/" , "8(" , "9)" , "0=" } , 
-			{ "Qq" , "Ww" , 'Ee' , "Rr" , "Tt" , "Zz" , "Uu" , "Ii" , "Oo" , "Pp" } , 
-			{ "Aa" , "Ss" , 'Dd' , "Ff" , "Gg" , "Hh" , "Jj" , "Kk" , "Ll" , "éö" } , 
-			{ "Yy" , "Xx" , "Cc" , "Vv" , "Bb" , "Nn" , "Mm" , ",;" , ".:" , "-_" } 
-		}
-	}
-
 
 function midiOutIsValid(midiout_name)
   -------================
@@ -184,9 +156,8 @@ end
 --===================== initialization
 function onStart(param)
 	-- change keyboard for shortcuts,using -k option
-	local typeKeyboard = (string.match(param,"-k (%a+)")) or "qwerty"
-	-- luabass.logmsg("param=" .. param .. " / typeKeyboard=" .. typeKeyboard )
-	keyboarDisposal = keyboardDisposals[typeKeyboard]
+	local typeKeyboard = (string.match(param,"-k (%g+)"))
+	setKeyboardDisposal(typeKeyboard)
 	-- parameter -u luafile to load a user lua script in ressources
         local luauser = (string.match(param,"-u (%a+)"))
 	if luauser then
@@ -329,61 +300,42 @@ function onNoteOff(deviceNr , timestamp, channel , pitch, velocity )
 end
 
 --========================= PC Keyboard shortcuts 
-function keydown ( keyLetter, keyCode, modifiers, mode)
+-- disposal of the four lines of keyboard
+keyboardDisposal = {}
+function setKeyboardDisposal(sk)
+-- set the disposal of the keyboard from a long string with keycode numbers "123|235|654..."
+-- keycodes are the keycodes of the 10 keys of the 4 first lines of the keyboard
+	if sk == nil then
+		return
+	end
+	keyboardDisposal = {}
+	for w in string.gmatch(sk, "%d+") do
+		table.insert(keyboardDisposal, tonumber(w))
+	end
+end
+
+function keydown ( keyCode, modifiers, mode)
 --===================================================
 -- when a computer key is pressed, this function is called
 -- return true if the process of the keydown will not continue
 
-	info.status = "keydown LUA " .. (keyLetter or "") .. " / " .. (keyCode or "") .. "/" .. (modifiers or "")
+	if modifiers ~= 0 then 
+		return false 
+	end
+		
 
 	if (mode or 1)  == 2 then
-		return keydownImprovisation(keyLetter, keyCode, modifiers)
+		return keydownImprovisation(keyCode, modifiers)
 	end
 	if (mode or 1)  == 1 then
-		return keydownScore(keyLetter, keyCode, modifiers)
+		return keydownScore(keyCode, modifiers)
 	end
 end
 
--- help message for keydown score function
-function helpkeydownscore()
-	local chhelp
-	if keyboarDisposal and keyboarDisposal[1] and keyboarDisposal[4] and keyboarDisposal[1][10] and keyboarDisposal[4][10] then
-		chhelp= [[
-Shortcuts defined in expresseur.lua ( http://www.expresseur.com/home/user-guide/ ):
-Select disposal with -k option in LUA-parameter (qwerty,azerty,qwertz)
-* Mixer : 8 tracks ( tacet/p/mf/f) on the left of the four lines of the keyboard 
-* Move : arrows, page, home , end , backspace 
-* Play : space 
-* Transpose : ]] .. string.sub(keyboarDisposal[2][10],1,1) .. " " .. string.sub(keyboarDisposal[3][10],1,1) .. [[ 
-* Silence : ]] .. string.sub(keyboarDisposal[1][10],1,1) .. [[
-
-* Goto : ]] .. string.sub(keyboarDisposal[1][9],1,1) .. [[
-
-* play view : ]] .. string.sub(keyboarDisposal[4][10],1,1) .. [[
-
-* Midithru : ]] .. string.sub(keyboarDisposal[2][9],1,1) .. " " .. string.sub(keyboarDisposal[3][9],1,1) 
-	else
-		chhelp = [[
-No keyboard disposal in expresseur.lua
-Select disposal with -k option in LUA-parameter (qwerty,azerty,qwertz)]]
-	end
-	return chhelp
-end
-
-function keydownScore ( keyLetter, keyCode, modifiers)
---===================================================
+function keydownScore ( keyCode, modifiers)
+--=========================================
 -- when a computer key is pressed, this function is called
 -- return true if the process of the keydown will not continue
-
--- help
-	if (keyCode or -1) == -1 then
-		info.action = "!" .. helpkeydownscore()
-		return true
-	end
-
-	if keyboarDisposal == nil then 
-		return false
-	end 
 
 -- move in the score
 	if keyCode == 313 then -- WXK_HOME
@@ -431,142 +383,96 @@ function keydownScore ( keyLetter, keyCode, modifiers)
 		luascore.previousPos() 
 		info.status  = "previous move"
 		return true
-	end
-
-	if modifiers ~= 0 then 
-		return false 
-	end
-	
--- standard keystrokes checked according to keyboard disposal
-	if keyLetter == nil or string.len(keyLetter) < 1 then
-		return false
-	end
-	
-	if keyLetter == " " then
-		-- play score
+	elseif keyCode == 32 then -- WXK_SPACE
 		luascore.play(0, 2564, 15, 9, 1, 64 , "legato")
 		info.status = "play legato"
 		return true
 	end
-	for i,v in ipairs(keyboarDisposal) do
-		-- line by line of the keyboad disposal
-		local p = nil
-		for j,w in ipairs(v) do
-			if string.find(w,keyLetter,1,true) then
-				p = j
-				break ;
-			end
+		
+	local k
+	for j,v in ipairs(keyboardDisposal) do
+		if keyCode == v then
+			k = j
+			break ;
 		end
-		if p then
-			-- column by column of the keyboard disposal
-			if (p < 9) then
-				-- mixer for 8 first columns (track#). Line is the action (forte, mp, piano, tacet)
-				if (i == 1) then
-					info.status = "track ".. p .. " forte"
-					info.action = "=+" .. p
-					luabass.outSetTrackVolume (100,p)
-				elseif (i == 2) then
-					info.status = "track ".. p .. " meso"
-					info.action = "=+" .. p
-					luabass.outSetTrackVolume (64,p)
-				elseif (i == 3) then
-					info.status = "track ".. p .. " piano"
-					info.action = "=+" .. p
-					luabass.outSetTrackVolume (30,p)
-				elseif (i == 4) then
-					luabass.outAllNoteOff()
-					info.status = "track ".. p .. " tacet"
-					info.action = "=-" .. p
-				end
+	end
+	if k then
+		i = ((k - 1) // 10) + 1
+		p = ((k - 1) % 10) + 1
+		-- column by column of the keyboard disposal
+		if (p < 9) then
+			-- mixer for 8 first columns (track#). Line is the action (forte, mp, piano, tacet)
+			if (i == 1) then
+				info.status = "track ".. p .. " forte"
+				info.action = "=+" .. p
+				luabass.outSetTrackVolume (100,p)
+			elseif (i == 2) then
+				info.status = "track ".. p .. " meso"
+				info.action = "=+" .. p
+				luabass.outSetTrackVolume (64,p)
+			elseif (i == 3) then
+				info.status = "track ".. p .. " piano"
+				info.action = "=+" .. p
+				luabass.outSetTrackVolume (30,p)
+			elseif (i == 4) then
+				luabass.outAllNoteOff()
+				info.status = "track ".. p .. " tacet"
+				info.action = "=-" .. p
+			end
+			return true 
+		elseif (p == 9) then
+			if (i==1) then
+				luabass.outAllNoteOff()
+				info.action = "@"
+				info.status = "goto" 
 				return true 
-			elseif (p == 9) then
-				if (i==1) then
-					luabass.outAllNoteOff()
-					info.action = "@"
-					info.status = "goto" 
-					return true 
-				elseif (i==2) then
-					luabass.outAllNoteOff()
-					midiinSelector = true
-					midiinThru = false
-					info.status = "MIDI Keyboard is assisted" 
-					return true 
-				elseif (i==3) then
-					luabass.outAllNoteOff()
-					midiinSelector = false
-					midiinThru = true
-					info.status = "MIDI Keyboard is NOT assisted" 
-					return true 
-				end
-			elseif (p == 10) then
-				if (i==1) then
-					info.status = "All Note Off"
-					luabass.outAllNoteOff()
-					return true 
-				elseif (i==2) then
-					valueTranspose = (valueTranspose or 0) + 1
-					luabass.outTranspose(valueTranspose)
-					info.status = "Transpose " .. valueTranspose
-					return true 
-				elseif (i==3) then
-					valueTranspose = (valueTranspose or 0) - 1
-					luabass.outTranspose(valueTranspose)
-					info.status = "Transpose " .. valueTranspose
-					return true 
-				elseif (i==4) then
-					luabass.outAllNoteOff()
-					info.action = "="
-					info.status = "play/view" 
-					return true 
-				end
+			elseif (i==2) then
+				luabass.outAllNoteOff()
+				midiinSelector = true
+				midiinThru = false
+				info.status = "MIDI Keyboard is assisted" 
+				return true 
+			elseif (i==3) then
+				luabass.outAllNoteOff()
+				midiinSelector = false
+				midiinThru = true
+				info.status = "MIDI Keyboard is NOT assisted" 
+				return true 
+			elseif (i==4) then
+				luabass.outAllNoteOff()
+				info.action = "="
+				info.status = "play/view" 
+				return true 
+			end
+		elseif (p == 10) then
+			if (i==1) then
+				info.status = "All Note Off"
+				luabass.outAllNoteOff()
+				return true 
+			elseif (i==2) then
+				valueTranspose = (valueTranspose or 0) + 1
+				luabass.outTranspose(valueTranspose)
+				info.status = "Transpose " .. valueTranspose
+				return true 
+			elseif (i==3) then
+				valueTranspose = (valueTranspose or 0) - 1
+				luabass.outTranspose(valueTranspose)
+				info.status = "Transpose " .. valueTranspose
+				return true 
 			end
 		end
 	end
 	return false 
 end
 
-function helpkeydownimprovisation()
-	local chhelp
-	if keyboarDisposal and keyboarDisposal[1] and keyboarDisposal[4] and keyboarDisposal[1][10] and keyboarDisposal[4][10] then
-		chhelp= [[
-Shortcuts defined in expresseur.lua ( http://www.expresseur.com/home/user-guide/ ):
-Select disposal with -k option in LUA-parameter (qwerty,azerty,qwertz)
-* Chord   : I , II.m, up to VII.m.b5 on the first line 
-* Chord 7 : I.M7, II.m.7, up to VII.m.b5.7 on the second line 
-* Chord modification on 3rd and 4th line : #/b M/m #5/b5 M7/7
-* Move smoothly between parts ans sections : arrows, page, home , end , backspace 
-* next chord and Play chord: space 
-* brush down/up : ]] .. string.sub(keyboarDisposal[1][8],1,1) .. " " .. string.sub(keyboarDisposal[1][9],1,1) .. [[ 
-* legato/not legato : ]] .. string.sub(keyboarDisposal[2][8],1,1) .. " " .. string.sub(keyboarDisposal[3][8],1,1) .. [[ 
-* Set tone : ]] .. string.sub(keyboarDisposal[2][10],1,1) .. " " .. string.sub(keyboarDisposal[3][10],1,1) .. [[ 
-* Silence : ]] .. string.sub(keyboarDisposal[1][10],1,1) .. [[
-
-* Midithru : ]] .. string.sub(keyboarDisposal[2][9],1,1) .. " " .. string.sub(keyboarDisposal[3][9],1,1) 
-	else
-		chhelp = [[
-No keyboard disposal in expresseur.lua
-Select disposal with -k option in LUA-parameter (qwerty,azerty,qwertz)]]
-	end
-	return chhelp
-end
-
 -- tones
 local itop = { "I" , "II" , "III", "IV", "V" , "VI", "VII" }
 local un , trois , cinq, sept 
 
-function keydownImprovisation ( keyLetter, keyCode, modifiers)
---===========================================================
+function keydownImprovisation ( keyCode, modifiers)
+--================================================
 -- when a computer key is pressed, this function is called
 -- return true if the process of the keydown will not continue
-
--- help
-	if (keyCode or -1) == -1 then
-		info.action = "!" .. helpkeydownimprovisation()
-		return true
-	end
-	if keyboarDisposal == nil then 
-		return false
-	end 
 
 -- move in the score
 	if keyCode == 313 then -- WXK_HOME
@@ -606,19 +512,7 @@ function keydownImprovisation ( keyLetter, keyCode, modifiers)
 		luachord.previousPos() 
 		info.status  = "previous move"
 		return true
-	end
-
-	if modifiers ~= 0 then 
-		return false 
-	end
-	
--- standard keystrokes checked according to keyboard disposal
-	if keyLetter == nil or string.len(keyLetter) < 1 then
-		return false
-	end
-	
-	if keyLetter == " " then
-		-- play chord and next chord
+	elseif keyCode == 32 then -- WXK_SPACE
 		if luachord.isRestart() == false then
 			luachord.nextChord(0, 2566, 15, 9, 2, 64 , "on")
 		end
@@ -626,178 +520,178 @@ function keydownImprovisation ( keyLetter, keyCode, modifiers)
 		info.status  = "next chord & play chord"
 		return true
 	end
-	for i,v in ipairs(keyboarDisposal) do
-		-- line by line of the keyboad disposal
-		local p = nil
-		for j,w in ipairs(v) do
-			if string.find(w,keyLetter,1,true) then
-				p = j
-				break ;
-			end
+
+	local k
+	for j,v in ipairs(keyboardDisposal) do
+		if keyCode == v then
+			k = j
+			break ;
 		end
-		if p then
-			-- column by column of the keyboard disposal
-			if (p < 8) then
-				local cc = itop[p]
-				if (i == 1 ) or (i == 2) then
-					if un then
-						cc = cc .. un 
+	end
+	if k then
+		i = k // 10
+		p = k % 10
+		-- column by column of the keyboard disposal
+		if (p < 8) then
+			local cc = itop[p]
+			if (i == 1 ) or (i == 2) then
+				if un then
+					cc = cc .. un 
+					un = nil
+				end
+				if trois then
+					cc = cc .. "." .. trois
+					trois = nil
+				elseif p == 2 or p ==3 or p == 6 or p == 7 then
+					cc = cc .. ".m"
+				end
+				if cinq then
+					cc = cc .. "." .. cinq
+					cinq = nil
+				elseif p == 7 then
+					cc = cc .. ".b5"
+				end
+			end
+			if (i == 1) then
+				if sept then
+					cc = cc .. "." .. sept
+					sept = nil
+				end
+				info.status = "chord tone ".. cc
+				luachord.setChord(cc)
+				luachord.playChord(0, 2565, 15, 9, 3, 64 , "up" )
+			elseif (i == 2) then
+				if p == 1 or p ==4 then
+					cc = cc ..".M7"
+				else
+					cc = cc .. ".7"
+				end
+				info.status = "chord tone ".. cc
+				luachord.setChord(cc)
+				luachord.playChord(0, 2565, 15, 9, 3, 64 , "up" )
+			elseif (i == 3) then
+				if p == 1 then
+					if un then 
+						info.status = "no alteration"
 						un = nil
-					end
-					if trois then
-						cc = cc .. "." .. trois
-						trois = nil
-					elseif p == 2 or p ==3 or p == 6 or p == 7 then
-						cc = cc .. ".m"
-					end
-					if cinq then
-						cc = cc .. "." .. cinq
-						cinq = nil
-					elseif p == 7 then
-						cc = cc .. ".b5"
-					end
-				end
-				if (i == 1) then
-					if sept then
-						cc = cc .. "." .. sept
-						sept = nil
-					end
-					info.status = "chord tone ".. cc
-					luachord.setChord(cc)
-					luachord.playChord(0, 2565, 15, 9, 3, 64 , "up" )
-				elseif (i == 2) then
-					if p == 1 or p ==4 then
-						cc = cc ..".M7"
 					else
-						cc = cc .. ".7"
+						info.status = "alteration #"
+						un = "#"
 					end
-					info.status = "chord tone ".. cc
-					luachord.setChord(cc)
-					luachord.playChord(0, 2565, 15, 9, 3, 64 , "up" )
-				elseif (i == 3) then
-					if p == 1 then
-						if un then 
-							info.status = "no alteration"
-							un = nil
-						else
-							info.status = "alteration #"
-							un = "#"
-						end
-					elseif p == 2 then
-						if trois then 
-							info.status = "no min/Maj"
-							trois = nil
-						else
-							info.status = "change Major"
-							trois = "M"
-						end
-					elseif p == 3 then
-						if cinq then 
-							info.status = "no alter.5"
-							cinq = nil
-						else
-							info.status = "#5"
-							cinq = "#5"
-						end
-					elseif p == 4 then
-						if sept then 
-							info.status = "no 7"
-							sept = nil
-						else
-							info.status = "add Major 7"
-							sept = "M7"
-						end
-					elseif p == 7 then
-						info.status = "scale penta"
-						luachord.setScale(0, 2565, 15, 9, 3, 64 , "penta")
+				elseif p == 2 then
+					if trois then 
+						info.status = "no min/Maj"
+						trois = nil
+					else
+						info.status = "change Major"
+						trois = "M"
 					end
-				elseif (i == 4) then
-					if p == 1 then
-						if un then 
-							info.status = "no alteration"
-							un = nil
-						else
-							info.status = "alteration b"
-							un = "b"
-						end
-					elseif p == 2 then
-						if trois then 
-							info.status = "no min/Maj"
-							trois = nil
-						else
-							info.status = "change Minor"
-							trois = "m"
-						end
-					elseif p == 3 then
-						if cinq  then 
-							info.status = "no alter.5"
-							cinq = nil
-						else
-							info.status = "b5"
-							cinq = "b5"
-						end
-					elseif p == 4 then
-						if sept then 
-							info.status = "no 7"
-							sept = nil
-						else
-							info.status = "add minor7"
-							sept = "7"
-						end
-					elseif p == 7 then
-						info.status = "scale chord"
-						luachord.setScale(0, 2565, 15, 9, 3, 64 , "chord")
+				elseif p == 3 then
+					if cinq then 
+						info.status = "no alter.5"
+						cinq = nil
+					else
+						info.status = "#5"
+						cinq = "#5"
 					end
+				elseif p == 4 then
+					if sept then 
+						info.status = "no 7"
+						sept = nil
+					else
+						info.status = "add Major 7"
+						sept = "M7"
+					end
+				elseif p == 7 then
+					info.status = "scale penta"
+					luachord.setScale(0, 2565, 15, 9, 3, 64 , "penta")
 				end
+			elseif (i == 4) then
+				if p == 1 then
+					if un then 
+						info.status = "no alteration"
+						un = nil
+					else
+						info.status = "alteration b"
+						un = "b"
+					end
+				elseif p == 2 then
+					if trois then 
+						info.status = "no min/Maj"
+						trois = nil
+					else
+						info.status = "change Minor"
+						trois = "m"
+					end
+				elseif p == 3 then
+					if cinq  then 
+						info.status = "no alter.5"
+						cinq = nil
+					else
+						info.status = "b5"
+						cinq = "b5"
+					end
+				elseif p == 4 then
+					if sept then 
+						info.status = "no 7"
+						sept = nil
+					else
+						info.status = "add minor7"
+						sept = "7"
+					end
+				elseif p == 7 then
+					info.status = "scale chord"
+					luachord.setScale(0, 2565, 15, 9, 3, 64 , "chord")
+				end
+			end
+			return true 
+		elseif (p == 8) then
+			if (i==1) then
+				info.status = "Brush down" 
+				luachord.playChord(0, 2565, 15, 9, 3, 64 , "down" )
 				return true 
-			elseif (p == 8) then
-				if (i==1) then
-					info.status = "Brush down" 
-					luachord.playChord(0, 2565, 15, 9, 3, 64 , "down" )
-					return true 
-				elseif (i==2) then
-					info.status = "scale legato" 
-					luachord.pedal(0, 2565, 15, 9, 3, 64 , "scale legato" )
-					return true 
-				elseif (i==3) then
-					info.status = "scale non legato" 
-					luachord.pedal(0, 2565, 15, 9, 3, 64 , "scale off" )
-					return true 
-				end
-			elseif (p == 9) then
-				if (i==1) then
-					info.status = "Brush up" 
-					luachord.playChord(0, 2565, 15, 9, 3, 64 , "up" )
-					return true 
-				elseif (i==2) then
-					luabass.outAllNoteOff()
-					midiinSelector = true
-					midiinThru = false
-					info.status = "MIDI Keyboard is assisted" 
-					return true 
-				elseif (i==3) then
-					luabass.outAllNoteOff()
-					midiinSelector = false
-					midiinThru = true
-					info.status = "MIDI Keyboard is NOT assisted" 
-					return true 
-				end
-			elseif (p == 10) then
-				if (i==1) then
-					info.status = "All Note Off"
-					luabass.outAllNoteOff()
-					return true 
-				elseif (i==2) then
-					valueTone = (valueTone or 0) + 1
-					luachord.setiTone(valueTone)
-					info.status = "Tone " .. luachord.ptos(valueTone)
-					return true 
-				elseif (i==3) then
-					valueTone = (valueTone or 0) - 1
-					luachord.setiTone(valueTone)
-					info.status = "Tone " .. luachord.ptos(valueTone)
-					return true 
-				end
+			elseif (i==2) then
+				info.status = "scale legato" 
+				luachord.pedal(0, 2565, 15, 9, 3, 64 , "scale legato" )
+				return true 
+			elseif (i==3) then
+				info.status = "scale non legato" 
+				luachord.pedal(0, 2565, 15, 9, 3, 64 , "scale off" )
+				return true 
+			end
+		elseif (p == 9) then
+			if (i==1) then
+				info.status = "Brush up" 
+				luachord.playChord(0, 2565, 15, 9, 3, 64 , "up" )
+				return true 
+			elseif (i==2) then
+				luabass.outAllNoteOff()
+				midiinSelector = true
+				midiinThru = false
+				info.status = "MIDI Keyboard is assisted" 
+				return true 
+			elseif (i==3) then
+				luabass.outAllNoteOff()
+				midiinSelector = false
+				midiinThru = true
+				info.status = "MIDI Keyboard is NOT assisted" 
+				return true 
+			end
+		elseif (p == 10) then
+			if (i==1) then
+				info.status = "All Note Off"
+				luabass.outAllNoteOff()
+				return true 
+			elseif (i==2) then
+				valueTone = (valueTone or 0) + 1
+				luachord.setiTone(valueTone)
+				info.status = "Tone " .. luachord.ptos(valueTone)
+				return true 
+			elseif (i==3) then
+				valueTone = (valueTone or 0) - 1
+				luachord.setiTone(valueTone)
+				info.status = "Tone " .. luachord.ptos(valueTone)
+				return true 
 			end
 		end
 	end
@@ -827,7 +721,7 @@ end
   --   whiteMediane : idem medianeKey, but taking in account only "white keys"
   --   black[0,1] : 0 means white key. 1 means black key.
 actions = { 
-  {name="global/all note off", callFunction = allNoteOff ,help="all note off", shortcut = "CTRL+BACK" , icone = "all_note_off" },
+  {name="global/all note off", callFunction = allNoteOff ,help="all note off",  icone = "all_note_off" },
   {name="global/play note", callFunction = playNote ,help="play the midi event" },
   {name="global/main volume", callFunction = mainVolume  ,help="set main volume from parameter=value, or value from MIDI data-2" },
   {name="global/track volume", callFunction = trackVolume ,help="set track volume from parameter=track value, or value from MIDI data-2" },
@@ -836,23 +730,23 @@ actions = {
   {name="global/next file", help="go to next file of the list", 
     callFunction = nextFile , icone = "next_file" },
   {name="move/previous move", help="go to the position of the previous move",
-    callScore = luascore.previousPos,callChord=luachord.previousPos,shortcut = "ALT+HOME",icone = "previous_move" },
+    callScore = luascore.previousPos,callChord=luachord.previousPos,icone = "previous_move" },
   {name="move/first part", help="go to beginning of the score",
-    callScore = luascore.firstPart,callChord=luachord.firstPart,shortcut = "CTRL+HOME",icone = "first_part" },
+    callScore = luascore.firstPart,callChord=luachord.firstPart,icone = "first_part" },
   {name="move/previous part", help="go to previous part of the score",
-    callScore = luascore.previousPart,callChord=luachord.previousPart,shortcut="CTRL+PGUP",icone="previous_part" },
+    callScore = luascore.previousPart,callChord=luachord.previousPart,icone="previous_part" },
   {name="move/previous measure",help="go to previous section/measure of the score",
-    callScore = luascore.previousMeasure, callChord = luachord.previousSection, shortcut = "CTRL+UP" , icone = "previous_section"},
+    callScore = luascore.previousMeasure, callChord = luachord.previousSection,icone = "previous_section"},
   {name="move/previous chord",help="go to previous chord of the score",
-    callScore=luascore.previousEvent,callChord=luachord.previousChord,shortcut="CTRL+LEFT",icone="previous_chord"},
+    callScore=luascore.previousEvent,callChord=luachord.previousChord,icone="previous_chord"},
   {name="move/next chord",help="go to next chord of the score",
-    callScore=luascore.nextEvent,callChord=luachord.nextChord,shortcut="CTRL+RIGHT",icone="next_chord" },
+    callScore=luascore.nextEvent,callChord=luachord.nextChord,icone="next_chord" },
   {name="move/next measure", help="go to next section/measure of the score",
-    callScore = luascore.nextMeasure, callChord = luachord.nextSection , shortcut = "CTRL+DOWN" , icone = "next_section" },
+    callScore = luascore.nextMeasure, callChord = luachord.nextSection , icone = "next_section" },
   {name="move/next part", help="go to next part of the score",
-    callScore = luascore.nextPart,callChord=luachord.nextPart,shortcut = "CTRL+PGDN", icone = "next_part" },
+    callScore = luascore.nextPart,callChord=luachord.nextPart, icone = "next_part" },
   {name="move/last part", help="go to last part of the score",
-    callScore = luascore.lastPart, callChord = luachord.lastPart , shortcut = "CTRL+END", icone = "last_part" },
+    callScore = luascore.lastPart, callChord = luachord.lastPart ,  icone = "last_part" },
   {name="move/repeat part",callScore = luascore.repeatPart, callChord = luachord.repeatPart },
   {name="score/play", callFunction = luascore.play} ,
   {name="chord/change chord", callFunction = luachord.changeChord },

@@ -165,7 +165,7 @@ enum
 	ID_MAIN_MIXER,
 	ID_MAIN_GOTO,
 	ID_MAIN_MIDISHORTCUT,
-	ID_MAIN_KEYDOWNINFOLUA,
+	ID_MAIN_KEYDOWNCONFIG,
 	ID_MAIN_EXPRESSION,
 	ID_MAIN_LUAFILE,
 	ID_MAIN_SETTING_OPEN,
@@ -180,6 +180,8 @@ enum
 	ID_MAIN_PLAYBACK,
 
 	ID_MAIN_TIMER,
+
+	ID_MAIN_HELP_LUASHORTCUT,
 
 	ID_MAIN_TEST,
 	ID_MAIN_CHECK_CONFIG,
@@ -258,7 +260,7 @@ EVT_MENU_RANGE(ID_MAIN_SETTINGS_FILE, ID_MAIN_SETTINGS_FILE_END, Expresseur::OnM
 EVT_MENU(ID_MAIN_MIXER, Expresseur::OnMixer)
 EVT_MENU(ID_MAIN_GOTO, Expresseur::OnGoto)
 EVT_MENU(ID_MAIN_MIDISHORTCUT, Expresseur::OnMidishortcut)
-EVT_MENU(ID_MAIN_KEYDOWNINFOLUA, Expresseur::OnKeydowInfoLua)
+EVT_MENU(ID_MAIN_KEYDOWNCONFIG, Expresseur::OnKeydowInfoLua)
 EVT_MENU(ID_MAIN_EXPRESSION, Expresseur::OnExpression)
 EVT_MENU(ID_MAIN_LUAFILE, Expresseur::OnLuafile)
 EVT_MENU(ID_MAIN_RESET, Expresseur::OnReset)
@@ -268,6 +270,8 @@ EVT_MENU(ID_MAIN_MIDILOG, Expresseur::OnMidiLog)
 EVT_MENU(ID_MAIN_SETTING_OPEN, Expresseur::OnSettingOpen)
 EVT_MENU(ID_MAIN_SETTING_SAVEAS, Expresseur::OnSettingSaveas)
 EVT_MENU(ID_MAIN_CHECK_CONFIG, Expresseur::OnCheckConfig)
+
+EVT_MENU(ID_MAIN_HELP_LUASHORTCUT, Expresseur::OnHelpluashortcut)
 
 EVT_MENU(ID_MAIN_RECORD_PLAYBACK, Expresseur::OnRecordPlayback)
 EVT_MENU(ID_MAIN_SAVE_PLAYBACK, Expresseur::OnSavePlayback)
@@ -480,7 +484,7 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 
 	wxMenu *settingMenu = new wxMenu;
 	settingMenu->Append(ID_MAIN_MIDISHORTCUT, _("MIDI/keyboard config"), _("Configure interaction from MIDI or keyboard"));
-	settingMenu->Append(ID_MAIN_KEYDOWNINFOLUA, _("keydown LUA config"), _("List interaction from computer keyboard scripted in keydown LUA"));
+	settingMenu->Append(ID_MAIN_KEYDOWNCONFIG, _("keydown config"), _("Configuration of the computer keyboard to use keydown coded in LUA"));
 	settingMenu->AppendSubMenu(listSettingMenu,_("MIDI/keyboard presets"), _("list of MIDI/keyboard configs already available in the Expresseur/Resource directory"));
 	settingMenu->Append(ID_MAIN_SETTING_OPEN, _("Import setting..."));
 	settingMenu->Append(ID_MAIN_SETTING_SAVEAS, _("Export setting as..."));
@@ -709,7 +713,11 @@ bool Expresseur::checkConfig()
 }
 void Expresseur::OnCheckConfig(wxCommandEvent& WXUNUSED(event))
 {
-	checkConfig() ;
+	checkConfig();
+}
+void Expresseur::OnHelpluashortcut(wxCommandEvent& WXUNUSED(event))
+{
+	wxLaunchDefaultBrowser("http://expresseur.com/home/user-guide/#keydown");
 }
 void Expresseur::preClose()
 {
@@ -869,19 +877,35 @@ void Expresseur::OnSize(wxSizeEvent& WXUNUSED(event))
 }
 bool Expresseur::OnKeyDown(wxKeyEvent& event)
 {
+	if (nbkeydown >= 0)
+	{
+		// stock les evenements claviers, pour un éventuel réglage du clavier, pendant un OnKeydowInfoLua
+		keyboardDisposal[nbkeydown] = event.GetKeyCode();
+		nbkeydown++;
+		wxString s;
+		s.sprintf("Register key#=%d/%d : keycode=%d", nbkeydown, MAXKEYBOARDDISPOSAL, event.GetKeyCode());
+		SetStatusText(s, 1);
+		if (nbkeydown == MAXKEYBOARDDISPOSAL)
+		{
+			// record the last MAXKEYBOARDDISPOSAL as the config of the 4 lines of 10 keys of the keyboard
+			wxString sDisposal;
+			for (unsigned int i = 0; i < MAXKEYBOARDDISPOSAL; i++)
+			{
+				sDisposal.sprintf("%s%d|", sDisposal, keyboardDisposal[i]);
+			}
+			mConf->set(CONFIG_KEYBOARDCONFIG, sDisposal);
+			settingReset(true);
+			nbkeydown = -1;
+			SetStatusText("Keyboard config is done", 1);
+		}
+		return true;
+	}
+
 	if (editMode)
 		return false;
-	wxChar keyc = event.GetUnicodeKey();
 	bool ret = false;
 	int modifiers = event.GetModifiers();
-	char bsin[MAXBUFCHAR];
-	*bsin = '\0';
-	if (keyc  != WXK_NONE)
-	{
-		wxString sin(keyc);
-		strcpy(bsin,sin.utf8_str());
-	}
-	basslua_call(moduleGlobal, "keydown", "siii>b", bsin, event.GetKeyCode(), modifiers, mode , &ret);
+	basslua_call(moduleGlobal, "keydown", "iii>b", event.GetKeyCode(), modifiers, mode , &ret);
 	return ret;
 }
 void Expresseur::OnIdle(wxIdleEvent& evt)
@@ -1241,6 +1265,9 @@ void Expresseur::SetMenuAction(bool all)
 	getLuaAction(all, newActionMenu);
 	newActionMenu->AppendSeparator();
 	getShortcutAction(newActionMenu);
+
+	newActionMenu->AppendSeparator();
+	newActionMenu->Append(ID_MAIN_HELP_LUASHORTCUT, _("key shortcuts diagram"), _("link to web page for default configuraton of the LUA key-shortcuts"));
 
 	if ( all )
 		toolBar->Realize();
@@ -1903,9 +1930,22 @@ void Expresseur::OnMidishortcut(wxCommandEvent& WXUNUSED(event))
 void Expresseur::OnKeydowInfoLua(wxCommandEvent& WXUNUSED(event))
 {
 	editMode = true;
-	bool ret = true;
-	if (!basslua_call(moduleGlobal, "keydown", "siii>b", "", -1, -1, mode ,  &ret))
-		wxMessageBox("Error calling expresseur.lua keydown()");
+	int retcode = wxMessageBox(_("To setup your keyboard disposal ( http://expresseur.com/home/user-guide/#keydown ) :\n\
+- identifiy the 4 red lines of 10 keys which are approximatively  :\n\
+      - the line of numbers 1 2 3 4 5 6 7 8 9 0\n\
+      - three lines above, with letters and various signs (eg QWERTYUIOP, ...)\n\
+- close this dialog-box with the OK button\n\
+- keydown on your keyboard the 4 lines, line by line, left to right, top to down (status bar indicates the progress)\n"), "keyboard setting", wxCANCEL | wxOK | wxCANCEL_DEFAULT);
+	if (retcode == wxOK)
+	{
+		SetStatusText(_("Waiting for keydowns"), 1);
+		nbkeydown = 0;
+	}
+	else
+	{
+		SetStatusText(_("Setting cancelled"), 1);
+		nbkeydown = -1;
+	}
 	editMode = false;
 }
 void Expresseur::OnExpression(wxCommandEvent& WXUNUSED(event))
