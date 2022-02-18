@@ -408,7 +408,7 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	menuEditMode = editMenu->AppendCheckItem(wxID_EDIT, _("Edit\tCtrl+E"), _("Allow text change. Else, keystrokes are used for shortcuts"));
 	editMenu->AppendSeparator();
 	editMenu->Append(ID_MAIN_MIXER, _("Mixer\tCTRL+M"));
-	editMenu->Append(ID_MAIN_EXPRESSION, _("LUA setting"));
+	editMenu->Append(ID_MAIN_EXPRESSION, _("Expression"));
 	editMenu->AppendSeparator();
 	editMenu->Append(ID_MAIN_GOTO, _("Goto measure...\tCTRL+G"), _("Goto a measure in the score"));
 	editMenu->Append(ID_MAIN_PREVIOUS_PAGE, _("Previous page\tSHIFT+CTRL+UP"), _("Goto previous page of the score"));
@@ -1964,14 +1964,14 @@ void Expresseur::OnLuafile(wxCommandEvent& WXUNUSED(event))
 void Expresseur::settingSave()
 {
 	wxArrayString lChoice;
-	lChoice.Add(_("Mixer"));
-	lChoice.Add(_("Expression"));
-	lChoice.Add(_("Shortcuts"));
-	lChoice.Add(_("Lua Files"));
+	lChoice.Add(_("Mixer    :  (tuning from menu edit/Mixer)"));
+	lChoice.Add(_("Expression   : (tuning from menu edit/Expression)"));
+	lChoice.Add(_("MIDI Shortcuts : (settings from menu settings/MIDI-keyborad configuration)"));
+	lChoice.Add(_("Lua Files :  (settings from menu setting/LUA files)"));
 	wxArrayInt listToSave ;
 	do 
 	{
-		wxMultiChoiceDialog mChoice(this, _("Select the settings to save"), _("Savec setting"), lChoice, wxOK | wxCANCEL);
+		wxMultiChoiceDialog mChoice(this, _("Select the settings to save."), _("Savec setting"), lChoice, wxOK | wxCANCEL);
 		if (mChoice.ShowModal() != wxID_OK)
 			return;
 		listToSave.Clear() ;
