@@ -1,7 +1,7 @@
 Configuration ExpresseurV3
 --mode improvisation
---improvisation
---C3-C7 :  scale (select chors/penta with PCkeyboard)
+--Basic tuning to play an improvisation with a MIDI keyboard
+--C3-C7 :  scale (select chors/penta with PC-keyboard)
 --C2 : chord background
 --D2 : Bass
 --A#2 : note-off = Next chord
@@ -9,7 +9,7 @@ Configuration ExpresseurV3
 /shortcut/selectornb=8
 /shortcut/name/0=last move
 /shortcut/action/0=move/previous move
-/shortcut/key/0=L
+/shortcut/key/0=
 /shortcut/devicename/0=all Midi-In
 /shortcut/channel/0=All channels
 /shortcut/event/0=note-on
@@ -19,7 +19,7 @@ Configuration ExpresseurV3
 /shortcut/param/0=
 /shortcut/name/1=beginning
 /shortcut/action/1=move/first part
-/shortcut/key/1=P
+/shortcut/key/1=
 /shortcut/devicename/1=all Midi-In
 /shortcut/channel/1=All channels
 /shortcut/event/1=note-on
@@ -29,7 +29,7 @@ Configuration ExpresseurV3
 /shortcut/param/1=
 /shortcut/name/2=note off
 /shortcut/action/2=global/all note off
-/shortcut/key/2=M
+/shortcut/key/2=
 /shortcut/devicename/2=all Midi-In
 /shortcut/channel/2=All channels
 /shortcut/event/2=note-on
@@ -39,7 +39,7 @@ Configuration ExpresseurV3
 /shortcut/param/2=
 /shortcut/name/3=next chord note on
 /shortcut/action/3=chord/change chord
-/shortcut/key/3=O
+/shortcut/key/3=
 /shortcut/devicename/3=all Midi-In
 /shortcut/channel/3=All channels
 /shortcut/event/3=note-on

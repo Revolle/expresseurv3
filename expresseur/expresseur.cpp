@@ -483,15 +483,15 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 
 
 	wxMenu *settingMenu = new wxMenu;
-	settingMenu->Append(ID_MAIN_MIDISHORTCUT, _("MIDI/keyboard config"), _("Configure interaction from MIDI or keyboard"));
-	settingMenu->Append(ID_MAIN_KEYDOWNCONFIG, _("keydown config"), _("Configuration of the computer keyboard to use keydown coded in LUA"));
-	settingMenu->AppendSubMenu(listSettingMenu,_("MIDI/keyboard presets"), _("list of MIDI/keyboard configs already available in the Expresseur/Resource directory"));
+	settingMenu->Append(ID_MAIN_MIDISHORTCUT, _("MIDI/keyboard config..."), _("Configure interaction from MIDI or keyboard"));
+	settingMenu->AppendSubMenu(listSettingMenu,_("Setting presets"), _("list of settings already available in the Expresseur/Resource directory"));
 	settingMenu->Append(ID_MAIN_SETTING_OPEN, _("Import setting..."));
 	settingMenu->Append(ID_MAIN_SETTING_SAVEAS, _("Export setting as..."));
 	settingMenu->AppendSeparator();
 	settingMenu->AppendCheckItem(ID_MAIN_LOCAL_OFF, _("Send MIDI local-off"), _("Send local-off on MIDI-out opening, i.e. to unlink keyboard and soud-generator on electronic piano"));
-	settingMenu->Append(ID_MAIN_AUDIO_SETTING, _("Audio..."), _("Audio settings, to decrease latency, and to select the default audio output"));
-	settingMenu->Append(ID_MAIN_MIDI_SETTING, _("Midi..."), _("Midi settings, to select MIDI Inputs and Outputs, and the default MIDI output"));
+	settingMenu->Append(ID_MAIN_AUDIO_SETTING, _("Audio config..."), _("Audio settings, to decrease latency, and to select the default audio output"));
+	settingMenu->Append(ID_MAIN_MIDI_SETTING, _("Midi config..."), _("Midi settings, to select MIDI Inputs and Outputs, and the default MIDI output"));
+	settingMenu->Append(ID_MAIN_KEYDOWNCONFIG, _("One-key config..."), _("Configuration of the computer keyboard to use one-key shortcuts coded in LUA"));
 	settingMenu->Append(ID_MAIN_LUAFILE, _("LUA Files..."));
 	//settingMenu->Append(ID_MAIN_RESET, _("Reset audio/midi"), _("Reset the audio/midi configuration"));
 	//settingMenu->Append(ID_MAIN_DELETE_CACHE, _("Delete cache"), _("Delete the MuseScore pages, kept in cache to save computing"));
@@ -1267,7 +1267,7 @@ void Expresseur::SetMenuAction(bool all)
 	getShortcutAction(newActionMenu);
 
 	newActionMenu->AppendSeparator();
-	newActionMenu->Append(ID_MAIN_HELP_LUASHORTCUT, _("key shortcuts diagram"), _("link to web page for default configuraton of the LUA key-shortcuts"));
+	newActionMenu->Append(ID_MAIN_HELP_LUASHORTCUT, _("One-key shortcuts diagram"), _("link to web page for default configuraton of the One-key shortcuts"));
 
 	if ( all )
 		toolBar->Realize();
@@ -1640,10 +1640,14 @@ void Expresseur::readListSettings()
 			tfile.Open(ffilename.GetFullPath());
 			if (tfile.IsOpened())
 			{
-				wxString str = tfile.GetFirstLine();
+				wxString str = tfile.GetFirstLine(); // must contain CONFIG-FILE
 				if (str == CONFIG_FILE)
 				{
-					str = tfile.GetNextLine() ;
+					str = tfile.GetNextLine(); // contain a comment about the usage
+					if (str.StartsWith("--mode score") || str.StartsWith("--mode improvisation"))
+					{
+						str = tfile.GetNextLine(); // contain mode score|improvisation
+					}
 					if (str.StartsWith("--"))
 					{
 						wxString sf ;
@@ -2069,7 +2073,9 @@ void Expresseur::settingOpen()
 	str = tfile.GetFirstLine();
 	if (str != CONFIG_FILE)
 	{
-		wxMessageDialog(this, "First line of the file is not the expected one", "read setting error", wxICON_ERROR | wxOK );
+		wxString s;
+		s.sprintf("This setting file does start with the expected first line %s", CONFIG_FILE);
+		wxMessageDialog(this, s, "read setting error", wxICON_ERROR | wxOK );
 		return;
 	}
 	wxString comment;
@@ -2647,7 +2653,7 @@ basic tunings to play.\n");
 		smidi_in = _("\
 No valid MIDI-in keyboard connected.\n\
 You can play a score on the computer\n\
-keyboard with ALT+O.\n\
+keyboard with space-bar.\n\
 It will be a limited experience.\n\
 With a MIDI-in keyboard, it will be\n\
 easier to play music, adding sensivity\n\
@@ -2758,7 +2764,7 @@ VALIDATE THE GOOD QUALITY OF SOUND\n");
 	wxString splayscore = _("\
 To play a score : open a musicXML\n\
 file, and play on your \n\
-MIDI keyboard, or with ALT-O\n\
+MIDI keyboard, or with space-bar\n\
 on your computer.\n\n\
 Some example of musicXML files have\n\
 been installed.");
@@ -2792,24 +2798,15 @@ chords have been installed.");
 	fWizardJpeg.SetName("wizard_pckeyboard");
 	topsizer_pckeyboard->Add(new wxStaticBitmap(pwizard_pckeyboard,wxID_ANY,wxBitmap(fWizardJpeg.GetFullPath(), wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
 	wxString spckeyboard = _("\
-MIDI-keyboard shortcuts can be\n\
-defined in the interface.\n\
-Select the menu settings/MIDI to\n\
-list/edit all the MIDI shortcuts.\n\n\
-PC-keyboard shortcuts are defined\n\
-in LUA script ( play with space-bar, mixer, move, ...)\n\
-Select the menu settings/LUA to\n\
-list all the LUA shortcuts.\n\n\
-Please select the PC-keyboard\n\
-configuration hereafter.");
+MIDI actions & ALT+shortcuts are set with\n\
+menu setting/MIDI-keyboard.\n\n\
+One-key shortcuts are defined\n\
+in LUA script ( mixer, move, ...)\n\
+Set keyboard configuration with\n\
+menu Setting/One-key configuration\n\n\
+Menu Actions displays all shortcuts.");
 	topsizer_pckeyboard->Add(new wxStaticText(pwizard_pckeyboard, wxID_ANY, spckeyboard), sizerFlagMaximumPlace);
-	mConf->set(CONFIG_KEYBOARDCONFIG, "qwerty");
-	keyboardConfigs.Add("qwerty");
-	keyboardConfigs.Add("azerty");
-	keyboardConfigs.Add("qwertz");
-	mlistkeyboardConfigs = new	wxListBox(pwizard_pckeyboard, wxID_ANY, wxDefaultPosition, wxDefaultSize, keyboardConfigs);
-	mlistkeyboardConfigs->Bind(wxEVT_LISTBOX, &Expresseur::OnKeyboarConfigChoice, this);
-	topsizer_pckeyboard->Add(mlistkeyboardConfigs, sizerFlagMaximumPlace);
+	mConf->set(CONFIG_KEYBOARDCONFIG, DEFAULTKEYBOARDDISPOSAL);
 	pwizard_pckeyboard->SetSizerAndFit(topsizer_pckeyboard);
 
 	////// end of wizard
@@ -2882,12 +2879,6 @@ int Expresseur::getListAudio()
 		nraudioDevice++;
 	}
 	return nraudioDevice;
-}
-void Expresseur::OnKeyboarConfigChoice(wxCommandEvent& event)
-{
-	unsigned int nrKeyboard = event.GetSelection();
-	wxString s = keyboardConfigs[nrKeyboard]; 
-	mConf->set(CONFIG_KEYBOARDCONFIG, s);
 }
 void Expresseur::OnMidioutChoice(wxCommandEvent& WXUNUSED(event))
 {

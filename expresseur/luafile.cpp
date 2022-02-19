@@ -151,7 +151,7 @@ void luafile::reset(mxconf* mConf, bool all, int timerDt)
 
 	wxString luauserscriptfile = mConf->get(CONFIG_LUA_USER_SCRIPT, DEFAULT_LUA_USER_FILE);
 	wxString luascriptparameter = mConf->get(CONFIG_LUA_PARAMETER, DEFAULT_LUA_PARAMETER);
-	wxString luakeyboarconfig = mConf->get(CONFIG_KEYBOARDCONFIG, "");
+	wxString luakeyboarconfig = mConf->get(CONFIG_KEYBOARDCONFIG, DEFAULTKEYBOARDDISPOSAL);
 
 	luascriptparameter = luascriptparameter + " -k " + luakeyboarconfig ;
 
@@ -192,11 +192,13 @@ void luafile::write(mxconf* mConf, wxTextFile *lfile)
 {
 	mConf->writeFile(lfile, CONFIG_LUA_USER_SCRIPT, DEFAULT_LUA_USER_FILE);
 	mConf->writeFile(lfile, CONFIG_LUA_PARAMETER, DEFAULT_LUA_PARAMETER);
+	mConf->writeFile(lfile, CONFIG_KEYBOARDCONFIG, DEFAULTKEYBOARDDISPOSAL);
 }
 void luafile::read(mxconf* mConf , wxTextFile *lfile)
 {
 	mConf->readFile(lfile, CONFIG_LUA_USER_SCRIPT, DEFAULT_LUA_USER_FILE);
 	mConf->readFile(lfile, CONFIG_LUA_PARAMETER, DEFAULT_LUA_PARAMETER);
+	mConf->readFile(lfile, CONFIG_KEYBOARDCONFIG, DEFAULTKEYBOARDDISPOSAL);
 }
 void luafile::functioncallback(double time , int nr_device , int type_msg , int channel , int value1 , int value2 , bool isProcessed )
 {
