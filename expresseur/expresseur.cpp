@@ -375,8 +375,6 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	mLog = NULL;
 	mtimer = NULL;
 	fileHistory = NULL;
-	for (int i = 0; i < MAX_KEYS; i++)
-		ckeys[i] = 0;
 
 	if (mConf->get(CONFIG_VERSION_CHECKED, VERSION_EXPRESSEUR) < VERSION_EXPRESSEUR)
 		mConf->set(CONFIG_VERSION_CHECKED, VERSION_EXPRESSEUR);

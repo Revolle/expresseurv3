@@ -175,7 +175,6 @@ private:
 	wxMenu *actionMenu;
 	wxMenu *editMenu;
 	wxMenu *zoomMenu;
-	wxMenu *shortcutMenu;
 	wxMenuItem *menuEditMode;
 
 	void getLuaAction(bool all, wxMenu *newActionMenu);
@@ -205,7 +204,6 @@ private:
 	wxArrayString nameValideMidiInDevices;
 	wxArrayString nameOpenMidiOutDevices;
 	wxArrayString nameOpenMidiInDevices;
-	wxListBox *mlistkeyboardConfigs ;
 	int getListAudio();
 	void setAudioChoice(int nrDevice);
 
@@ -213,11 +211,9 @@ private:
 	bool checkConfig();
 	wxString checkFile(wxString dir, wxString fullname);
 
-	wxChar  ckeychar, ckeys[MAX_KEYS];
 	int typeViewer;
 
 	int mode = modeChord ;
-	bool playScoreOn = false ;
 	bool editMode = true;
 	bool logMidiMsg;
 	bool localoff;
