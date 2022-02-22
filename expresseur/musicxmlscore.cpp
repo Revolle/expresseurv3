@@ -794,11 +794,6 @@ void musicxmlscore::setCursor(wxDC& dc , int pos,bool playing )
 	// nbSetPosition ++ ;
 	int absolute_measure_nr, measure_nr, repeat, beat, t , uid;
 	bool end_score = xmlCompile->getScorePosition(pos, &absolute_measure_nr, &measure_nr, &repeat, &beat, &t, &uid);
-	/*
-	wxString sid;
-	sid.Printf("uid=%d", uid);
-	((wxFrame *)mParent)->SetStatusText(sid, 1);
-	*/
 	if (absolute_measure_nr != prev_absolute_measure_nr)
 	{
 		prev_absolute_measure_nr = absolute_measure_nr;
@@ -1185,11 +1180,11 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	}
 	if ( alreadyAvailable)
 	{ 
-		((wxFrame *)mParent)->SetStatusText("Score pages : read from cache",1);
+		((wxFrame *)mParent)->SetStatusText("Score pages : read from cache",0);
 	}
 	else
 	{
-		((wxFrame *)mParent)->SetStatusText("Score pages : computation by MuseScore in progress", 1);
+		((wxFrame *)mParent)->SetStatusText("Score pages : computation by MuseScore in progress", 0);
 		// run the MuseScore batch to build he pages and the positions
 		char bufMuseScoreBatch[1024];
 		strcpy(bufMuseScoreBatch,command.c_str());
@@ -1209,7 +1204,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 			wxSleep(1);
 		}
 
-		((wxFrame *)mParent)->SetStatusText("Score pages : stored in cache", 1);
+		((wxFrame *)mParent)->SetStatusText("Score pages : stored in cache", 0 );
 
 		// cache this result for potential reuse
 		wxCopyFile(musescorepos,cacheMusescorepos.GetFullPath())  ;

@@ -1297,7 +1297,7 @@ void Expresseur::OnMenuAction(wxCommandEvent& event)
 		{
 			wxString s;
 			s.Printf(_("Error calling LUA action %d : %s "), nrAction + 1, nameAction[nrAction]);
-			SetStatusText(s, 1);
+			SetStatusText(s, 0);
 		}
 	}
 }

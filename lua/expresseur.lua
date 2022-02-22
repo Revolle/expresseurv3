@@ -322,23 +322,21 @@ function keydown ( keyCode, modifiers, mode)
 	if modifiers ~= 0 then 
 		return false 
 	end
-		
-
 	if (mode or 1)  == 2 then
-		return keydownImprovisation(keyCode, modifiers)
+		return keydownImprovisation(keyCode)
 	end
 	if (mode or 1)  == 1 then
-		return keydownScore(keyCode, modifiers)
+		return keydownScore(keyCode)
 	end
 end
 
-function keydownScore ( keyCode, modifiers)
---=========================================
+function keydownScore ( keyCode )
+--==============================
 -- when a computer key is pressed, this function is called
 -- return true if the process of the keydown will not continue
 
 -- move in the score
-	if keyCode == 313 then -- WXK_HOME
+	if keyCode == 313 or keyCode == 27 then -- WXK_HOME , WXK_ESCAPE
 		luabass.outAllNoteOff()
 		luascore.firstPart() ;
 		info.status = "first part"
@@ -368,17 +366,17 @@ function keydownScore ( keyCode, modifiers)
 		luascore.nextMeasure() 
 		info.status = "next measure"
 		return true
-	elseif keyCode == 366 then -- WXK_PAGE_UP
+	elseif keyCode == 366 or keyCode == 8 then -- WXK_PAGE_UP WXK_BACK
 		luabass.outAllNoteOff()
 		luascore.previousPart() 
 		info.status  = "previous part"
 		return true
-	elseif keyCode == 367 then -- WXK_PAGE_DOWN
+	elseif keyCode == 367 or keyCode == 9 then -- WXK_PAGE_DOWN , WXK_TAB
 		luabass.outAllNoteOff()
 		luascore.nextPart() 
 		info.status= "next part"
 		return true
-	elseif keyCode == 8 then -- WXK_BACK
+	elseif keyCode == 13 then -- WXK_RETURN
 		luabass.outAllNoteOff()
 		luascore.previousPos() 
 		info.status  = "previous move"
@@ -416,6 +414,7 @@ function keydownScore ( keyCode, modifiers)
 				luabass.outSetTrackVolume (30,p)
 			elseif (i == 4) then
 				luabass.outAllNoteOff()
+				luabass.outSetTrackVolume (0,p)
 				info.status = "track ".. p .. " tacet"
 				info.action = "=-" .. p
 			end
@@ -469,13 +468,13 @@ end
 local itop = { "I" , "II" , "III", "IV", "V" , "VI", "VII" }
 local un , trois , cinq, sept 
 
-function keydownImprovisation ( keyCode, modifiers)
---================================================
+function keydownImprovisation ( keyCode )
+--=======================================
 -- when a computer key is pressed, this function is called
 -- return true if the process of the keydown will not continue
 
 -- move in the score
-	if keyCode == 313 then -- WXK_HOME
+	if keyCode == 313  or keyCode == 27 then -- WXK_HOME , WXK_ESCAPE
 		luachord.firstPart("smooth") ;
 		info.status = "first part smoothly"
 		return true
@@ -491,7 +490,7 @@ function keydownImprovisation ( keyCode, modifiers)
 		luachord.nextChord() 
 		info.status = "next chord"
 		return true
-	elseif keyCode == 315 then -- WXK_UP
+	elseif keyCode == 315  then -- WXK_PAGE_UP
 		luachord.previousSection("smooth") 
 		info.status = "previous section smoothly"
 		return true
@@ -499,15 +498,15 @@ function keydownImprovisation ( keyCode, modifiers)
 		luachord.nextSection("smooth") 
 		info.status = "next section smoothly"
 		return true
-	elseif keyCode == 366 then -- WXK_PAGE_UP
+	elseif keyCode == 366 or keyCode == 8 then -- WXK_PAGE_UP
 		luachord.previousPart("smooth") 
 		info.status  = "previous part smoothly"
 		return true
-	elseif keyCode == 367 then -- WXK_PAGE_DOWN
+	elseif keyCode == 367 or keyCode == 9 then -- WXK_PAGE_DOWN , WXK_TAB
 		luachord.nextPart("smooth") 
 		info.status= "next part smoothly"
 		return true
-	elseif keyCode == 8 then -- WXK_BACK
+	elseif keyCode == 13 then -- WXK_RETURN
 		luabass.outAllNoteOff()
 		luachord.previousPos() 
 		info.status  = "previous move"
