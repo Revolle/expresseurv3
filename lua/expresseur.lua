@@ -191,6 +191,10 @@ values = {
   { name = "chord_decay" , defaultValue=40 , help="Chord improvisation : decay beween notes, 64 = no decay" },
   { name = "scale_delay" , defaultValue=0 , help="Scale improvisation : delay beween notes of the chord, in ms" },
   { name = "scale_decay" , defaultValue=0 , help="Scale improvisation : decay beween notes of the chord, 64 = no decay" },
+  { name = "mixer_forte" , defaultValue=100 , help="volume of forte, for the mixer with onekey shortcut (64..124)" },
+  { name = "mixer_meso" , defaultValue=64 , help="volume of mesoforte, for the mixer with onekey shortcut (30..100)" },
+  { name = "mixer_piano" , defaultValue=20 , help="volume of piano, for the mixer with onekey shortcut (5..64)" },
+  { name = "mixer_tacet" , defaultValue=0 , help="volume of tacet, for the mixer with onekey shortcut (0=not-played..30)" },
 }
 
 -- list of the tracks, for the GUI
@@ -252,9 +256,9 @@ end
 function trackVolume( t, bid, ch, typemsg, pitch, velo , paramString )
 --====================================================================
 	-- set track volume
-	--parameter form#1 : volume [optional track#]
-	--parameter form#2 : track_name
-	--parameter form#3 : track#
+	--parameter form#1 : volume track#
+	--parameter form#2 : track#
+	--parameter form#3 : track_name
 	local trackNr 
 	local vol 
 	vol, trackNr = string.match(paramString or "" , "(%d+) (%d+)")
@@ -401,22 +405,24 @@ function keydownScore ( keyCode )
 		if (p < 9) then
 			-- mixer for 8 first columns (track#). Line is the action (forte, mp, piano, tacet)
 			if (i == 1) then
-				info.status = "track ".. p .. " forte"
+				info.status = "track ".. p .. " forte = ".. values["mixer_forte"]
 				info.action = "=+" .. p
-				luabass.outSetTrackVolume (100,p)
+				luabass.outSetTrackVolume (values["mixer_forte"],p)
 			elseif (i == 2) then
-				info.status = "track ".. p .. " meso"
+				info.status = "track ".. p .. " meso = ".. values["mixer_meso"]
 				info.action = "=+" .. p
-				luabass.outSetTrackVolume (64,p)
+				luabass.outSetTrackVolume (values["mixer_meso"],p)
 			elseif (i == 3) then
-				info.status = "track ".. p .. " piano"
+				info.status = "track ".. p .. " piano = " .. values["mixer_piano"]
 				info.action = "=+" .. p
-				luabass.outSetTrackVolume (30,p)
+				luabass.outSetTrackVolume (values["mixer_piano"],p)
 			elseif (i == 4) then
 				luabass.outAllNoteOff()
-				luabass.outSetTrackVolume (0,p)
-				info.status = "track ".. p .. " tacet"
-				info.action = "=-" .. p
+				luabass.outSetTrackVolume (values["mixer_tacet"],p)
+				info.status = "track ".. p .. " tacet = " .. values["mixer_tacet"]
+				if ( values["mixer_tacet"] == 0 ) then
+					info.action = "=-" .. p
+				end
 			end
 			return true 
 		elseif (p == 9) then
