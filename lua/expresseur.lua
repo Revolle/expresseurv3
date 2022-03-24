@@ -534,8 +534,8 @@ function keydownImprovisation ( keyCode )
 		end
 	end
 	if k then
-		i = k // 10
-		p = k % 10
+		i = ((k - 1) // 10) + 1
+		p = ((k - 1) % 10) + 1
 		-- column by column of the keyboard disposal
 		if (p < 8) then
 			local cc = itop[p]
