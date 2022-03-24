@@ -933,13 +933,21 @@ function E.setScale(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whitein
 	defaultScale = param
 end
 function E.playScale(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-	local sc 
+	local sc , sc1
 	if string.len(param or defaultScale) < 3 then
 		sc = defaultScale
 	else
 		sc = param
 	end
-  E.playPitches(bid,velocity,whitemediane,black,sc,"scale",1,-1,values["scale_delay"],values["scale_decay"])
+	sc1 = string.match(sc, "%w+")
+	sc2 = string.match(sc, "%w+ (%w+)")
+	if sc2 then
+		-- if a second parameter is set : lack keys are ignored
+		if black == 1 then
+			return
+		end
+	end
+  E.playPitches(bid,velocity,whitemediane,black,sc1,"scale",1,-1,values["scale_delay"],values["scale_decay"])
 end
 function E.playChord(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   if (param or "up") == "up" then
