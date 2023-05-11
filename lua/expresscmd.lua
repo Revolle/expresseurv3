@@ -10,7 +10,14 @@
 instruments = { piano = 0 , accordeon = 21 , guitare = 24 }
 local myDelay = 0 ;
 myThrough = false ;
+vShortchord = nil ;
+values = {["chord_delay"] = 100 , ["chord_decay"] = -10 };
+tracks = { ["chord-bass"] = 1 , ["chord-background"] = 1 , ["chord-chord"] = 1 , ["chord-scale"] = 1 }
 
+tShortchord = {
+{[48]="Do", [50]="Re.m", [52]="Mi.m", [53]="Fa" , [55]="Sol" , [57]="La.m" } ,
+{[48]="Do", [50]="Re", [52]="Mi.m", [55]="Sol" , [57]="La.m" , [59] = "Si.m" } ,
+}
 function midiOutIsValid(midiout_name)
   -------================
   -- return -1 if the midiout is not valid for the GUI
@@ -54,10 +61,8 @@ end
 function listout()
   for i,v in ipairs(lOut) do
     if midiOutIsValid(v) then
-      luabass.outSetMidiValide(i,true)
       print("Midiout device" ,i,v)
     else
-      luabass.outSetMidiValide(i,false)
       print("Midiout device" ,i,"("..v..")")
     end
   end
@@ -135,64 +140,43 @@ function chord(c)
 	print("try to compile chord(" ..c.. ")" .. " mem="..collectgarbage("count"))
   local mChord = luachord.setChord(c)
 	print("chord compiled by luachord.setChord(" ..c.. ") " )
-
-  local bassduration=900
-  local chordduration=900
-  local pentaduration=300
-
-  local pitchbass = luachord.getIndexPitches("bass",1,0)
-  local pitches = luachord.pitchToString(pitchbass[1])
-  print("bass(" .. c .. ") is ".. pitchbass[1] .. " = " .. pitches )
-  local idbass = luabass.outChordSet(-1,12,100,50,1,-1,pitchbass[1])
-  if idbass > 0 then
-    luabass.outChordOn(idbass,64)
-    luabass.outChordOff(idbass,0,bassduration)
-  else
-    print("error setting bass #"..idbass)
-  end
-
-  local tpitchchord = luachord.getIndexPitches("chord",0,0)
-  pitches = ""
-  local dpitches = ""
-  for k,v in pairs(tpitchchord) do
-    pitches = pitches .. dpitches .. luachord.pitchToString(v)
-    dpitches = ","
-  end
-  print("chord(" .. c .. ") contains "..table.concat(tpitchchord,",") .. " = " .. pitches )
-  local idchord = luabass.outChordSet(-1,0,0,30,1,-1,table.unpack(tpitchchord))
-  if idchord > 0 then
-    luabass.outChordOn(idchord,64,bassduration)
-    luabass.outChordOff(idchord,0,chordduration+bassduration)
-  else
-    print("error setting chord #"..idchord)
-  end
-
- local tpitchpenta = {}
- for i = 1 , 6 do
-  local tpitch = luachord.getIndexPitches("penta",i-1,0)
-  tpitchpenta[i]=tpitch[1]
- end
- pitches = ""
- dpitches = ""
-  for k,v in pairs(tpitchpenta) do
-    pitches = pitches .. dpitches .. luachord.pitchToString(v)
-    dpitches = ","
-  end
-  print("penta(" .. c .. ") contains "..table.concat(tpitchpenta,",") .. " = " .. pitches )
- for k,v in pairs(tpitchpenta) do
-  local idpenta = luabass.outChordSet(-1,0,0,50,1,-1,v)
-  if idpenta > 0 then
-    luabass.outChordOn(idpenta,64, bassduration+chordduration+pentaduration*k)
-    luabass.outChordOff(idpenta,0, bassduration+chordduration+pentaduration*k+pentaduration)
-  else
-    print("error setting chord #"..idpenta)
-  end
- end
- 
+  luachord.playChord(0,1,0,0,0,64,"up",0,0,0,0,0,0)
 end
 
 function sound(wavfile)
   luabass.outSoundPlay(wavfile)
+end
+
+function printShortchord(k)
+	io.write(k , ": " )
+	v = tShortchord[k]
+	for i = 10,100,1  do
+		if v[i] then
+			io.write(luachord.pitchToString(i) .. "=" .. v[i] .. " ")
+		end
+	end
+	print()
+end
+function shortchord(d)
+  if d then
+    local myShortchord = math.tointeger (d)
+	print("Map shortchord#" , myShortchord )
+	if myShortchord then
+		if tShortchord[myShortchord] then
+			printShortchord(myShortchord)
+			vShortchord = tShortchord[myShortchord]
+		else
+			print("Shortchord does not exist")
+			shortchord()
+			vShortchord = nil
+		end
+	end
+  else
+	print("list of shortchords available with <shortchord #>")
+    for k,v in pairs(tShortchord) do
+		printShortchord(k)
+	end
+  end
 end
 
 function through(d)
@@ -222,6 +206,7 @@ function help()
   for i,v in pairs(instruments) do
     print("instrument " .. i )
   end
+  print("shortchord #" )
   print("transpose [-12..12]" )
   print("sound <file.wav>")
   print("exit")
@@ -239,6 +224,8 @@ function onStart(param)
   listin()
   print()
   listout()
+  print()
+  shortchord()
   print ()
   help()
   print()
@@ -253,7 +240,14 @@ function openVi(dll)
 end
 
 function onNoteOn(device,t,channel, pitch,velocity)
-  print("LUA noteon mididevice#", device,"t=",t,"channel#",channel,"pitch#",pitch,"velocity=",velocity)
+  -- print("LUA noteon mididevice#", device,"t=",t,"channel#",channel,"pitch#",pitch,"velocity=",velocity)
+
+  if vShortchord then
+    if vShortchord[pitch] then
+		print("SetChord " .. vShortchord[pitch])
+		chord(vShortchord[pitch])
+    end
+  end
   if myThrough then
     print("LUA noteon through")
     luabass.outNoteOn(pitch,velocity,pitch)
@@ -264,7 +258,7 @@ function onNoteOn(device,t,channel, pitch,velocity)
   end
 end
 function onNoteOff(device,t,channel, pitch,velocity)
-  print("LUA noteoff mididevice#", device,"t=",t,"channel#",channel,"pitch#",pitch,"velocity=",velocity)
+  -- print("LUA noteoff mididevice#", device,"t=",t,"channel#",channel,"pitch#",pitch,"velocity=",velocity)
   if myThrough then
     print("LUA noteoff through")
     luabass.outNoteOff(pitch,0,pitch)

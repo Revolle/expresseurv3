@@ -1905,10 +1905,12 @@ void Expresseur::OnListNextFile(wxCommandEvent& WXUNUSED(event))
 }
 void Expresseur::OnMixer(wxCommandEvent& WXUNUSED(event))
 {
+	editMode = true;
 	if ( mMixer == NULL )
 		settingReset(true);
 	mMixer->Show();
 	mMixer->Raise();
+	editMode = false;
 }
 void Expresseur::OnGoto(wxCommandEvent& WXUNUSED(event))
 {

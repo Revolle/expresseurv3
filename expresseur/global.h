@@ -167,10 +167,13 @@ enum{ EMPTYVIEWER, BITMAPVIEWER, MUSICXMLVIEWER };
 
 #if defined(_WIN32) || defined(WIN32)
     #define RUN_WIN 1
+    #define __WINDOWS_MM__ 1
 #elif defined(__APPLE__)
     #define RUN_MAC 1
+    #define __MACOSX_CORE__ 1
 #elif defined(__linux)
     #define RUN_LINUX 1
+    #define __LINUX_ALSA__
 #else
     #error Unsupported platform
 #endif

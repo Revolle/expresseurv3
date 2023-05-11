@@ -389,6 +389,7 @@ void mixer::getMidioutDevices(wxArrayString lMidiout, wxArrayString lOpenMidiout
 	for (int i = 0; i < lOpenMidiout.GetCount(); i++)
 	{
 		nameDevices.Add(setMidiVi(lOpenMidiout[i], "", ""));
+		getListMidioutDevice(lOpenMidiout[i], nameDevices.GetCount() - 1);
 	}
 	for (int i = 0; i < lMidiout.GetCount(); i++)
 	{

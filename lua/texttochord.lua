@@ -2,13 +2,14 @@
 Translate a string which contains a chord description.
 Return the pitches for : bass, chord, penta, scale
 
-A pitch = midi_pitch[1..127] + 128*scale_degree
-e.g. : 
-   in chord-C, C4(64) is degree 1 , midi_pitch = 64+1*128
-   in chord-C, G4(72) is degree 5, midi-pitch = 72 + 5*128
-To retrieve :
-  - midi_pitch = pitch % 128
-  - degree (if any) = floor(pitch/128)
+A pitch = midi_pitch[1..127]    
+    ( old + 128*scale_degree )
+       e.g. : 
+         in chord-C, C4(64) is degree 1 , midi_pitch = 64+1*128
+         in chord-C, G4(72) is degree 5, midi-pitch = 72 + 5*128
+      To retrieve :
+         - midi_pitch = pitch % 128
+         - degree (if any) = floor(pitch/128)
   
 The chord starts with the root and its optional modifiers ( e.g. C7 )
 The chord can have options: /bass (scale_modifiers) [mode/root] @center
@@ -609,9 +610,10 @@ function addChord(lroot,chord,pitchRole,j,o)
       table.remove(cwhite)
     end
   end
-  if pitchRole[j].chord then
-    cwhite[1] = cwhite[1] + (pitchRole[j].chord) * 128
-  end
+  --
+  --if pitchRole[j].chord then
+  --  cwhite[1] = cwhite[1] + (pitchRole[j].chord) * 128
+  -- end
 end
 
 

@@ -872,11 +872,12 @@ function E.octave(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteinde
   E.trackOctave[track] = 12 * (tonumber(value))
 end
 
-function E.playPitches(bid,velocity,index,black,scale,track,pstart,pend,delay,decay)
+function E.playPitches(bid,velocity,index,black,scale,track,pstart,pend,delay,decay,later)
   -- play the pitches of the scale, 
   -- pitch is calculated from the index and black, within the scale
   -- bid is the unique id of the MIDI-in button, ith its velocity ( 0 == note-off )
   
+	print("playpitches debut")
   local typeLegato = legatoPlay[track]
   --luabass.logmsg("playPitches scale="..scale.." track="..track.." velo="..velocity.." legato="..typeLegato.." bid="..bid)
   if velocity == 0 then 
@@ -913,6 +914,7 @@ function E.playPitches(bid,velocity,index,black,scale,track,pstart,pend,delay,de
   local tpitch = E.getIndexPitches(scale,index,black)
   if tpitch then
     --luabass.logmsg(track.." decay="..decay.." play=>"..table.concat(tpitch,"/"))
+    print(track.." decay="..decay.." play=>"..table.concat(tpitch,"/"))
 	if logPlay then
 		local logNote = {}
 		logNote.scale = scale
@@ -921,7 +923,7 @@ function E.playPitches(bid,velocity,index,black,scale,track,pstart,pend,delay,de
 		table.insert(logPlay,logNote)
 	end
     local id = luabass.outChordSet(-1,E.trackOctave[track],delay or 0,decay or 64,pstart or 1,pend or -1,table.unpack(tpitch))
-    luabass.outChordOn(id,velocity,0,tracks["chord-" .. track])
+    luabass.outChordOn(id,velocity,later or 0,tracks["chord-" .. track])
     if typeLegato == 2 and black == 0 then
       bidPedal[track][bid] = id
     else
@@ -929,41 +931,36 @@ function E.playPitches(bid,velocity,index,black,scale,track,pstart,pend,delay,de
      end
   end
 end
-function E.setScale(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+function E.setScale(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black,later)
 	defaultScale = param
 end
 function E.playScale(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-	local sc , sc1
+	local sc 
 	if string.len(param or defaultScale) < 3 then
 		sc = defaultScale
 	else
 		sc = param
 	end
-	sc1 = string.match(sc, "%w+")
-	sc2 = string.match(sc, "%w+ (%w+)")
-	if sc2 then
-		-- if a second parameter is set : lack keys are ignored
-		if black == 1 then
-			return
-		end
-	end
-  E.playPitches(bid,velocity,whitemediane,black,sc1,"scale",1,-1,values["scale_delay"],values["scale_decay"])
+  E.playPitches(bid,velocity,whitemediane,black,sc,"scale",1,-1,values["scale_delay"],values["scale_decay"],later)
 end
-function E.playChord(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+function E.playChord(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black,later)
+	print("playchord debut")
   if (param or "up") == "up" then
-    E.playPitches(bid,velocity,0,0,"chord","chord",-1,1,values["chord_delay"],values["chord_decay"])
+	print("playchord up")
+    E.playPitches(bid,velocity,0,0,"chord","chord",-1,1,values["chord_delay"],values["chord_decay"], later)
+	print("playchord endup")
   else
-    E.playPitches(bid,velocity,0,0,"chord","chord",1,-1,values["chord_delay"],values["chord_decay"])
+    E.playPitches(bid,velocity,0,0,"chord","chord",1,-1,values["chord_delay"],values["chord_decay"], later)
   end
 end
-function E.playBackground(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-  E.playPitches(bid,velocity,0,0,"chord","background",1,-1,0,45)
+function E.playBackground(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black, later)
+  E.playPitches(bid,velocity,0,0,"chord","background",1,-1,0,45, later)
 end
-function E.playBass(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+function E.playBass(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black, later)
 	if (param or "") == "walking" then
-       E.playPitches(bid,velocity,whiteindex,black,"bass","bass",1,1,0,0)
+       E.playPitches(bid,velocity,whiteindex,black,"bass","bass",1,1,0,0, later)
 	else
-       E.playPitches(bid,velocity,1,0,"bass","bass",1,1,0,0)
+       E.playPitches(bid,velocity,1,0,"bass","bass",1,1,0,0, later)
 	end
 end
 function E.changeNextChord()
