@@ -629,6 +629,9 @@ void mixer::reset(bool localoff ,bool doreset)
 	if (doreset)
 		loading = false;
 
+	if ((nbTrack < 0) || (nbTrack >= MAX_TRACK))
+		return;
+
 	// reset all the MIDI out configuration
 
 	wxString s1, sdevice[MAX_TRACK], instrument[MAX_TRACK], nameVi[MAX_TRACK];
@@ -702,35 +705,41 @@ void mixer::reset(bool localoff ,bool doreset)
 	{
 		if ((nrDevice[nrTrack] != NULL_INT) && (nrDevice[nrTrack] < VI_ZERO))
 		{
-			char bufNameTrack[MAXBUFCHAR];
+			char bufNameTrack[512];
 			strcpy(bufNameTrack, nameTrack[nrTrack].c_str());
-			char bufInstrument[MAXBUFCHAR];
+			char bufInstrument[512];
 			strcpy(bufInstrument, instrument[nrTrack].c_str());
 			int n = nrTrack + 1;
 			//mlog_in("mixer / reset / setTrack %s(%d)",soutTrackOpenMidi,nrTrack);
-			basslua_call(moduleLuabass, soutTrackOpenMidi, "iisiisi", n, channel[nrTrack] + 1, bufInstrument, nrDevice[nrTrack] + 1, additionnalChannelPerDevice[nrDevice[nrTrack]], bufNameTrack, localoff);
-			//mlog_in("mixer / reset / setTrack tableSetKeyValue");
-			basslua_table(moduleGlobal, tableTracks, -1, bufNameTrack, NULL, &n, tableSetKeyValue);
-			//mlog_in("mixer / reset / setTrack tableCallKeyFunction");
-			basslua_table(moduleGlobal, tableTracks, n, fieldCallFunction, bufNameTrack, &n, tableCallKeyFunction | tableCallTableFunction);
+			if ((nrDevice[nrTrack] < MAX_TRACK) && (nrDevice[nrTrack] >= 0))
+			{
+				basslua_call(moduleLuabass, soutTrackOpenMidi, "iisiisi", n, channel[nrTrack] + 1, bufInstrument, nrDevice[nrTrack] + 1, additionnalChannelPerDevice[nrDevice[nrTrack]], bufNameTrack, localoff);
+				//mlog_in("mixer / reset / setTrack tableSetKeyValue");
+				basslua_table(moduleGlobal, tableTracks, -1, bufNameTrack, NULL, &n, tableSetKeyValue);
+				//mlog_in("mixer / reset / setTrack tableCallKeyFunction");
+				basslua_table(moduleGlobal, tableTracks, n, fieldCallFunction, bufNameTrack, &n, tableCallKeyFunction | tableCallTableFunction);
+			}
 		}
 		else if (nameVi[nrTrack] != NULL_STRING)
 		{
-			char bufNameTrack[MAXBUFCHAR];
+			char bufNameTrack[512];
 			strcpy(bufNameTrack, nameTrack[nrTrack].c_str());
-			char bufInstrument[MAXBUFCHAR];
+			char bufInstrument[512];
 			strcpy(bufInstrument, instrument[nrTrack].c_str());
-			char bufNameVi[MAXBUFCHAR];
+			char bufNameVi[512];
 			wxFileName fvi;
 			fvi.AssignDir(mxconf::getResourceDir());
 			fvi.SetFullName(nameVi[nrTrack]);
 			wxString svi = fvi.GetFullPath();
 			strcpy(bufNameVi, svi.c_str());
 			int n = nrTrack + 1;
-			//mlog_in("mixer / reset / setTrack VI=%d",nrTrack);
-			basslua_call(moduleLuabass, soutTrackOpenVi, "iissi", n, channel[nrTrack] + 1, bufInstrument, bufNameVi, additionnalChannelPerDevice[nrDevice[nrTrack]]);
-			basslua_table(moduleGlobal, tableTracks, -1, bufNameTrack, NULL, &n, tableSetKeyValue);
-			basslua_table(moduleGlobal, tableTracks, n, fieldCallFunction, bufNameTrack, &n, tableCallKeyFunction | tableCallTableFunction);
+			if ((nrDevice[nrTrack] < MAX_TRACK) && (nrDevice[nrTrack] >= 0))
+			{
+				//mlog_in("mixer / reset / setTrack VI=%d",nrTrack);
+				basslua_call(moduleLuabass, soutTrackOpenVi, "iissi", n, channel[nrTrack] + 1, bufInstrument, bufNameVi, additionnalChannelPerDevice[nrDevice[nrTrack]]);
+				basslua_table(moduleGlobal, tableTracks, -1, bufNameTrack, NULL, &n, tableSetKeyValue);
+				basslua_table(moduleGlobal, tableTracks, n, fieldCallFunction, bufNameTrack, &n, tableCallKeyFunction | tableCallTableFunction);
+			}
 		}
 	}
 

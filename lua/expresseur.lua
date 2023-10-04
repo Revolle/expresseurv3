@@ -187,6 +187,7 @@ end
 values = {
   -- callFunction is used by GUI, through basslua. E.G to change MIDI parameters
   -- basslua, will add fields values[valueName]=value
+  { name = "score_delay" , defaultValue=0 , help="Score play : delay between notes, in ms" },
   { name = "chord_delay" , defaultValue=10 , help="Chord improvisation : delay between notes, in ms" },
   { name = "chord_decay" , defaultValue=40 , help="Chord improvisation : decay beween notes, 64 = no decay" },
   { name = "scale_delay" , defaultValue=0 , help="Scale improvisation : delay beween notes of the chord, in ms" },

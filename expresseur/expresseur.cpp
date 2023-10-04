@@ -358,7 +358,7 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	mConf = new mxconf();
 
 	mxconf::getAppDir();
-	CreateExpresseurV3();
+	//CreateExpresseurV3();
 
 	mode = modeNil;
 	listChanged = false;
@@ -774,11 +774,12 @@ void Expresseur::postInit()
 	sizeToSet.SetHeight(sizeFrame.GetHeight() - mConf->get(CONFIG_MAINDELTAHEIGHT, 0));
 	frame->SetSize(sizeToSet);
 	
+
 	//if (tobeMaximized)
 	//	frame->Maximize(true);
 	//else
 	frame->Maximize(false);
-	frame->CenterOnScreen();
+	//frame->CenterOnScreen();
 	frame->Show(true);
 
 	// check if it the first use ( for intialization, wizard, .. )
@@ -2364,7 +2365,7 @@ void Expresseur::OnSettingSaveas(wxCommandEvent& WXUNUSED(event))
 void Expresseur::OnAbout(wxCommandEvent& WXUNUSED(event)) 
 {	
 	wxString s;
-	s.Printf("Expresseur 3.%d\n(C) 2019 REVOLLE Franck <franck.revolle@orange.fr>", VERSION_EXPRESSEUR);
+	s.Printf("Expresseur 3.%d\n(C) 2019 REVOLLE Franck <frevolle@gmail.com>", VERSION_EXPRESSEUR);
  	wxMessageBox(s,"about");
 }
 void Expresseur::OnHelp(wxCommandEvent& WXUNUSED(event)) 
@@ -2398,7 +2399,7 @@ void Expresseur::CreateExpresseurV3()
 			file1 = ffile1.GetFullPath();
 			ffile2.SetPath(mxconf::getUserDir());
 			file2 = ffile2.GetFullPath();
-			if (( ! ffile2.FileExists() ) && (firstExample))
+			if ( file2.Contains(wxT("fontaine.txt")))
 			{
 				mConf->set(CONFIG_FILENAME, file2);
 				firstExample = false;
@@ -2453,6 +2454,8 @@ void Expresseur::initFirstUse(bool force)
 		return;
 	}
 
+	CreateExpresseurV3();
+
 	// set as already initialized
 	mConf->set(CONFIG_INITIALIZED, true);
 	mConf->set(CONFIG_CORRECTINCH, 1000);
@@ -2485,7 +2488,7 @@ void Expresseur::initFirstUse(bool force)
 
 	// load the dfautl setting for the shorcuts, ...
 	settingName.AssignDir(mxconf::getResourceDir());
-	settingName.SetFullName("default_setting.txt");
+	settingName.SetFullName("score.txt");
 	settingOpen();
 
 	if (mMixer != NULL) delete mMixer;

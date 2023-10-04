@@ -78,6 +78,10 @@ local end_score = false
 -- list of note-off triggers 
 local noteOffStops = {}
 
+
+-- pseudo button id for legato
+local legatobid = 12532
+
 function applyLua(luastring,TrackNr)
   -- the "Lua" string, set in an ornament, can be interpreted to do what needed here
   -- in this funtion, the syntax is set of words with space-delimiter
@@ -283,7 +287,7 @@ function playPendingTuningOn(to_stop_index)
   c_nrEvent_noteOff = to_stop_index
 end
 
-function playEvent(velo_in,t , nrEvent,nbEvent)
+function playEvent(velo_in,t , nrEvent, nrStart, nbStart ,dArpeggiate)
   -- play an event
   if nbEvent == 0 then return end
   local velo = t[eVelocity]
@@ -308,9 +312,9 @@ function playEvent(velo_in,t , nrEvent,nbEvent)
   local v_in = min_velo_in + (( max_velo_in - min_velo_in ) * velo_in ) / 128 
   -- rescale the velocity out 
   local velo_out = math.floor(min_velo_out + ((max_velo_out - min_velo_out ) * v_in ) / 128)
-  -- compensation of nbEvent note within one single key-in
+  -- compensation of nbStart note within one single key-in
   local compensation = 15 -- [0..30]
-  velo_out = math.floor(((200 - (compensation * (nbEvent - 1))) * velo_out) / 200);
+  velo_out = math.floor(((200 - (compensation * (nbStart - 1))) * velo_out) / 200);
   -- cap the velocity-out
   if velo_out < 1 then velo_out = 1 end
   if velo_out > 127 then velo_out = 127 end
@@ -319,12 +323,14 @@ function playEvent(velo_in,t , nrEvent,nbEvent)
   if score.tracks[tr][tRandomDelay] > 0 then 
     eDelay = math.floor(eDelay + math.random (0,score.tracks[tr][tRandomDelay] )) 
   end
-  
-  local rtr = luabass.outNoteOn(p,velo_out,nrEvent,eDelay,tr)  
-  --luabass.logmsg("noteon#"..nrEvent.." p="..p.." v="..velo_out.." d="..eDelay.." tr="..tr.." ret="..rtr)
+  if (values["score_delay"] + dArpeggiate ) > 0 then
+	eDelay = eDelay + math.floor((1000 * nrStart * (values["score_delay"]/5 + dArpeggiate ))/(127*nbStart))
+  end
+  local ret = luabass.outNoteOn(p,velo_out,nrEvent,eDelay,tr)  
+  --luabass.logmsg("noteon#"..nrEvent.." p="..p.." v="..velo_out.." d="..eDelay.." tr="..tr.." ret="..ret)
 end
 
-function noteOn_Event(bid , velo_in)
+function noteOn_Event(bid , velo_in,dArpeggiate)
   ------------------------------------
   -- the button-id ( bid ) play the current group , and go to the next one
   
@@ -345,10 +351,12 @@ function noteOn_Event(bid , velo_in)
   
   local list_start = t[eStarts]
   local nb_start = #list_start
+  local nr_start = 0
   for nilValue ,nrEvent in ipairs(list_start) do
     if nrEvent > 0 then
       local ts = score.events[nrEvent]
-      playEvent(velo_in , ts , nrEvent,nb_start)
+      playEvent(velo_in , ts , nrEvent,nr_start, nb_start,dArpeggiate)
+	  nr_start = nr_start + 1
       -- luabass.logmsg("noteOn_Event bid#"..bid.." play nrEvent#"..nrEvent)
       --if trace then trace = string.sub(trace,1,nrEvent - 1) .. "O" .. string.sub(trace,nrEvent + 1) end
     end
@@ -403,6 +411,7 @@ function noteOff_Event_All()
   for nrBid,nilValue in pairs(noteOffStops) do
 	noteOff_Event(nrBid)
   end
+  luabass.outAllNoteOff()
  end
 
 function resetPendingTuning()
@@ -418,14 +427,20 @@ function E.play( t, bid, ch, typemsg, pitch, velo , param )
   --luabass.logmsg("play score bid="..bid.." velo="..velo.." param="..param)
   collectgarbage("stop")
   if nb_events == 0 then return end
-  if (param or "") == "legato" then
+  local dArpeggiate = 0 
+  x,y,z = string.find((param or ""),"arp%a*[= ]*(%d+)")
+  if x then
+	dArpeggiate = math.tointeger(z)
+  end
+
+  if (string.find((param or "") , "leg%a*" )) then
     -- always legato, noteOn up to next noteOn
     if velo ~= 0 then
 	    --luabass.logmsg("play score legato")
-	    noteOff_Event(12532)
-	    c_nrEvent_playing = { 12532 , c_nrEvent_noteOn }
-	    noteOn_Event(12532 , velo)
-    end
+	    noteOff_Event(legatobid)
+	    c_nrEvent_playing = { legatobid , c_nrEvent_noteOn }
+	    noteOn_Event(legatobid , velo , dArpeggiate  )
+    end 
   else
 	  if velo == 0 then
 	    -- noteoff
@@ -435,7 +450,7 @@ function E.play( t, bid, ch, typemsg, pitch, velo , param )
 	    -- noteon
 	    c_nrEvent_playing = { bid , c_nrEvent_noteOn }
 	    --luabass.logmsg("lay score noteon#"..bid.." "..c_nrEvent_noteOn)
-	    noteOn_Event(bid , velo)
+	    noteOn_Event(bid , velo , dArpeggiate )
 	  end
   end
 end

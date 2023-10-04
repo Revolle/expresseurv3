@@ -1,11 +1,13 @@
 Configuration ExpresseurV3
 --mode score
 --Full MIDI kbd plays score. Score mixer PC kbd
+--C#3 : plays score with small Arpeggiate 
+--D#3 : plays score with medium Arpeggiate 
 --C#2 : last move 
 --D#2 : beginning 
 --F#2 : all sound off
 /shortcut/midifunction=
-/shortcut/selectornb=4
+/shortcut/selectornb=6
 /shortcut/name/0=last move
 /shortcut/action/0=move/previous move
 /shortcut/key/0=L
@@ -36,23 +38,33 @@ Configuration ExpresseurV3
 /shortcut/max/2=
 /shortcut/stoponmatch/2=stop
 /shortcut/param/2=
-/shortcut/name/3=play score
+/shortcut/name/3=arpeggiate score small
 /shortcut/action/3=score/play
 /shortcut/key/3=O
 /shortcut/devicename/3=all Midi-In
 /shortcut/channel/3=All channels
 /shortcut/event/3=note-on&off
-/shortcut/min/3=1
-/shortcut/max/3=127
+/shortcut/min/3=61
+/shortcut/max/3=
 /shortcut/stoponmatch/3=stop
-/shortcut/param/3=
-/shortcut/name/4=thru
-/shortcut/action/4=global/play note
-/shortcut/key/4=
+/shortcut/param/3=arpeggiate=15
+/shortcut/name/4=arpeggiate score medium
+/shortcut/action/4=score/play
+/shortcut/key/4=O
 /shortcut/devicename/4=all Midi-In
 /shortcut/channel/4=All channels
 /shortcut/event/4=note-on&off
-/shortcut/min/4=48
-/shortcut/max/4=127
+/shortcut/min/4=63
+/shortcut/max/4=
 /shortcut/stoponmatch/4=stop
-/shortcut/param/4=
+/shortcut/param/4=arpeggiate=30
+/shortcut/name/5=play score
+/shortcut/action/5=score/play
+/shortcut/key/5=O
+/shortcut/devicename/5=all Midi-In
+/shortcut/channel/5=All channels
+/shortcut/event/5=note-on&off
+/shortcut/min/5=1
+/shortcut/max/5=127
+/shortcut/stoponmatch/5=stop
+/shortcut/param/5=
