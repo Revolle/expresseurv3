@@ -4,26 +4,27 @@
 #include <ADC_util.h>
 
 // optical
-#define opticalNb 4 // nb optical button
+#define opticalNb 4 // nb optical button : must be multiple of 2 for the two ADC
 #define tvMax 10 // max points to calculate the optical slope
 struct T_optical // structure of an optical button
 {
   uint8_t nr ;
   uint8_t pin ; // analog pin to read
+  uint8_t v ; // value of the analog read
   uint8_t state ; // state of the optical button
-  elapsedMicros since ; // timer to measeure the slope
-  float t[tvMax] , v[tvMax]; // points of the slope v=f(t) for velocity calculation
+  elapsedMicros since ; // timer to measure the slope
+  float ft[tvMax] , fv[tvMax]; // points of the slope v=f(t) for velocity calculation
   uint8_t tvNr ; // pointer for the points of the slope
 } ;
 T_optical optical[opticalNb]; // optical buttons
-uint16_t tvNb[tvMax] ; // stat 
+uint16_t tvNb[tvMax] ; // stat for slope collect
 float slopeMax , slopeMin ; // min-max of the slope for optical measure
 uint8_t triggerMin, triggerMax ; // min max of the trigger to measure 
 float vMin, vMax ; // min max of note-on velocity 
-bool opticalSleeping  ; // optical not in activity
+uint8_t opticalPin[opticalNb] = { A0 , A1 , A2 , A3 } ; // analog pins for the optical button
+bool opticalHappen ; // true if an optical event has bee trigerred
 #define opticalPitch 1 // offset for noteOn
-uint8_t opticalPin[opticalNb] = { A0 , A1 , A2 , A3 } ; // pins for the led
-bool opticalHappen ;
+void opticalAdcPreset(T_optical *o) ;
 
 // buttons
 #define buttonNb 3 // nb button
@@ -40,13 +41,16 @@ uint8_t buttonPin[buttonNb] = { 18 , 19 , 20  }; // digital pin for buttons
 
 // led
 #define ledNb 3 // bb led
-uint8_t ledPin[ledNb] = { 10 , 11 , 12 } ; // pins for the led
-uint8_t ledOn ;
+uint8_t ledPin[ledNb] = { 10 , 11 , 12 } ; // digital pins for the led
+uint8_t ledChannelOn ; // reminder of the ledChannel which switched on the leds
 
 // potar
-#define potarNb 2 // nb potar
-uint8_t potarPin[potarNb] = { A4 , A5 } ; // pins for the potar
-float potarValue[potarNb] = { 64.0 , 64.0 } ;
+uint8_t potarPin0 = A4 ;
+uint8_t potarPin1 = A5 ;
+uint8_t potarV0 , potarV1 ;
+
+uint8_t adcState ; // state of presets in the ADC
+enum ADCSTATE { adcNothing , adcPotar , adcOptical } ;
 
 // magic number to detect first use in EEPROM
 #define magic 23478
@@ -63,12 +67,13 @@ elapsedMillis since;
 
 // caibration
 uint8_t calibrationState ;
-bool forceCalibration ;
+bool ConfOk ;
 
 // configuration memory
 ///////////////////////
 void confSave()
 {
+  // write the conf on EEPROM, starting with the magic number
 	uint16_t v , ad ;
 	v = magic ;
 	ad = 0 ;
@@ -84,6 +89,8 @@ void confSave()
 }
 bool confRead()
 {
+  // read the conf fromm EEPROM. 
+  // Return false if no conf stored (no magic at the beginning )
 	uint16_t v , ad ;
 	ad = 0 ;
 	EEPROM.get(ad, v) ;
@@ -97,7 +104,7 @@ bool confRead()
     EEPROM.get(ad, triggerMin) ;
     ad += sizeof(uint8_t);
     EEPROM.get(ad, triggerMax) ;
-    return false ;
+    return true ;
 	}
 	else
 	{
@@ -105,7 +112,7 @@ bool confRead()
 		slopeMax = 100.0; // bits/msec
     triggerMin = 56 ;
     triggerMax = 200 ;
-    return true ;
+    return false ;
 	}
 	
 	vMax = 127.0 ;
@@ -145,21 +152,20 @@ void s2Init()
 
 // Led
 //////
-void ledSet(uint8_t v , uint8_t ledC)
+void ledSet(uint8_t v , uint8_t ledChannel)
 {
-	// affiche un bargraph de v 0,[1..127]
-  // sur le "canal" led ledC
-  // pour effacer, mettre la valeur 0 sur le canal qui a allume
-  // pour forcer l'effacage, prendre le canal ledC = 0 
+	// display a bargraph for v[ledChannel] = 0,[1..127]  
+  // to switch off : v = 0 on the same ledChannel which turned on (or forcing with ledChannel = 0 )
 	uint8_t i ;
   uint16_t nrl; 
-  if ((ledC != 0) && ((v==0) && (ledC!= ledOn)))
+  if ((ledChannel != 0) && ((v==0) && (ledChannel!= ledChannelOn)))
+    // not forced reset, nor correct ledChannel
     return ;
 	for(i = 0 ; i < ledNb ; i ++ )
 		digitalWrite(ledPin[i],HIGH);
 	if ( v == 0 )
  		return;
-  ledOn = ledC ;
+  ledChannelOn = ledChannel ;
 	nrl = ((uint16_t)(ledNb)  * (uint16_t)(v))/((uint16_t)(128)) ; 
 	if (nrl < 0 ) nrl = 0 ;
 	if (nrl >= ledNb) nrl = ledNb - 1 ;
@@ -167,9 +173,9 @@ void ledSet(uint8_t v , uint8_t ledC)
 }
 void ledInit()
 {
-  uint8_t i ;
-  for(i = 0 ; i < ledNb ; i ++)
-    pinMode(ledPin[i], OUTPUT);
+  uint8_t nr ;
+  for(nr = 0 ; nr < ledNb ; nr ++)
+    pinMode(ledPin[nr], OUTPUT);
   ledSet(0,0);
 }
 
@@ -197,9 +203,9 @@ void buttonInit()
   T_button *b ;
   for(i = 0 , b = button ; i < buttonNb ; i ++ , b ++ )
   {
-    pinMode(buttonPin[i], INPUT_PULLUP);
     b->nr = i ;
     b->pin = buttonPin[i];
+    pinMode(buttonPin[i], INPUT_PULLUP);
     b->state = 0 ;
   }
 }
@@ -244,12 +250,19 @@ void buttonRead()
 
 // potar
 ////////
+void potarInit()
+{
+  pinMode( potarPin0, INPUT_DISABLE );
+  pinMode( potarPin1, INPUT_DISABLE );
+  potarV0 = 64 ;
+  potarV1 = 64 ;
+}
 void potarSet()
 {
-	// regle les velocite min et velocite max en sortie en fonction du potar de moyenne et du potar de dynamique
+	// calculate velocity range [0 < Vmin < Vmax < 128] according to volume and range cursor
 	float  volume, range , dv ;
-	volume = potarValue[0] ;
-	range = potarValue[1] ;
+	volume = (float)(potarV0) ;
+	range = (float)(potarV1) ;
 	if ( volume > 64.0 )
 		dv = (range * (127.0 - volume))  / 127.0 ;
 	else
@@ -261,23 +274,33 @@ void potarSet()
 	if ( vMin > 127 ) vMin = 127.0 ;
 	if ( vMax > 127 ) vMax = 127.0 ;
 }
+void potarAdcPreset()
+{
+  // preset adc for the two potars
+  adc->adc0->startSingleRead(potarPin0);
+  adc->adc1->startSingleRead(potarPin1);
+  adcState = adcPotar ;
+}
 void potarRead()
 {
 	// read potars [1..127], and set range according to
-	float v[potarNb]  ;
-  uint8_t nr ;
-  for(nr = 0 ; nr < potarNb ; nr ++ )
-  {
-    v[nr] = (float)((adc->adc0->analogRead(potarPin[nr]) )) / 2.0 ;  // 8bits => 7 bits
-    if (v[nr] < 1.0) v[nr] = 1.0 ;
-    if (v[nr] > 127.0 ) v[nr] = 127.0 ;
-  }
+	int v0 , v1  ;
 
-	if (( abs( v[0] - potarValue[0]) > 4.0) || ( abs( v[1] - potarValue[1]) > 4.0))
+  if ( adcState != adcPotar )
+    potarAdcPreset() ; // error in preset ADC ...!!!
+  v0 = (adc->adc0->readSingle()) >> 1 ;  // 8bits => 7 bits
+  v1 = (adc->adc1->readSingle()) >> 1 ;  // 8bits => 7 bits
+  opticalAdcPreset(optical);
+
+	if (( abs( v0 - potarV0) > 4) || ( abs( v1 - potarV1 > 4)))
 	{
 		// new potar values
-		potarValue[0] = v[0] ;
-		potarValue[1] = v[1] ;
+    if (v0 < 1) v0 = 1 ;
+    if (v0 > 127 ) v0 = 127 ;
+    if (v1 < 1) v1 = 1 ;
+    if (v1 > 127 ) v1 = 127 ;
+		potarV0 = v0 ;
+		potarV1 = v1 ;
 		potarSet();
 	}
 }
@@ -286,77 +309,91 @@ void potarRead()
 //////////
 void opticalInit()
 {
+  // initialization of optical buttons
   uint8_t nr ;
   T_optical *o  ;
   for(nr = 0 , o = optical ; nr < opticalNb ; nr ++ , o ++ )
   {
-    o->pin = opticalPin[nr] ;
-    o->state = 0 ;
     o->nr = nr ;
+    o->pin = opticalPin[nr] ;
+    pinMode( o->pin, INPUT_DISABLE );  // ? 
+    o->state = 0 ;
   }
   for(nr = 0 ; nr < tvMax ; nr ++)
-    tvNb[nr] = 0 ;
+    tvNb[nr] = 0 ; // statistic of number of points collected v=f(t)
 }
-void opticalPinPreset(T_optical *o)
+void opticalAdcPreset(T_optical *o)
 {
+  // prepare two analog convertions
   adc->adc0->startSingleRead(o->pin);
+  adc->adc1->startSingleRead((o+1)->pin);
+  adcState = adcOptical + o->nr ;
 }
-int opticalPinRead(T_optical *o)
+void opticalAdcRead(T_optical *o)
 {
-  uint8_t v ;
-  if ((adc->adc0->isComplete()) or (adc->adc0->isConverting()))
-    v = adc->adc0->readSingle() ;
-  else
-    v = adc->adc0->analogRead(o->pin);
-  if (o->nr < (opticalNb - 1))
-    opticalPinPreset(o+1);
-  return(v);
+  if ( adcState != (adcOptical + o->nr) )
+    opticalAdcPreset(o) ; // error in preset ADC ...!!!
+  o->v = adc->adc0->readSingle() ;
+  (o+1)->v = adc->adc1->readSingle() ;
+  opticalAdcPreset(((o->nr)==0)?(optical+2):(optical)) ; // prepare next two adc
 }
-float regressionSlope(float* x, float* y, int n /* , float* lrCoef,*/ )
+float regressionSlope(float* v, float* t, int nb /* , float* lrCoef,*/ )
 {
-  // pass x and y arrays (pointers), n is length of the x and y arrays.
-  // return the slope  
-  // The lrCoef array is comprised of the slope=lrCoef[0] and intercept=lrCoef[1].  
-  // http://en.wikipedia.org/wiki/Simple_linear_regression
+  // pass t and v arrays (pointers of v=f(t)), nb is length of the t and v arrays.
+  // return the abs(slope ) 
 
-  // initialize variables
-  float xbar=0;
-  float ybar=0;
-  float xybar=0;
-  float xsqbar=0;
-  
-  if (n < 2)
+  float tbar=0;
+  float vbar=0;
+  float tvbar=0;
+  float tsqbar=0;
+  float fnb = (float)nb;
+  uint8_t nr ;
+
+  if (nb < 2)
   {
+    // not enough point captured : maximal slope
     tvNb[1] ++ ;
-    return( 999999999.0 ) ; // not enough point : maximal slope
+    return( 999999999.0 ) ; 
   }
-  tvNb[n] ++ ;
+  tvNb[nb] ++ ; // statistic of number of points
 
-  // calculations required for linear regression
-  for (int i=0; i<n; i++){
-    xbar += x[i];
-    ybar += y[i];
-    xybar += x[i]*y[i];
-    xsqbar += x[i]*x[i];
+  // linear regression on points {x,y}
+  for (nr=0; nr < nb; nr++)
+  {
+    tbar += t[nr];
+    vbar += v[nr];
+    tvbar += t[nr]*t[nr];
+    tsqbar += v[nr]*v[nr];
   }
-  xbar=xbar/(float)n;
-  ybar=ybar/(float)n;
-  xybar=xybar/(float)n;
-  xsqbar=xsqbar/(float)n;
+
+  tbar=tbar/fnb;
+  vbar=vbar/fnb;
+  tvbar=tvbar/fnb;
+  tsqbar=tsqbar/fnb;
   
-  // return slope
-  return((xybar-xbar*ybar)/(xsqbar-xbar*xbar));
+  // return abs(slope)
+  return(abs((tvbar-tbar*vbar)/(tsqbar-tbar*tbar)));
   /*
-  lrCoef[0]=(xybar-xbar*ybar)/(xsqbar-xbar*xbar);
-  lrCoef[1]=ybar-lrCoef[0]*xbar;
+  slope=(tvbar-tbar*vbar)/(tsqbar-tbar*tbar);
+  y0=vbar-lrCoef[0]*tbar;
   */
+}
+int velo(float slope)
+{
+	// calculate velocity [1..127] according to slope and ranges of velocity 
+  // 0 < Vmin < velocity=f(slope) < Vmax < 128
+  int v ;
+  v = vMin + (int)(((slope - slopeMin )* (float)(vMax - vMin))/( slopeMax - slopeMin))  ;
+  if ( v > 127 ) v = 127 ;
+  if ( v < 1 ) v = 1 ;
+  return v ;
 }
 void opticalMsgOn(T_optical *o)
 {
-	// calculate veolocity [1..127] accordng samples read on pin, and ranges of velocity 
 	int v ;
 	float slope ;
-  slope = regressionSlope(o->t, o->v, o->tvNr ) ; 
+  // calculation of the slope v=f(t) : abs(f'(t))
+  slope = regressionSlope(o->ft, o->fv, o->tvNr ) ; 
 	if (calibrationState != 0)
 	{
 		// calibration min/max of slope
@@ -368,45 +405,46 @@ void opticalMsgOn(T_optical *o)
 	}
 	else
 	{
-		if ( slope < slopeMin )
-			slope = slopeMin ;
-		if ( slope > slopeMax )
-			slope = slopeMax ;
-		v = vMin + (int)(((slope - slopeMin )* (float)(vMax - vMin))/( slopeMax - slopeMin))  ;
-		if ( v > 127 ) v = 127 ;
-		if ( v < 1 ) v = 1 ;
+    // calculate velocity
+    v = velo(slope);
 	}
+  // send noteOn 
   midiNote(o->nr + opticalPitch, v);
 }
 void opticalMsgOff(T_optical *o)
 {
+  // send noteOff
   midiNote(o->nr + opticalPitch,0);
 }
-void opticalRead()
+bool opticalRead()
 {
+  // scan optical buttons
   uint8_t nr ;
-  int v ;
+  bool modulo2 ;
+  bool opticalSleeping ;
   T_optical *o  ;
-  opticalPinPreset(optical) ;
-  for(nr = 0 , o = optical; nr < opticalNb ; nr ++ , o ++ )
+  opticalSleeping = true ;
+  for(nr = 0 , o = optical , modulo2 = true; nr < opticalNb ; nr ++ , o ++ , modulo2 = ! modulo2 )
   {
-    v = opticalPinRead(o) ;
+    if (modulo2) 
+      opticalAdcRead(o) ; // read adc0 and adc1, and prepare next ones. Unsigned 8 bits [0..2^8]
     switch(o->state)
     {
       case 0 :
-        if (v > triggerMin)
-        {          
+        if (o->v < triggerMax)
+        { // start of the slope  
           o->since = 0 ;
           o->state = 1;
           opticalSleeping = false ;	
-          o->t[0] = 0.0 ;
-          o->v[0] = (float)(v) ;
+          // first point within the slope v=f(t)
+          o->ft[0] = 0.0 ;
+          o->fv[0] = (float)(o->v) ;
           o->tvNr = 1 ;
         }
         break ;
       case 1 :
-        if (v > triggerMax)
-        {          
+        if (o->v < triggerMin)
+        { // end of slope v=f(t)
           o->since = 0 ;
           o->state = 2;
           opticalMsgOn(o);
@@ -415,30 +453,34 @@ void opticalRead()
         else
         {
           if (o->tvNr < tvMax)
-          {
-            o->t[o->tvNr] = (float)(o->since) ;
-            o->v[o->tvNr] = (float)(v) ;
+          { // one more point within the slope v=f(t)
+            o->ft[o->tvNr] = (float)(o->since) ;
+            o->fv[o->tvNr] = (float)(o->v) ;
             (o->tvNr) ++ ;
             opticalSleeping = false ;
           }
-          if (o->since > 500*1000) // timeout
+          if (o->since > 200*1000) // microsec 
+          { // timeout
             o->state = 3 ;
+          }
         }
         break ;
       case 2 :
-        // stabilisation appuye
+        // stabilisation on
         if (o->since > 5*1000) // µs
           o->state = 3 ;
         break ;
       case 3 :
-        if (v < triggerMin) 
+        if (o->v > triggerMax) 
         {
+          // come back to original position
           o->since = 0 ;
           o->state = 4;
           opticalMsgOff(o);
         }
         break ;
       case 4 :
+        // stabilisation off
         if (o->since > 5*1000) // µs 
           o->state = 0 ;
         break ;
@@ -448,26 +490,36 @@ void opticalRead()
         break ;
     }
   }
+  if (opticalSleeping)
+    potarAdcPreset();
+  return opticalSleeping ;
 }
 
 // ADC
 //////
 void adcInit()
 {
-  adc->adc[0]->setResolution(8);
+  adc->adc[0]->setResolution(8); // unsigned 8 bits [0..2^8]
   adc->adc[0]->setAveraging(0);
   adc->adc[0]->setConversionSpeed(ADC_CONVERSION_SPEED::HIGH_SPEED);
   adc->adc[0]->setSamplingSpeed(ADC_SAMPLING_SPEED::HIGH_SPEED);
+  adc->adc[1]->setResolution(8);
+  adc->adc[1]->setAveraging(0);
+  adc->adc[1]->setConversionSpeed(ADC_CONVERSION_SPEED::HIGH_SPEED);
+  adc->adc[1]->setSamplingSpeed(ADC_SAMPLING_SPEED::HIGH_SPEED);
+  adcState = adcNothing ;
+
 }
-bool calibration(bool force)
+bool calibration(bool confOk)
 {
   // return true : continue in scanning optical button
   // calibrationState = 0 : end of calibration
-  uint8_t v ;
 	switch (calibrationState )
 	{	
-		case 1: // test to enter in calibration mode
-      if (force || (adc->adc0->analogRead(optical[0].pin) < 100))
+		case 1: // test to enter in calibration mode (conf not OK, or button-optical pressed)
+      opticalAdcRead(optical) ;
+      opticalAdcPreset(optical) ;
+      if ((! confOk) || ((optical[0].v) < 100))
       {
         calibrationState = 2 ;
         triggerMin = (2^8) - 1 ;
@@ -476,11 +528,12 @@ bool calibration(bool force)
         digitalWrite(ledPin[1],LOW) ;
       }
       return true ; // don't continue in opticalButtoon read
-      break ;
     case 2 : case 3 : case 4 : case 5 : case 6 : case 7 : case 8 : case 9 : case 10 :
-      v = adc->adc0->analogRead(optical[0].pin) ;
-      if (v < triggerMin) triggerMin = v ;
-      if (v > triggerMax) triggerMax = v ;
+      // read min max of optical button v
+      opticalAdcRead(optical) ;
+      opticalAdcPreset(optical) ;
+      if (optical[0].v < triggerMin) triggerMin = optical[0].v ;
+      if (optical[0].v > triggerMax) triggerMax = optical[0].v ;
 			if (since > 500) // ms
 			{
 				digitalToggle(ledPin[0]) ;
@@ -489,6 +542,7 @@ bool calibration(bool force)
 			}
 			return true ; // don't continue in opticalButtoon read
     case 11 :
+      // set trigger of v in range [1/4 .. 3/4]
       triggerMin += (triggerMax - triggerMin) / 4 ;
       triggerMax -= (triggerMax - triggerMin) / 4 ;
       slopeMin = 9999999.0 ;
@@ -496,15 +550,15 @@ bool calibration(bool force)
       calibrationState = 12 ;
       optical[0].state = 3 ;
       opticalHappen = false ;
-      return true ;
+      return false ; // continue in opticalButtoon read
     case 12 : case 13 : case 14 : case 15 : case 16 : case 17 : case 18 : case 19 : case 20 : case 21 :
- 			if (since > 500) // ms
+ 			// underground calibration of slope (v=f(t) ) 
+      if (since > 500) // ms
 			{
 				digitalToggle(ledPin[2]) ;
 				calibrationState ++ ;
 				since = 0 ;
 			}
-      opticalSleeping = false ;
       return false ; // continue in opticalButtoon read 
 		case 22 :
 			// save calibration
@@ -519,11 +573,15 @@ bool calibration(bool force)
 }
 void setup()
 {
-	forceCalibration = confRead(); 
+ 	ConfOk = confRead() ; 
+  adcInit();
+  potarInit();
+  opticalInit();
 	buttonInit();
   ledInit();
 	s2Init() ;
-  adcInit();
+
+  opticalAdcPreset(optical) ;
 
 	calibrationState = 1 ;
 	since = 0 ;	// ms
@@ -531,12 +589,12 @@ void setup()
 
 void loop()
 {
-	opticalSleeping = true ;
+	bool opticalSleeping  ;
 
-  if (calibration(forceCalibration))
+  if (calibration(ConfOk))
     return ; // calibration intrusive in progress
 
-  opticalRead() ;
+  opticalSleeping = opticalRead() ; 
 	
 	if ( opticalSleeping) // no optical measurement in progress. 
 	{
@@ -544,12 +602,8 @@ void loop()
     buttonRead();
 		// transmit Midi-in => S2-expander
 		s2Process() ;
-		if (since > 1000) // ms
-		{
-			// process current potar (volume/range)
-			potarRead();
-			since = 0 ;
-		}
+    // process potar (volume/range)
+    potarRead();
 	}
 	
 }
