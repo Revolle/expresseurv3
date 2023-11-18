@@ -492,7 +492,7 @@ module boitier()
 module picot()
 {
     rotate([90,0,0])
-        cylinder(d=3,h=e,center = true);
+        cylinder(d=3,h=e+2,center = true);
 }
 module picots()
 {
@@ -577,8 +577,8 @@ module middle_part()
 *capteur();
 *captage();
 *captages();
-*middle_part();
+middle_part();
 *front_part();
-rear_part();
+*rear_part();
 *boitier();
 *composants();
