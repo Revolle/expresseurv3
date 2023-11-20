@@ -161,20 +161,42 @@ void ledSet(uint8_t v , uint8_t ledChannel)
   if ((ledChannel != 0) && ((v==0) && (ledChannel!= ledChannelOn)))
     // not forced reset, nor correct ledChannel to clear
     return ;
-	for(i = 0 ; i < ledNb ; i ++ )
-		digitalWrite(ledPin[i],HIGH);
 	if ( v == 0 )
- 		return;
+	{
+		for(i = 0 ; i < ledNb ; i ++ )
+			analogWrite( ledPin[i] , 0 );
+		return;
+	}
   ledChannelOn = ledChannel ;
-	nrl = ((uint16_t)(ledNb)  * (uint16_t)(v))/((uint16_t)(128)) ; 
-	if (nrl >= ledNb) nrl = ledNb - 1 ;
-	digitalWrite(ledPin[nrl],LOW);
+	float fv = (float)(v)/127.0 ;
+	float fn = (float)(ledNb) ;
+	float fi , fl ;
+	int il ;
+	#define flmin 5.0 ;
+	#define flmax 256.0 ;
+	for(i = 0 , fi = 0.0 ; i < ledNb ; i ++ , fi += 1.0 )
+	{
+		il = 0 ;
+		if ((fv > ((fi -1)/fn)) && (fv < ((fi + 1)/fn)))
+		{
+			if (fv < (fi/fn) )
+				fl = flmin + (flmax - flmin )*(pow( fv* fn - fi + 1.0 , 2));
+			else
+				fl = flmax + (flmin - flmax )*(pow( fv* fn - fi  , 0.5));
+			il = (int)(fl) ;
+		}
+		if (il < 0) il = 0 ;
+		if (il > 255 ) il = 255 ;
+		analogWrite( ledPin[i] , il );
+	}
 }
 void ledInit()
 {
   uint8_t nr ;
+  /*
   for(nr = 0 ; nr < ledNb ; nr ++)
     pinMode(ledPin[nr], OUTPUT_OPENDRAIN);
+*/
   ledSet(0,0);
 }
 
