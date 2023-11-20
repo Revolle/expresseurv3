@@ -9,7 +9,7 @@
 struct T_optical // structure of an optical button
 {
   uint8_t nr ;
-  uint8_t pin ; // analog pin to read
+  uint8_t pin ; // analog pin to read 3.3 max
   uint8_t v ; // value of the analog read
   uint8_t state ; // state of the optical button
   elapsedMicros since ; // timer to measure the slope
@@ -174,7 +174,7 @@ void ledInit()
 {
   uint8_t nr ;
   for(nr = 0 ; nr < ledNb ; nr ++)
-    pinMode(ledPin[nr], OUTPUT);
+    pinMode(ledPin[nr], OUTPUT_OPENDRAIN);
   ledSet(0,0);
 }
 
