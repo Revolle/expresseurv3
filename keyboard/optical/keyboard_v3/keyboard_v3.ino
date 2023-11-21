@@ -3,6 +3,8 @@
 #include <ADC.h>
 #include <ADC_util.h>
 
+#define DEBUGMODE 1
+
 // optical
 #define opticalNb 4 // nb optical button : must be multiple of 2 for the two ADC
 #define tvMax 10 // max points to calculate the optical slope
@@ -43,6 +45,7 @@ uint8_t buttonPin[buttonNb] = { 18 , 19 , 20  }; // digital pin for buttons
 #define ledNb 3 // nb led
 uint8_t ledPin[ledNb] = { 10 , 11 , 12 } ; // digital pins for the led
 uint8_t ledChannelOn ; // reminder of the ledChannel which switched on the leds
+uint8_t ledValue , ledFormerValue ; // value of the led bargraph
 
 // potar
 uint8_t potarPin0 = A4 ;
@@ -154,27 +157,30 @@ void s2Init()
 //////
 void ledSet(uint8_t v , uint8_t ledChannel)
 {
-	// display a bargraph for v[ledChannel] = 0,[1..127]  
-  // to switch off : v = 0 on the same ledChannel which turned on (or forcing with ledChannel = 0 )
-	uint8_t i ;
-  uint16_t nrl; 
-  if ((ledChannel != 0) && ((v==0) && (ledChannel!= ledChannelOn)))
-    // not forced reset, nor correct ledChannel to clear
-    return ;
-	if ( v == 0 )
+	// Set the status of the led  
+	if (v == 0) 
 	{
-		for(i = 0 ; i < ledNb ; i ++ )
-			analogWrite( ledPin[i] , 0 );
-		return;
+		if ((ledChannel!= ledChannelOn) || (ledChannel != 0))
+			ledValue = 0 ;
+		return ;
 	}
-  ledChannelOn = ledChannel ;
+	ledValue = v ;
+	ledChannelOn = ledChannel ;
+}
+void ledShow()
+{
+	// show the status of the leds with a bargraph for  0,[1..127]
+	if ledFormerValue == ledValue )
+		return ;
+	ledFormerValue = ledValue ;
+	uint8_t nr ;
 	float fv = (float)(v)/127.0 ;
 	float fn = (float)(ledNb) ;
 	float fi , fl ;
 	int il ;
 	#define flmin 5.0 ;
 	#define flmax 256.0 ;
-	for(i = 0 , fi = 0.0 ; i < ledNb ; i ++ , fi += 1.0 )
+	for(nr = 0 , fi = 0.0 ; nr < ledNb ; nr ++ , fi += 1.0 )
 	{
 		il = 0 ;
 		if ((fv > ((fi -1)/fn)) && (fv < ((fi + 1)/fn)))
@@ -187,17 +193,17 @@ void ledSet(uint8_t v , uint8_t ledChannel)
 		}
 		if (il < 0) il = 0 ;
 		if (il > 255 ) il = 255 ;
-		analogWrite( ledPin[i] , il );
+		analogWrite( ledPin[nr] , il );
 	}
 }
 void ledInit()
 {
   uint8_t nr ;
-  /*
-  for(nr = 0 ; nr < ledNb ; nr ++)
-    pinMode(ledPin[nr], OUTPUT_OPENDRAIN);
-*/
-  ledSet(0,0);
+	ledChannelOn = 0 ;
+	ledFormerValue = 1;
+	ledValue = 0 ;
+	for(nr = 0  ; nr < ledNb ; nr ++ )
+		analogWrite( ledPin[nr] , 0 );
 }
 
 void midiNote(uint8_t p , uint8_t v)
@@ -358,7 +364,9 @@ void opticalAdcRead(T_optical *o)
   if ( adcState != (adcOptical + o->nr) )
   {
     opticalAdcPreset(o) ; // error in preset ADC ...!!!
+	  #ifdef DEBUGMODE
     Serial.println("Error opticalAdcPreset");
+	  #endif
   }
   o->v = adc->adc0->readSingle() ;
   (o+1)->v = adc->adc1->readSingle() ;
@@ -380,9 +388,21 @@ float regressionSlope(float* v, float* t, uint8_t nb /* , float* lrCoef,*/ )
   {
     // not enough point captured : maximal slope
     (tvNb[1]) ++ ;
+	  #ifdef DEBUGMODE
+    Serial.println("regressionSlope : not enough measurement");
+	  #endif
     return( 999999999.0 ) ; 
   }
   (tvNb[nb]) ++ ; // statistic of number of points
+	#if DEBUGMODE > 1
+	for(uint8_t i = 0 ; i < tvMax ; i ++ )
+		{
+			Serial.print("statsNbTv[");
+			Serial.print(i);
+			Serial.print("]=");
+			Serial.print(tvNb[i]);
+		}
+	#endif
 
   // linear regression on points {x,y}
   for (nr=0; nr < nb; nr++)
@@ -639,6 +659,8 @@ void loop()
 	{
     // process buttons
     buttonProcess();
+	// show the bargraph on the leds
+	ledShow() ;
     // process potar (volume/range)
     potarProcess();
 		// transmit Midi-in => S2-expander
