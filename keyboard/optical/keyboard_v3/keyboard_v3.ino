@@ -13,8 +13,10 @@ struct T_optical // structure of an optical button
   uint8_t nr ;
   uint8_t pin ; // analog pin to read 3.3 max
   uint8_t v ; // value of the analog read
+  unsigned long int ftv ; // time of the analog convertion
+  unsigned long int ftv0 ; // time of the state > 0
   uint8_t state ; // state of the optical button
-  elapsedMicros since ; // timer to measure the slope
+  uint8_t pitch ; // pitch sent on midiOn 
   float ft[tvMax] , fv[tvMax]; // points of the slope v=f(t) for velocity calculation
   uint8_t tvNr ; // pointer for the points of the slope
 } ;
@@ -25,8 +27,10 @@ uint8_t triggerMin, triggerMax ; // min max of the trigger to measure
 float vMin, vMax ; // min max of note-on velocity 
 uint8_t opticalPin[opticalNb] = { A0 , A1 , A2 , A3 } ; // analog pins for the optical button
 bool opticalHappen ; // true if an optical event has bee trigerred
-#define opticalPitch 1 // offset for noteOn
+#define opticalPitch 12 // offset for noteOn
+#define opticalShiftPitch 24  // offset for noteOn whith shift last button
 void opticalAdcPreset(T_optical *o) ;
+elapsedMicros opticalSince ; // timer to measure the slope
 
 // buttons
 #define buttonNb 3 // nb button
@@ -35,11 +39,13 @@ struct T_button
   uint8_t nr ;
   uint8_t pin ; // logical pin to read
   uint8_t state ; // state of the button
-  elapsedMillis since ; 
+  unsigned long int ftv0 ;
 } ;
 T_button button[buttonNb] ;
 uint8_t buttonPin[buttonNb] = { 18 , 19 , 20  }; // digital pin for buttons
-#define  buttonPitch 16 // offset for noteOn
+elapsedMillis buttonSince ; 
+
+#define  buttonPitch 1 // offset for noteOn
 
 // led
 #define ledNb 3 // nb led
@@ -170,16 +176,16 @@ void ledSet(uint8_t v , uint8_t ledChannel)
 void ledShow()
 {
 	// show the status of the leds with a bargraph for  0,[1..127]
-	if ledFormerValue == ledValue )
+	if (ledFormerValue == ledValue )
 		return ;
 	ledFormerValue = ledValue ;
 	uint8_t nr ;
-	float fv = (float)(v)/127.0 ;
+	float fv = (float)(ledValue)/127.0 ;
 	float fn = (float)(ledNb) ;
 	float fi , fl ;
 	int il ;
-	#define flmin 5.0 ;
-	#define flmax 256.0 ;
+	#define flmin 5.0 
+	#define flmax 256.0 
 	for(nr = 0 , fi = 0.0 ; nr < ledNb ; nr ++ , fi += 1.0 )
 	{
 		il = 0 ;
@@ -240,8 +246,12 @@ void buttonProcess()
 {
   uint8_t nr ;
   T_button *b ;
+  bool allOff ;
+  allOff = true ;
   for(nr = 0 , b = button ; nr < buttonNb; nr ++ , b ++)
   {
+    if (b->state > 0)
+      allOff = false ;
     switch(b->state)
     {
       case 0 :
@@ -249,11 +259,11 @@ void buttonProcess()
         {
           b->state = 1;
           midiNote(nr+buttonPitch,127);
-          b->since = 0 ;
+          b->ftv0 = buttonSince ;
         }
         break ;
       case 1 :
-        if (b->since > 50) // ms
+        if ((buttonSince - b->ftv0) > 50) // ms
           b->state = 2;
         break ;
       case 2 :
@@ -261,11 +271,11 @@ void buttonProcess()
         {
           b->state = 3;
           midiNote(nr + buttonPitch,0);
-          b->since = 0 ;
+          b->ftv0 = buttonSince ;
         }
         break ;
       case 3 :
-        if (b->since > 50) // ms
+        if ((buttonSince - b->ftv0) > 50) // ms
           b->state = 0 ;
         break ;
       default :
@@ -275,6 +285,8 @@ void buttonProcess()
         break ;
     }
   }
+  if (allOff)
+    buttonSince = 0 ;
 }
 
 //////////
@@ -319,17 +331,21 @@ void potarProcess()
   if ( adcState != adcPotar )
   {
     potarAdcPreset() ; // error in preset ADC ...!!!
+    #ifdef DEBUG
     Serial.println("Error potarAdcPreset");
+    #endif
   }
   v0 = (adc->adc0->readSingle()) >> 1 ;  // 8bits => 7 bits
   v1 = (adc->adc1->readSingle()) >> 1 ;  // 8bits => 7 bits
+
+  // preset the ADC for the forts optical buttons
   opticalAdcPreset(optical);
 
 	if (( abs( v0 - potarV0) > 4) || ( abs( v1 - potarV1 > 4)))
 	{
 		// new potar values
- 		potarV0 = (v0 ==0)?1:v0 ;
-		potarV1 = (v1 ==0)?1:v0  ;
+ 		potarV0 = (v0 == 0)?1:v0 ;
+		potarV1 = (v1 == 0)?1:v1  ;
 		potarSet();
 	}
 }
@@ -356,7 +372,9 @@ void opticalAdcPreset(T_optical *o)
 {
   // prepare two analog convertions
   adc->adc0->startSingleRead(o->pin);
+  o->ftv = opticalSince ;
   adc->adc1->startSingleRead((o+1)->pin);
+  (o+1)->ftv = opticalSince ;
   adcState = adcOptical + o->nr ;
 }
 void opticalAdcRead(T_optical *o)
@@ -395,12 +413,16 @@ float regressionSlope(float* v, float* t, uint8_t nb /* , float* lrCoef,*/ )
   }
   (tvNb[nb]) ++ ; // statistic of number of points
 	#if DEBUGMODE > 1
+	Serial.print("regressionSlope nbPoints=");
+  Serial.println(nr);
+	#endif
+	#if DEBUGMODE > 2
 	for(uint8_t i = 0 ; i < tvMax ; i ++ )
 		{
-			Serial.print("statsNbTv[");
+			Serial.print("regressionSlope statsNbTv[");
 			Serial.print(i);
 			Serial.print("]=");
-			Serial.print(tvNb[i]);
+			Serial.println(tvNb[i]);
 		}
 	#endif
 
@@ -451,80 +473,89 @@ void opticalMsgOn(T_optical *o)
 	else
 	{
     // send notOn with calculated velocity
-    midiNote(o->nr + opticalPitch, velo(slope));
+    o->pitch = o->nr + (button[buttonNb - 1].state == 0)?opticalPitch:opticalShiftPitch ;
+    midiNote(o->pitch, velo(slope));
 	}  
 }
 void opticalMsgOff(T_optical *o)
 {
   // send noteOff
-  midiNote(o->nr + opticalPitch,0);
+  midiNote(o->pitch,0);
 }
 bool opticalProcess()
 {
   // scan optical buttons
+  // return true if an optical slope-measurement is in progress
   uint8_t nr ;
   bool modulo2 ;
-  bool opticalSleeping ;
+  bool opticalMeasure , allOff ;
   T_optical *o  ;
-  opticalSleeping = true ;
+  opticalMeasure = false ;
+  allOff = true ;
   for(nr = 0 , o = optical , modulo2 = true; nr < opticalNb ; nr ++ , o ++ , modulo2 = ! modulo2 )
   {
+
     if (modulo2) 
       opticalAdcRead(o) ; // read adc0 and adc1, and prepare next ones. Unsigned 8 bits [0..2^8]
+
+    if (o->state > 0)
+      allOff = false ;	
+
     switch(o->state)
     {
       case 0 :
         if (o->v < triggerMax)
         { // start of the slope  
-          o->since = 0 ;
           o->state = 1;
+          o->ftv0 = o->ftv ;
           // first point within the slope v=f(t)
-          o->ft[0] = 0.0 ;
+          o->ft[0] = (float)(o->ftv) ;
           o->fv[0] = (float)(o->v) ;
           o->tvNr = 1 ;
-          opticalSleeping = false ;	
+          opticalMeasure = true ;	
         }
         break ;
       case 1 :
         if (o->v < triggerMin)
         { // end of slope v=f(t)
-          o->since = 0 ;
-          o->state = 2;
           opticalMsgOn(o);
+          o->state = 2;
+          o->ftv0 = o->ftv ;
           opticalHappen = true ;
        }
         else
         {
           if (o->tvNr < tvMax)
           { // one more point for the slope v=f(t)
-            o->ft[o->tvNr] = (float)(o->since) ;
+            o->ft[o->tvNr] = (float)(o->ftv) ;
             o->fv[o->tvNr] = (float)(o->v) ;
             (o->tvNr) ++ ;
-            opticalSleeping = false ;
+            opticalMeasure = true ;
           }
-          if (o->since > 200*1000) // microsec 
+          if ((o->ftv - o->ftv0) > 200*1000) // microsec 
           { // timeout
+            o->ftv0 = o->ftv ;
             o->state = 3 ;
           }
         }
         break ;
       case 2 :
         // stabilisation on
-        if (o->since > 5*1000) // µs
+        if ((o->ftv - o->ftv0) > 5*1000) // µs
           o->state = 3 ;
         break ;
       case 3 :
         if (o->v > triggerMax) 
         {
           // come back to original position
-          o->since = 0 ;
           o->state = 4;
+          o->ftv0 = o->ftv ;
           opticalMsgOff(o);
         }
         break ;
       case 4 :
         // stabilisation off
-        if (o->since > 5*1000) // µs 
+        if ((o->ftv - o->ftv0) > 5*1000) // µs 
           o->state = 0 ;
         break ;
       default :
@@ -534,10 +565,14 @@ bool opticalProcess()
         break ;
     }
   }
-  if (opticalSleeping)
-    potarAdcPreset();
+  if (allOff)
+  {
+    // no activity on optical : reset µsecond counter
+    opticalSince = 0 ;
+    // => opticalMeasure is false : potar will be read, which reset also adcPresets after
+  }
 
-  return opticalSleeping ;
+  return opticalMeasure ;
 }
 
 ////////
@@ -571,7 +606,7 @@ bool calibration(bool confOk)
         triggerMin = (2^8) - 1 ;
         triggerMax = 0 ;
         since = 0 ;
-        digitalWrite(ledPin[1],LOW) ;
+        analogWrite(ledPin[1],255) ;
         return true ; // don't continue in opticalButtoon read
       }
       else
@@ -588,7 +623,7 @@ bool calibration(bool confOk)
       if (optical[0].v > triggerMax) triggerMax = optical[0].v ;
 			if (since > 500) // ms
 			{
-				digitalToggle(ledPin[0]) ;
+				analogWrite(ledPin[0],((calibrationState % 2) == 0)?255:0) ;
 				calibrationState ++ ;
 				since = 0 ;
 			}
@@ -607,7 +642,7 @@ bool calibration(bool confOk)
  			// underground calibration of slope (v=f(t) ) 
       if (since > 500) // ms
 			{
-				digitalToggle(ledPin[2]) ;
+				analogWrite(ledPin[2],((calibrationState % 2) == 0)?255:0) ;
 				calibrationState ++ ;
 				since = 0 ;
 			}
@@ -647,20 +682,22 @@ void setup()
 void loop()
 ///////////
 {
-	bool opticalSleeping  ;
+	bool opticalMeasure  ;
 
   if ((calibrationState != 0) && (calibration(ConfOk)))
     return ; // calibration intrusive in progress
 
   // process optical buttons
-  opticalSleeping = opticalProcess() ; 
+  opticalMeasure = opticalProcess() ; 
 	
-	if ( opticalSleeping) // no optical measurement in progress. 
+	if ( ! opticalMeasure) // no optical slope-measurement in progress 
 	{
+    // preset adc for the potar
+    potarAdcPreset();
     // process buttons
     buttonProcess();
-	// show the bargraph on the leds
-	ledShow() ;
+	  // show the bargraph on the leds
+	  ledShow() ;
     // process potar (volume/range)
     potarProcess();
 		// transmit Midi-in => S2-expander
