@@ -36,6 +36,7 @@ captage_d = 1.4* doigt_x ;
 captage_y =  captage_d * captage_fy  ;
 
 e = 3 ;
+jeu = 0.2;
 
 boitier_x = 75 ;
 boitier_y = 110 ;
@@ -78,7 +79,7 @@ s2_y2 = 5 ;
 s2_z2 = 9 ;
 s2_dx = 10;
 s2_dy = -11 ;
-s2_dz = -8 ;
+s2_dz = -6 ;
 s2_e = 1.75;
 s2_trou_d = 3.5;
 s2_trou_dx = -s2_x /2 +4 ;
@@ -93,8 +94,7 @@ potarl_b_xx = 28 ;
 potarl_b_x = 5 ;
 potarl_b_y = 3 ;
 potarl_b_z = 10 ;
-potar_dx1 = 9 ;
-potar_dx2 = 3 ;
+potar_dx = 11 ;
 
 potarr_bd =4 ;
 potarr_bh =8 ;
@@ -133,7 +133,8 @@ jack_dx = -18 ;
 
 led_nb = 3 ;
 led_e = led_d2 + 1 ;
-led_dx = - ci_x / 4 + 2 ;
+led_dx = -21 ;
+led_dy = -29 ;
 
 picot_d = 3 ;
 picot_h = 3 ;
@@ -368,17 +369,17 @@ module composants()
                 }
             }
             // potar
-            translate([13,-boitier_y/2 + e/2 + potarl_y  ,boitier_z/2  - e/2 ])
+            translate([potar_dx,-boitier_y/2 + e/2 + potarl_y  ,boitier_z/2  - e/2 ])
                 rotate([0,0,0])
                     potarl();
-            translate([13,-boitier_y/2 + e/2 + 2*potarl_y +2 ,boitier_z/2  - e/2 ])
+            translate([potar_dx,-boitier_y/2 + e/2 + 2*potarl_y +2 ,boitier_z/2  - e/2 ])
                 rotate([0,0,0])
                     potarl();
 
             // leds
             for(i=[0 : 1 : led_nb - 1 ])
             {
-                translate([-15,i * led_e - led_e * (led_nb - 1 )/ 2 -35  ,boitier_z/2])
+                translate([i * led_e - led_e * (led_nb - 1 )/ 2 +led_dx,led_dy ,boitier_z/2])
                     rotate([0,0,0])
                         cylinder(d=led_support_d,h=12,center= true);
             }
@@ -433,7 +434,7 @@ module clavier()
     translate([-boitier_x /2  + 2*e, -clavier_y/2 + clavier_vis_dy , -clavier_z/2 -vis_l])
         support_vis(vis_l,vis_d);
     // support s2
-    translate([s2_dx-s2_trou_dx,s2_dy - s2_trou_dy - clavier_dy ,-clavier_z/2 -vis_l])
+    translate([s2_dx-s2_trou_dx,s2_dy - s2_trou_dy - clavier_dy ,-clavier_z/2 -vis_l+2])
         support_vis(vis_l,vis_d);
     // support teensy
     translate([teensy_dx ,teensy_dy - clavier_dy ,-clavier_z/2 -1 ])
@@ -494,7 +495,7 @@ module boitier()
         // clavier
         translate([0,clavier_dy,clavier_dz])
         {
-            cube([clavier_x, clavier_y, clavier_z],center= true);
+            cube([clavier_x + jeu , clavier_y + jeu , clavier_z + jeu ],center= true);
         }
         // trou couvercle de fond
         translate([0,0,-50])
@@ -516,47 +517,41 @@ module boitier()
         translate([-boitier_x /2  + 2*e, +clavier_y/2 - clavier_vis_dy + clavier_dy , -boitier_z/2+e])
                 support_vis(boitier_z - clavier_z - vis_l - e,vis_d+1.2);
 
-    // support teensy
-    *translate([teensy_dx,teensy_dy,-boitier_z/2+2*e])
-        union()
-        {
-            translate([teensy_x/2+e/2-0.5,0,0])
-                cube([e,teensy_y,2*e],center = true);
-            translate([-teensy_x/2-e/2+0.5,0,0])
-                cube([e,teensy_y,2*e],center = true);
-            translate([0,-teensy_y/2 - e/2,0])
-                cube([teensy_x+2*e-1,e,2*e],center = true);
-        }
-    // support s2 
-    *translate([s2_dx,s2_dy,-boitier_z/2+2*e])
-        rotate([0,0,0])
-            union()
-            {
-                translate([s2_x/2+e/2-0.5,-s2_y2/2,0])
-                    cube([e,s2_y-s2_y2,2*e],center = true);
-                translate([-s2_x/2-e/2+0.5,-s2_y2/2,0])
-                    cube([e,s2_y-s2_y2,2*e],center = true);
-                *translate([0,-s2_y/2 - e/2,0])
-                    cube([s2_x+2*e-1,e,2*e],center = true);
-            }  
-
 }
-module picots()
+module couvercle()
 {
-    translate([boitier_x/2-2*e ,0,-boitier_z/2+e/2])
-        picot();
-    translate([-boitier_x/2+2*e ,0,-boitier_z/2+e/2])
-        picot();
-    translate([clavier_x/2 ,0,boitier_z/2-1.5*e])
-        picot();
-    translate([-clavier_x/2 ,0,boitier_z/2-1.5*e])
-        picot();
-    translate([0 ,0,-boitier_z/2+e/2])
-        picot();
-    translate([0 ,0,boitier_z/2-e/2])
-        picot();
- }
-
+    difference()
+    {
+        cube([boitier_x-2*e - jeu, boitier_y - 2*e - jeu , e],center=true);
+        
+        translate([boitier_x /2  - 2*e, -boitier_y /2  + 2*e , 0.01+ e/2])
+                vis();
+        translate([-boitier_x /2  + 2*e, -boitier_y /2  + 2*e , 0.01+ e/2])
+            vis();
+    
+        translate([boitier_x /2  - 2*e, -clavier_y/2 + clavier_vis_dy + clavier_dy , 0.01+ e/2])
+                vis();
+        translate([boitier_x /2  - 2*e, +clavier_y/2 - clavier_vis_dy + clavier_dy , 0.01+ e/2])
+            vis();
+        translate([-boitier_x /2  + 2*e, -clavier_y/2 + clavier_vis_dy + clavier_dy , 0.01+ e/2])
+                vis();
+        translate([-boitier_x /2  + 2*e, +clavier_y/2 - clavier_vis_dy + clavier_dy , 0.01+ e/2])
+                vis();
+    }
+}
+module tout(eclate)
+{
+    translate([0,clavier_dy,eclate*35 + clavier_dz ])
+        clavier();
+    union()
+    {
+        boitier();
+        composants();
+    }
+    translate([0,0,-30*eclate - boitier_z/2 + e/2])
+        rotate([0,180,0])
+            couvercle() ;
+}
 *potarl() ;
 *potarrg() ;
 *vis();
@@ -571,26 +566,10 @@ module picots()
 *captage(0);
 *captages();
 *support_vis();
-translate([0,clavier_dy,30])
-difference()
- {
-     clavier();
-     *translate([0,119,0])
-        cube([200,200,200],center = true);
- }
+
 difference()
 {
-    union()
-    {
-        boitier();
-        *composants();
-        *translate([0,clavier_dy,clavier_dz])
-            clavier();
-
-    }
-    composants();
-    *translate([0,0,-200])
-        cube([400,400,400],center=true);
-    *translate([-170,0,0])
+    tout(0);
+    *translate([0,200,0])
         cube([400,400,400],center=true);
 }
