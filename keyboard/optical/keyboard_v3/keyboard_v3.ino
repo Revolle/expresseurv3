@@ -365,6 +365,9 @@ void potarSet()
 void potarAdcPreset()
 {
   // preset adc for the two potars
+  adc->adc[0]->setAveraging(4);
+  adc->adc[1]->setAveraging(4);
+
   adc->adc0->startSingleRead(potarPin0);
   adc->adc1->startSingleRead(potarPin1);
   adcState = adcPotar ;
@@ -417,6 +420,9 @@ void opticalInit()
 void opticalAdcPreset(T_optical *o)
 {
   // prepare two analog convertions
+  adc->adc[0]->setAveraging(0);
+  adc->adc[1]->setAveraging(0);
+
   adc->adc0->startSingleRead(o->pin);
   o->ftv = opticalSince ;
   adc->adc1->startSingleRead((o+1)->pin);
