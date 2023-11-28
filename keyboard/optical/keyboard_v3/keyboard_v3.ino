@@ -28,7 +28,6 @@ float vMin, vMax ; // min max of note-on velocity
 uint8_t opticalPin[opticalNb] = { A0 , A1 , A2 , A3 } ; // analog pins for the optical button
 bool opticalHappen ; // true if an optical event has bee trigerred
 #define opticalPitch 12 // offset for noteOn
-#define opticalShiftPitch 24  // offset for noteOn whith shift last button
 void opticalAdcPreset(T_optical *o) ;
 elapsedMicros opticalSince ; // timer to measure the slope
 
@@ -42,10 +41,9 @@ struct T_button
   unsigned long int ftv0 ;
 } ;
 T_button button[buttonNb] ;
+uint8_t buttonNbOn ;
 uint8_t buttonPin[buttonNb] = { 18 , 19 , 20  }; // digital pin for buttons
 elapsedMillis buttonSince ; 
-
-#define  buttonPitch 1 // offset for noteOn
 
 // led
 #define ledNb 3 // nb led
@@ -57,6 +55,7 @@ uint8_t ledValue , ledFormerValue ; // value of the led bargraph
 uint8_t potarPin0 = A4 ;
 uint8_t potarPin1 = A5 ;
 uint8_t potarV0 , potarV1 ;
+bool potarDynamicOn ; // true to set the dynamic with the potar
 
 uint8_t adcState ; // state of presets in the ADC
 enum ADCSTATE { adcNothing , adcPotar , adcOptical } ; // ends with adcOptical !!
@@ -77,6 +76,8 @@ elapsedMillis since;
 // caibration
 uint8_t calibrationState ;
 bool ConfOk ;
+
+#define MidiChannelOut 1 
 
 // configuration memory
 ///////////////////////
@@ -214,18 +215,27 @@ void ledInit()
 
 void midiNote(uint8_t p , uint8_t v)
 {
-	// send msg MIDI
+	// send msg MIDI NoteOn
 	if ( calibrationState != 0) // calibration in progress, no MIDI-out
 		return ;
 	
 	if ( v == 0)
-		usbMIDI.sendNoteOff(p, 0, 1);
+		usbMIDI.sendNoteOff(p, 0, MidiChannelOut);
 	else
-		usbMIDI.sendNoteOn(p, v, 1);
+		usbMIDI.sendNoteOn(p, v, MidiChannelOut);
 	
 	usbMIDI.send_now();
 	
 	ledSet(v,p) ;
+}
+void midiControl(uint8_t c , uint8_t v)
+{
+	// send msg MIDI Control
+	if ( calibrationState != 0) // calibration in progress, no MIDI-out
+		return ;
+	
+	usbMIDI.sendControlChange(c, v, MidiChannelOut);
+	usbMIDI.send_now();
 }
 
 // buttons
@@ -241,24 +251,25 @@ void buttonInit()
     pinMode(b->pin, INPUT_PULLUP);
     b->state = 0 ;
   }
+	buttonNbOn = 0 ;
 }
 void buttonProcess()
 {
   uint8_t nr ;
   T_button *b ;
-  bool allOff ;
-  allOff = true ;
+  buttonNbOn = 0;
   for(nr = 0 , b = button ; nr < buttonNb; nr ++ , b ++)
   {
     if (b->state > 0)
-      allOff = false ;
+      	  buttonNbOn ++ ; 
+	  
     switch(b->state)
     {
       case 0 :
         if (digitalRead(b->pin) == LOW )
         {
           b->state = 1;
-          midiNote(nr+buttonPitch,127);
+          midiNote(nr+1,127);
           b->ftv0 = buttonSince ;
         }
         break ;
@@ -285,7 +296,7 @@ void buttonProcess()
         break ;
     }
   }
-  if (allOff)
+  if ( buttonNbOn == 0 )
     buttonSince = 0 ;
 }
 
@@ -298,8 +309,9 @@ void potarInit()
   pinMode( potarPin1, INPUT_DISABLE );
   potarV0 = 64 ;
   potarV1 = 64 ;
+  potarDynamicOn = true ;
 }
-void potarSet()
+void potarDynamicSet()
 {
 	// calculate velocity range [0 < Vmin < Vmax < 128] according to volume and range cursor
 	float  volume, range , dv ;
@@ -315,6 +327,40 @@ void potarSet()
 	if ( vMax < 1.0 ) vMax = 1.0 ;
 	if ( vMin > 127.0 ) vMin = 127.0 ;
 	if ( vMax > 127.0 ) vMax = 127.0 ;
+}
+void potarSet()
+{
+	if (buttonNbOn > 0 )
+		// if a button is pressed while potar changes : potar will be used for MIDI Control
+		potarDynamicOn = false ;
+	if (buttonNbOn == buttonNb )
+		// if all buttons are pressed  while potar changes : potar will be used in (default) keyboard dynamic setting
+		potarDynamicOn = true ;
+	if ( potarDynamicOn )
+	{
+		// keyboard dynamic setting
+		potarDynamicSet();
+		return ;
+	}
+	if (buttonNbOn > 0 )
+	{
+		// control change without button selection
+		midiControl(14 , potarV0 )  ;
+		midiControl(15 , potarV1 )  ;
+		return ;
+	}
+	T_button *b ;
+	for(uint8_t nr = 0 , b = button  ; nr < buttonNb ; nr ++ , b ++ )
+	{
+		if (b->state > O )
+		{
+			// control change with button selection
+			midiControl(14 + (nr + 1) *2, potarV0 )  ;
+			midiControl(15 + (nr + 1) *2 , potarV1 )  ;
+			return ;
+		}
+	}
+	
 }
 void potarAdcPreset()
 {
@@ -344,8 +390,8 @@ void potarProcess()
 	if (( abs( v0 - potarV0) > 4) || ( abs( v1 - potarV1 > 4)))
 	{
 		// new potar values
- 		potarV0 = (v0 == 0)?1:v0 ;
-		potarV1 = (v1 == 0)?1:v1  ;
+ 		potarV0 = v0 ;
+		potarV1 = v1  ;
 		potarSet();
 	}
 }
@@ -472,9 +518,21 @@ void opticalMsgOn(T_optical *o)
 	}
 	else
 	{
-    // send notOn with calculated velocity
-    o->pitch = o->nr + (button[buttonNb - 1].state == 0)?opticalPitch:opticalShiftPitch ;
-    midiNote(o->pitch, velo(slope));
+    		// send notOn with calculated velocity
+    		o->pitch = o->nr + buttonNb + 1 ;
+		if ( buttonNbOn > 0 )
+		{
+			T_button *b ;
+			for(uint8_t nr = 0 , b = button  ; nr < buttonNb ; nr ++ , b ++ )
+			{
+				if (b->state > O )
+				{
+					o->pitch += (nr + 1)* opticalNb ;
+					break ;
+				}
+			}
+		}
+    		midiNote(o->pitch, velo(slope));
 	}  
 }
 void opticalMsgOff(T_optical *o)
