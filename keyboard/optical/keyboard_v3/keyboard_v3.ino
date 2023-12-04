@@ -19,14 +19,14 @@ struct T_optical // structure of an optical button
   uint8_t pitch ; // pitch sent on midiOn 
   float ft[tvMax] , fv[tvMax]; // points of the slope v=f(t) for velocity calculation
   uint8_t tvNr ; // pointer for the points of the slope
+  float slopeMax , slopeMin ; // min-max of the slope for optical measure
+  uint8_t triggerMin, triggerMax ; // min max of the trigger to measure 
+  bool opticalHappen ; // true if an optical event has bee trigerred
 } ;
 T_optical optical[opticalNb]; // optical buttons
 uint16_t tvNb[tvMax] ; // stat for slope collect
-float slopeMax , slopeMin ; // min-max of the slope for optical measure
-uint8_t triggerMin, triggerMax ; // min max of the trigger to measure 
 float vMin, vMax ; // min max of note-on velocity 
 uint8_t opticalPin[opticalNb] = { A0 , A1 , A2 , A3 } ; // analog pins for the optical button
-bool opticalHappen ; // true if an optical event has bee trigerred
 #define opticalPitch 12 // offset for noteOn
 void opticalAdcPreset(T_optical *o) ;
 elapsedMicros opticalSince ; // timer to measure the slope
@@ -85,44 +85,67 @@ void confSave()
 {
   // write the conf on EEPROM, starting with the magic number
 	uint16_t v , ad ;
+	uint8_t nr ;
+	T_optical o* ;
 	v = magic ;
 	ad = 0 ;
+	
 	EEPROM.put(ad, v);
 	ad += sizeof(uint16_t);
-	EEPROM.put(ad, slopeMin);
-	ad += sizeof(float);
-	EEPROM.put(ad, slopeMax) ;
-	ad += sizeof(float);
-	EEPROM.put(ad, triggerMin) ;
-	ad += sizeof(uint8_t);
-	EEPROM.put(ad, triggerMax) ;
+	
+	for(nr = 0 , o = optical; nr < optical_nb ; nr ++ , o ++ )
+	{
+		EEPROM.put(ad, o->slopeMin);
+		ad += sizeof(float);
+
+		EEPROM.put(ad, o->slopeMax) ;
+		ad += sizeof(float);
+
+		EEPROM.put(ad, o->triggerMin) ;
+		ad += sizeof(uint8_t);
+
+		EEPROM.put(ad, o->triggerMax) ;
+		ad += sizeof(uint8_t);
+	}
 }
 bool confRead()
 {
   // read the conf fromm EEPROM. 
   // Return false if no conf stored (no magic at the beginning )
 	uint16_t v , ad ;
+	uint8_t nr ;
+	T_optical o* ;
 	ad = 0 ;
 	EEPROM.get(ad, v) ;
+	ad += sizeof(uint16_t);
 	if (v == magic)
 	{
-		ad += sizeof(uint16_t);
-		EEPROM.get(ad, slopeMin) ;
-		ad += sizeof(float);
-		EEPROM.get(ad, slopeMax) ;
-    ad += sizeof(float);
-    EEPROM.get(ad, triggerMin) ;
-    ad += sizeof(uint8_t);
-    EEPROM.get(ad, triggerMax) ;
-    return true ;
+		for(nr = 0 , o = optical; nr < optical_nb ; nr ++ , o ++ )
+		{
+			EEPROM.get(ad, o->slopeMin) ;
+			ad += sizeof(float);
+			
+			EEPROM.get(ad, o->slopeMax) ;
+    			ad += sizeof(float);
+			
+    			EEPROM.get(ad, o->triggerMin) ;
+    			ad += sizeof(uint8_t);
+			
+    			EEPROM.get(ad, o->triggerMax) ;
+    			ad += sizeof(uint8_t);
+		}
+    		return true ;
 	}
 	else
 	{
-		slopeMin = 1.0 ; // bits/msec
-		slopeMax = 100.0; // bits/msec
-    triggerMin = 50 ;
-    triggerMax = 200 ;
-    return false ;
+		for(nr = 0 , o = optical; nr < optical_nb ; nr ++ , o ++ )
+		{
+			o->slopeMin = 1.0 ; // bits/msec
+			o->slopeMax = 100.0; // bits/msec
+			o->triggerMin = 50 ;
+			o->triggerMax = 200 ;
+		}
+		return false ;
 	}
 	
 	vMax = 127.0 ;
@@ -202,6 +225,12 @@ void ledShow()
 		if (il > 255 ) il = 255 ;
 		analogWrite( ledPin[nr] , il );
 	}
+}
+void ledAlert()
+{
+	// all led on
+	for(nr = 0  ; nr < ledNb ; nr ++ )
+		analogWrite( ledPin[nr] , 255 );
 }
 void ledInit()
 {
@@ -441,6 +470,14 @@ void opticalAdcRead(T_optical *o)
   o->v = adc->adc0->readSingle() ;
   (o+1)->v = adc->adc1->readSingle() ;
   opticalAdcPreset(((o->nr)==0)?(optical+2):(optical)) ; // prepare next two adc
+	if ((o->v > 254) || ((o+1)->v > 254))
+	{
+		// saturation potentielle dangereuse sur l'entree ADC
+		  #ifdef DEBUGMODE
+		    Serial.println("Saturation opticalAdc");
+		  #endif
+		ledAlert();
+	}
 }
 float regressionSlope(float* v, float* t, uint8_t nb /* , float* lrCoef,*/ )
 {
@@ -499,12 +536,12 @@ float regressionSlope(float* v, float* t, uint8_t nb /* , float* lrCoef,*/ )
   y0=vbar-lrCoef[0]*tbar;
   */
 }
-uint8_t velo(float slope)
+uint8_t velo(float slope, T_optical o*)
 {
 	// calculate velocity [1..127] according to slope and ranges of velocity 
   // 0 < Vmin < velocity=f(slope) < Vmax < 128
   int v ;
-  v = vMin + (slope - slopeMin )* (vMax - vMin)/( slopeMax - slopeMin)  ;
+  v = vMin + (slope - o->slopeMin )* (vMax - vMin)/( o->slopeMax - o->slopeMin)  ;
   if ( v > 127 ) v = 127 ;
   if ( v < 1 ) v = 1 ;
   return v ;
@@ -517,10 +554,10 @@ void opticalMsgOn(T_optical *o)
 	if (calibrationState != 0)
 	{
 		// calibration min/max of slope
-		if ( slope < slopeMin )
-			slopeMin = slope ;
-		if ( slope > slopeMax )
-			slopeMax = slope ;
+		if ( slope < o->slopeMin )
+			o->slopeMin = slope ;
+		if ( slope > o->slopeMax )
+			o->slopeMax = slope ;
 	}
 	else
 	{
@@ -538,7 +575,7 @@ void opticalMsgOn(T_optical *o)
 				}
 			}
 		}
-    		midiNote(o->pitch, velo(slope));
+    		midiNote(o->pitch, velo(slope,o));
 	}  
 }
 void opticalMsgOff(T_optical *o)
@@ -568,7 +605,7 @@ bool opticalProcess()
     switch(o->state)
     {
       case 0 :
-        if (o->v < triggerMax)
+        if (o->v < o->triggerMax)
         { // start of the slope  
           o->state = 1;
           o->ftv0 = o->ftv ;
@@ -580,12 +617,12 @@ bool opticalProcess()
         }
         break ;
       case 1 :
-        if (o->v < triggerMin)
+        if (o->v < o->triggerMin)
         { // end of slope v=f(t)
           opticalMsgOn(o);
           o->state = 2;
           o->ftv0 = o->ftv ;
-          opticalHappen = true ;
+          o->opticalHappen = true ;
        }
         else
         {
@@ -609,7 +646,7 @@ bool opticalProcess()
           o->state = 3 ;
         break ;
       case 3 :
-        if (o->v > triggerMax) 
+        if (o->v > o->triggerMax) 
         {
           // come back to original position
           o->state = 4;
@@ -659,16 +696,20 @@ bool calibration(bool confOk)
 {
   // return true : continue in scanning optical button
   // calibrationState = 0 : end of calibration
+	uint8_t nr ;
+	T_optical *o ;
+	bool modulo2 ;
 	switch (calibrationState )
 	{	
-		case 1: // test to enter in calibration mode (conf not OK, or button-optical pressed)
-      opticalAdcRead(optical) ;
-      opticalAdcPreset(optical) ;
-      if ((! confOk) || ((optical[0].v) < 100))
+		case 1: // test to enter in calibration mode (conf not OK, or 2 first mechanical buttons pressed)
+      if ((! confOk) || ((digitalRead(button[0]->pin) == LOW) && (digitalRead(button[1]->pin) == LOW)))
       {
         calibrationState = 2 ;
-        triggerMin = (2^8) - 1 ;
-        triggerMax = 0 ;
+		for(nr = 0 , o = optical; nr < optical_nb ; nr ++ , o ++ )
+		{
+		        o->triggerMin = (2^8) - 1 ;
+        		o->triggerMax = 0 ;
+		}
         since = 0 ;
         analogWrite(ledPin[1],255) ;
         return true ; // don't continue in opticalButtoon read
@@ -679,30 +720,43 @@ bool calibration(bool confOk)
         ledSet(0,0);
         return false ; // nothing to configure, lets conitnue
       }
-    case 2 : case 3 : case 4 : case 5 : case 6 : case 7 : case 8 : case 9 : case 10 :
-      // read min max of optical button v
-      opticalAdcRead(optical) ;
-      opticalAdcPreset(optical) ;
-      if (optical[0].v < triggerMin) triggerMin = optical[0].v ;
-      if (optical[0].v > triggerMax) triggerMax = optical[0].v ;
-			if (since > 500) // ms
-			{
-				analogWrite(ledPin[0],((calibrationState % 2) == 0)?255:0) ;
-				calibrationState ++ ;
-				since = 0 ;
-			}
-			return true ; // don't continue in opticalButtoon read
-    case 11 :
+    case 2 : case 3 : case 4 : case 5 : case 6 : case 7 : case 8 : case 9 : case 10 : case 10 : case 11 : case 12 :
+       // read min max of optical button v
+        opticalAdcPreset(optical) ;
+	for(nr = 0 , o = optical, modulo2 = true; nr < optical_nb ; nr ++ , o ++ ,  modulo2 = ! modulo2 )
+	{
+		if (modulo2) 
+		     opticalAdcRead(o) ; // read adc0 and adc1, and prepare next ones. Unsigned 8 bits [0..2^8]
+	      if (optical[0].v < o->triggerMin) 
+		      o->triggerMin = optical[0].v ;
+	      if (optical[0].v > o->triggerMax) 
+		      o->triggerMax = optical[0].v ;
+	      if (optical[0].v < o->triggerMin) 
+		      o->triggerMin = optical[0].v ;
+	      if (optical[0].v > o->triggerMax) 
+		      o->triggerMax = optical[0].v ;
+	}
+	if (since > 500) // ms
+	{
+		analogWrite(ledPin[0],((calibrationState % 2) == 0)?255:0) ;
+		calibrationState ++ ;
+		since = 0 ;
+	}
+	return true ; // don't continue in opticalButtoon read
+    case 13 :
       // set trigger of v in range [1/4 .. 3/4]
-      triggerMin += (triggerMax - triggerMin) / 4 ;
-      triggerMax -= (triggerMax - triggerMin) / 4 ;
-      slopeMin = 9999999.0 ;
-      slopeMax = -99999999.0 ;
+	for(nr = 0 , o = optical; nr < optical_nb ; nr ++ , o ++ )
+	{
+		o->triggerMin += (o->triggerMax - o->triggerMin) / 4 ;
+		o->triggerMax -= (o->triggerMax - o->triggerMin) / 4 ;
+      		o->slopeMin = 9999999.0 ;
+      		o->slopeMax = -99999999.0 ;
+		o->opticalHappen = false ;
+	}
       calibrationState = 12 ;
       optical[0].state = 3 ;
-      opticalHappen = false ;
       return false ; // continue in opticalButtoon read
-    case 12 : case 13 : case 14 : case 15 : case 16 : case 17 : case 18 : case 19 : case 20 : case 21 :
+    case 14 : case 15 : case 16 : case 17 : case 18 : case 19 : case 20 : case 21 : case 22 : case 23 : case 24 : case 25 :
  			// underground calibration of slope (v=f(t) ) 
       if (since > 500) // ms
 			{
@@ -711,10 +765,15 @@ bool calibration(bool confOk)
 				since = 0 ;
 			}
       return false ; // continue in opticalButtoon read 
-		case 22 :
+		case 26 :
 			// save calibration
-      if (opticalHappen)
-  			confSave();
+	for(nr = 0 , o = optical; nr < optical_nb ; nr ++ , o ++ )
+	{
+      		if (! o->opticalHappen)
+			break ;
+		if (nr == (optical_nb - 1))
+			confsave();
+	}
       calibrationState = 0 ;
       ledSet(0,0);
       return false ; // continue in opticalButtoon read
