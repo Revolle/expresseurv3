@@ -369,7 +369,7 @@ void potarSet()
 		potarDynamicSet();
 		return ;
 	}
-	if (buttonNbOn > 0 )
+	if (buttonNbOn == 0 )
 	{
 		// control change without button selection
 		midiControl(14 , potarV0 )  ;
@@ -579,7 +579,8 @@ void opticalMsgOn(T_optical *o)
 void opticalMsgOff(T_optical *o)
 {
   // send noteOff
-  midiNote(o->pitch,0);
+	if ( o->pitch > 0 )
+	  midiNote(o->pitch,0);
 }
 bool opticalProcess()
 {
@@ -746,6 +747,8 @@ bool calibration(bool confOk)
       		o->slopeMin = 9999999.0 ;
       		o->slopeMax = -99999999.0 ;
 		o->opticalHappen = false ;
+		o->state = 3 ;
+		o->pitch = 0 ;
 	}
       calibrationState = 12 ;
       return false ; // continue in opticalButtoon read
