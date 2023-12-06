@@ -1,4 +1,4 @@
-$fn = 10;
+$fn = 50;
 
 
 // led ronde
@@ -115,13 +115,15 @@ potarrg_x = 17 ;
 potarrg_y = 16 ;
 
 bouton_nb = 3 ;
-bouton_d1 = 10 ;
+bouton_d1 = 7 ;
 bouton_d2 = 6 ; 
 bouton_h1 = 20 ;
-bouton_h2 = 6 ;
+bouton_h2 = 5 ;
 bouton_e = 23;
 bouton_dy = -17 ;
 bouton_dz = -6 ;
+bouton_dboulon = 10+0.2 ;
+bouton_hboulon = 1.5 ;
 
 jack_d1 = 8 ;
 jack_h1 = 20 ;
@@ -176,7 +178,7 @@ module bouton()
         cylinder(d=bouton_d1,h=bouton_h1,center=true);
     translate([0,0,bouton_h2/2])
         cylinder(d=bouton_d2,h=bouton_h2,center=true);
-   *translate([0,0,- bouton_hboulon/2])
+    translate([0,0,- bouton_hboulon/2])
         boulon(bouton_dboulon,bouton_hboulon);
 }
 module s2()
@@ -210,12 +212,12 @@ module teensy()
         translate([teensy_dp * i ,- teensy_y/2 + 1,-teensy_pz/2])
             cube([teensy_p,teensy_p,teensy_pz],center=true);
         }
-        for(i=[7 : 1 : 10 ])
+        for(i=[1 : 1 : 12 ])
         {
         translate([teensy_dp*3,- teensy_y/2 + 1 + i * teensy_dp ,-teensy_pz/2])
             cube([teensy_p,teensy_p,teensy_pz],center=true);
         }
-        for(i=[7 : 1 : 10 ])
+        for(i=[1 : 1 : 12 ])
         {
         translate([-teensy_dp*3,- teensy_y/2 + 1 + i * teensy_dp ,-teensy_pz/2])
             cube([teensy_p,teensy_p,teensy_pz],center=true);
@@ -434,7 +436,7 @@ module clavier()
     translate([-boitier_x /2  + 2*e, -clavier_y/2 + clavier_vis_dy , -clavier_z/2 -vis_l])
         support_vis(vis_l,vis_d);
     // support s2
-    translate([s2_dx-s2_trou_dx,s2_dy - s2_trou_dy - clavier_dy ,-clavier_z/2 -vis_l+2])
+    translate([s2_dx-s2_trou_dx,s2_dy - s2_trou_dy - clavier_dy ,-clavier_z/2 -vis_l+2.5])
         support_vis(vis_l,vis_d);
     // support teensy
     translate([teensy_dx ,teensy_dy - clavier_dy ,-clavier_z/2 -1 ])
@@ -548,7 +550,7 @@ module tout(eclate)
         boitier();
         composants();
     }
-    translate([0,0,-30*eclate - boitier_z/2 + e/2])
+    *translate([0,0,-30*eclate - boitier_z/2 + e/2])
         rotate([0,180,0])
             couvercle() ;
 }
@@ -566,8 +568,19 @@ module tout(eclate)
 *captage(0);
 *captages();
 *support_vis();
-
+*difference()
+{
+    translate([0,clavier_dy,clavier_dz ])
+        clavier();
+    composants();
+}
+*couvercle() ;
 difference()
+{
+    boitier();
+    composants();
+}
+*difference()
 {
     tout(0);
     *translate([0,200,0])
