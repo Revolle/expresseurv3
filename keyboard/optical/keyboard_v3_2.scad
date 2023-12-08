@@ -1,4 +1,4 @@
-$fn = 50;
+$fn = 10;
 
 
 // led ronde
@@ -67,7 +67,7 @@ teensy_y2 = 20;
 teensy_z2 = 7.5 ;
 teensy_dx = 14 ;
 teensy_dy = boitier_y/2 - teensy_y/2 -e -7 ;
-teensy_dz = -1 ;
+teensy_dz = 0 ;
 teensy_p = 0.6 ;
 teensy_pz = 6 ;
 teensy_dp = 2.54 ;
