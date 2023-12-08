@@ -134,7 +134,7 @@ void confRead() {
   // Return false if no conf stored (no magic at the beginning )
 
   confOk = false;
-  return ;
+  return;
 
   uint16_t v, ad;
   uint8_t nr;
@@ -413,14 +413,14 @@ void potarAdcPreset() {
 void potarProcess() {
   // read potars [1..127], and set range according to
   uint8_t v0, v1;
-  bool err = false ;
+  bool err = false;
   if (adcState != adcPotar)
-    err = true ;
-  if (! ( adc->adc0->isConverting() || adc->adc0->isComplete()) )
-    err = true ;
-  if (! ( adc->adc1->isConverting() || adc->adc1->isComplete()) )
-    err = true ;
-  if ( err ) {
+    err = true;
+  if (!(adc->adc0->isConverting() || adc->adc0->isComplete()))
+    err = true;
+  if (!(adc->adc1->isConverting() || adc->adc1->isComplete()))
+    err = true;
+  if (err) {
     potarAdcPreset();  // error in preset ADC ...!!!
 #ifdef DEBUGMODE
     Serial.println("Error potarAdcPreset");
@@ -484,14 +484,14 @@ void opticalAdcPreset(T_optical *o) {
   adcState = adcOptical + o->nr;
 }
 void opticalAdcRead(T_optical *o) {
-  bool err = false ;
+  bool err = false;
   if (adcState != (adcOptical + o->nr))
-    err = true ;
-  if (! ( adc->adc0->isConverting() || adc->adc0->isComplete()) ) 
-    err = true ;
-  if (! ( adc->adc1->isConverting() || adc->adc1->isComplete()) ) 
-    err = true ;
-  if ( err ) {
+    err = true;
+  if (!(adc->adc0->isConverting() || adc->adc0->isComplete()))
+    err = true;
+  if (!(adc->adc1->isConverting() || adc->adc1->isComplete()))
+    err = true;
+  if (err) {
 #ifdef DEBUGMODE
     Serial.print("Error opticalAdcPreset [ ");
     Serial.print(o->nr);
@@ -612,8 +612,8 @@ void opticalMsgOn(T_optical *o) {
       o->slopeMin = slope;
     if (slope > o->slopeMax)
       o->slopeMax = slope;
-    return ;
-  } 
+    return;
+  }
   // send notOn with calculated velocity
   o->pitch = o->nr + buttonNb + 1;
   if (buttonNbOn > 0) {
@@ -676,7 +676,7 @@ bool opticalProcess() {
         }
         break;
       case 1:
-        if ((o->v < o->triggerMin) || (o->tvNr == tvMax)) {  
+        if ((o->v < o->triggerMin) || (o->tvNr == tvMax)) {
           // end of slope v=f(t)
           opticalMsgOn(o);
           o->state = 2;
@@ -687,18 +687,18 @@ bool opticalProcess() {
           Serial.print(nr);
           Serial.println("] goto stabilizaytion on 2");
 #endif
-          break ;
-        } 
+          break;
+        }
         if (o->v > o->triggerMax) {
-            // comeback to off ...?
-            o->state = 0 ;
+          // comeback to off ...?
+          o->state = 0;
 #if DEBUGMODE > 4
-            Serial.print("optical state [");
-            Serial.print(nr);
-            Serial.println("] comeback on 0");
+          Serial.print("optical state [");
+          Serial.print(nr);
+          Serial.println("] comeback on 0");
 #endif
-          break ;
-        } 
+          break;
+        }
         if (o->tvNr < tvMax) {  // one more point for the slope v=f(t)
           o->ft[o->tvNr] = (float)(o->ftv);
           o->fv[o->tvNr] = (float)(o->v);
@@ -709,7 +709,7 @@ bool opticalProcess() {
           Serial.print(nr);
           Serial.println("] add measure");
 #endif
-          break ;
+          break;
         }
         if ((o->ftv - o->ftv0) > 200 * 1000) {
           // timeout waiting between min and max
@@ -800,10 +800,13 @@ void calibration() {
     case 1:  // test to enter in calibration mode (conf not OK, or 2 first mechanical buttons pressed)
       if ((confOk) && ((digitalRead(button[0].pin) == HIGH) && (digitalRead(button[1].pin) == HIGH))) {
         calibrationState = 0;
+        analogWrite(ledPin[0], 0);
+        analogWrite(ledPin[1], 0);
+        analogWrite(ledPin[2], 0);
         ledSet(0, 0);
-        return ;  // nothing to configure, lets conitnue
+        return;  // nothing to configure
       }
-      // calibration max (dont touch optical button)
+      // first led on : calibration max (dont touch optical button)
       for (nr = 0, o = optical; nr < opticalNb; nr++, o++) {
         o->triggerMax = 255;
       }
@@ -818,7 +821,7 @@ void calibration() {
             o->triggerMax = v - 20;
         }
       }
-      // calibration min (remain pressed optical button)
+      // second led on : calibration min (remain pressed optical button)
       for (nr = 0, o = optical; nr < opticalNb; nr++, o++) {
         o->triggerMin = 0;
       }
@@ -830,35 +833,35 @@ void calibration() {
         for (nr = 0, o = optical; nr < opticalNb; nr++, o++) {
           v = adc->adc0->analogRead(o->pin);
           if ((v < o->triggerMax) && (v > o->triggerMin))
-            o->triggerMin = v + 20 ;
+            o->triggerMin = v + 20;
         }
       }
-      // start calibration velocity ( ppp..ffff optical button)
+      // third led on : start underground calibration velocity ( ppp..ffff optical button)
       since = 0;
       analogWrite(ledPin[0], 0);
       analogWrite(ledPin[1], 0);
       analogWrite(ledPin[2], 255);
-      calibrationState = 2 ;
-      return ;
-    case 2 :
-      if ( since > 10000) {
-        // end calibration velocity ( ppp..ffff optical button)
+      calibrationState = 2;
+      return;
+    case 2:
+      if (since > 10000) {
+        // end underground calibration velocity ( ppp..ffff optical button)
         since = 0;
         analogWrite(ledPin[0], 0);
         analogWrite(ledPin[1], 0);
         analogWrite(ledPin[2], 0);
-        calibrationState = 0 ;
+        calibrationState = 0;
         // save calibration
         for (nr = 0, o = optical; nr < opticalNb; nr++, o++) {
           if (!o->opticalHappen)
             break;
         }
         //if (nr == opticalNb)
-          //confSave();
-        return ;
+        //confSave();
+        return;
       }
     default:
-      return ;
+      return;
   }
 }
 ////////////
@@ -882,7 +885,7 @@ void setup() {
 ///////////
 void loop() {
   if (calibrationState != 0) {
-    calibration() ;
+    calibration();
   }
   if (!opticalProcess()) {
     // no optical slope-measurement in progress
