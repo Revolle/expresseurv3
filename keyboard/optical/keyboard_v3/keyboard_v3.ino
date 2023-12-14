@@ -5,29 +5,28 @@
 #define prt Serial.print
 #define prtln Serial.println
 
-//#define DEBUGMODE
+#define DEBUGMODE 1
 #define PINLED 13
 
 
 // optical
 #define opticalNb 4  // nb optical button : must be multiple of 2 for the two ADC
-#define DtMIN 2000 // min delay for fff
-#define DtMAX 20000 // max delay for ppp
+#define DtMIN 2000   // min delay for fff
+#define DtMAX 10000  // max delay for ppp
 struct T_optical {
   uint8_t nr;             // incremntal number of the optical button
   uint8_t pin;            // analog pin to read ( 3.1V max )
   uint8_t v;              // value of the analog read 8 bits
   unsigned long int ftv;  // time of the analog convertion
   unsigned long int ftv0;
-  unsigned long int dtMin;
-  unsigned long int dtMax;
   uint8_t state;                   // state of the optical button
   uint8_t pitch;                   // pitch sent on midiOn
   uint8_t triggerMin, triggerMax;  // min max of the trigger to measure
   bool opticalHappen;              // true if an optical event has bee trigerred
 };
 T_optical optical[opticalNb];  // optical buttons
-//uint16_t tvNb[tvMax];                                // stat for slope collect
+unsigned long int dtMin;
+unsigned long int dtMax;
 unsigned long int vMin, vMax;                        // min max of note-on velocity
 uint8_t opticalPin[opticalNb] = { A5, A4, A3, A2 };  // analog pins for the optical button
 void opticalAdcPreset(T_optical *o);
@@ -64,13 +63,10 @@ enum ADCSTATE { adcNothing,
                 adcPotar,
                 adcOptical };  // ends with adcOptical !!
 
-// magic number to detect first use in EEPROM
-#define magic 23478
-
 // Midi messages for S2
 uint8_t midiBuf[5];
 uint8_t midiType, midiLen;
-
+uint8_t midiJingle[] = { 66, 68, 71, 76, 75, 71, 73, 0 }; // ends with zero !!!
 // analog to digital converter
 ADC *adc = new ADC();
 
@@ -115,7 +111,7 @@ void s2Process() {
         midiLen = 2;
       default:
         // all Midi messages are sent on the S2-midi-expander
-        midiBuf[0] = (midiType << 4) | usbMIDI.getChannel();
+        midiBuf[0] = (midiType & 0xF0 ) | (usbMIDI.getChannel() - 1);
         midiBuf[1] = usbMIDI.getData1();
         midiBuf[2] = usbMIDI.getData2();
         Serial1.write(midiBuf, midiLen);
@@ -123,8 +119,31 @@ void s2Process() {
     }
   }
 }
+void s2Note(uint8_t p,uint8_t v) {
+  midiBuf[1] = p ;
+  if (v > 0 ) {
+    midiBuf[0] = 0x90 ;
+    midiBuf[2] = v;
+  }
+  else {
+    midiBuf[0] = 0x80 ;
+    midiBuf[2] = 0;
+  }
+  Serial1.write(midiBuf, 3);
+}
+void s2Jingle(uint8_t *p , uint8_t dt) {
+  uint8_t *n;
+  n = p;
+  while (*n != 0) {
+    s2Note(*n,64);
+    delay(dt);
+    s2Note(*n,0);
+    n ++ ;
+  }
+}
 void s2Init() {
   Serial1.begin(31250);
+  s2Jingle(midiJingle, 200);
 }
 
 // Led
@@ -204,14 +223,6 @@ void ledInit() {
 
 void midiNote(uint8_t p, uint8_t v) {
   // send msg MIDI NoteOn
-
-#ifdef DEBUGMODE
-  prt("MidiNote pitch="),
-    prt(p);
-  prt(" velo=");
-  prtln(v);
-#endif
-
   if (v == 0)
     usbMIDI.sendNoteOff(p, 0, MidiChannelOut);
   else
@@ -301,6 +312,7 @@ void potarDynamicSet() {
   unsigned long int volumeMax, volumeMin, p0, p1;
   p0 = potarV0;
   p1 = potarV1;
+  
   volumeMax = p0;
   volumeMin = p1 * p0 / 127;
   if (volumeMin < 1)
@@ -315,12 +327,7 @@ void potarDynamicSet() {
     vMax = 127;
   else
     vMax = volumeMax;
-#ifdef DEBUGMODE
-  prt("potarDynamicSet ");
-  prt(vMin);
-  prt("..");
-  prtln(vMax);
-#endif
+
 }
 void potarSet() {
   if (buttonNbOn > 0) {
@@ -331,7 +338,7 @@ void potarSet() {
   if (buttonNbOn == buttonNb) {
     // if all buttons are pressed  while potar changes : potar will be used in (default) keyboard dynamic setting
     potarDynamicOn = true;
-    ledFlash(40); 
+    ledFlash(40);
   }
   if (potarDynamicOn) {
     // keyboard dynamic setting
@@ -391,12 +398,6 @@ void potarProcess() {
     ledOnboardFlash();
     potarV0 = v0;
     potarV1 = v1;
-#ifdef DEBUGMODE
-    prt("potarProcess vo=");
-    prt(potarV0);
-    prt(" v1=");
-    prtln(potarV1);
-#endif
     potarSet();
   }
 }
@@ -406,19 +407,6 @@ void potarProcess() {
 ////////////
 void opticalAdcPreset(T_optical *o) {
   // prepare two analog convertions
-#ifdef DEBUGMODE
-  if (o->state == 1) {
-    unsigned long int dt = opticalSince - o->ftv;
-    if ((dt < precisionMin) || (dt > precisionMax)) {
-      if (dt < precisionMin) precisionMin = dt;
-      if (dt > precisionMax) precisionMax = dt;
-      prt("Precision : ");
-      prt(precisionMin);
-      prt("..");
-      prtln(precisionMax);
-    }
-  }
-#endif
   adc->adc0->startSingleRead(o->pin);
   o->ftv = opticalSince;
   adc->adc1->startSingleRead((o + 1)->pin);
@@ -458,31 +446,10 @@ void opticalAdcRead(T_optical *o) {
   while (!adc->adc0->isComplete())
     ;
   o->v = adc->adc0->readSingle();
-#if DEBUGMODE > 5
-  prt("optical Read [");
-  prt(o->nr);
-  prt("]=");
-  prtln(o->v);
-#endif
   while (!adc->adc1->isComplete())
     ;
   (o + 1)->v = adc->adc1->readSingle();
-#if DEBUGMODE > 5
-  prt("optical Read [");
-  prt((o + 1)->nr);
-  prt("]=");
-  prtln((o + 1)->v);
-#endif
-
   opticalAdcPreset(((o->nr) == 0) ? (optical + 2) : (optical));  // prepare next two adc
-
-  if ((o->v > 254) || ((o + 1)->v > 254)) {
-    // saturation electrique potentiellement dangereuse sur l'entree ADC
-#ifdef DEBUGMODE
-    prtln("Saturation opticalAdc !!");
-#endif
-    ledAlert();
-  }
 }
 void opticalInit() {
   // initialization of optical buttons
@@ -496,8 +463,6 @@ void opticalInit() {
     o->pin = opticalPin[nr];
     pinMode(o->pin, INPUT_DISABLE);  // ?
     o->state = 0;
-    o->dtMin = DtMIN;
-    o->dtMax = DtMAX;
     o->triggerMax = 255;
   }
   opticalAdcPreset(optical);
@@ -511,6 +476,13 @@ void opticalInit() {
   }
   for (nr = 0, o = optical; nr < opticalNb; nr++, o++) {
     v0 = o->triggerMax;
+    if (v0 > 254){
+    // saturation electrique potentiellement dangereuse sur l'entree ADC
+#ifdef DEBUGMODE
+      prtln("Saturation opticalAdc !!");
+#endif
+      ledAlert();
+    }
     vmax = 80 * v0 / 100;
     vmin = 20 * v0 / 100;
     o->triggerMax = vmax;
@@ -526,30 +498,32 @@ void opticalInit() {
   }
   precisionMin = 999999;
   precisionMax = 0;
+  dtMin = DtMIN ;
+  dtMax = DtMAX ;
   // prepare to read the two first optical sensors
   opticalAdcPreset(optical);
 }
 uint8_t velo(unsigned long int dt0, T_optical *o) {
-  // calculate velocity [1..127] according to slope and ranges of velocity
+  // calculate velocity [1..127] according to dt and ranges of velocity
   // 0 < Vmin < velocity=f(slope) < Vmax < 128
   unsigned long int dt, v;
   dt = dt0;
-  if (dt < o->dtMin)
-    dt = o->dtMin;
-  if (dt > o->dtMax)
-    dt = o->dtMax;
-  v = vMax - (dt - o->dtMin) * (vMax - vMin) / (o->dtMax - o->dtMin);
-#ifdef DEBUGMODE
+  if (dt < dtMin)
+    dt = dtMin;
+  if (dt > dtMax)
+    dt = dtMax;
+  v = vMax - (dt - dtMin) * (vMax - vMin) / (dtMax - dtMin);
+#if DEBUGMODE > 2
   unsigned long int p;
-  p = 1000 - (dt - o->dtMin) * 1000 / (o->dtMax - o->dtMin);
+  p = 1000 - (dt - dtMin) * 1000 / (dtMax - dtMin);
   prt("velo ");
   prt(p);
   prt("%o : ");
-  prt(o->dtMin);
+  prt(dtMin);
   prt("<");
   prt(dt0);
   prt("<");
-  prtln(o->dtMax);
+  prtln(dtMax);
   prt("velo ");
   prt(v);
   prt(" : ");
@@ -558,6 +532,15 @@ uint8_t velo(unsigned long int dt0, T_optical *o) {
   prt(p);
   prt("<");
   prtln(vMax);
+#endif
+#ifdef DEBUGMODE
+  char s[512];
+  for(uint8_t n = 0 ; n < v ; n++ )
+    s[n] = '=';
+  s[v]='*';
+  s[v+1] = '\0';
+  prt(v);
+  prtln(s);
 #endif
   if (v > 127) v = 127;
   if (v < 1) v = 1;
@@ -602,13 +585,6 @@ bool opticalProcess() {
     if (o->state > 0)
       allOff = false;
 
-#if DEBUGMODE > 5
-    prt("opticalProcess v[");
-    prt(nr);
-    prt("]=");
-    prtln(o->v);
-    delay(1000);
-#endif
     switch (o->state) {
       case 0:
         if (o->v < o->triggerMax) {
