@@ -229,7 +229,11 @@ function setLuaValue( t, bid, ch, typemsg, pitch, velo , paramString )
 	local vol 
 	luaparam , vol = string.match(paramString or "" , "(%g+) (%d+)")
 	if luaparam then
-		values[luaparam]=math.tointeger(vol)
+		if velo > 0 then
+			values[luaparam]=math.tointeger(vol)
+		else
+			values[luaparam] = 0
+		end
 		return
 	end
 	luaparam  = string.match(paramString or "" , "(%g+)")

@@ -5,28 +5,27 @@
 #define prt Serial.print
 #define prtln Serial.println
 
-#define DEBUGMODE 1
+//#define DEBUGMODE 3
 #define PINLED 13
 
 
 // optical
 #define opticalNb 4  // nb optical button : must be multiple of 2 for the two ADC
-#define DtMIN 2000   // min delay for fff
-#define DtMAX 10000  // max delay for ppp
+#define SLOPEMIN 0.0001
+#define SLOPEMAX 0.025
 struct T_optical {
   uint8_t nr;             // incremntal number of the optical button
   uint8_t pin;            // analog pin to read ( 3.1V max )
   uint8_t v;              // value of the analog read 8 bits
   unsigned long int ftv;  // time of the analog convertion
   unsigned long int ftv0;
+  float sumt , sumv , sumtv , sumt2 , fnb , slope ; // linear regression
   uint8_t state;                   // state of the optical button
   uint8_t pitch;                   // pitch sent on midiOn
   uint8_t triggerMin, triggerMax;  // min max of the trigger to measure
   bool opticalHappen;              // true if an optical event has bee trigerred
 };
 T_optical optical[opticalNb];  // optical buttons
-unsigned long int dtMin;
-unsigned long int dtMax;
 unsigned long int vMin, vMax;                        // min max of note-on velocity
 uint8_t opticalPin[opticalNb] = { A5, A4, A3, A2 };  // analog pins for the optical button
 void opticalAdcPreset(T_optical *o);
@@ -169,7 +168,7 @@ void ledShow() {
       analogWrite(ledPin[nr], 0);
     return;
   }
-  float fv = (float)(ledValue) / (127.0 + 127.0 / 3);
+  float fv = (float)(ledValue - 5) / (127.0 + 127.0 / 3) ;
   float fn = (float)(ledNb);
   float fi, fl;
   int il;
@@ -315,14 +314,14 @@ void potarDynamicSet() {
   
   volumeMax = p0;
   volumeMin = p1 * p0 / 127;
-  if (volumeMin < 1)
-    vMin = 1;
+  if (volumeMin < 5)
+    vMin = 5;
   else if (volumeMin > 125)
     vMin = 125;
   else
     vMin = volumeMin;
-  if (volumeMax < 3)
-    vMax = 3;
+  if (volumeMax < 15)
+    vMax = 15;
   else if (volumeMax > 127)
     vMax = 127;
   else
@@ -498,40 +497,29 @@ void opticalInit() {
   }
   precisionMin = 999999;
   precisionMax = 0;
-  dtMin = DtMIN ;
-  dtMax = DtMAX ;
   // prepare to read the two first optical sensors
   opticalAdcPreset(optical);
 }
-uint8_t velo(unsigned long int dt0, T_optical *o) {
-  // calculate velocity [1..127] according to dt and ranges of velocity
-  // 0 < Vmin < velocity=f(slope) < Vmax < 128
-  unsigned long int dt, v;
-  dt = dt0;
-  if (dt < dtMin)
-    dt = dtMin;
-  if (dt > dtMax)
-    dt = dtMax;
-  v = vMax - (dt - dtMin) * (vMax - vMin) / (dtMax - dtMin);
+void opticalMsgOn(T_optical *o) {
+  // send notOn with calculated velocity
+  unsigned long int v;
+  o->pitch = o->nr + buttonNb + 1;
+  if (buttonNbOn > 0) {
+    T_button *b;
+    uint8_t nr;
+    for (nr = 0, b = button; nr < buttonNb; nr++, b++) {
+      if (b->state > 0) {
+        o->pitch += (nr + 1) * opticalNb;
+        break;
+      }
+    }
+  }
+  v = vMin + (o->slope - SLOPEMIN) * (vMax - vMin) / (SLOPEMAX - SLOPEMIN);
 #if DEBUGMODE > 2
-  unsigned long int p;
-  p = 1000 - (dt - dtMin) * 1000 / (dtMax - dtMin);
-  prt("velo ");
-  prt(p);
-  prt("%o : ");
-  prt(dtMin);
-  prt("<");
-  prt(dt0);
-  prt("<");
-  prtln(dtMax);
-  prt("velo ");
-  prt(v);
-  prt(" : ");
-  prt(vMin);
-  prt("<");
-  prt(p);
-  prt("<");
-  prtln(vMax);
+  prt("slope=");
+  prt(o->slope,8);
+  prt(" / ");
+  prtln(o->fnb);
 #endif
 #ifdef DEBUGMODE
   char s[512];
@@ -544,29 +532,16 @@ uint8_t velo(unsigned long int dt0, T_optical *o) {
 #endif
   if (v > 127) v = 127;
   if (v < 1) v = 1;
-  return v;
-}
-void opticalMsgOn(T_optical *o) {
-  unsigned long int dt;
-  dt = o->ftv - o->ftv0;
-  // send notOn with calculated velocity
-  o->pitch = o->nr + buttonNb + 1;
-  if (buttonNbOn > 0) {
-    T_button *b;
-    uint8_t nr;
-    for (nr = 0, b = button; nr < buttonNb; nr++, b++) {
-      if (b->state > 0) {
-        o->pitch += (nr + 1) * opticalNb;
-        break;
-      }
-    }
-  }
-  midiNote(o->pitch, velo(dt, o));
+  midiNote(o->pitch, v);
 }
 void opticalMsgOff(T_optical *o) {
   // send noteOff
   if (o->pitch > 0)
     midiNote(o->pitch, 0);
+}
+void slopeInit(T_optical *o) {
+  
+
 }
 bool opticalProcess() {
   // scan optical buttons
@@ -574,6 +549,7 @@ bool opticalProcess() {
   uint8_t nr;
   bool modulo2;
   bool opticalMeasure, allOff;
+  unsigned long int dt ;
   T_optical *o;
   opticalMeasure = false;
   allOff = true;
@@ -593,20 +569,37 @@ bool opticalProcess() {
           o->ftv0 = o->ftv;
           opticalMeasure = true;
           ledOnboardFlash();
+          // linear regression init
+          o->sumt = 0 ;
+          o->sumv = o->v ;
+          o->sumtv = 0.0 ;
+          o->sumt2 = 0.0  ;
+          o->fnb = 1.0 ;
         }
         break;
       case 1:
         opticalMeasure = true;
         if (o->v < o->triggerMin) {
           o->state++;
+          // linear regression ended
+          float d = o->fnb * o->sumt2 - o->sumv * o->sumv;
+          o->slope = abs (o->fnb * o->sumtv - o->sumt * o->sumv ) / d;
           opticalMsgOn(o);
           o->ftv0 = opticalSince;
           break;
         }
         if (o->v > o->triggerMax) {
+          // bad alert
           o->state = 0;
           break;
         }
+        // linear regression progress
+        dt = o->ftv - o->ftv0 ;
+        o->sumt += (float)dt;
+        o->sumv += o->v ;
+        o->sumtv += (float)(dt) * (float)(o->v) ;
+        o->sumt2 += (float)(dt) * (float)(dt) ;
+        o->fnb += 1.0 ;
         break;
       case 2:
         if ((opticalSince - o->ftv0) > 50 * 1000)  // ms
