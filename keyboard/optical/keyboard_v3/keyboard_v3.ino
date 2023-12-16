@@ -329,15 +329,15 @@ void potarDynamicSet() {
 
 }
 void potarSet() {
-  if (buttonNbOn > 0) {
+  if ((buttonNbOn > 0) && (potarDynamicOn)) {
     // if a button is pressed while potar changes : potar will be used for MIDI Control
     potarDynamicOn = false;
-    ledFlash(40);
+    ledFlash(10);
   }
-  if (buttonNbOn == buttonNb) {
+  if ((buttonNbOn == buttonNb) && (! potarDynamicOn)) {
     // if all buttons are pressed  while potar changes : potar will be used in (default) keyboard dynamic setting
     potarDynamicOn = true;
-    ledFlash(40);
+    ledFlash(10);
   }
   if (potarDynamicOn) {
     // keyboard dynamic setting
