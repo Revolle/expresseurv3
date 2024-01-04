@@ -159,7 +159,7 @@ function onStart(param)
 	local typeKeyboard = (string.match(param,"-k (%g+)"))
 	setKeyboardDisposal(typeKeyboard)
 	-- parameter -u luafile to load a user lua script in ressources
-        local luauser = (string.match(param,"-u (%a+)"))
+    local luauser = (string.match(param,"-u (%a+)"))
 	if luauser then
 		luauserfunctions = require(luauser)
 		if type(luauserfunctions) == "table" then

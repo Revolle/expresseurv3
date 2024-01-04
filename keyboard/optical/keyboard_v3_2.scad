@@ -1,4 +1,4 @@
-$fn = 10;
+$fn = 50;
 
 
 // led ronde
@@ -26,7 +26,7 @@ vis_d2 = 5.8 ;
 vis_l2 = 2.5 ;
 
 doigt_x = 22 ; 
-doigt_n = 4 ;
+doigt_n = 3 ;
 doigt_dz = doigt_x/2 -0.5 ;
 //captages_dz = boitier_z /2 -4.5 ;
 captages_dy = 0 ;
@@ -38,11 +38,15 @@ captage_y =  captage_d * captage_fy  ;
 e = 3 ;
 jeu = 0.2;
 
-boitier_x = 75 ;
-boitier_y = 110 ;
+boitier_x = 72 ;
+boitier_y = 113 ;
 boitier_z = 29  ;
 
-clavier_x = doigt_n * doigt_x ;
+clavier_xneeded = doigt_n * doigt_x ;
+echo ("clavier_xneeded = " ,clavier_xneeded);
+clavier_xmini = boitier_x - 2 * e ;
+echo ("clavier_xmini = " ,clavier_xmini);
+clavier_x = clavier_xneeded < clavier_xmini  ? clavier_xmini : clavier_xneeded  ;
 clavier_y = captage_y + 2*(led_h+led_h2+led_z_patte1+2*led_e_patte) ;
 clavier_z = 10 ;
 clavier_dy = -clavier_y/2 + boitier_y/2 - e ;
@@ -67,10 +71,14 @@ teensy_y2 = 20;
 teensy_z2 = 7.5 ;
 teensy_dx = 14 ;
 teensy_dy = boitier_y/2 - teensy_y/2 -e -7 ;
+echo ( "teensy_dy=", teensy_dy, " teensy-dx=", teensy_dx);
 teensy_dz = 0 ;
 teensy_p = 0.6 ;
 teensy_pz = 6 ;
 teensy_dp = 2.54 ;
+teensy_led_h = 20 ;
+teensy_led_dx = 2.54 ;
+teensy_led_dy = -teensy_y/2 + 2.54 ;
 
 s2_x =34.5 ;
 s2_y = 24.2;
@@ -94,7 +102,10 @@ potarl_b_xx = 28 ;
 potarl_b_x = 5 ;
 potarl_b_y = 3 ;
 potarl_b_z = 10 ;
-potar_dx = 11 ;
+potarl_dy = -boitier_y/2 + e + 7 + potarl_x/2 ;
+potarl_dxx = 4 ;
+potarl_dx = boitier_x/2  - e/2 - potarl_dxx ;
+potarl_protect_z = e ;
 
 potarr_bd =4 ;
 potarr_bh =8 ;
@@ -114,13 +125,13 @@ potarrg_h2 = 10;
 potarrg_x = 17 ;
 potarrg_y = 16 ;
 
-bouton_nb = 3 ;
+bouton_nb = 2 ;
 bouton_d1 = 7 ;
 bouton_d2 = 6 ; 
 bouton_h1 = 20 ;
 bouton_h2 = 5 ;
 bouton_e = 23;
-bouton_dy = -17 ;
+bouton_dy = -29 ;
 bouton_dz = -6 ;
 bouton_dboulon = 10+0.2 ;
 bouton_hboulon = 1.5 ;
@@ -133,10 +144,10 @@ jack_d3 = 8 ;
 jack_h3 = 1;
 jack_dx = -18 ;
 
-led_nb = 3 ;
+led_nb = 2 ;
 led_e = led_d2 + 1 ;
-led_dx = -21 ;
-led_dy = -29 ;
+led_dx = 0 ;
+led_dy = 9 ;
 
 picot_d = 3 ;
 picot_h = 3 ;
@@ -146,11 +157,13 @@ empreinte = 1 ;
 
 module vis()
 {
-    translate([0,0,-vis_l/2])
-        cylinder(d = vis_d, h = vis_l, center = true);
-    translate([0,0,-vis_l2/2])
-        cylinder(d1 = vis_d, d2 = vis_d2 , h = vis_l2, center = true);
-    
+    rotate([0,180,0])
+    {
+        translate([0,0,-vis_l/2])
+            cylinder(d = vis_d, h = vis_l, center = true);
+        translate([0,0,-vis_l2/2])
+            cylinder(d1 = vis_d, d2 = vis_d2 , h = vis_l2, center = true);
+    }
 }
 module boulon(d_boulon,h_boulon)
 {
@@ -198,31 +211,31 @@ module s2()
 }
 module teensy()
 {
-    translate([0,0,0])
+    cube([teensy_x,teensy_y,teensy_e],center = true);
+
+    // USB plug
+    translate([0,teensy_y/2+teensy_y2/2,teensy_e/2+2.5/2])
+        cube([teensy_x2,teensy_y2,teensy_z2],center = true);
+
+    // led 
+    translate([teensy_led_dx, teensy_led_dy, teensy_led_h / 2])
+        cube([3,3,teensy_led_h],center = true);
+    // pattes
+    
+    for(i=[-3 : 1 : 3 ])
     {
-        translate([0,0,0])
-            cube([teensy_x,teensy_y,teensy_e],center = true);
-        // USB plug
-        translate([0,teensy_y/2+teensy_y2/2,teensy_e/2+2.5/2])
-            cube([teensy_x2,teensy_y2,teensy_z2],center = true);
-        // pattes
-        
-        for(i=[-3 : 1 : 3 ])
-        {
-        translate([teensy_dp * i ,- teensy_y/2 + 1,-teensy_pz/2])
-            cube([teensy_p,teensy_p,teensy_pz],center=true);
-        }
-        for(i=[1 : 1 : 12 ])
-        {
-        translate([teensy_dp*3,- teensy_y/2 + 1 + i * teensy_dp ,-teensy_pz/2])
-            cube([teensy_p,teensy_p,teensy_pz],center=true);
-        }
-        for(i=[1 : 1 : 12 ])
-        {
-        translate([-teensy_dp*3,- teensy_y/2 + 1 + i * teensy_dp ,-teensy_pz/2])
-            cube([teensy_p,teensy_p,teensy_pz],center=true);
-        }
-        
+    translate([teensy_dp * i ,- teensy_y/2 + 1,-teensy_pz/2])
+        cube([teensy_p,teensy_p,teensy_pz],center=true);
+    }
+    for(i=[1 : 1 : 12 ])
+    {
+    translate([teensy_dp*3,- teensy_y/2 + 1 + i * teensy_dp ,-teensy_pz/2])
+        cube([teensy_p,teensy_p,teensy_pz],center=true);
+    }
+    for(i=[1 : 1 : 12 ])
+    {
+    translate([-teensy_dp*3,- teensy_y/2 + 1 + i * teensy_dp ,-teensy_pz/2])
+        cube([teensy_p,teensy_p,teensy_pz],center=true);
     }
 }
 module potarl()
@@ -371,17 +384,17 @@ module composants()
                 }
             }
             // potar
-            translate([potar_dx,-boitier_y/2 + e/2 + potarl_y  ,boitier_z/2  - e/2 ])
-                rotate([0,0,0])
+            translate([potarl_dx ,potarl_dy   ,boitier_z/3  - e -1 ])
+                rotate([90,0,90])
                     potarl();
-            translate([potar_dx,-boitier_y/2 + e/2 + 2*potarl_y +2 ,boitier_z/2  - e/2 ])
-                rotate([0,0,0])
+            translate([potarl_dx ,potarl_dy  ,-boitier_z/3  + e +1 ])
+                rotate([90,0,90])
                     potarl();
 
             // leds
             for(i=[0 : 1 : led_nb - 1 ])
             {
-                translate([i * led_e - led_e * (led_nb - 1 )/ 2 +led_dx,led_dy ,boitier_z/2])
+                translate([i * led_e - led_e * (led_nb - 1 )/ 2 +led_dx,-boitier_y/2 + e + led_dy ,boitier_z/2])
                     rotate([0,0,0])
                         cylinder(d=led_support_d,h=12,center= true);
             }
@@ -391,7 +404,7 @@ module composants()
                 rotate([0,180,0])
                     teensy();
             // s2
-            translate([s2_dx ,s2_dy  ,s2_dz])
+            *translate([s2_dx ,s2_dy  ,s2_dz])
                 rotate([0,0,180])
                 s2();
             // jack
@@ -436,7 +449,7 @@ module clavier()
     translate([-boitier_x /2  + 2*e, -clavier_y/2 + clavier_vis_dy , -clavier_z/2 -vis_l])
         support_vis(vis_l,vis_d);
     // support s2
-    translate([s2_dx-s2_trou_dx,s2_dy - s2_trou_dy - clavier_dy ,-clavier_z/2 -vis_l+2.5])
+    *translate([s2_dx-s2_trou_dx,s2_dy - s2_trou_dy - clavier_dy ,-clavier_z/2 -vis_l+2.5])
         support_vis(vis_l,vis_d);
     // support teensy
     translate([teensy_dx ,teensy_dy - clavier_dy ,-clavier_z/2 -1 ])
@@ -505,19 +518,60 @@ module boitier()
        
     }
     // support vis
-        translate([boitier_x /2  - 2*e, -boitier_y /2  + 2*e , -boitier_z/2+e])
-                support_vis(vis_l,vis_d);
-        translate([-boitier_x /2  + 2*e, -boitier_y /2  + 2*e , -boitier_z/2+e])
+    translate([boitier_x /2  - 2*e, -boitier_y /2  + 2*e , -boitier_z/2+e])
             support_vis(vis_l,vis_d);
-    
-        translate([boitier_x /2  - 2*e, -clavier_y/2 + clavier_vis_dy + clavier_dy , -boitier_z/2+e])
-                support_vis(boitier_z - clavier_z - vis_l - e,vis_d+1.2);
-        translate([boitier_x /2  - 2*e, +clavier_y/2 - clavier_vis_dy + clavier_dy , -boitier_z/2+e])
-                support_vis(boitier_z - clavier_z - vis_l - e,vis_d+1.2);
-        translate([-boitier_x /2  + 2*e, -clavier_y/2 + clavier_vis_dy + clavier_dy , -boitier_z/2+e])
-                support_vis(boitier_z - clavier_z - vis_l - e,vis_d+1.2);
-        translate([-boitier_x /2  + 2*e, +clavier_y/2 - clavier_vis_dy + clavier_dy , -boitier_z/2+e])
-                support_vis(boitier_z - clavier_z - vis_l - e,vis_d+1.2);
+    translate([-boitier_x /2  + 2*e, -boitier_y /2  + 2*e , -boitier_z/2+e])
+        support_vis(vis_l,vis_d);
+
+    translate([boitier_x /2  - 2*e, -clavier_y/2 + clavier_vis_dy + clavier_dy , -boitier_z/2+e])
+            support_vis(boitier_z - clavier_z - vis_l - e,vis_d+1.2);
+    translate([boitier_x /2  - 2*e, +clavier_y/2 - clavier_vis_dy + clavier_dy , -boitier_z/2+e])
+            support_vis(boitier_z - clavier_z - vis_l - e,vis_d+1.2);
+    translate([-boitier_x /2  + 2*e, -clavier_y/2 + clavier_vis_dy + clavier_dy , -boitier_z/2+e])
+            support_vis(boitier_z - clavier_z - vis_l - e,vis_d+1.2);
+    translate([-boitier_x /2  + 2*e, +clavier_y/2 - clavier_vis_dy + clavier_dy , -boitier_z/2+e])
+            support_vis(boitier_z - clavier_z - vis_l - e,vis_d+1.2);
+
+    // protection potar
+    translate([boitier_x / 2  , potarl_dy, 0])
+    {
+        difference()
+        {
+            hull()
+            {
+            translate([0 ,  -potarl_x / 2 - e , boitier_z/2 - e ])
+                {
+                cube([1, e, e], center = true);
+                translate([potarl_protect_z,0,0])
+                    sphere(d= e);
+                }
+            translate([0 ,  +potarl_x / 2 + e , boitier_z/2 - e ])
+                {
+                cube([1, e, e], center = true);
+                translate([potarl_protect_z,0,0])
+                    sphere(d= e);
+                }
+            translate([0 ,  -potarl_x / 2 - e , -boitier_z/2 + e ])
+                {
+                cube([1, e, e], center = true);
+                translate([potarl_protect_z,0,0])
+                    sphere(d= e);
+                }
+            translate([0 ,  +potarl_x / 2 + e , -boitier_z/2 + e ])
+                {
+                cube([1, e, e], center = true);
+                translate([potarl_protect_z,0,0])
+                    sphere(d= e);
+                }
+            }
+        translate([potarl_b_z/2,0,0])
+            cube([potarl_b_z,potarl_x+e, boitier_z-2.5*e], center = true);
+        }
+    }
+    //renflement potar 
+    translate([boitier_x/2 - 4 -e, potarl_dy,0])
+        cube([8,potarl_x + e,boitier_z -2*e ],center = true);
+
 
 }
 module couvercle()
@@ -526,19 +580,19 @@ module couvercle()
     {
         cube([boitier_x-2*e - jeu, boitier_y - 2*e - jeu , e],center=true);
         
-        translate([boitier_x /2  - 2*e, -boitier_y /2  + 2*e , 0.01+ e/2])
+        translate([boitier_x /2  - 2*e, -boitier_y /2  + 2*e , - e/2])
                 vis();
-        translate([-boitier_x /2  + 2*e, -boitier_y /2  + 2*e , 0.01+ e/2])
+        translate([-boitier_x /2  + 2*e, -boitier_y /2  + 2*e , - e/2])
             vis();
     
-        translate([boitier_x /2  - 2*e, -clavier_y/2 + clavier_vis_dy + clavier_dy , 0.01+ e/2])
-                vis();
-        translate([boitier_x /2  - 2*e, +clavier_y/2 - clavier_vis_dy + clavier_dy , 0.01+ e/2])
+        translate([boitier_x /2  - 2*e, -clavier_y/2 + clavier_vis_dy + clavier_dy , - e/2])
             vis();
-        translate([-boitier_x /2  + 2*e, -clavier_y/2 + clavier_vis_dy + clavier_dy , 0.01+ e/2])
+        translate([boitier_x /2  - 2*e, +clavier_y/2 - clavier_vis_dy + clavier_dy , - e/2])
+            vis();
+        translate([-boitier_x /2  + 2*e, -clavier_y/2 + clavier_vis_dy + clavier_dy , - e/2])
                 vis();
-        translate([-boitier_x /2  + 2*e, +clavier_y/2 - clavier_vis_dy + clavier_dy , 0.01+ e/2])
-                vis();
+        translate([-boitier_x /2  + 2*e, +clavier_y/2 - clavier_vis_dy + clavier_dy , - e/2])
+                vis();        
     }
 }
 module tout(eclate)
@@ -550,7 +604,7 @@ module tout(eclate)
         boitier();
         composants();
     }
-    *translate([0,0,-30*eclate - boitier_z/2 + e/2])
+    translate([0,0,-30*eclate - boitier_z/2 + e/2])
         rotate([0,180,0])
             couvercle() ;
 }
@@ -574,8 +628,13 @@ module tout(eclate)
         clavier();
     composants();
 }
-*couvercle() ;
 difference()
+{
+    translate([0,0,- boitier_z / 2 ])
+        couvercle() ;
+    composants();
+}
+*difference()
 {
     boitier();
     composants();
@@ -583,6 +642,7 @@ difference()
 *difference()
 {
     tout(0);
-    *translate([0,200,0])
+    *composants() ;
+    *translate([0,170,0])
         cube([400,400,400],center=true);
 }

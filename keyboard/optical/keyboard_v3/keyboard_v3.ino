@@ -10,7 +10,7 @@
 
 
 // optical
-#define opticalNb 4  // nb optical button : must be multiple of 2 for the two ADC
+#define opticalNb 3  // nb optical button
 #define SLOPEMIN 0.0001
 #define SLOPEMAX 0.025
 struct T_optical {
@@ -27,13 +27,13 @@ struct T_optical {
 };
 T_optical optical[opticalNb];  // optical buttons
 unsigned long int vMin, vMax;                        // min max of note-on velocity
-uint8_t opticalPin[opticalNb] = { A5, A4, A3, A2 };  // analog pins for the optical button
+uint8_t opticalPin[opticalNb] = { A4, A3, A2 };  // analog pins for the optical button
 void opticalAdcPreset(T_optical *o);
 unsigned long int precisionMax, precisionMin;
 elapsedMicros opticalSince;  // timer to measure the slope
 
 // buttons
-#define buttonNb 3  // nb button
+#define buttonNb 2  // nb button
 struct T_button {
   uint8_t nr;
   uint8_t pin;    // logical pin to read
@@ -42,12 +42,12 @@ struct T_button {
 };
 T_button button[buttonNb];
 uint8_t buttonNbOn;
-uint8_t buttonPin[buttonNb] = { 7, 8, 6 };  // digital pin for buttons
+uint8_t buttonPin[buttonNb] = { 7, 6 };  // digital pin for buttons
 elapsedMillis buttonSince;
 
 // led
 #define ledNb 3                         // nb led
-uint8_t ledPin[ledNb] = { 10, 9, 11 };  // digital pins for the led
+uint8_t ledPin[ledNb] = { 10, 9 };  // digital pins for the led
 uint8_t ledChannelOn;                   // reminder of the ledChannel which switched on the leds
 uint8_t ledValue, ledFormerValue;       // value of the led bargraph
 
@@ -65,7 +65,8 @@ enum ADCSTATE { adcNothing,
 // Midi messages for S2
 uint8_t midiBuf[5];
 uint8_t midiType, midiLen;
-uint8_t midiJingle[] = { 66, 68, 71, 76, 75, 71, 73, 0 }; // ends with zero !!!
+uint8_t midiJingle[] = { 66, 68, 71, 76, 75, 71, 73, 0 }; // midi pitch to play : ends with zero !!!
+
 // analog to digital converter
 ADC *adc = new ADC();
 
@@ -408,12 +409,16 @@ void opticalAdcPreset(T_optical *o) {
   // prepare two analog convertions
   adc->adc0->startSingleRead(o->pin);
   o->ftv = opticalSince;
-  adc->adc1->startSingleRead((o + 1)->pin);
+  if ( o->nr < (opticalNb - 1))
+    adc->adc1->startSingleRead((o + 1)->pin);
   (o + 1)->ftv = opticalSince;
   adcState = adcOptical + o->nr;
 }
 void opticalAdcRead(T_optical *o) {
+  
   bool err = false;
+
+  // control status of adc
   if (adcState != (adcOptical + o->nr)) {
     err = true;
 #ifdef DEBUGMODE
@@ -431,23 +436,32 @@ void opticalAdcRead(T_optical *o) {
     prt("] adc0 not in progress");
 #endif
   }
-  if (!(adc->adc1->isConverting() || adc->adc1->isComplete())) {
-    err = true;
-#ifdef DEBUGMODE
-    prt("Error opticalAdcPreset [");
-    prt(o->nr);
-    prt("] adc1 not in progress");
-#endif
+  if ( o->nr < (opticalNb - 1)) {
+    if (!(adc->adc1->isConverting() || adc->adc1->isComplete())) {
+      err = true;
+  #ifdef DEBUGMODE
+      prt("Error opticalAdcPreset [");
+      prt(o->nr);
+      prt("] adc1 not in progress");
+  #endif
+    }
   }
   if (err) {
     opticalAdcPreset(o);  // error in preset ADC ...!!!
   }
+
+  // read adc0
   while (!adc->adc0->isComplete())
     ;
   o->v = adc->adc0->readSingle();
-  while (!adc->adc1->isComplete())
-    ;
-  (o + 1)->v = adc->adc1->readSingle();
+
+  if ( o->nr < (opticalNb - 1)) {
+    // read adc1
+    while (!adc->adc1->isComplete())
+      ;
+    (o + 1)->v = adc->adc1->readSingle();
+  }
+
   opticalAdcPreset(((o->nr) == 0) ? (optical + 2) : (optical));  // prepare next two adc
 }
 void opticalInit() {
@@ -538,10 +552,6 @@ void opticalMsgOff(T_optical *o) {
   // send noteOff
   if (o->pitch > 0)
     midiNote(o->pitch, 0);
-}
-void slopeInit(T_optical *o) {
-  
-
 }
 bool opticalProcess() {
   // scan optical buttons

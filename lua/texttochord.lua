@@ -54,7 +54,8 @@ V 1.1 20/8/2015
 local E={} -- to export the functions
 
 local modes = { -- specify the modes
-  --           1   2   3 4   5   6   7  
+  -- example for the standard diatonic C scale :
+  --           1 0 2 0 3 4 0 5 0 6 0 7  
   --           C   D   E F   G   A   B  -- ( in tone C )
   -- majeur
   { degree = { 1,0,2,0,3,4,0,5,0,6,0,7} , names = {"modei","ionien"}},

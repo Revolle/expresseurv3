@@ -834,8 +834,7 @@ function E.pedal(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex
   -- set the legato of the track passed in param
   -- param contains the track and the status of the pedal : "off"  or "legato" , or "pedal" 
   -- if param is empty : velocity = 0 <=> off , velocity > O <=> pedal
-  local v
-  luabass.logmsg("legato "..param)
+  local v = 0
   local track 
   local value 
   track , value = string.match(param or "" , "(%g+) (%g+)")
@@ -877,9 +876,9 @@ function E.playPitches(bid,velocity,index,black,scale,track,pstart,pend,delay,de
   -- pitch is calculated from the index and black, within the scale
   -- bid is the unique id of the MIDI-in button, ith its velocity ( 0 == note-off )
   
-	print("playpitches debut")
+  --print("playpitches debut")
   local typeLegato = legatoPlay[track]
-  --luabass.logmsg("playPitches scale="..scale.." track="..track.." velo="..velocity.." legato="..typeLegato.." bid="..bid)
+  --print("playPitches scale=",scale," track=",track," velo=",velocity," legato=",typeLegato," bid=",bid,"index=",index,"black=",black)
   if velocity == 0 then 
     local playedId = bidPlayed[track][bid]
     if playedId then
@@ -914,7 +913,7 @@ function E.playPitches(bid,velocity,index,black,scale,track,pstart,pend,delay,de
   local tpitch = E.getIndexPitches(scale,index,black)
   if tpitch then
     --luabass.logmsg(track.." decay="..decay.." play=>"..table.concat(tpitch,"/"))
-    print(track.." decay="..decay.." play=>"..table.concat(tpitch,"/"))
+    --print(track," decay=",decay," play=>",table.concat(tpitch,"/"),scale,index,black)
 	if logPlay then
 		local logNote = {}
 		logNote.scale = scale
@@ -944,11 +943,8 @@ function E.playScale(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whitei
   E.playPitches(bid,velocity,whitemediane,black,sc,"scale",1,-1,values["scale_delay"],values["scale_decay"],later)
 end
 function E.playChord(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black,later)
-	print("playchord debut")
   if (param or "up") == "up" then
-	print("playchord up")
     E.playPitches(bid,velocity,0,0,"chord","chord",-1,1,values["chord_delay"],values["chord_decay"], later)
-	print("playchord endup")
   else
     E.playPitches(bid,velocity,0,0,"chord","chord",1,-1,values["chord_delay"],values["chord_decay"], later)
   end
