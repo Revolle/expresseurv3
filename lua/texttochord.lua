@@ -678,8 +678,9 @@ function fillBass(lroot, currentTone , listBass , pitchRole , bass , nextBass)
   
   -- calculate the first bass
   startPitch = closestPitch(pivot, lroot, bass, 2)
-  local firstBass
-  if prevBass and prevBass == startPitch then
+  local firstBass = bass
+  --[[
+	if prevBass and prevBass == startPitch then
     for j,v in pairs(pitchRole) do
       if v.chord and v.chord == 5 then
          firstBass = j -- first bass is the fith when bass is repeated
@@ -689,6 +690,7 @@ function fillBass(lroot, currentTone , listBass , pitchRole , bass , nextBass)
   if firstBass == nil then
     firstBass = bass -- first bass is the bass when bass is not repeated
   end
+  ]]--
   bassPitch[1][1] = closestPitch(pivot, lroot, firstBass, 2)
   prevBass = bassPitch[1][1] 
   
