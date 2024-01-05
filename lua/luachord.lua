@@ -864,7 +864,8 @@ end
 function E.octave(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
   local track 
   local value 
-  track , value = string.match(paramString or "" , "(%g+) (%d+)")
+  track , value = string.match(param or "" , "(%g+) (%d+)")
+  --print("octave",param, track,value)
   if track == nil or value == nil or E.trackOctave[track] == nil then
 	return
   end
@@ -913,7 +914,7 @@ function E.playPitches(bid,velocity,index,black,scale,track,pstart,pend,delay,de
   local tpitch = E.getIndexPitches(scale,index,black)
   if tpitch then
     --luabass.logmsg(track.." decay="..decay.." play=>"..table.concat(tpitch,"/"))
-    --print(track," decay=",decay," play=>",table.concat(tpitch,"/"),scale,index,black)
+    -- print("track=",track,tracks["chord-" .. track]," decay=",decay," play=>",table.concat(tpitch,"/"),scale,index,black)
 	if logPlay then
 		local logNote = {}
 		logNote.scale = scale
