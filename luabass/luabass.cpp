@@ -3886,6 +3886,7 @@ static int LgetAudioList(lua_State *L)
 		lua_pushinteger(L, nr_device + 1);
 		lua_pushstring(L, name_audio);
 		lua_settable(L, -3);
+		nr_device++;
 	}
 	unlock_mutex_out();
 	return(1);
