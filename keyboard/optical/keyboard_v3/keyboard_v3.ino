@@ -33,25 +33,28 @@ unsigned long int precisionMax, precisionMin;
 elapsedMicros opticalSince;  // timer to measure the slope
 
 // buttons
-#define buttonNb 2  // nb button
+#define buttonNb 4  // nb button
+#define buttonMidiNb 2 // nb button for Midi event
 struct T_button {
   uint8_t nr;
   uint8_t pin;    // logical pin to read
   uint8_t state;  // state of the button
+  uint8_t vPotar ;
   unsigned long int ftv0;
 };
 T_button button[buttonNb];
 uint8_t buttonNbOn;
-uint8_t buttonPin[buttonNb] = { 7, 6 };  // digital pin for buttons
+uint8_t buttonPin[buttonNb] = { 7, 6 , 1 , 0 };  // digital pin for buttons
 elapsedMillis buttonSince;
 
 // led
-#define ledNb 3                         // nb led
+#define ledNb 2                         // nb led
 uint8_t ledPin[ledNb] = { 10, 9 };  // digital pins for the led
 uint8_t ledChannelOn;                   // reminder of the ledChannel which switched on the leds
 uint8_t ledValue, ledFormerValue;       // value of the led bargraph
 
 // potar
+#define potarNb 0
 #define potarPin0 A1
 #define potarPin1 A0
 uint8_t potarV0, potarV1;
@@ -248,8 +251,26 @@ void buttonInit() {
     b->pin = buttonPin[i];
     pinMode(b->pin, INPUT_PULLUP);
     b->state = 0;
+    b->vPotar = 64 ;
   }
   buttonNbOn = 0;
+}
+void buttonPotar(T_button *b) {
+  switch(b->nr) {
+    case 2 :
+      b->vPotar += POTAR_INC ;
+      break ;
+    case 3 :
+      b->vPotar -= POTAR_INC ;
+      break ;
+    default : 
+      break ;
+  }
+  if ( b->vPotar < POTAR_MIN)
+      b->vPotar = POTAR_MIN ;
+  if ( b->vPotar > POTAR_MAX)
+      b->vPotar = POTAR_MAX ;
+  midiControl(7, b->vpotar);
 }
 void buttonProcess() {
   uint8_t nr;
@@ -263,7 +284,10 @@ void buttonProcess() {
       case 0:
         if (digitalRead(b->pin) == LOW) {
           b->state = 1;
-          midiNote(nr + 1, 127);
+          if ( nr < buttonMidiNb)
+            midiNote(nr + 1, 127);
+          else
+            buttonPotar(b);
           b->ftv0 = buttonSince;
           ledOnboardFlash();
         }
@@ -275,7 +299,10 @@ void buttonProcess() {
       case 2:
         if (digitalRead(b->pin) == HIGH) {
           b->state = 3;
-          midiNote(nr + 1, 0);
+          if ( nr < buttonMidiNb )
+            midiNote(nr + 1, 0);
+          else
+            buttonPotar(b);
           b->ftv0 = buttonSince;
           ledOnboardFlash();
         }
@@ -462,7 +489,7 @@ void opticalAdcRead(T_optical *o) {
     (o + 1)->v = adc->adc1->readSingle();
   }
 
-  opticalAdcPreset(((o->nr) == 0) ? (optical + 2) : (optical));  // prepare next two adc
+  opticalAdcPreset(((o->nr) < (opticalNb -2)) ? (optical + 2) : (optical));  // prepare next two adc
 }
 void opticalInit() {
   // initialization of optical buttons
@@ -664,7 +691,7 @@ void setup() {
   ledFlash(80);
 
   adcInit();
-  potarInit();
+  //potarInit();
   buttonInit();
   opticalInit();
   s2Init();
@@ -677,7 +704,7 @@ void loop() {
   if (!opticalProcess()) {
     // no optical slope-measurement in progress
     // preset adc for the potar
-    potarAdcPreset();
+    //potarAdcPreset();
     // process buttons
     buttonProcess();
     // show the bargraph on the leds
@@ -685,7 +712,7 @@ void loop() {
     // led onboard
     ledOnboardProcess();
     // process potar (volume/range)
-    potarProcess();
+    //potarProcess();
     // transmit Midi-in => S2-expander
     s2Process();
   }
