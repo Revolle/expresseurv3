@@ -39,7 +39,7 @@ e = 3 ;
 jeu = 0.2;
 
 boitier_x = 72 ;
-boitier_y = 113 ;
+boitier_y = 115 ;
 boitier_z = 29  ;
 
 clavier_xneeded = doigt_n * doigt_x ;
@@ -102,7 +102,7 @@ potarl_b_xx = 28 ;
 potarl_b_x = 5 ;
 potarl_b_y = 3 ;
 potarl_b_z = 10 ;
-potarl_dy = -boitier_y/2 + e + 7 + potarl_x/2 ;
+potarl_dy = -boitier_y/2 + e + 8 + potarl_x/2 ;
 potarl_dxx = 4 ;
 potarl_dx = boitier_x/2  - e/2 - potarl_dxx ;
 potarl_protect_z = e ;
@@ -382,12 +382,17 @@ module composants()
                     rotate([0,-90,0])
                         bouton();
                 }
+                translate([boitier_x/2 ,bouton_dy + i * bouton_e - bouton_e * (bouton_nb - 1 )/ 2,bouton_dz])
+                {
+                    rotate([0,90,0])
+                        bouton();
+                }
             }
             // potar
-            translate([potarl_dx ,potarl_dy   ,boitier_z/3  - e -1 ])
+            *translate([potarl_dx ,potarl_dy   ,boitier_z/3  - e -1 ])
                 rotate([90,0,90])
                     potarl();
-            translate([potarl_dx ,potarl_dy  ,-boitier_z/3  + e +1 ])
+            *translate([potarl_dx ,potarl_dy  ,-boitier_z/3  + e +1 ])
                 rotate([90,0,90])
                     potarl();
 
@@ -455,6 +460,58 @@ module clavier()
     translate([teensy_dx ,teensy_dy - clavier_dy ,-clavier_z/2 -1 ])
         cube([teensy_x+2,teensy_y+2,2],center = true);
 }
+module potarsp()
+{
+    translate([boitier_x / 2  , potarl_dy, 0])
+    {
+        // protection potar
+        difference()
+        {
+            hull()
+            {
+            translate([0.5 ,  -potarl_x / 2 - e , boitier_z/2 - e ])
+                {
+                cube([1, e, e], center = true);
+                translate([potarl_protect_z,0,0])
+                    sphere(d= e);
+                }
+            translate([0.5 ,  +potarl_x / 2 + e , boitier_z/2 - e ])
+                {
+                cube([1, e, e], center = true);
+                translate([potarl_protect_z,0,0])
+                    sphere(d= e);
+                }
+            translate([0.5 ,  -potarl_x / 2 - e , -boitier_z/2 + e ])
+                {
+                cube([1, e, e], center = true);
+                translate([potarl_protect_z,0,0])
+                    sphere(d= e);
+                }
+            translate([0.5 ,  +potarl_x / 2 + e , -boitier_z/2 + e ])
+                {
+                cube([1, e, e], center = true);
+                translate([potarl_protect_z,0,0])
+                    sphere(d= e);
+                }
+            }
+        translate([potarl_b_z/2,0,0])
+            cube([potarl_b_z,potarl_x+e, boitier_z-2.5*e], center = true);
+        }
+
+    }
+}
+module potarsr()
+{
+    translate([boitier_x / 2  , potarl_dy, 0])
+        //renflement potar 
+        translate([- 4, 0,0])
+            cube([8,potarl_x + e,boitier_z -2*e ],center = true);
+}
+module potars()
+{
+    potarsp() ;
+    *potarsr();
+}
 module boitier()
 {
     difference()
@@ -515,13 +572,15 @@ module boitier()
         // trou couvercle de fond
         translate([0,0,-50])
             cube([boitier_x-2*e,boitier_y-2*e,100],center = true);
+        // potars
+        *potars() ;
        
     }
     // support vis
     translate([boitier_x /2  - 2*e, -boitier_y /2  + 2*e , -boitier_z/2+e])
-            support_vis(vis_l,vis_d);
+            support_vis(boitier_z -2*e,vis_d);
     translate([-boitier_x /2  + 2*e, -boitier_y /2  + 2*e , -boitier_z/2+e])
-        support_vis(vis_l,vis_d);
+        support_vis(boitier_z -2*e,vis_d);
 
     translate([boitier_x /2  - 2*e, -clavier_y/2 + clavier_vis_dy + clavier_dy , -boitier_z/2+e])
             support_vis(boitier_z - clavier_z - vis_l - e,vis_d+1.2);
@@ -531,46 +590,6 @@ module boitier()
             support_vis(boitier_z - clavier_z - vis_l - e,vis_d+1.2);
     translate([-boitier_x /2  + 2*e, +clavier_y/2 - clavier_vis_dy + clavier_dy , -boitier_z/2+e])
             support_vis(boitier_z - clavier_z - vis_l - e,vis_d+1.2);
-
-    // protection potar
-    translate([boitier_x / 2  , potarl_dy, 0])
-    {
-        difference()
-        {
-            hull()
-            {
-            translate([0 ,  -potarl_x / 2 - e , boitier_z/2 - e ])
-                {
-                cube([1, e, e], center = true);
-                translate([potarl_protect_z,0,0])
-                    sphere(d= e);
-                }
-            translate([0 ,  +potarl_x / 2 + e , boitier_z/2 - e ])
-                {
-                cube([1, e, e], center = true);
-                translate([potarl_protect_z,0,0])
-                    sphere(d= e);
-                }
-            translate([0 ,  -potarl_x / 2 - e , -boitier_z/2 + e ])
-                {
-                cube([1, e, e], center = true);
-                translate([potarl_protect_z,0,0])
-                    sphere(d= e);
-                }
-            translate([0 ,  +potarl_x / 2 + e , -boitier_z/2 + e ])
-                {
-                cube([1, e, e], center = true);
-                translate([potarl_protect_z,0,0])
-                    sphere(d= e);
-                }
-            }
-        translate([potarl_b_z/2,0,0])
-            cube([potarl_b_z,potarl_x+e, boitier_z-2.5*e], center = true);
-        }
-    }
-    //renflement potar 
-    translate([boitier_x/2 - 4 -e, potarl_dy,0])
-        cube([8,potarl_x + e,boitier_z -2*e ],center = true);
 
 
 }
@@ -607,6 +626,8 @@ module tout(eclate)
     translate([0,0,-30*eclate - boitier_z/2 + e/2])
         rotate([0,180,0])
             couvercle() ;
+    *translate([-30*eclate ,0,0])
+        potars() ;
 }
 *potarl() ;
 *potarrg() ;
@@ -628,13 +649,13 @@ module tout(eclate)
         clavier();
     composants();
 }
-difference()
+*difference()
 {
     translate([0,0,- boitier_z / 2 ])
         couvercle() ;
     composants();
 }
-*difference()
+difference()
 {
     boitier();
     composants();
@@ -642,7 +663,7 @@ difference()
 *difference()
 {
     tout(0);
-    *composants() ;
-    *translate([0,170,0])
+    composants() ;
+    translate([200,0,0])
         cube([400,400,400],center=true);
 }
