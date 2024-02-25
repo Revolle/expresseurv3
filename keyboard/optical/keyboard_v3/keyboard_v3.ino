@@ -8,7 +8,6 @@
 #define DEBUGMODE 3
 #define PINLED 13
 
-
 // optical
 #define opticalNb 3  // nb optical button
 #define SLOPEMIN 0.0001
@@ -26,8 +25,12 @@ struct T_optical {
   bool opticalHappen;              // true if an optical event has bee trigerred
 };
 T_optical optical[opticalNb];  // optical buttons
+<<<<<<< HEAD
 #define VMIN 10.0
 #define VMAX 120.0
+=======
+unsigned long int volume , vMin, vMax;                        // min max of note-on velocity
+>>>>>>> 06ffe73b031d77b2587aacef69cae46a418f3c98
 uint8_t opticalPin[opticalNb] = { A4, A3, A2 };  // analog pins for the optical button
 void opticalAdcPreset(T_optical *o);
 unsigned long int precisionMax, precisionMin;
@@ -52,6 +55,7 @@ uint8_t ledPin[ledNb] = { 14, 15 };  // digital pins for the led
 uint8_t ledChannelOn;                   // reminder of the ledChannel which switched on the leds
 uint8_t ledValue, ledFormerValue;       // value of the led bargraph
 
+<<<<<<< HEAD
 // potar
 #define POTAR_INC 32
 #define POTAR_MAX 120
@@ -64,9 +68,10 @@ int vPotar ;
 uint8_t potarV0, potarV1;
 bool potarDynamicOn;  // true to set the dynamic with the potar
 
+=======
+>>>>>>> 06ffe73b031d77b2587aacef69cae46a418f3c98
 uint8_t adcState;  // state of presets in the ADC
 enum ADCSTATE { adcNothing,
-                adcPotar,
                 adcOptical };  // ends with adcOptical !!
 
 // Midi messages for S2
@@ -110,17 +115,29 @@ void s2Process() {
     ledOnboardFlash();
     midiType = usbMIDI.getType();
     midiLen = 3;
+    midiBuf[0] = (midiType & 0xF0 ) | (usbMIDI.getChannel() - 1);
+    midiBuf[1] = usbMIDI.getData1();
+    midiBuf[2] = usbMIDI.getData2();
     switch (midiType) {
       case usbMIDI.SystemExclusive:  // sysex
         Serial1.write(usbMIDI.getSysExArray(), usbMIDI.getSysExArrayLength());
         break;
       case usbMIDI.ProgramChange:  // PROG is only two bytes
         midiLen = 2;
+      case usbMIDI.ControlChange: // catch some control change for internal settings
+        switch (midiBuf[1]){
+          case 2 :
+            vMin = midiBuf[2];
+            vMax = 128 - vMin ;
+            return ;
+          case 3 :
+            volumeInc = midiBuf[2];
+            return;
+          default :
+            break ;
+        }
       default:
         // all Midi messages are sent on the S2-midi-expander
-        midiBuf[0] = (midiType & 0xF0 ) | (usbMIDI.getChannel() - 1);
-        midiBuf[1] = usbMIDI.getData1();
-        midiBuf[2] = usbMIDI.getData2();
         Serial1.write(midiBuf, midiLen);
         break;
     }
@@ -252,10 +269,18 @@ void buttonInit() {
     b->pin = buttonPin[i];
     pinMode(b->pin, INPUT_PULLUP);
     b->state = 0;
+<<<<<<< HEAD
     vPotar = 64 ;
+=======
+>>>>>>> 06ffe73b031d77b2587aacef69cae46a418f3c98
   }
+  volumeInc = 16 ;
+  vMin = volumeInc ;
+  vMax = 128 - volumeInc ;
+  volume = 64 ;
   buttonNbOn = 0;
 }
+<<<<<<< HEAD
 void buttonPotar(T_button *b) {
 #ifdef DEBUGMODE
    prt("button#");
@@ -267,11 +292,43 @@ void buttonPotar(T_button *b) {
       break ;
     case 3 :
       vPotar -= POTAR_INC ;
+=======
+void buttonPotar(uint8_t nr) {
+  switch(nr) {
+    case 2 :
+      if ((button[0].state > 0) && (button[1].state > 0)) {
+        if (vMin >= volumeInc) vMin -= volumeInc ;
+        vMax = 128 - vMin ; ;
+        ledSet(vMax, 0) ;
+      }
+      else {
+        if ( volume < (127 - volumeInc)) {
+          volume += volumeInc ;
+          midiControl(7, volume);
+        }
+        ledSet(volume, 0) ;
+      }
+      break ;
+    case 3 :
+      if ((button[0].state > 0) && (button[1].state > 0)) {
+        if (vMin <= (64 - volumeInc ))  vMin += volumeInc ;
+        vMax = 128 - vMin ;
+        ledSet(vMax, 0) ;
+      }
+      else {
+        if ( volume > (1 + volumeInc)) {
+          volume -= volumeInc ;
+          midiControl(7, volume);
+        }
+        ledSet(volume, 0) ;
+      }
+>>>>>>> 06ffe73b031d77b2587aacef69cae46a418f3c98
       break ;
     default : 
       return ;
       break ;
   }
+<<<<<<< HEAD
   if ( vPotar < POTAR_MIN)
       vPotar = POTAR_MIN ;
   if ( vPotar > POTAR_MAX)
@@ -281,6 +338,8 @@ void buttonPotar(T_button *b) {
    prt("vPotar=");
    prtln(vPotar);
 #endif
+=======
+>>>>>>> 06ffe73b031d77b2587aacef69cae46a418f3c98
 }
 void buttonProcess() {
   uint8_t nr;
@@ -295,7 +354,11 @@ void buttonProcess() {
         if (digitalRead(b->pin) == LOW) {
           b->state = 1;
           midiNote(nr + 1, 127);
+<<<<<<< HEAD
           buttonPotar(b);
+=======
+          buttonPotar(nr);
+>>>>>>> 06ffe73b031d77b2587aacef69cae46a418f3c98
           b->ftv0 = buttonSince;
           ledOnboardFlash();
         }
@@ -327,6 +390,44 @@ void buttonProcess() {
     buttonSince = 0;
 }
 
+<<<<<<< HEAD
+=======
+//////////
+// potar
+//////////
+void potarInit() {
+  pinMode(potarPin0, INPUT_DISABLE);
+  pinMode(potarPin1, INPUT_DISABLE);
+  potarV0 = 0;
+  potarV1 = 0;
+  vMin = 1;
+  vMax = 127;
+  potarDynamicOn = true;
+}
+void potarDynamicSet() {
+  // calculate velocity range [0 < Vmin < Vmax < 128] according to volume and range cursor
+  unsigned long int volumeMax, volumeMin, p0, p1;
+  p0 = potarV0;
+  p1 = potarV1;
+  
+  volumeMax = p0;
+  volumeMin = p1 * p0 / 127;
+  if (volumeMin < 5)
+    vMin = 5;
+  else if (volumeMin > 125)
+    vMin = 125;
+  else
+    vMin = volumeMin;
+  if (volumeMax < 15)
+    vMax = 15;
+  else if (volumeMax > 127)
+    vMax = 127;
+  else
+    vMax = volumeMax;
+
+}
+
+>>>>>>> 06ffe73b031d77b2587aacef69cae46a418f3c98
 ////////////
 // optical
 ////////////
@@ -610,5 +711,10 @@ void loop() {
     ledShow();
     // led onboard
     ledOnboardProcess();
+<<<<<<< HEAD
+=======
+    // transmit Midi-in => S2-expander
+    s2Process();
+>>>>>>> 06ffe73b031d77b2587aacef69cae46a418f3c98
   }
 }
