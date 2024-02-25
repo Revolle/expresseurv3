@@ -5,7 +5,7 @@
 #define prt Serial.print
 #define prtln Serial.println
 
-//#define DEBUGMODE 3
+#define DEBUGMODE 3
 #define PINLED 13
 
 
@@ -26,7 +26,8 @@ struct T_optical {
   bool opticalHappen;              // true if an optical event has bee trigerred
 };
 T_optical optical[opticalNb];  // optical buttons
-unsigned long int vMin, vMax;                        // min max of note-on velocity
+#define VMIN 10.0
+#define VMAX 120.0
 uint8_t opticalPin[opticalNb] = { A4, A3, A2 };  // analog pins for the optical button
 void opticalAdcPreset(T_optical *o);
 unsigned long int precisionMax, precisionMin;
@@ -34,26 +35,29 @@ elapsedMicros opticalSince;  // timer to measure the slope
 
 // buttons
 #define buttonNb 4  // nb button
-#define buttonMidiNb 2 // nb button for Midi event
 struct T_button {
   uint8_t nr;
   uint8_t pin;    // logical pin to read
   uint8_t state;  // state of the button
-  uint8_t vPotar ;
   unsigned long int ftv0;
 };
 T_button button[buttonNb];
 uint8_t buttonNbOn;
-uint8_t buttonPin[buttonNb] = { 7, 6 , 1 , 0 };  // digital pin for buttons
+uint8_t buttonPin[buttonNb] = {10, 6,7  , 9 };  // digital pin for buttons
 elapsedMillis buttonSince;
 
 // led
 #define ledNb 2                         // nb led
-uint8_t ledPin[ledNb] = { 10, 9 };  // digital pins for the led
+uint8_t ledPin[ledNb] = { 14, 15 };  // digital pins for the led
 uint8_t ledChannelOn;                   // reminder of the ledChannel which switched on the leds
 uint8_t ledValue, ledFormerValue;       // value of the led bargraph
 
 // potar
+#define POTAR_INC 32
+#define POTAR_MAX 120
+#define POTAR_MIN 10
+int vPotar ;
+
 #define potarNb 0
 #define potarPin0 A1
 #define potarPin1 A0
@@ -201,15 +205,12 @@ void ledFlash(uint8_t d) {
   uint8_t nr;
   for (nr = 0; nr < 10; nr++) {
     digitalWrite(PINLED, HIGH);
-    analogWrite(ledPin[2], 0);
+    analogWrite(ledPin[1], 0);
     analogWrite(ledPin[0], 255);
     delay(d);
     digitalWrite(PINLED, LOW);
     analogWrite(ledPin[0], 0);
     analogWrite(ledPin[1], 255);
-    delay(d);
-    analogWrite(ledPin[1], 0);
-    analogWrite(ledPin[2], 255);
     delay(d);
   }
   for (nr = 0; nr < ledNb; nr++)
@@ -251,26 +252,35 @@ void buttonInit() {
     b->pin = buttonPin[i];
     pinMode(b->pin, INPUT_PULLUP);
     b->state = 0;
-    b->vPotar = 64 ;
+    vPotar = 64 ;
   }
   buttonNbOn = 0;
 }
 void buttonPotar(T_button *b) {
+#ifdef DEBUGMODE
+   prt("button#");
+   prtln(b->nr);
+#endif
   switch(b->nr) {
     case 2 :
-      b->vPotar += POTAR_INC ;
+      vPotar += POTAR_INC ;
       break ;
     case 3 :
-      b->vPotar -= POTAR_INC ;
+      vPotar -= POTAR_INC ;
       break ;
     default : 
+      return ;
       break ;
   }
-  if ( b->vPotar < POTAR_MIN)
-      b->vPotar = POTAR_MIN ;
-  if ( b->vPotar > POTAR_MAX)
-      b->vPotar = POTAR_MAX ;
-  midiControl(7, b->vpotar);
+  if ( vPotar < POTAR_MIN)
+      vPotar = POTAR_MIN ;
+  if ( vPotar > POTAR_MAX)
+      vPotar = POTAR_MAX ;
+  midiControl(7, vPotar);
+#ifdef DEBUGMODE
+   prt("vPotar=");
+   prtln(vPotar);
+#endif
 }
 void buttonProcess() {
   uint8_t nr;
@@ -284,31 +294,26 @@ void buttonProcess() {
       case 0:
         if (digitalRead(b->pin) == LOW) {
           b->state = 1;
-          if ( nr < buttonMidiNb)
-            midiNote(nr + 1, 127);
-          else
-            buttonPotar(b);
+          midiNote(nr + 1, 127);
+          buttonPotar(b);
           b->ftv0 = buttonSince;
           ledOnboardFlash();
         }
         break;
       case 1:
-        if ((buttonSince - b->ftv0) > 50)  // ms
+        if ((buttonSince - b->ftv0) > 250)  // ms
           b->state = 2;
         break;
       case 2:
         if (digitalRead(b->pin) == HIGH) {
           b->state = 3;
-          if ( nr < buttonMidiNb )
-            midiNote(nr + 1, 0);
-          else
-            buttonPotar(b);
+          midiNote(nr + 1, 0);
           b->ftv0 = buttonSince;
           ledOnboardFlash();
         }
         break;
       case 3:
-        if ((buttonSince - b->ftv0) > 50)  // ms
+        if ((buttonSince - b->ftv0) > 250)  // ms
           b->state = 0;
         break;
       default:
@@ -320,113 +325,6 @@ void buttonProcess() {
   }
   if (buttonNbOn == 0)
     buttonSince = 0;
-}
-
-//////////
-// potar
-//////////
-void potarInit() {
-  pinMode(potarPin0, INPUT_DISABLE);
-  pinMode(potarPin1, INPUT_DISABLE);
-  potarV0 = 0;
-  potarV1 = 0;
-  vMin = 1;
-  vMax = 127;
-  potarDynamicOn = true;
-}
-void potarDynamicSet() {
-  // calculate velocity range [0 < Vmin < Vmax < 128] according to volume and range cursor
-  unsigned long int volumeMax, volumeMin, p0, p1;
-  p0 = potarV0;
-  p1 = potarV1;
-  
-  volumeMax = p0;
-  volumeMin = p1 * p0 / 127;
-  if (volumeMin < 5)
-    vMin = 5;
-  else if (volumeMin > 125)
-    vMin = 125;
-  else
-    vMin = volumeMin;
-  if (volumeMax < 15)
-    vMax = 15;
-  else if (volumeMax > 127)
-    vMax = 127;
-  else
-    vMax = volumeMax;
-
-}
-void potarSet() {
-  if ((buttonNbOn > 0) && (potarDynamicOn)) {
-    // if a button is pressed while potar changes : potar will be used for MIDI Control
-    potarDynamicOn = false;
-    ledFlash(10);
-  }
-  if ((buttonNbOn == buttonNb) && (! potarDynamicOn)) {
-    // if all buttons are pressed  while potar changes : potar will be used in (default) keyboard dynamic setting
-    potarDynamicOn = true;
-    ledFlash(10);
-  }
-  if (potarDynamicOn) {
-    // keyboard dynamic setting
-    potarDynamicSet();
-    return;
-  }
-  if (buttonNbOn == 0) {
-    // control change without button selection
-    midiControl(14, potarV0);
-    midiControl(15, potarV1);
-    return;
-  }
-  T_button *b;
-  uint8_t nr;
-  for (nr = 0, b = button; nr < buttonNb; nr++, b++) {
-    if (b->state > 0) {
-      // control change with button selection
-      midiControl(14 + (nr + 1) * 2, potarV0);
-      midiControl(15 + (nr + 1) * 2, potarV1);
-      return;
-    }
-  }
-}
-void potarAdcPreset() {
-  // preset adc for the two potars
-  adc->adc0->startSingleRead(potarPin0);
-  adc->adc1->startSingleRead(potarPin1);
-  adcState = adcPotar;
-}
-void potarProcess() {
-  // read potars [1..127], and set range according to
-  uint8_t v0, v1;
-  bool err = false;
-  if (adcState != adcPotar)
-    err = true;
-  if (!(adc->adc0->isConverting() || adc->adc0->isComplete()))
-    err = true;
-  if (!(adc->adc1->isConverting() || adc->adc1->isComplete()))
-    err = true;
-  if (err) {
-    potarAdcPreset();  // error in preset ADC ...!!!
-#ifdef DEBUGMODE
-    prtln("Error potarAdcPreset");
-#endif
-  }
-  while (!adc->adc0->isComplete())
-    ;
-  v0 = (adc->adc0->readSingle()) >> 1;  // 8bits => 7 bits
-  while (!adc->adc1->isComplete())
-    ;
-  v1 = (adc->adc1->readSingle()) >> 1;  // 8bits => 7 bits
-
-  // preset the ADC for the optical buttons
-  opticalAdcPreset(optical);
-
-  if ((abs(v0 - potarV0) > 4) || (abs(v1 - potarV1) > 4)) {
-    ledOnboardFlash();
-    potarV0 = v0;
-    potarV1 = v1;
-    potarSet();
-  }
 }
 
 ////////////
@@ -555,10 +453,14 @@ void opticalMsgOn(T_optical *o) {
       }
     }
   }
-  v = vMin + (o->slope - SLOPEMIN) * (vMax - vMin) / (SLOPEMAX - SLOPEMIN);
+  v = VMIN + (o->slope - SLOPEMIN) * (VMAX - VMIN) / (SLOPEMAX - SLOPEMIN);
 #if DEBUGMODE > 2
   prt("slope=");
+  prt(SLOPEMIN,8);
+  prt("..");
   prt(o->slope,8);
+  prt("..");
+  prt(SLOPEMAX,8);
   prt(" / ");
   prtln(o->fnb);
 #endif
@@ -686,15 +588,14 @@ void adcInit() {
 }
 ////////////
 void setup() {
+
   ledOnboardInit();
   ledInit();
   ledFlash(80);
 
   adcInit();
-  //potarInit();
   buttonInit();
   opticalInit();
-  s2Init();
   since = 0;  // ms
   ledFlash(20);
 }
@@ -703,17 +604,11 @@ void setup() {
 void loop() {
   if (!opticalProcess()) {
     // no optical slope-measurement in progress
-    // preset adc for the potar
-    //potarAdcPreset();
     // process buttons
     buttonProcess();
     // show the bargraph on the leds
     ledShow();
     // led onboard
     ledOnboardProcess();
-    // process potar (volume/range)
-    //potarProcess();
-    // transmit Midi-in => S2-expander
-    s2Process();
   }
 }
