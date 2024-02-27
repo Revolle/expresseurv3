@@ -8,44 +8,43 @@
 #define DEBUGMODE 3
 #define PINLED 13
 
-// optical
+// optical button
 #define opticalNb 3  // nb optical button
-#define SLOPEMIN 0.0001
-#define SLOPEMAX 0.025
+#define SLOPEMIN 0.0001 // slope for minimum velocity
+#define SLOPEMAX 0.025 // slope for maximum velocity
 struct T_optical {
   uint8_t nr;             // incremntal number of the optical button
   uint8_t pin;            // analog pin to read ( 3.1V max )
   uint8_t v;              // value of the analog read 8 bits
+  uint8_t triggerMin, triggerMax;  // min max of the trigger applied on v
   unsigned long int ftv;  // time of the analog convertion
-  unsigned long int ftv0;
-  float sumt , sumv , sumtv , sumt2 , fnb , slope ; // linear regression
+  unsigned long int ftv0; // time of the beginning of the press
+  float sumt , sumv , sumtv , sumt2 , fnb , slope ; // linear regression for the slope
   uint8_t state;                   // state of the optical button
   uint8_t pitch;                   // pitch sent on midiOn
-  uint8_t triggerMin, triggerMax;  // min max of the trigger to measure
-  bool opticalHappen;              // true if an optical event has bee trigerred
 };
 T_optical optical[opticalNb];  // optical buttons
 uint8_t opticalPin[opticalNb] = { A4, A3, A2 };  // analog pins for the optical button
 void opticalAdcPreset(T_optical *o);
 elapsedMicros opticalSince;  // timer to measure the slope
-float veloMin ;
+float veloMin = 10.0 ; // velocity minimum ( velocity maximum = 128 - veloMin)
 
-// buttons
+// mechanical button
 #define buttonNb 4  // nb button
 struct T_button {
-  uint8_t nr;
-  uint8_t pin;    // logical pin to read
+  uint8_t nr;     // incremntal number of the mechanical button
+  uint8_t pin;    // digital pin to read
   uint8_t state;  // state of the button
-  unsigned long int ftv0;
+  unsigned long int ftv0; // time of the beginning of the press
 };
-T_button button[buttonNb];
-uint8_t buttonPin[buttonNb] = {10, 6,7  , 9 };  // digital pin for buttons
-elapsedMillis buttonSince;
-#define VMIN 16
-#define VMAX (128-VMIN)
-#ddefine VMID (128/2)
-#define VINC VMIN
-int volume ;
+T_button button[buttonNb]; // mechanical buttons
+uint8_t buttonPin[buttonNb] = {10, 6,7  , 9 };  // digital pin for mechanical buttons
+elapsedMillis buttonSince; // timer to measure the states
+#define VMIN 16 // volume min
+#define VMAX (128-VMIN) // volume max
+#ddefine VMID (128/2) // volume medium
+#define VINC 16 // increment of the volume by the mechanical buttons 2 3
+int volume = VMID ; // volume tuned-sent by the two mechanical buttons 2 3
 
 // led
 #define ledNb 2                         // nb led
@@ -57,21 +56,15 @@ uint8_t adcState;  // state of presets in the ADC
 enum ADCSTATE { adcNothing,
                 adcOptical };  // ends with adcOptical !!
 
-// Midi messages for S2
-uint8_t midiBuf[5];
-uint8_t midiType, midiLen;
-uint8_t midiJingle[] = { 66, 68, 71, 76, 75, 71, 73, 0 }; // midi pitch to play : ends with zero !!!
+ADC *adc = new ADC(); // analog to digital converter
 
-// analog to digital converter
-ADC *adc = new ADC();
+elapsedMillis sinceOnboardLed; // time elapsed for the onboard led
 
-// time elapsed
-elapsedMillis sinceOnboardLed;
+#define MidiChannelOut 1 // channel MIDI used for output
 
-#define MidiChannelOut 1
 
-#define CONF_MAGIC 20
-#define CONF_ADDR_VMIN 4
+#define CONF_MAGIC 20 // key to detect if EEPROM has been set
+#define CONF_ADDR_VMIN 4 // address EEPROM for the VMIN setting
 
 ///////////////
 // read conf from EEPROM
@@ -131,30 +124,52 @@ void ledShow() {
   if (ledFormerValue == ledValue)
     return;
   ledFormerValue = ledValue;
+#ifdef DEBUGMODE
+   prt("led=");
+   prt(ledValue);
+#endif
   uint8_t nr;
   if (ledValue == 0) {
     for (nr = 0; nr < ledNb; nr++)
       analogWrite(ledPin[nr], 0);
+#ifdef DEBUGMODE
+   prtln(" off");
+#endif
     return;
   }
-  float fv = (float)(ledValue - 5) / (127.0 + 127.0 / 3) ;
-  float fn = (float)(ledNb);
-  float fi, fl;
-  int il;
-#define flmin 1.0
-#define flmax 200.0
-  for (nr = 0, fi = 0.0; nr < ledNb; nr++, fi += 1.0) {
-    il = 0;
-    if ((fv > ((fi - 1) / fn)) && (fv < ((fi + 1) / fn))) {
-      if (fv < (fi / fn))
-        fl = flmin + (flmax - flmin) * (pow(fv * fn - fi + 1.0, 2));
-      else
-        fl = flmax + (flmin - flmax) * (pow(fv * fn - fi, 0.5));
-      il = (int)(fl);
-    }
-    if (il < 0) il = 0;
-    if (il > 255) il = 255;
-    analogWrite(ledPin[nr], il);
+  float fv = ledValue ;
+  float fled ;
+  int iled ;
+  float flim ;
+  flim = 127.0 * 2.0 / 3.0 ;
+  if (fv < flim ) {
+    fled = 255.0 * pow ((fv  - flim ) / ( 127.0 - flim )  , 2 ) ;
+    analogWrite(ledPin[0], fled);
+#ifdef DEBUGMODE
+   prt(" led#0=");
+   prtln((int)fled);
+#endif
+  }
+  else {
+#ifdef DEBUGMODE
+   prt("led#0=off");
+#endif
+    analogWrite(ledPin[0], 0);
+  }
+  flim = 127.0 * 1.0 / 3.0 ;
+  if (fv > flim ) {
+    fled = 255.0 * pow ((fv  - flim ) / ( 127.0 - flim )  , 2 ) ;
+    analogWrite(ledPin[1], fled);
+#ifdef DEBUGMODE
+   prt(" led#1=");
+   prtln((int)fled);
+#endif
+  }
+  else {
+#ifdef DEBUGMODE
+   prt("led#1=off");
+#endif
+    analogWrite(ledPin[1], 0);
   }
 }
 void ledAlert() {
@@ -249,6 +264,10 @@ bool shiftButton = false ;
     if ( veloMin > 64.0)
         veloMin = 64.0  ;
     confWrite();
+#ifdef DEBUGMODE
+     prt("veloMin=");
+     prtln(veloMin);
+#endif
   }
   else {
     if ( volume < VMIN)
@@ -553,12 +572,13 @@ void adcInit() {
   adcState = adcNothing;
 }
 ////////////
+// SETUP
+///////////
 void setup() {
   confRead();
   ledOnboardInit();
   ledInit();
-  ledFlash(80);
-
+  
   adcInit();
   buttonInit();
   opticalInit();
@@ -567,6 +587,8 @@ void setup() {
 }
 
 ///////////
+// LOOP
+//////////
 void loop() {
   if (!opticalProcess()) {
     // no optical slope-measurement in progress
