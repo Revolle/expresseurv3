@@ -5,7 +5,8 @@
 #define prt Serial.print
 #define prtln Serial.println
 
-#define DEBUGMODE 3
+//#define DEBUGMODE 3
+
 #define PINLED 13
 
 // optical button
@@ -42,9 +43,10 @@ uint8_t buttonPin[buttonNb] = {10, 6,7  , 9 };  // digital pin for mechanical bu
 elapsedMillis buttonSince; // timer to measure the states
 #define VMIN 16 // volume min
 #define VMAX (128-VMIN) // volume max
-#ddefine VMID (128/2) // volume medium
+#define VMID (128/2) // volume medium
 #define VINC 16 // increment of the volume by the mechanical buttons 2 3
 int volume = VMID ; // volume tuned-sent by the two mechanical buttons 2 3
+int volumeOld = volume ; //mem of the volume in case of shift button 2 & 3
 
 // led
 #define ledNb 2                         // nb led
@@ -81,7 +83,6 @@ void confRead() {
   veloMin = EEPROM.read(CONF_ADDR_VMIN) ;
 }
 void confWrite() {
-  byte value ;
   for(uint8_t i = 0 ; i < CONF_ADDR_VMIN ; i++ ) 
     EEPROM.write(i,CONF_MAGIC) ;
   EEPROM.write(CONF_ADDR_VMIN,(byte)(veloMin)) ;
@@ -139,11 +140,10 @@ void ledShow() {
   }
   float fv = ledValue ;
   float fled ;
-  int iled ;
   float flim ;
   flim = 127.0 * 2.0 / 3.0 ;
   if (fv < flim ) {
-    fled = 255.0 * pow ((fv  - flim ) / ( 127.0 - flim )  , 2 ) ;
+    fled = 200.0 * pow ((fv  - flim ) / ( 127.0 - flim )  , 2 ) ;
     analogWrite(ledPin[0], fled);
 #ifdef DEBUGMODE
    prt(" led#0=");
@@ -230,6 +230,7 @@ void buttonInit() {
     b->state = 0;
   }
   volume = VMID ;
+  volumeOld = volume ;
 }
 void buttonVolume(T_button *b) {
 #ifdef DEBUGMODE
@@ -264,10 +265,13 @@ bool shiftButton = false ;
     if ( veloMin > 64.0)
         veloMin = 64.0  ;
     confWrite();
+    ledSet(veloMin*2, 0);
 #ifdef DEBUGMODE
      prt("veloMin=");
      prtln(veloMin);
 #endif
+    volume = volumeOld ;
+    midiControl(7,volume);
   }
   else {
     if ( volume < VMIN)
@@ -275,6 +279,8 @@ bool shiftButton = false ;
     if ( volume > VMAX)
         volume = VMAX ;
     midiControl(7, volume);
+    volumeOld = volume ;
+    ledSet(volume, 0);
 #ifdef DEBUGMODE
      prt("volume=");
      prtln(volume);
@@ -432,8 +438,12 @@ void opticalInit() {
 }
 void opticalMsgOn(T_optical *o) {
   // send notOn with calculated velocity
-  float v;
+  int v;
   o->pitch = o->nr + buttonNb + 1;
+  if (button[0].state > 0)
+    o->pitch += opticalNb;
+  if (button[1].state > 0)
+    o->pitch += 2*opticalNb;
   v = veloMin + (o->slope - SLOPEMIN) * ((128.0 - veloMin) - veloMin) / (SLOPEMAX - SLOPEMIN);
 #if DEBUGMODE > 2
   prt("slope=");
@@ -582,7 +592,7 @@ void setup() {
   adcInit();
   buttonInit();
   opticalInit();
-  since = 0;  // ms
+  sinceOnboardLed = 0;  // ms
   ledFlash(20);
 }
 
