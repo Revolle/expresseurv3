@@ -29,6 +29,7 @@ uint8_t opticalPin[opticalNb] = { A4, A3, A2 };  // analog pins for the optical 
 void opticalAdcPreset(T_optical *o);
 elapsedMicros opticalSince;  // timer to measure the slope
 float veloMin = 10.0 ; // velocity minimum ( velocity maximum = 128 - veloMin)
+float veloCurve = 0.5 ; // velocity curve 
 
 // mechanical button
 #define buttonNb 4  // nb button
@@ -45,6 +46,9 @@ elapsedMillis buttonSince; // timer to measure the states
 #define VMAX (128-VMIN) // volume max
 #define VMID (128/2) // volume medium
 #define VINC 16 // increment of the volume by the mechanical buttons 2 3
+#define CURVEINC 0.2 // increment for the tuning of the velocity curve
+#define CURVEMIN 0.4
+#define CURVEMAX 1.5
 int volume = VMID ; // volume tuned-sent by the two mechanical buttons 2 3
 int volumeOld = volume ; //mem of the volume in case of shift button 2 & 3
 
@@ -81,11 +85,13 @@ void confRead() {
     }
   }
   veloMin = EEPROM.read(CONF_ADDR_VMIN) ;
+  EEPROM.get(CONF_ADDR_VMIN+1,veloCurve);
 }
 void confWrite() {
   for(uint8_t i = 0 ; i < CONF_ADDR_VMIN ; i++ ) 
     EEPROM.write(i,CONF_MAGIC) ;
   EEPROM.write(CONF_ADDR_VMIN,(byte)(veloMin)) ;
+  EEPROM.put(CONF_ADDR_VMIN+1,veloCurve);
 }
 
 ///////////////
@@ -237,43 +243,72 @@ void buttonVolume(T_button *b) {
    prt("button#");
    prtln(b->nr);
 #endif
-bool shiftButton = false ;
+uint8_t shiftButton = 0 ;
   switch(b->nr) {
     case 2 :
-      if (button[3].state > 0) {
+      if ((button[3].state > 0) && ((button[0].state == 0)) {
         veloMin += VINC ;
-        shiftButton = true ;
+        shiftButton = 1 ;
       }
-      else
-        volume += VINC ;
+      else {
+        if ((button[3].state > 0) && ((button[0].state > 0)) {
+          veloCurve += CURVEINC ;
+          shiftButton = 2 ;
+        }
+        else
+          volume += VINC ;
+      }
       break ;
     case 3 :
-      if (button[2].state > 0) {
+      if ((button[2].state > 0) && ((button[0].state == 0)) {
         veloMin -= VINC ;
-        shiftButton = true ;
+        shiftButton = 1 ;
       }
-      else
-        volume -= VINC ;
+      else {
+        ((button[2].state > 0) && ((button[0].state > 0)) {
+          veloCurve -= CURVEINC ;
+          shiftButton = 2 ;
+        }
+        else
+          volume -= VINC ;
+      }
       break ;
     default : 
       return ;
       break ;
   }
-  if ( shiftButton ) {
-    if ( veloMin < VMIN)
-        veloMin = VMIN ;
-    if ( veloMin > 64.0)
-        veloMin = 64.0  ;
-    confWrite();
-    ledSet(veloMin*2, 0);
+  switch ( shiftButton ) {
+    case 1 :
+      if ( veloMin < VMIN)
+          veloMin = VMIN ;
+      if ( veloMin > 64.0)
+          veloMin = 64.0  ;
+      confWrite();
+      ledFlash(20);
+      ledSet(veloMin*2, 0);
 #ifdef DEBUGMODE
-     prt("veloMin=");
-     prtln(veloMin);
-#endif
-    volume = volumeOld ;
-    midiControl(7,volume);
-  }
-  else {
+       prt("veloMin=");
+       prtln(veloMin);
+ #endif
+      volume = volumeOld ;
+      midiControl(7,volume);
+      break;
+    case 2 :
+      if ( veloCurve < CURVEMIN)
+          veloCurve = CURVEMIN ;
+      if ( veloCurve > CURVEMAX)
+          veloCurve = CURVEMAX  ;
+      confWrite();
+      ledFlash(40);
+      ledSet((int)((veloCurve-CURVEMIN)*256.0/(CURVEMAX-CURVEMIN)), 0);
+#ifdef DEBUGMODE
+       prt("veloCurve=");
+       prtln(veloCurve);
+ #endif
+      volume = volumeOld ;
+      midiControl(7,volume);
+      break;
+default :
     if ( volume < VMIN)
         volume = VMIN ;
     if ( volume > VMAX)
@@ -285,6 +320,7 @@ bool shiftButton = false ;
      prt("volume=");
      prtln(volume);
 #endif
+    break ;
   }
 }
 void buttonProcess() {
@@ -444,7 +480,7 @@ void opticalMsgOn(T_optical *o) {
     o->pitch += opticalNb;
   if (button[1].state > 0)
     o->pitch += 2*opticalNb;
-  v = veloMin + (o->slope - SLOPEMIN) * ((128.0 - veloMin) - veloMin) / (SLOPEMAX - SLOPEMIN);
+  v = veloMin + ((128.0 - veloMin) - veloMin) * pow(((o->slope - SLOPEMIN) *  / (SLOPEMAX - SLOPEMIN)),veloCurve) ;
 #if DEBUGMODE > 2
   prt("slope=");
   prt(veloMin,1);
