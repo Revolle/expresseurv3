@@ -28,8 +28,11 @@ T_optical optical[opticalNb];  // optical buttons
 uint8_t opticalPin[opticalNb] = { A4, A3, A2 };  // analog pins for the optical button
 void opticalAdcPreset(T_optical *o);
 elapsedMicros opticalSince;  // timer to measure the slope
-float veloMin = 10.0 ; // velocity minimum ( velocity maximum = 128 - veloMin)
-float veloCurve = 0.5 ; // velocity curve 
+float veloMin = 10.0 ; // velocity minimum ( velocity maximum = 128 - veloMin) : :  can be changed by CTRL-CHG-2-value[0.127]
+#define CURVEMIN 0.4
+#define CURVEMAX 1.5
+#define CURVEINC 0.2 // increment for the tuning of the velocity curve
+float veloCurve = 0.5 ; // velocity curve [CURVEMIN..CURVEMAX] :  can be changed by CTRL-CHG-3-value[0.127]
 
 // mechanical button
 #define buttonNb 4  // nb button
@@ -46,9 +49,6 @@ elapsedMillis buttonSince; // timer to measure the states
 #define VMAX (128-VMIN) // volume max
 #define VMID (128/2) // volume medium
 #define VINC 16 // increment of the volume by the mechanical buttons 2 3
-#define CURVEINC 0.2 // increment for the tuning of the velocity curve
-#define CURVEMIN 0.4
-#define CURVEMAX 1.5
 int volume = VMID ; // volume tuned-sent by the two mechanical buttons 2 3
 int volumeOld = volume ; //mem of the volume in case of shift button 2 & 3
 
@@ -68,6 +68,9 @@ elapsedMillis sinceOnboardLed; // time elapsed for the onboard led
 
 #define MidiChannelOut 1 // channel MIDI used for output
 
+uint8_t midiBuf[5];
+uint8_t midiType, midiLen;
+uint8_t midiJingle[] = {0} ; // { 66, 68, 71, 76, 75, 71, 73, 0 }; // midi pitch to play at the init : ends with zero !!!
 
 #define CONF_MAGIC 20 // key to detect if EEPROM has been set
 #define CONF_ADDR_VMIN 4 // address EEPROM for the VMIN setting
@@ -89,8 +92,8 @@ void confRead() {
 }
 void confWrite() {
   for(uint8_t i = 0 ; i < CONF_ADDR_VMIN ; i++ ) 
-    EEPROM.write(i,CONF_MAGIC) ;
-  EEPROM.write(CONF_ADDR_VMIN,(byte)(veloMin)) ;
+    EEPROM.update(i,CONF_MAGIC) ;
+  EEPROM.update(CONF_ADDR_VMIN,(byte)(veloMin)) ;
   EEPROM.put(CONF_ADDR_VMIN+1,veloCurve);
 }
 
@@ -205,6 +208,59 @@ void ledInit() {
   ledValue = 0;
   for (nr = 0; nr < ledNb; nr++)
     analogWrite(ledPin[nr], 0);
+}
+
+// MIDI-thru USB => S2
+//////////////////////
+void s2Process() {
+  // forward MIDI-in/USB to MIDI/S2
+  if (usbMIDI.read()) {
+    ledOnboardFlash();
+    midiType = usbMIDI.getType();
+    midiLen = 3;
+    midiBuf[0] = (midiType & 0xF0 ) | (usbMIDI.getChannel() - 1);
+    midiBuf[1] = usbMIDI.getData1();
+    midiBuf[2] = usbMIDI.getData2();
+    switch (midiType) {
+      case usbMIDI.SystemExclusive:  // sysex
+        Serial1.write(usbMIDI.getSysExArray(), usbMIDI.getSysExArrayLength());
+        break;
+      case usbMIDI.ProgramChange:  // PROG is only two bytes
+        midiLen = 2;
+      case usbMIDI.ControlChange: // catch some control change for internal settings
+        switch (midiBuf[1]){
+          case 2 :
+            veloMin = midiBuf[2] /2 ;
+            confWrite();
+            return ;
+          case 3 :
+            veloCurve = CURVEMIN + (CURVEMAX - CURVEMIN) * (float)(midiBuf[2]) / 128.0 ;
+            confWrite();
+            return;
+          default :
+            break ;
+        }
+      default:
+        // all Midi messages are sent on the S2-midi-expander
+        midiBuf[0] = (midiType & 0xF0 ) | (usbMIDI.getChannel() - 1);
+        midiBuf[1] = usbMIDI.getData1();
+        midiBuf[2] = usbMIDI.getData2();
+        Serial1.write(midiBuf, midiLen);
+        break;
+    }
+void s2Jingle(uint8_t *p , uint8_t dt) {
+  uint8_t *n;
+  n = p;
+  while (*n != 0) {
+    s2Note(*n,64);
+    delay(dt);
+    s2Note(*n,0);
+    n ++ ;
+  }
+}
+void s2Init() {
+  Serial1.begin(31250);
+  s2Jingle(midiJingle, 200);
 }
 
 void midiNote(uint8_t p, uint8_t v) {
@@ -626,6 +682,7 @@ void setup() {
   ledInit();
   
   adcInit();
+  s2Init();
   buttonInit();
   opticalInit();
   sinceOnboardLed = 0;  // ms
@@ -644,5 +701,7 @@ void loop() {
     ledShow();
     // led onboard
     ledOnboardProcess();
+    // transmit Midi-in => S2-expander
+    s2Process();
   }
 }
