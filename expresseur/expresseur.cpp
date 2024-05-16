@@ -406,7 +406,7 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	menuEditMode = editMenu->AppendCheckItem(wxID_EDIT, _("Edit\tCtrl+E"), _("Allow text change. Else, keystrokes are used for shortcuts"));
 	editMenu->AppendSeparator();
 	editMenu->Append(ID_MAIN_MIXER, _("Mixer\tCTRL+M"));
-	editMenu->Append(ID_MAIN_EXPRESSION, _("Expression"));
+	editMenu->Append(ID_MAIN_EXPRESSION, _("Expression\tCTRL+P"));
 	editMenu->AppendSeparator();
 	editMenu->Append(ID_MAIN_GOTO, _("Goto measure...\tCTRL+G"), _("Goto a measure in the score"));
 	editMenu->Append(ID_MAIN_PREVIOUS_PAGE, _("Previous page\tSHIFT+CTRL+UP"), _("Goto previous page of the score"));

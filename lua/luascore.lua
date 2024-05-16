@@ -296,8 +296,10 @@ function playEvent(velo_in,t , nrEvent, nrStart, nbStart ,dArpeggiate)
   
   if p <= 0 or p >= 127 or velo < 2 then return end
   
+  -- scale velocity out according t o velocity of the Event and score_nuance impact
   local min_velo_out = 1
   local max_velo_out = 128 
+  velo = 64 + (values["score_nuance"] * (velo - 64 )) / 128 
   if velo < 64 then
     min_velo_out = 1
     max_velo_out = 2 * velo
@@ -423,26 +425,35 @@ function memPos()
   collectgarbage("restart")
 end
 
-function E.play( t, bid, ch, typemsg, pitch, velo , param )
+function E.play( t, bid, ch, typemsg, pitch, velo , param , indexKey , medianeKey , whiteIndex ,  whiteMediane , black)
+  --   indexKey[1..n] : index of the picth within the range of the selector. 1 means the minimum of the range
+  --   medianeKey[-n/2..0..n/2] : index of the pitch within the the range of the selector. 0 means the middle of the range
+  --   whiteIndex : idem indexKey, but taking in account only "white keys"
+  --   whiteMediane : idem medianeKey, but taking in account only "white keys"
+  --   black[0,1] : 0 means white key. 1 means black key.)
   --luabass.logmsg("play score bid="..bid.." velo="..velo.." param="..param)
   collectgarbage("stop")
   if nb_events == 0 then return end
+  
   local dArpeggiate = 0 
-  x,y,z = string.find((param or ""),"arp%a*[= ]*(%d+)")
-  if x then
-	dArpeggiate = math.tointeger(z)
+  local nVelo = velo
+  if velo > 0 then
+	  x,y,z = string.find((param or ""),"arp%a*[= ]*(%d+)")
+	  if x then
+		dArpeggiate = math.tointeger(z)
+	  end
   end
-
+  
   if (string.find((param or "") , "leg%a*" )) then
     -- always legato, noteOn up to next noteOn
-    if velo ~= 0 then
+    if nVelo ~= 0 then
 	    --luabass.logmsg("play score legato")
 	    noteOff_Event(legatobid)
 	    c_nrEvent_playing = { legatobid , c_nrEvent_noteOn }
-	    noteOn_Event(legatobid , velo , dArpeggiate  )
+	    noteOn_Event(legatobid , nVelo , dArpeggiate  )
     end 
   else
-	  if velo == 0 then
+	  if nVelo == 0 then
 	    -- noteoff
 	    --luabass.logmsg("play score noteoff#"..bid)
 	    noteOff_Event(bid)
@@ -450,7 +461,7 @@ function E.play( t, bid, ch, typemsg, pitch, velo , param )
 	    -- noteon
 	    c_nrEvent_playing = { bid , c_nrEvent_noteOn }
 	    --luabass.logmsg("lay score noteon#"..bid.." "..c_nrEvent_noteOn)
-	    noteOn_Event(bid , velo , dArpeggiate )
+	    noteOn_Event(bid , nVelo , dArpeggiate )
 	  end
   end
 end

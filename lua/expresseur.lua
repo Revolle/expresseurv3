@@ -188,6 +188,7 @@ values = {
   -- callFunction is used by GUI, through basslua. E.G to change MIDI parameters
   -- basslua, will add fields values[valueName]=value
   { name = "score_delay" , defaultValue=0 , help="Score play : delay between notes, in ms" },
+  { name = "score_nuance" , defaultValue=0 , help="Score play : dynamic of nuances written in the score" },
   { name = "chord_delay" , defaultValue=10 , help="Chord improvisation : delay between notes, in ms" },
   { name = "chord_decay" , defaultValue=40 , help="Chord improvisation : decay beween notes, 64 = no decay" },
   { name = "scale_delay" , defaultValue=0 , help="Scale improvisation : delay beween notes of the chord, in ms" },
@@ -735,7 +736,7 @@ actions = {
   {name="global/play note", callFunction = playNote ,help="play the midi event" },
   {name="global/main volume", callFunction = mainVolume  ,help="set main volume from parameter=value, or value from MIDI data-2" },
   {name="global/track volume", callFunction = trackVolume ,help="set track volume from parameter=track value, or value from MIDI data-2" },
-  {name="global/lua value", callFunction = setLuaValue  ,help="set lua vaue from parameter=luaname value, or value from MIDI data-2"},
+  {name="global/lua value", callFunction = setLuaValue  ,help="set lua value from parameter=luaname value, or value from MIDI data-2"},
   {name="global/previous file",  help="go to previous file of the list", callFunction = previousFile  },
   {name="global/next file", help="go to next file of the list", 
     callFunction = nextFile , icone = "next_file" },
