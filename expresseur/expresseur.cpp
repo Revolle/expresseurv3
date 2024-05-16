@@ -715,7 +715,7 @@ void Expresseur::OnCheckConfig(wxCommandEvent& WXUNUSED(event))
 }
 void Expresseur::OnHelpluashortcut(wxCommandEvent& WXUNUSED(event))
 {
-	wxLaunchDefaultBrowser("http://expresseur.com/home/user-guide/#keydown");
+	wxLaunchDefaultBrowser("https://expresseur.com/home/user-guide/#keydown");
 }
 void Expresseur::preClose()
 {
@@ -1935,7 +1935,7 @@ void Expresseur::OnMidishortcut(wxCommandEvent& WXUNUSED(event))
 void Expresseur::OnKeydowInfoLua(wxCommandEvent& WXUNUSED(event))
 {
 	editMode = true;
-	int retcode = wxMessageBox(_("To setup your keyboard disposal ( http://expresseur.com/home/user-guide/#keydown ) :\n\
+	int retcode = wxMessageBox(_("To setup your keyboard disposal ( https://expresseur.com/home/user-guide/#keydown ) :\n\
 - identifiy the 4 red lines of 10 keys which are approximatively  :\n\
       - the line of numbers 1 2 3 4 5 6 7 8 9 0\n\
       - three lines above, with letters and various signs (eg QWERTYUIOP, ...)\n\
@@ -2370,7 +2370,7 @@ void Expresseur::OnAbout(wxCommandEvent& WXUNUSED(event))
 }
 void Expresseur::OnHelp(wxCommandEvent& WXUNUSED(event)) 
 {
-	wxLaunchDefaultBrowser("http://www.expresseur.com");
+	wxLaunchDefaultBrowser("https://www.expresseur.com");
 }
 void Expresseur::CreateExpresseurV3()
 {
@@ -3014,7 +3014,7 @@ void Expresseur::checkUpdate(bool interactive)
 		get.SetTimeout(2);
 
 		// this will wait until the user connects to the internet. It is important in case of dialup (or ADSL) connections
-		if (!get.Connect(_T("www.expresseur.com")))
+		if (!get.Connect(_T("https://www.expresseur.com")))
 		{
 			get.Close();
 			return;// only the server, no pages here yet ...
@@ -3055,7 +3055,7 @@ void Expresseur::checkUpdate(bool interactive)
 					{
 						wxDELETE(httpStream);
 						get.Close();
-						wxLaunchDefaultBrowser("http://www.expresseur.com/update/");
+						wxLaunchDefaultBrowser("https://www.expresseur.com/update/");
 						return;
 					}
 				}
