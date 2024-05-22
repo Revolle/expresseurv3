@@ -4091,7 +4091,7 @@ wxArrayString  musicxmlcompile::getListOrnament()
 		case o_random_delay: s = s + "=50 -- in ms"; break;
 		case o_pedal_bar: s = s + "=64 -- add a pedal on each bar (=0 .. =127)"; break;
 		case o_pedal: s = s + "=64 -- add a pedal (=0 .. =127)"; break;
-		case o_lua: s = s + "=chord G7 -- =instrument piano(P1) =tune 415 =bendrange 2 =gm 2 =scale just G =scale arabian ..."; break;
+		case o_lua: s = s + "=trackvolume 1 80 -- =mainvolume 65 =chord G7 =instrument piano(P1) =tune 415 =bendrange 2 =gm 2 =scale just G =scale arabian ..."; break;
 		case o_text: s = s + "=remark -- text added in Expresseur part"; break;
 		case o_pianissimo: s = s + " -- pianissimo on part(s)"; break;
 		case o_piano:  s = s + " -- pianio on part(s)"; break ;

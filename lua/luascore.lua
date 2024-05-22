@@ -96,6 +96,16 @@ function applyLua(luastring,TrackNr)
     luachord.setChord(words[2])  
     return
   end
+  if cmd == "trackvolume" then -- trackvolume 80
+    if #words ~= 3 then return end
+    luabass.outSetTrackVolume(math.tointeger(words[3]) or 64,math.tointeger(words[2]) or 1)
+    return
+  end
+  if cmd == "mainvolume" then -- mainvolume 80
+    if #words ~= 2 then return end
+    luabass.outSetVolume(math.tointeger(words[2]) or 64 )
+    return
+  end
   if cmd == "instrument" then -- instrument myGuitar(P43)
     if #words ~= 2 then return end
     luabass.outSetTrackInstrument(words[2],TrackNr)
