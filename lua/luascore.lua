@@ -82,9 +82,11 @@ local noteOffStops = {}
 -- pseudo button id for legato
 local legatobid = 12532
 
-function applyLua(luastring,TrackNr)
+function applyLua(luastring,iTrackNr)
   -- the "Lua" string, set in an ornament, can be interpreted to do what needed here
   -- in this funtion, the syntax is set of words with space-delimiter
+  local TrackNr = iTrackNr or 1 
+  luabass.logmsg("lua" .. "@Track#" .. TrackNr .. "=" .. luastring)
   words={}
   for w in string.gmatch(luastring,"%g+") do
     table.insert(words,w)
@@ -97,8 +99,8 @@ function applyLua(luastring,TrackNr)
     return
   end
   if cmd == "trackvolume" then -- trackvolume 80
-    if #words ~= 3 then return end
-    luabass.outSetTrackVolume(math.tointeger(words[3]) or 64,math.tointeger(words[2]) or 1)
+    if #words ~= 2 then return end
+    luabass.outSetTrackVolume(math.tointeger(words[3]) or 64,TrackNr)
     return
   end
   if cmd == "mainvolume" then -- mainvolume 80
@@ -124,6 +126,36 @@ function applyLua(luastring,TrackNr)
       luabass.outTune(tonumber(words[2]),TrackNr)
     end
     return
+  end
+  if cmd == "control" then
+	if #words ~= 3 then return end
+	luabass.outControl(math.tointeger(words[2]) or 7,math.tointeger(words[3]) or 64, 0 , TrackNr)
+	return
+  end
+  if cmd == "program" then
+	if #words == 2 then 
+		luabass.outProgram(math.tointeger(words[2]) or 1,0,TrackNr)
+		return
+	end
+	if #words == 4 then
+		luabass.outProgram(math.tointeger(words[2]) or 1,0,TrackNr,math.tointeger(words[3]) or nil , math.tointeger(words[4]) or nil)
+		return
+	end
+	return
+  end
+  if cmd == "note" then
+	if #words < 2 then return end
+	if (math.tointeger(words[3]) or 64) == 0 then
+		luabass.outNoteOff(math.tointeger(words[2]) or 64,math.tointeger(words[3]) or 64, 0 , 0 , TrackNr )
+	else
+		luabass.outNoteOn(math.tointeger(words[2]) or 64,math.tointeger(words[3]) or 64, 0 , 0 , TrackNr )
+	end
+	return
+  end
+  if cmd == "sysex" then
+	if #words < 2 then return end
+	luabass.outSysex(table.concat (words , " " , 2 , #words))
+	return
   end
   if cmd == "gm" then
     if #words ~= 2 then return end
@@ -165,10 +197,6 @@ function applyLua(luastring,TrackNr)
       local ss = "F0 7E 7F 08 08 7F 7F 7F " .. table.concat(sto," ") .. " F7"
       luabass.outSysex(ss,TrackNr) 
     end
-  end
-  if cmd == "test" then -- bendrange 1
-     luabass.logmsg(table.concat(words," - "))
-    return
   end
 end
 

@@ -10,8 +10,8 @@ A
 PARTS :
 P1_chant:played/visible
 P2_Alto:played/visible
-P3_Ténor:played/visible
+P3_Tenor:played/visible
 P4_Bass:played/visible
 
 ORNAMENTS :
-1.1:divisions_per_quarter=4
+

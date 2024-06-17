@@ -308,6 +308,12 @@ function onNoteOff(deviceNr , timestamp, channel , pitch, velocity )
 		luabass.outNoteOff(pitch )
 	end
 end
+--[[
+function onControl(deviceNr , timestamp, channel , ccNr, ccValue )
+	-- echo a MidiIn Control-Change on first track
+	luabass.outControl(ccNr , ccValue )
+end
+--]]
 
 --========================= PC Keyboard shortcuts 
 -- disposal of the four lines of keyboard

@@ -1515,7 +1515,7 @@ void Expresseur::OnPlayviewAll(wxCommandEvent& WXUNUSED(event))
 }
 void Expresseur::selectPlayview(wxString s)
 {
-	wxString ts ;
+	wxString ts;
 	if (s.IsEmpty())
 	{
 		editMode = true;
