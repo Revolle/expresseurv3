@@ -119,6 +119,12 @@ function manual_test()
       next_chord = nil
     end
 
+    print("next next chord ? ")
+    next_next_chord = io.read()
+    if ( next_next_chord == "" ) then
+      next_next_chord = nil
+    end
+
     print("tone ? ")
     tone = io.read()
     if ( tone == "" ) then
@@ -126,10 +132,31 @@ function manual_test()
     end
     previous_tone = tone
 
+    print("=====")
     interpret(chord , next_chord, tone)
+    print("=====")
+    interpret(next_chord , next_next_chord, tone)
+    print("=====")
     
   end
 end
 
-manual_test()
+function test1()
+  chord={}
+  chord[1]="I[_modeiv]"
+  chord[2]="V"
+  chord[3]="I"
+  tone="C"
+  print("=====")
+  interpret(chord[1] , chord[2], tone)
+  print("=====")
+  interpret(chord[2] , chord[3], tone)
+  print("=====")
+  interpret(chord[3] , chord[1], tone)
+  print("=====")
+end
+
+print("debut")
+test1()
+--manual_test()
 --automatic_test()

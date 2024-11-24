@@ -91,7 +91,9 @@ void mxconf::setDir()
 
 		wxStandardPaths mpath = wxStandardPaths::Get();
 		wxFileName fuserDir;
-		fuserDir.AssignDir(mpath.GetAppDocumentsDir());
+		if (! mConfig->Exists(CONFIG_USERDIRECTORY))
+			mConfig->Write(CONFIG_USERDIRECTORY, mpath.GetAppDocumentsDir());
+		fuserDir.AssignDir(mConfig->read(CONFIG_USERDIRECTORY, mpath.GetAppDocumentsDir()));
 		if (fuserDir.GetFullPath().Contains(APP_NAME) == false)
 			fuserDir.AppendDir(APP_NAME);
 		userDir = fuserDir.GetFullPath() ;

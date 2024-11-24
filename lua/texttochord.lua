@@ -378,15 +378,16 @@ end
 function calculateMode(sMode,degreeRoot,degreeModeRoot)
 --=====================================================
   -- set the current mode, with optional degreeRoot
-  local modeRank= 999
+  local modeRank= 0
   local modeFound = false
   for i,mode in pairs(modes) do
     for j,name in pairs(mode.names) do
       if string.find(sMode,name) then
-        if string.len(name) < modeRank then
+        if string.len(name) > modeRank then
           modeRank = string.len(name)
           modeCurrent = mode
           modeFound = true
+          print("caculateMode",sMode,"modeCurrent",modeCurrent.names[1], "modeFound" , modeFound)
         end
       end
     end
@@ -1111,6 +1112,7 @@ function E.stringToChord(isChord , isNextChord)
   -------------------------------------------------
   
   local degreeModeRoot
+  print("degreeModeRoot")
   _p , _s , degreeModeRoot = E.stringToDegree(smodeRoot , currentTone)
   if degreeModeRoot then
     modeCurrentRoot = degreeModeRoot
@@ -1127,14 +1129,18 @@ function E.stringToChord(isChord , isNextChord)
     end
     if string.find(prefixMode,"_") then
       modeRemanent = true
+      print("modeRemanent")
     elseif string.find(prefixMode,"%.") then
       modeRemanent = false
     end
+    print("smode=",smode,"modeFound",modeFound,"modeRemanent",modeRemanent,"modeCurrent",modeCurrent.names[1])
   end
   if modeFound == false and modeRemanent == false then
+    print("mode default", "modeFound", modeFound, "modeRemanent", modeRemanent)
     modeCurrent = modeDefault
     modeCurrentRoot = 1
   end
+  print("modeCurrent=" , modeCurrent.names[1] )
   -- calculate the degrees of the current mode
   local modeDegree = {}
   local diffDegree = ( degreeRoot or 1 ) - ( modeCurrentRoot or 1 )

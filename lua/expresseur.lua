@@ -739,7 +739,7 @@ end
   --   black[0,1] : 0 means white key. 1 means black key.
 actions = { 
   {name="global/all note off", callFunction = allNoteOff ,help="all note off",  icone = "all_note_off" },
-  {name="global/play note", callFunction = playNote ,help="play the midi event" },
+  {name="global/play note", callFunction = playNote ,help="play the midi event on the track specified in the parameter" },
   {name="global/main volume", callFunction = mainVolume  ,help="set main volume from parameter=value, or value from MIDI data-2" },
   {name="global/track volume", callFunction = trackVolume ,help="set track volume from parameter=track value, or value from MIDI data-2" },
   {name="global/lua value", callFunction = setLuaValue  ,help="set lua value from parameter=luaname value, or value from MIDI data-2"},

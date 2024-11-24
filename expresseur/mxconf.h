@@ -41,7 +41,6 @@ private:
 	wxString mPrefix;
 	wxString readFileLines(wxTextFile *lfile, wxString key);
 	wxString prefixKey(wxString key, bool prefix, wxString name = "");
-	wxString keyNr(wxString key, int nr);
 };
 
 #endif

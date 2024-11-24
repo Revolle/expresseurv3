@@ -15,6 +15,7 @@
 
 #define CONFIG_TIMERDT "/timerdtms"
 #define CONFIG_DAYCACHE "/daycache"
+#define CONFIG_USERDIRECTORY "/userdirectory"
 
 #define CONFIG_VERSION_CHECKED "/versionchecked"
 #define CONFIG_BEGINNER "/beginner"
