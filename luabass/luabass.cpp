@@ -314,8 +314,8 @@ typedef struct t_queue_msg
 //////////////////////////////
 static RtMidiOut *g_midiout_rt[MIDIOUT_MAX] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };// list of midiout
 static RtMidiOut g_g_midiout_rt ;
-static int g_nb_midi_out = 0 ; // nb of midi_out
-static int g_nb_midi_in = 0 ; // nb of midi_in
+static unsigned int g_nb_midi_out = 0 ; // nb of midi_out
+static unsigned int g_nb_midi_in = 0 ; // nb of midi_in
 static char g_name_midi_out[MIDIOUT_MAX][512] = { "" , "" ,  "" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" }; // names of midi_out
 static char g_name_midi_in[MIDIIN_MAX][512] = { "" , "" ,  "" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" , "" } ; // names of midi_in
 

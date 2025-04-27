@@ -23,12 +23,12 @@
 #include "wx/filename.h"
 #include "wx/stattext.h"
 #include "wx/sizer.h"
-#include "wx/notebook.h"
-#include "wx/bitmap.h"
-#include "wx/tglbtn.h"
+//#include "wx/notebook.h"
+//#include "wx/bitmap.h"
+//#include "wx/tglbtn.h"
 #include "wx/spinctrl.h"
 #include "wx/textfile.h"
-#include "wx/statline.h"
+//#include "wx/statline.h"
 #include "wx/config.h"
 
 #include "global.h"
@@ -84,13 +84,13 @@ expression::expression(wxFrame *parent, wxWindowID id, const wxString &title, mx
 		s = nameValue[nrValue];
 		if (mConf->exists(CONFIG_EXPRESSIONVALUE, false, nameValue[nrValue]))
 			v = mConf->get(CONFIG_EXPRESSIONVALUE, v, false, nameValue[nrValue]);
-		paramsizer->Add(new wxStaticText(this, wxID_ANY, _(s)), sizerFlagMaximumPlace);
+		paramsizer->Add(new wxStaticText(this, wxID_ANY, s), sizerFlagMaximumPlace);
 		basslua_table(moduleGlobal, tableValues, -1, nameValue[nrValue], NULL, &v, tableSetKeyValue);
 		basslua_table(moduleGlobal, tableValues, nrValue, fieldCallFunction, NULL, &v, tableCallKeyFunction);
 		mConf->set(CONFIG_EXPRESSIONVALUE, v, false, nameValue[nrValue]);
 		mValue[nrValue] = new wxSlider(this, IDM_EXPRESSION_VALUE + nrValue , v, 0, 127, wxDefaultPosition, wxDefaultSize, 4L);
 		mValue[nrValue]->Bind(wxEVT_SLIDER, &expression::OnValue, this);
-		mValue[nrValue]->SetToolTip(_(helpValue[nrValue]));
+		mValue[nrValue]->SetToolTip(helpValue[nrValue]);
 		paramsizer->Add(mValue[nrValue], sizerFlagMaximumPlace);
 	}
 	txtValue = new wxStaticText(this, wxID_ANY, "");

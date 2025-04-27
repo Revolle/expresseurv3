@@ -37,7 +37,7 @@ public:
 	
 private:
 	static void setDir() ;
-	wxConfig *mConfig;
+	wxRegConfig* mConfig;
 	wxString mPrefix;
 	wxString readFileLines(wxTextFile *lfile, wxString key);
 	wxString prefixKey(wxString key, bool prefix, wxString name = "");
