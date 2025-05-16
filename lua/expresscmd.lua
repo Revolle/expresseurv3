@@ -194,6 +194,14 @@ function echo(d)
   myDelay =  tonumber(d or 0)
 end
 
+function dmx(port , stringvalues)
+  t={}
+  for x in string.gmatch(stringvalues, "%d+") do
+   table.insert(t,x)
+  end
+  luabass.outDmx(port,table.unpack(t))
+end
+
 function help()
   print("open a MIDI-in using openin. Open a MIDI-out using openout. MIDI-in is going to Midi-out.")
   print("openin <name or #>" )
@@ -209,6 +217,7 @@ function help()
   print("shortchord #" )
   print("transpose [-12..12]" )
   print("sound <file.wav>")
+  print("dmx <COMPORT> <v0>:<v1>:<v2>...")
   print("exit")
   print("help")
 end

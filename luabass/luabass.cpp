@@ -72,6 +72,7 @@
 #include <ctgmath>
 #include <windows.h>   /* required before including mmsystem.h */
 #include <mmsystem.h>  /* multimedia functions (such as MIDI) for Windows */
+#include <winbase.h>
 #endif
 #include <assert.h>
 
@@ -291,6 +292,7 @@ typedef struct t_queue_msg
 #define LUAFunctionSysex "onSysex" // LUA funtion to call on midi msg sysex
 #define LUAFunctionActive "onActive" // LUA funtion to call on midi msg active sense
 #define LUAFunctionClock "onClock" // LUA funtion to call when midiin clock
+#define LUAFunctionTimer "onTimer" // LUA funtion to call when cascaded timer is triggered
 
 #define onTimer "onTimer" // LUA funtion to call when timer is triggered 
 #define onSelector "onSelector" // LUA functions called with noteon noteoff event,a dn add info 
@@ -369,17 +371,21 @@ static bool g_mutex_out_ok = false ;
 static HANDLE g_timer_out = NULL;
 // mutex to protect the output ( from LUA and timer, to outputs )
 static HANDLE g_mutex_out = NULL;
+static HANDLE g_dmx = NULL;
+static DCB g_dmxdcb;
 #endif
 #ifdef V_MAC
 // mutex to protect the access od the midiout queud messages
 static pthread_mutex_t g_mutex_out ;
 static pthread_t g_loop_out_run_thread ;
+static int g_dmx = NULL;
 #endif
 #ifdef V_LINUX
 static pthread_t g_loop_out_run_thread ;
 static timer_t g_timer_out_id;
 #define MTIMERSIGNALOUT (SIGRTMIN+0)
 static pthread_mutex_t g_mutex_out;
+static int g_dmx = NULL;
 #endif
 
 static T_queue_msg g_queue_msg[OUT_QUEUE_MAX_MSG];
@@ -390,7 +396,7 @@ static 	lua_State *g_LUAoutState = 0 ; // LUA state for the process of midiout m
 static bool g_process_NoteOn, g_process_NoteOff;
 static bool g_process_Control, g_process_Program;
 static bool g_process_PitchBend, g_process_KeyPressure, g_process_ChannelPressure;
-static bool g_process_SystemCommon, g_process_Clock;
+static bool g_process_SystemCommon, g_process_Clock , g_process_Timer ;
 
 static char g_path_out_error_txt[MAXBUFCHAR];
 
@@ -512,6 +518,93 @@ static void unlock_mutex_out()
 #ifdef V_LINUX
 	pthread_mutex_unlock(&g_mutex_out);
 #endif
+}
+
+
+void startDmx()
+{
+#ifdef V_PC
+	//g_dmxdcb.BaudRate = CBR_57600;     //  baud rate
+	//SetCommState(g_dmx, &g_dmxdcb);
+	SetCommBreak(g_dmx);
+	//g_dmxdcb.BaudRate = CBR_256000;     //  baud rate
+	//SetCommState(g_dmx, &g_dmxdcb);
+#endif
+}
+bool initDmx(unsigned long comport)
+{
+#ifdef V_PC
+	if (!g_dmx)
+	{
+		// open comport
+		g_dmx = OpenCommPort(comport, GENERIC_WRITE, 0x0);
+		if (! g_dmx)
+			return false;
+		//  Initialize the DCB structure.
+		SecureZeroMemory(&g_dmxdcb, sizeof(DCB));
+		g_dmxdcb.DCBlength = sizeof(DCB);
+
+		//  Build on the current configuration by first retrieving all current
+		//  settings.
+		if (!GetCommState(g_dmx, &g_dmxdcb))
+			return false;
+		g_dmxdcb.BaudRate = CBR_256000;     //  baud rate
+		g_dmxdcb.ByteSize = 8;             //  data size, xmit and rcv
+		g_dmxdcb.Parity = NOPARITY;      //  parity bit
+		g_dmxdcb.StopBits = TWOSTOPBITS;    //  stop bit
+
+		if (!SetCommState(g_dmx, &g_dmxdcb))
+			return false;
+	}
+	startDmx();
+	return true;
+#else
+	return false;
+#endif
+}
+void sendDmx(byte *vDmx, int nbByte)
+{
+#ifdef V_PC
+	DWORD n;
+	// write dmx byte
+	WriteFile(g_dmx, vDmx, (DWORD)nbByte, &n, NULL);
+#endif
+}
+void closeDmx()
+{
+#ifdef V_PC
+	if (g_dmx)
+		CloseHandle(g_dmx);
+	g_dmx = NULL;
+#endif
+}
+static int LoutDmx(lua_State* L)
+{
+	lock_mutex_out();
+	int comport = lua_tointeger(L, 1);
+	if (!initDmx(comport))
+		lua_pushboolean(L, false);
+	int nrArg = 2 ;
+	byte vDmx[512];
+	byte* pDmx = vDmx ;
+	int nbByte = 0;
+	int v;
+	while (nrArg <= lua_gettop(L))
+	{
+		v = lua_tointeger(L, nrArg);
+		if ((v >= 0) && (v < 256))
+			*pDmx = (byte)(v);
+		else
+			*pDmx = (byte)(0);
+		nrArg++;
+		nbByte++;
+		pDmx++;
+		if (nbByte >= 512)
+			break;
+	}
+	sendDmx(vDmx , nbByte);
+	lua_pushboolean(L, true);
+	unlock_mutex_out();
 }
 
 static int apply_volume(int nrTrack, int v)
@@ -2547,6 +2640,10 @@ static void onMidiOut_filter_set()
 	//lua_pop(g_LUAoutState, 1);
 	//if (g_process_Activesensing) mlog_out("Information : onMidiOut function %s registered", LUAFunctionActive);
 
+	g_process_Timer = (lua_getglobal(g_LUAoutState, LUAFunctionTimer) == LUA_TFUNCTION);
+	lua_pop(g_LUAoutState, 1);
+	if (g_process_Timer) mlog_out("Information : onMidiOut function %s registered", LUAFunctionTimer);
+
 	g_process_Clock = (lua_getglobal(g_LUAoutState, LUAFunctionClock) == LUA_TFUNCTION);
 	lua_pop(g_LUAoutState, 1);
 	if (g_process_Clock) mlog_out("Information : onMidiOut function %s registered", LUAFunctionClock);
@@ -2863,7 +2960,18 @@ static void process_timer_out()
 {
 	T_midioutmsg msg;
 	msg.midimsg.dwData = 0;
+	// flush des messages en attente de sortie ( pour un dt , .. )
 	unqueue(OUT_QUEUE_FLUSH, msg);
+	// appel du onTimer du module LUA de pst-traitement de midi-out
+	if ( g_process_Timer )
+	{
+		lua_getglobal(g_LUAoutState, LUAFunctionTimer);
+		if (lua_pcall(g_LUAoutState, 0, 0, 0) != LUA_OK)
+		{
+			mlog_out("erreur onTimer calling LUA , err: %s", lua_tostring(g_LUAoutState, -1));
+			lua_pop(g_LUAoutState, 1);
+		}
+	}
 }
 #ifdef V_PC
 VOID CALLBACK timer_out_callback(PVOID lpParam, BOOLEAN TimerOrWaitFired)
@@ -3030,6 +3138,7 @@ static void free()
 	vi_free();
 	midi_out_free();
 	mixer_free();
+	closeDmx();
 	if (g_LUAoutState)
 	{
 		lua_close(g_LUAoutState);
@@ -4340,6 +4449,7 @@ static int Llogmidimsg(lua_State *L)
 	return(2);
 }
 
+
 // publication of functions visible from LUA script
 //////////////////////////////////////////////////
 
@@ -4359,6 +4469,8 @@ static const struct luaL_Reg luabass[] =
 	{ "logmidimsg", Llogmidimsg }, // log midi_msg in mlog_out txt file
 	{ soutGetLog, LoutGetLog }, // get log
 
+	////// Dmx //////
+	{ "outDmx" , LoutDmx },
 
 	////// in ///////
 

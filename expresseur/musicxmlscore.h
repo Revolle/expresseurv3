@@ -51,20 +51,13 @@ private:
 	musicxmlcompile *xmlCompile = NULL;
 	bool xmlExtractXml(wxFileName f);
 	bool newLayout(wxSize sizeClient);
-	wxString getNamePage(wxFileName fp , int pageNr);
-	wxString musescoreexe ; 
-	bool musescorev3 = true ;
-	wxString musescorescript , musescorepng , musescorepos;
+	wxString getNamePage(int pageNr);
 
 	bool docOK = false ;
 	int nrChord;
 
-	float fzoom = 1.0;
-	float resolution_dpi = 100.0;
-	float tenths = 40.0;
-	float millimeters = 7.0;
-	float inch = 25.4;
-	bool musescore_def_xml = true ;
+	unsigned int fzoom = 20;
+	bool lily_def_xml = true ;
 
 	int newPaintPlaying = -1;
 	int newPaintPos = -1;

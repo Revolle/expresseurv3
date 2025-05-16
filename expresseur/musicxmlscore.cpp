@@ -59,27 +59,19 @@
 #include "musicxmlcompile.h"
 #include "musicxmlscore.h"
 
-// Specify if the size of the MuseScore page is in the XML or in the muse-script, depending the platform
-#ifdef RUN_WIN
-#define MUSE_SCORE_DEF_XML true
-#define DEF_INCH 25400
-#endif
-#ifdef RUN_MAC
-#define MUSE_SCORE_DEF_XML false
-#define DEF_INCH 25600
-#endif
-#ifdef RUN_LINUX
-#define MUSE_SCORE_DEF_XML false
-#define DEF_INCH 25578
-#endif
-
-#define FILE_SCORE_PNG "expresseur_score.png"
-#define FILE_POS_TXT "expresseur_pos.txt"
+#define FILE_SCORE_PDF "expresseur_out.pdf"
+#define FILE_SCORE_PNG "expresseur_out-%d.png"
+#define FILE_SCORE_0_PNG "expresseur_out-0%d.png"
+#define FILE_SCORE_00_PNG "expresseur_out-00%d.png"
+#define FILE_POS_TXT "expresseur_out.txt"
 #define FILE_OUT_XML "expresseur_out.xml"
+#define FILE_OUT_LILY "expresseur_out.ly"
+#define FILE_SRC_LILY "expresseur_src.ly"
+#define FILE_LOG_LILY "expresseur_out.log"
+#define FILE_OUT_SETLILY "expresseur_set.ly"
+#define FILE_OUT_PRESETLILY "expresseur_preset.ly"
 #define FILE_IN_XML "expresseur_in.xml"
-#define FILE_SCAN_QML "expresseur_scan.qml"
-#define FILE_SCAN_POSITION_QML "scan_position.qml"
-#define FILE_SCAN_POSITION_QML_V3 "scan_position_v3.qml"
+#define RESOLUTION_PNG 72
 
 #define PREFIX_CACHE "CACHE_EXPRESSEUR"
 #define WIDTH_SEPARATOR_PAGE 10
@@ -247,148 +239,8 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 	
 	basslua_call(moduleScore, functionScoreInitScore, "" );
 
-	inch = (float)(DEF_INCH) * ((float)(mConf->get(CONFIG_CORRECTINCH, 1000))/1000.0) / 1000.0;
-	musescore_def_xml = (bool)(MUSE_SCORE_DEF_XML) ;
-
 	docOK = false;
 	xmlCompile = NULL;
-
-	// locate the musescore exe for the rendering of the musical score
-	musescorev3 =  true;
-	musescoreexe = mConf->get(CONFIG_MUSESCOREV3, "");
-	if ( musescoreexe.IsEmpty())
-	{
-		musescoreexe = mConf->get(CONFIG_MUSESCORE, "");
-		musescorev3 =  false;
-	}
-	if (musescoreexe.IsEmpty() == false)
-	{
-		wxFileName fm(musescoreexe);
-		if (fm.IsFileExecutable() == false)
-			musescoreexe.Empty();
-	}
-	if (musescoreexe.IsEmpty())
-	{
-#ifdef RUN_WIN
-		wxString x64folder = wxGetenv("programfiles");
-		wxFileName fm3(x64folder + "\\)" );
-		fm3.AppendDir("MuseScore 3");
-		fm3.AppendDir("bin");
-		fm3.SetFullName("MuseScore3.exe");
-		if (fm3.IsFileExecutable())
-		{
-			musescoreexe = fm3.GetFullPath();
-			musescorev3 =  true;
-		}
-		else
-		{
-			wxString x86folder = wxGetenv("ProgramFiles(x86)");
-			wxFileName fm(x86folder + "\\" );
-			fm.AppendDir("MuseScore 2");
-			fm.AppendDir("bin");
-			fm.SetFullName("MuseScore.exe");
-			if (fm.IsFileExecutable())
-			{
-				musescoreexe = fm.GetFullPath();
-				musescorev3 =  false;
-			}
-		}
-#endif
-#ifdef RUN_MAC
-		wxFileName fm3;
-		fm3.Assign(mxconf::getAppDir()) ;
-		fm3.AppendDir("MuseScore 3.app");
-		fm3.AppendDir("Contents");
-		fm3.AppendDir("MacOS");
-		fm3.SetName("mscore");
-		//wxMessageBox(fm.GetFullPath(),"musescore ?");
-		if (fm3.IsFileExecutable())
-		{
-			musescorev3 = true ;
-			musescoreexe = fm3.GetFullPath();
-		}
-		else
-		{
-			wxFileName fm;
-			fm.Assign(mxconf::getAppDir()) ;
-			fm.AppendDir("MuseScore 2.app");
-			fm.AppendDir("Contents");
-			fm.AppendDir("MacOS");
-			fm.SetName("mscore");
-			//wxMessageBox(fm.GetFullPath(),"musescore ?");
-			if (fm.IsFileExecutable())
-			{
-				musescorev3 = false ;
-				musescoreexe = fm.GetFullPath();
-			}
-		}
-#endif
-#ifdef RUN_LINUX
-		/*
-		wxString mpath = wxGetenv("PATH");
-		wxArrayString mpaths = wxStringTokenize ( mpath, ":" );
-		unsigned int nbpath = mpaths.GetCount();
-		for(unsigned int nrpath = 0 ; nrpath < nbpath; nrpath ++ )
-		{
-			wxFileName fm(mpaths[nrpath] + "/" );
-			fm.SetFullName("musescore");
-			if (fm.IsFileExecutable())
-			{
-				musescoreexe = fm.GetFullPath();
-				break ;
-			}
-		} 
-		*/
-#endif
-	}
-	if (musescoreexe.IsEmpty())
-	{
-		wxMessageBox("MuseScore cannot be found in your workstation.\nPlease select the path of MuseScore in your system.\nInfo: MuseScore is used for the graphical rendering of the score.");
-		wxFileDialog
-			openFileDialog(this, _("select MuseScore app"), "", "",
-#ifdef RUN_WIN
-				"exe files (*.exe)|*.exe", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-#endif
-#ifdef RUN_MAC
-		"app files (*.app)|*.app", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-#endif
-#ifdef RUN_LINUX
-		"app files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-#endif
-		if (openFileDialog.ShowModal() == wxID_OK)
-		{
-			wxFileName fm(openFileDialog.GetPath());
-#ifdef RUN_MAC
-			fm.AppendDir(fm.GetFullName());
-			fm.AppendDir("Contents");
-			fm.AppendDir("MacOS");
-			fm.SetName("mscore");
-			fm.SetExt("");
-#endif
-			if (fm.IsFileExecutable())
-			{
-				musescoreexe = fm.GetFullPath();;
-				wxArrayString v ;
-				v.Add("Version 2");
-				v.Add("Version 3");
-				wxString sv = wxGetSingleChoice (_("MuseScore version ? "),_("MuseScore exe locator"),v,this);
-				if ( sv != "Version 2")
-					musescorev3 = true ;
-			}
-			else
-				wxMessageBox(fm.GetFullPath(),"MuseScore : not recognized as an exe");
-		}
-	}
-	if ( musescorev3 )
-		mConf->set(CONFIG_MUSESCOREV3, musescoreexe);
-	else
-		mConf->set(CONFIG_MUSESCORE, musescoreexe);
-
-	/*
-	char buflog[512];
-	strcpy(buflog, musescoreexe.c_str());
-	mlog_in("musicxmlscore / creator / musescore.exe=%s", buflog);
-	*/ 
 
 	cleanTmp();
 	zoom(mConf->get(CONFIG_ZOOM_MUSICXML, 0));
@@ -428,9 +280,6 @@ void musicxmlscore::cleanTmp()
 	if (fp.FileExists())
 		wxRemoveFile(fp.GetFullPath());
 	fp.SetFullName(FILE_OUT_XML);
-	if (fp.FileExists())
-		wxRemoveFile(fp.GetFullPath());
-	fp.SetFullName(FILE_SCAN_QML);
 	if (fp.FileExists())
 		wxRemoveFile(fp.GetFullPath());
 	fp.SetFullName(FILE_IN_XML);
@@ -473,19 +322,13 @@ void musicxmlscore::cleanCache(int nbDayCache)
 }
 bool musicxmlscore::isOk()
 {
-	if ((xmlCompile == NULL) || (musescoreexe.IsEmpty()))
+	if (xmlCompile == NULL)
 		return false;
 	return (xmlCompile->isOk());
 }
 bool musicxmlscore::setFile(const wxFileName &lfilename)
 {
 	wxBusyCursor wait;
-
-	/*
-	char buflog[512];
-	strcpy(buflog, lfilename.GetFullPath().c_str());
-	mlog_in("musicxmlscore / setFile / lfilename=%s", buflog );
-	*/
 
 	if (xmlCompile != NULL)
 		delete xmlCompile;
@@ -596,14 +439,14 @@ void musicxmlscore::zoom(int zoom)
 {
 	switch (zoom)
 	{
-	case -3: fzoom = 0.6;  break;
-	case -2: fzoom = 0.75;  break;
-	case -1: fzoom = 0.87;  break;
-	case 0: fzoom = 1.0;  break;
-	case 1: fzoom = 1.25;  break;
-	case 2: fzoom = 1.5;  break;
-	case 3: fzoom = 2.0;  break;
-	default: fzoom = 1.0;  break;
+	case -3: fzoom = 11;  break;
+	case -2: fzoom = 14;  break;
+	case -1: fzoom = 17;  break;
+	case 0: fzoom = 20;  break;
+	case 1: fzoom = 25;  break;
+	case 2: fzoom = 30;  break;
+	case 3: fzoom = 35;  break;
+	default: fzoom = 20;  break;
 	}
 }
 bool musicxmlscore::displayFile(wxSize sizeClient)
@@ -631,22 +474,23 @@ wxString musicxmlscore::getTrackName(int trackNr)
 
 	return (name);
 }
-wxString musicxmlscore::getNamePage(wxFileName fp , int pageNr)
+wxString musicxmlscore::getNamePage(int pageNr)
 {
 	// set the image file name according to the page-number
-	wxString prefixe = fp.GetName();
 	wxString fn;
-	fn.Printf("%s-%d", prefixe, pageNr);
+	fn.Printf(FILE_SCORE_PNG, pageNr);
+	wxFileName fp;
+	fp.SetPath(mxconf::getTmpDir());
 	fp.SetName(fn);
 
 	if (!fp.IsFileReadable())
 	{
-		fn.Printf("%s-0%d", prefixe, pageNr);
+		fn.Printf(FILE_SCORE_0_PNG, pageNr);
 		fp.SetName(fn);
 
 		if (!fp.IsFileReadable())
 		{
-			fn.Printf("%s-00%d", prefixe, pageNr);
+			fn.Printf(FILE_SCORE_00_PNG, pageNr);
 			fp.SetName(fn);
 
 			if (!fp.IsFileReadable())
@@ -711,8 +555,9 @@ bool musicxmlscore::setPage(wxDC& dc, int pos , wxRect *rectPos, bool playing )
 	currentPageNr = pageNr ;
 	currentTurnPage = turnPage ;
 
-	wxFileName fp(musescorepng);
-	wxString fn = getNamePage(fp, pageNr);
+	wxFileName fp;
+	fp.SetPath(mxconf::getTmpDir());
+	wxString fn = getNamePage(pageNr);
 	if (fn.IsEmpty()) return false;
 	wxBitmap fnbitmap(fn, wxBITMAP_TYPE_PNG);
 
@@ -732,7 +577,7 @@ bool musicxmlscore::setPage(wxDC& dc, int pos , wxRect *rectPos, bool playing )
 			// anticipate half of the next page
 			{
 				wxDCClipper clipTurnPage(dc, wxRect(0, 0, sizePage.GetWidth() / 2 , sizePage.GetHeight()));
-				wxString fnturn = getNamePage(fp, pageNr + 1);
+				wxString fnturn = getNamePage(pageNr + 1);
 				if (!fnturn.IsEmpty())
 				{
 					wxBitmap fnturnbitmap(fnturn, wxBITMAP_TYPE_PNG);
@@ -999,10 +844,55 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	wxBusyCursor waitcursor;
 
 	wxFileName fm;
+	wxString xmlout, lilyscore, pythonexe, pythonscript, lilysrc, lilyexe, lilypos, lilysetting, lilylog;
+	wxString command_xmltolily , command_lilytopng;
+	long lexec;
+	wxTextFile fin, fout;
+
 
 	// window big enough ?
 	if ((sizeClient.GetWidth() < 200) || (sizeClient.GetHeight() < 100))
 		return false;
+	
+	// XML score to display
+	fm.SetPath(mxconf::getTmpDir());
+	fm.SetFullName(FILE_OUT_XML);
+	xmlout = fm.GetFullPath();
+	//  file to store position of notes
+	fm.SetFullName(FILE_POS_TXT);
+	lilypos = fm.GetFullPath();
+	// file to translate xml to lilypond
+	fm.SetFullName(FILE_OUT_LILY);
+	if (fm.FileExists())
+		wxRemoveFile(fm.GetFullPath());
+	lilyscore = fm.GetFullPath();
+	// files to adapt lilypond xml translation
+	fm.SetFullName(FILE_SRC_LILY);
+	if (fm.FileExists())
+		wxRemoveFile(fm.GetFullPath());
+	lilysrc = fm.GetFullPath();
+	// log file 
+	fm.SetFullName(FILE_LOG_LILY);
+	if (fm.FileExists())
+		wxRemoveFile(fm.GetFullPath());
+	lilylog = fm.GetFullPath();
+	// settings for lilypond
+	fm.SetFullName(FILE_OUT_SETLILY);
+	if (fm.FileExists())
+		wxRemoveFile(fm.GetFullPath());
+	lilysetting = fm.GetFullPath(); 
+	// lily python
+	fm.SetPath(mxconf::getAppDir());
+	fm.AppendDir("lilypond");
+	fm.AppendDir("bin");
+	fm.SetFullName("python.exe");
+	pythonexe = fm.GetFullPath();
+	// liliy translator 
+	fm.SetFullName("musicxml2ly.py");
+	pythonscript = fm.GetFullPath();
+	// lilypond bin
+	fm.SetFullName("lilypond.exe");
+	lilyexe = fm.GetFullPath();
 
 	// calculation for the page layout
 	xmlCompile->isModified = false ;
@@ -1010,140 +900,82 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	sizePage.SetWidth( sizeClient.GetX() );
 	sizePage.SetHeight( sizeClient.GetY() );
 
-	resolution_dpi = 100.0;
-	tenths = 40.0;
-	millimeters = 7.055 ;
-
-
-	if ( ! musescore_def_xml )
-	{
-		// specifies the size in the MuseScore script 
-		resolution_dpi *= fzoom ;
-	}
-
-	float width_inch = sizePage.GetWidth()  / resolution_dpi  ;
-	float margin_inch = 10.0 / resolution_dpi  ;
-	float pwidth_inch = width_inch - 2.0 * margin_inch ;
-	float height_inch = sizePage.GetHeight() / resolution_dpi  ;
-
-	if ( musescore_def_xml )
-	{
-		// specifies the size in the MusicXML
-		millimeters *= fzoom;
-		float sizeX_tenths = ((sizePage.GetWidth() * inch) / resolution_dpi) * (tenths / millimeters);
-		float sizeY_tenths = ((sizePage.GetHeight() * inch) / resolution_dpi) * (tenths / millimeters);
-		xmlCompile->compiled_score->defaults.scaling.tenths = tenths;
-		xmlCompile->compiled_score->defaults.scaling.millimeters = millimeters;
-		xmlCompile->compiled_score->defaults.page_layout.page_width = sizeX_tenths;
-		xmlCompile->compiled_score->defaults.page_layout.page_height = sizeY_tenths;
-		xmlCompile->compiled_score->defaults.page_layout.margin = 10.0 ;
-	}
-
 	// clena useless temp files
 	cleanTmp();
 
-	fm.SetPath(mxconf::getTmpDir());
 
-	// prepare the musicXml file to display
-	fm.SetFullName(FILE_OUT_XML);
-	xmlCompile->music_xml_displayed_file = fm.GetFullPath();
+	// create the musicXml file to display
+	xmlCompile->music_xml_displayed_file = lilypos;
 	xmlCompile->compiled_score->write(xmlCompile->music_xml_displayed_file, true);
 
-	// the file to store position of notes
-	fm.SetFullName(FILE_POS_TXT);
-	musescorepos = fm.GetFullPath();
-
-	// the file to store position of notes
-	fm.SetFullName(FILE_SCORE_PNG);
-	musescorepng = fm.GetFullPath();
-
-	// prepare the script for MuseScore
-	fm.SetFullName(FILE_SCAN_QML);
-	musescorescript = fm.GetFullPath();
-	wxTextFile fin, fout;
-	wxFileName fm2;
-	fm2.Assign(mxconf::getCwdDir());
-	if ( musescorev3 )
-		fm2.SetFullName("scan_position_v3.qml");
-	else
-		fm2.SetFullName("scan_position.qml");
-	fin.Open(fm2.GetFullPath());
-	if (fm.FileExists())
-		wxRemoveFile(musescorescript);
-	fout.Create(musescorescript);
-	fout.Open(musescorescript);
+	// adapt lilypond settings
+	fin.Open(FILE_OUT_PRESETLILY);
+	fout.Create(lilysetting);
+	fout.Open(lilysetting);
 	if (fin.IsOpened() && fout.IsOpened())
 	{
-		wxString line;
-		wxString fposition(musescorepos);
-		wxString fpng(musescorepng);
-		wxString fwidth;
-		wxString fheight;
-		wxString fpwidth;
-		wxString fmargin ;
-		fwidth.Printf("%f",width_inch);
-		fheight.Printf("%f",height_inch);
-		fpwidth.Printf("%f",pwidth_inch);
-		fmargin.Printf("%f",margin_inch);
-		fposition.Replace("\\", "\\\\", true);
-		fpng.Replace("\\", "\\\\", true);
-		int line_nb = fin.GetLineCount();
-		int nbReplaceSizing;
-		for (int line_nr = 0; line_nr < line_nb; line_nr++)
+		wxString str;
+		for (str = fin.GetFirstLine(); !fin.Eof(); str = fin.GetNextLine())
 		{
-			line = fin.GetLine(line_nr);
-			line.Replace("__expresseur_pos.txt__", fposition);
-			line.Replace("__expresseur_out.png__", fpng);
-			nbReplaceSizing = 0;
-			nbReplaceSizing += line.Replace("__width__", fwidth);
-			nbReplaceSizing += line.Replace("__height__", fheight);
-			nbReplaceSizing += line.Replace("__pwidth__", fpwidth);
-			nbReplaceSizing += line.Replace("__margin__", fmargin);
-			if ( nbReplaceSizing == 0 )
-				fout.AddLine(line);
-			else
+			if (str.StartsWith("#(set-global-staff-size"))
 			{
-				if ( ! musescore_def_xml )
-					fout.AddLine(line);
+				wxString s1;
+				s1.Printf("#(set-global-staff-size %d)", fzoom);
+				fout.AddLine(s1);
+				continue;
 			}
+			if (str.StartsWith("#(set! paper-alist"))
+			{
+				wxString s1;
+				s1.Printf("#(set! paper-alist (cons '(\"myformat\" . (cons (* %d pt) (* %d pt))) paper-alist))", sizePage.GetWidth() , sizePage.GetHeight());
+				fout.AddLine(s1);
+				continue;
+			}
+			fout.AddLine(str);
 		}
 		fin.Close();
 		fout.Write();
 		fout.Close();
 	}
+	else
+	{
+		wxMessageBox("Cannot adapt Lilypond settings", "build score", wxOK | wxICON_ERROR);
+		return false;
+	}
 
-	// prepare the command line to run MuseScore
-	wxString command;
-	//"C:\Program Files (x86)\MuseScore 2\bin/MuseScore.exe" - s -r <resolution> -m <user_temp>\musicxml.xml - p <user_temp>\scan_position.qml - o <user_temp>\expresseur_out.png
-	command.Printf("\"%s\" -s -r %d -m %s -p %s", musescoreexe, (int)resolution_dpi, xmlCompile->music_xml_displayed_file, musescorescript);
+	// prepare the command line to run lilypond
+	command_xmltolily.Printf("%s %s --npl --nobeaming --output=%s %s", pythonexe , pythonscript , lilyscore , xmlout );
+	command_lilytopng.Printf("%s -dlog-file=%s -dinclude-settings=%s -dresolution=%d  -dseparate-page-formats=pdf,png  %s", lilyexe , lilylog , lilysetting , RESOLUTION_PNG , lilyscore);
 
 	bool alreadyAvailable = false;
+
 	// calculate the CRC of this display
 	crc_init();
-	crc_cumulate_file(xmlCompile->music_xml_displayed_file);
-	crc_cumulate_file(musescorescript);
-	wxString ssize ; ssize.Printf("%d %d %f", sizeClient.GetX() , sizeClient.GetY(), fzoom ); 
-	crc_cumulate_string(ssize);
-	wxULongLong crc_this = crc_cumulate_string(command);
+	crc_cumulate_file(xmlout);
+	crc_cumulate_file(lilysetting);
+	crc_cumulate_string(command_xmltolily);
+	crc_cumulate_string(command_lilytopng);
 	wxString prefix_cache ;
-	prefix_cache.Printf("%s_%s_",PREFIX_CACHE , crc_this.ToString());
+	prefix_cache.Printf("%s_%s__",PREFIX_CACHE , crc_value);
 
-	wxFileName cacheMusescorepos(musescorepos);
-	cacheMusescorepos.SetName( prefix_cache + cacheMusescorepos.GetName() );
-	if ( cacheMusescorepos.FileExists())
+	wxFileName poscache;
+	poscache.SetPath(mxconf::getTmpDir());
+	poscache.SetName( prefix_cache + FILE_POS_TXT);
+	if (poscache.FileExists())
 	{
-		// MuseScore result already available in cache. Let's reuse it
+		// Lilypond result already available in cache. Let's reuse it
 		alreadyAvailable = true ;
-		if ( ! wxCopyFile(cacheMusescorepos.GetFullPath(), musescorepos) ) alreadyAvailable = false ;
+		if ( ! wxCopyFile(poscache.GetFullPath(), lilypos) ) alreadyAvailable = false ;
 		// copy pages
-		wxFileName fmodele(musescorepng);
-		wxFileName fsource(musescorepng);
-		wxFileName fdest(musescorepng);
+		wxFileName fsource;
+		fsource.SetPath(mxconf::getTmpDir());
+		wxFileName fdest;
+		fdest.SetPath(mxconf::getTmpDir());
 		wxString ffn;
 		int pp = 1;
 		while (true)
 		{
-			ffn.Printf("%s-%d", fmodele.GetName(), pp);
+			ffn.Printf(FILE_SCORE_PNG, pp);
 			fsource.SetName( prefix_cache + ffn );
 			if (fsource.IsFileReadable())
 			{
@@ -1152,7 +984,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 			}
 			else
 			{
-				ffn.Printf("%s-0%d", fmodele.GetName(), pp);
+				ffn.Printf(FILE_SCORE_0_PNG, pp);
 				fsource.SetName( prefix_cache + ffn );
 				if (fsource.IsFileReadable())
 				{
@@ -1161,7 +993,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 				}
 				else
 				{
-					ffn.Printf("%s-00%d", fmodele.GetName(), pp);
+					ffn.Printf(FILE_SCORE_00_PNG, pp);
 					fsource.SetName( prefix_cache + ffn );
 					if (fsource.IsFileReadable())
 					{
@@ -1184,62 +1016,93 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	}
 	else
 	{
-		((wxFrame *)mParent)->SetStatusText("Score pages : computation by MuseScore in progress", 0);
-		// run the MuseScore batch to build he pages and the positions
-		char bufMuseScoreBatch[1024];
-		strcpy(bufMuseScoreBatch,command.c_str());
-		mlog_in("musicxmlscore newLayout musescore-batch : %s",bufMuseScoreBatch);
-		wxFileName::SetCwd(mxconf::getTmpDir());
-		long lexec = wxExecute(command, wxEXEC_SYNC | wxEXEC_HIDE_CONSOLE);
+		((wxFrame *)mParent)->SetStatusText("Score pages : computation by Lilypond in progress", 0);
+
+		lexec = wxExecute(command_xmltolily, wxEXEC_SYNC | wxEXEC_HIDE_CONSOLE);
 		if (lexec < 0)
 		{
+			wxMessageBox("Cannot translate XML to Lilypond", "build score", wxOK | wxICON_ERROR);
+			return false;
+		}
+
+		fin.Open(lilyscore);
+		fout.Create(lilysrc);
+		fout.Open(lilysrc);
+		if (fin.IsOpened() && fout.IsOpened())
+		{
+			wxString str;
+			for (str = fin.GetFirstLine(); !fin.Eof(); str = fin.GetNextLine())
+			{
+				if (!str.StartsWith("\\pointAndClickOff"))
+					fout.AddLine(str);
+			}
+			fin.Close();
+			fout.Write();
+			fout.Close();
+		}
+		else
+		{
+			wxMessageBox("Cannot adapt Lilypond score", "build score", wxOK | wxICON_ERROR);
+			return false;
+		}
+
+		// run the lilypond batch to build he pages and the positions
+		long lexec = wxExecute(command_lilytopng , wxEXEC_SYNC | wxEXEC_HIDE_CONSOLE);
+		if (lexec < 0)
+		{
+			wxMessageBox("Cannot convert Lilypond to PNG", "build score", wxOK | wxICON_ERROR);
 			return false;
 		}
 		
-		// wait for the position file, which should dclare the end of the MuseScore batch
+		// TBD calculatepos
+
+		/* wait for the position file, which should dclare the end of the MuseScore batch
 		for(int nbTry=0; nbTry < 10 ; nbTry ++ )
 		{
 			if ( readPos() )
 				break ;
 			wxSleep(1);
 		}
+		*/
 
-		((wxFrame *)mParent)->SetStatusText("Score pages : stored in cache", 0 );
+		((wxFrame *)mParent)->SetStatusText("Score pages : storing in cache", 0 );
 
 		// cache this result for potential reuse
-		wxCopyFile(musescorepos,cacheMusescorepos.GetFullPath())  ;
+		wxCopyFile(lilypos , poscache.GetFullPath());
 
-		wxFileName fdest(musescorepng);
-		wxFileName fsource(musescorepng);
-		wxFileName fmodele(musescorepng);
+		// copy pages
+		wxFileName fsource;
+		fsource.SetPath(mxconf::getTmpDir());
+		wxFileName fdest;
+		fdest.SetPath(mxconf::getTmpDir());
 		wxString ffn;
 		int pp = 1;
 		while (true)
 		{
-			ffn.Printf("%s-%d", fmodele.GetName(), pp);
+			ffn.Printf(FILE_SCORE_PNG, pp);
 			fsource.SetName(ffn);
 			if (fsource.IsFileReadable())
 			{
-				fdest.SetName( prefix_cache + ffn );
-				wxCopyFile(fsource.GetFullPath(),fdest.GetFullPath())  ;
+				fdest.SetName(prefix_cache + ffn);
+				wxCopyFile(fsource.GetFullPath(), fdest.GetFullPath());
 			}
 			else
 			{
-				ffn.Printf("%s-0%d", fmodele.GetName(), pp);
+				ffn.Printf(FILE_SCORE_0_PNG, pp);
 				fsource.SetName(ffn);
 				if (fsource.IsFileReadable())
 				{
-					fdest.SetName( prefix_cache + ffn );
-					wxCopyFile(fsource.GetFullPath(),fdest.GetFullPath()) ;
+					fdest.SetName(prefix_cache + ffn);
+					wxCopyFile(fsource.GetFullPath(), fdest.GetFullPath());
 				}
 				else
 				{
-					ffn.Printf("%s-00%d", fmodele.GetName(), pp);
+					ffn.Printf(FILE_SCORE_00_PNG, pp);
 					fsource.SetName(ffn);
 					if (fsource.IsFileReadable())
 					{
-						fdest.SetName( prefix_cache + ffn );
-						wxCopyFile(fsource.GetFullPath(),fdest.GetFullPath()) ;
+						fdest.SetName(prefix_cache + ffn);
+						wxCopyFile(fsource.GetFullPath(), fdest.GetFullPath());
 					}
 					else
 					{
@@ -1361,27 +1224,9 @@ bool musicxmlscore::readPos()
 				break;
 			}
 		}
-		float height_tenth = d * 10.0;
 
 		wxRect rect_pixel;
-		if ( musescore_def_xml )
-		{
-			rect_pixel.width = (int)(((width_tenth * millimeters) / tenths) * (resolution_dpi / inch)) ;
-			rect_pixel.height = (int)(((height_tenth * millimeters) / tenths) * (resolution_dpi / inch)) ;
-			rect_pixel.x = (int)(((x_tenth * millimeters) / tenths) * (resolution_dpi / inch)) ;
-			rect_pixel.y = (int)(((y_tenth * millimeters) / tenths) * (resolution_dpi / inch)) - rect_pixel.height / 2 ;
-			rect_pixel.width += 2 ;
-			rect_pixel.height += 2 ;
-		}
-		else
-		{
-			rect_pixel.width = (int)(((width_tenth * millimeters) / tenths) * (resolution_dpi / inch)) ;
-			rect_pixel.height = (int)(((height_tenth * millimeters) / tenths) * (resolution_dpi / inch)) ;
-			rect_pixel.x = (int)(((x_tenth * millimeters) / tenths) * (resolution_dpi / inch)) ;
-			rect_pixel.y = (int)(((y_tenth * millimeters) / tenths) * (resolution_dpi / inch)) - rect_pixel.height / 2 ;
-			rect_pixel.width += 2 ;
-			rect_pixel.height += 2 ;
-		}
+
 		rect_pixel.y += rect_pixel.height + 1;
 		rect_pixel.height /= 3;
 		if (rect_pixel.height < 3)
