@@ -7,6 +7,8 @@
 #define PART_NOT_PLAYED "not played"
 #define PART_VISIBLE "visible"
 #define PART_NOT_VISIBLE "not visible"
+#define PART_EXPRESSEUR_LONG "_X_"
+#define PART_EXPRESSEUR_SHORT "_X_"
 
 // class to have a list of lMeasureMarks
 ///////////////////////////////////////

@@ -2950,7 +2950,7 @@ void musicxmlcompile::createListMeasures()
 void musicxmlcompile::addExpresseurPart()
 {
 	c_part *firstPart = (c_part*)(score->parts.GetFirst()->GetData());
-	score->part_list->score_parts.Append(new c_score_part(ExpresseurId, "Exp", "X"));
+	score->part_list->score_parts.Append(new c_score_part(ExpresseurId, PART_EXPRESSEUR_LONG, PART_EXPRESSEUR_SHORT));
 	c_part *part_expresseur = new c_part(ExpresseurId);
 	score->parts.Append(part_expresseur);
 	// fill the Expresseur part with empty measures
@@ -3002,7 +3002,7 @@ void musicxmlcompile::addExpresseurPart()
 	}
 	part_expresseur->compile(score->part_list->score_parts.GetCount() - 1);
 
-	compiled_score->part_list->score_parts.Append(new c_score_part(ExpresseurId, "Exp", "X"));
+	compiled_score->part_list->score_parts.Append(new c_score_part(ExpresseurId, PART_EXPRESSEUR_LONG, PART_EXPRESSEUR_SHORT));
 	compiled_score->parts.Append(new c_part(ExpresseurId));
 }
 void musicxmlcompile::deleteBarLabel(c_measure *mmeasure)

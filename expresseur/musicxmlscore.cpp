@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <stdint.h>
 
 
 #include "wx/dialog.h"
@@ -59,22 +60,31 @@
 #include "musicxmlcompile.h"
 #include "musicxmlscore.h"
 
-#define FILE_SCORE_PDF "expresseur_out.pdf"
-#define FILE_SCORE_PNG "expresseur_out-%d.png"
-#define FILE_SCORE_0_PNG "expresseur_out-0%d.png"
-#define FILE_SCORE_00_PNG "expresseur_out-00%d.png"
-#define FILE_POS_TXT "expresseur_out.txt"
-#define FILE_OUT_XML "expresseur_out.xml"
-#define FILE_OUT_LILY "expresseur_out.ly"
-#define FILE_SRC_LILY "expresseur_src.ly"
-#define FILE_LOG_LILY "expresseur_out.log"
-#define FILE_OUT_SETLILY "expresseur_set.ly"
-#define FILE_OUT_PRESETLILY "expresseur_preset.ly"
+#define FILE_OUT_XML "expresseur_out.xml" // musicXml export of Expresseur score
+#define FILE_OUT_LILY "expresseur_out.ly" // Lilypond translation of FILE_OUT_XML
+#define FILE_SRC_LILY "expresseur_src.ly" // Lilypond source file , adptated from FILE_OUT_LILY
+#define FILE_OUT_PRESETLILY "expresseur_setting_template.ly" // template of Lilypond script to extract pos of Expreseur notes, and se the size of image
+#define FILE_OUT_SETLILY "expresseur_setting.ly" // Lilypond script, adapted from FILE_OUT_PRESETLILY
+#define FILE_LOG_LILY "expresseur_out.log" // Lilypond log during compilation of FILE_SRC_LILY
+#define FILE_SCORE_PDF "expresseur_out-%d.pdf" // PDF (one per page) , output of lilypond generation
+#define FILE_SCORE_PNG "expresseur_out-%d.png" // PNG (one per page) , output of lilypond generation
+#define FILE_POS_LILY "expresseur_out_ly.notes" // position of Lilypond Expresseur notes, output of lilypond generation
+#define FILE_POS_TXT "expresseur_out.notes" // position of Expresseur notes in FILE_SCORE_PNG
 #define FILE_IN_XML "expresseur_in.xml"
 #define RESOLUTION_PNG 72
 
 #define PREFIX_CACHE "CACHE_EXPRESSEUR"
 #define WIDTH_SEPARATOR_PAGE 10
+
+#include <wx/listimpl.cpp>
+WX_DEFINE_LIST(l_posnotes);
+
+uint32_t bswap32(uint32_t x) {
+	return ((x & 0x000000FF) << 24) |
+		((x & 0x0000FF00) << 8) |
+		((x & 0x00FF0000) >> 8) |
+		((x & 0xFF000000) >> 24);
+}
 
 // CRC tool to optimize calcualtion of MuseScore pages
 
@@ -485,21 +495,9 @@ wxString musicxmlscore::getNamePage(int pageNr)
 
 	if (!fp.IsFileReadable())
 	{
-		fn.Printf(FILE_SCORE_0_PNG, pageNr);
-		fp.SetName(fn);
-
-		if (!fp.IsFileReadable())
-		{
-			fn.Printf(FILE_SCORE_00_PNG, pageNr);
-			fp.SetName(fn);
-
-			if (!fp.IsFileReadable())
-			{
-				// page does not exist ????
-				mlog_in("error isFileReadable drawpage %s\n",(const char*)(fp.GetFullPath().c_str()));
-				return wxEmptyString;
-			}
-		}
+		// page does not exist ????
+		mlog_in("error isFileReadable drawpage %s\n", (const char*)(fp.GetFullPath().c_str()));
+		return wxEmptyString;
 	}
 	fn = fp.GetFullPath();
 	return fn ;
@@ -844,7 +842,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	wxBusyCursor waitcursor;
 
 	wxFileName fm;
-	wxString xmlout, lilyscore, pythonexe, pythonscript, lilysrc, lilyexe, lilypos, lilysetting, lilylog;
+	wxString xmlout, lilyscore, pythonexe, pythonscript, lilysrc, lilyexe, lilysetting, lilylog;
 	wxString command_xmltolily , command_lilytopng;
 	long lexec;
 	wxTextFile fin, fout;
@@ -905,7 +903,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 
 
 	// create the musicXml file to display
-	xmlCompile->music_xml_displayed_file = lilypos;
+	xmlCompile->music_xml_displayed_file = xmlout;
 	xmlCompile->compiled_score->write(xmlCompile->music_xml_displayed_file, true);
 
 	// adapt lilypond settings
@@ -977,35 +975,10 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		{
 			ffn.Printf(FILE_SCORE_PNG, pp);
 			fsource.SetName( prefix_cache + ffn );
-			if (fsource.IsFileReadable())
-			{
-				fdest.SetName(ffn);
-				if ( ! wxCopyFile(fsource.GetFullPath(),fdest.GetFullPath()) ) alreadyAvailable = false ;
-			}
-			else
-			{
-				ffn.Printf(FILE_SCORE_0_PNG, pp);
-				fsource.SetName( prefix_cache + ffn );
-				if (fsource.IsFileReadable())
-				{
-					fdest.SetName(ffn);
-					if ( ! wxCopyFile(fsource.GetFullPath(),fdest.GetFullPath()) ) alreadyAvailable = false ;
-				}
-				else
-				{
-					ffn.Printf(FILE_SCORE_00_PNG, pp);
-					fsource.SetName( prefix_cache + ffn );
-					if (fsource.IsFileReadable())
-					{
-						fdest.SetName(ffn);
-						if ( ! wxCopyFile(fsource.GetFullPath(),fdest.GetFullPath()) ) alreadyAvailable = false ;
-					}
-					else
-					{
-						break ;
-					}
-				}
-			}
+			if (!fsource.IsFileReadable())
+				break;
+			fdest.SetName(ffn);
+			if ( ! wxCopyFile(fsource.GetFullPath(),fdest.GetFullPath()) ) alreadyAvailable = false ;
 			pp++;
 		}
 		readPos();
@@ -1081,35 +1054,10 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		{
 			ffn.Printf(FILE_SCORE_PNG, pp);
 			fsource.SetName(ffn);
-			if (fsource.IsFileReadable())
-			{
-				fdest.SetName(prefix_cache + ffn);
-				wxCopyFile(fsource.GetFullPath(), fdest.GetFullPath());
-			}
-			else
-			{
-				ffn.Printf(FILE_SCORE_0_PNG, pp);
-				fsource.SetName(ffn);
-				if (fsource.IsFileReadable())
-				{
-					fdest.SetName(prefix_cache + ffn);
-					wxCopyFile(fsource.GetFullPath(), fdest.GetFullPath());
-				}
-				else
-				{
-					ffn.Printf(FILE_SCORE_00_PNG, pp);
-					fsource.SetName(ffn);
-					if (fsource.IsFileReadable())
-					{
-						fdest.SetName(prefix_cache + ffn);
-						wxCopyFile(fsource.GetFullPath(), fdest.GetFullPath());
-					}
-					else
-					{
-						break;
-					}
-				}
-			}
+			if (!fsource.IsFileReadable())
+				break;
+			fdest.SetName(prefix_cache + ffn);
+			wxCopyFile(fsource.GetFullPath(), fdest.GetFullPath());
 			pp++;
 		}
 	}
@@ -1120,19 +1068,299 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	prevPlaying = true ;
 	return true ;
 }
+bool musicxmlscore::readlilypos()
+{
+	// from file fpos generated by event-litener.ly (modified for this syntax 
+	// (ly:format "p:~a:~a:" 	(caddr origin) 		(cadr origin))
+	// detect tokens  "<p:128:5:>" (the click-to-point outputed by event-listener.ly, generated by lilypond )
+	// each token is added in lposnotes
+	char ch;
+	uint32_t nbposly, etat, nbint;
+	cposnote mposnote;
+
+	FILE* fp = fopen(FILE_POS_LILY, "rb");
+	if (fp == NULL)
+	{
+		wxMessageBox("Cannot open Lilypond pos", "build score", wxOK | wxICON_ERROR);
+		return false;
+	}
+	etat = 0;
+	while ((ch = getc(fp)) != EOF)
+	{
+		switch (etat)
+		{
+			// p:
+		case 0: if (ch == 'p') etat++; else etat = 0; break;
+		case 1: if (ch == ':') { etat++; nbint = 0; mposnote.empty = true; }
+			  else etat = 0; break;
+			// line:column:
+		case 2: if ((ch >= '0') && (ch <= '9')) { nbint *= 10; nbint += (ch - '0'); break; }
+			  if (ch == ':') { etat++; mposnote.ply.line = nbint; nbint = 0; break; }
+			  etat = 0; break;
+		case 3: if ((ch >= '0') && (ch <= '9')) { nbint *= 10; nbint += (ch - '0'); break; }
+			  if (ch == ':') { etat++; mposnote.ply.column = nbint; nbint = 0; break; }
+			  etat = 0; break;
+		case 4:
+			lposnotes.Append( new cposnote(mposnote));
+			etat = 0;
+			break;
+		default: etat = 0; break;
+		}
+	}
+	fclose(fp);
+	return true;
+}
+bool musicxmlscore::readlilypdf(uint32_t page, uint32_t xpng, uint32_t ypng)
+{
+	// detect structure "Rect [402.632 226.067 410.763 232.778]*.ly:128:5:6)" for the notes
+	// and structure "MediaBox [0 0 798 598]" for the size of the page
+	char ch;
+	uint32_t etat, nbint;
+	sfpos spdf ;
+	float fletat, nbfloat;
+	sposly mly;
+	spdf.x1 = 0; spdf.y1 = 0; spdf.x2 = 0; spdf.y2 = 0;
+
+	wxString fpdf;
+	fpdf.Printf(FILE_SCORE_PDF, page);
+
+	FILE* fp = fopen(fpdf, "rb");
+	if (fp == NULL)
+	{
+		wxMessageBox("Cannot open Lilypond pdf", "build score", wxOK | wxICON_ERROR);
+		return false;
+	}
+	etat = 0;
+	while ((ch = getc(fp)) != EOF)
+	{
+		switch (etat)
+		{
+		case 0: if (ch == 'R') etat++; else { if (ch == 'M') etat = 101; else etat = 0; }; break;
+		// seach for a small PDF rectangle sie. Pattern is "Rect [x1 y1 x2 y2]" 
+		case 1: if (ch == 'e') etat++; else etat = 0; break;
+		case 2: if (ch == 'c') etat++; else etat = 0; break;
+		case 3: if (ch == 't') etat++; else etat = 0; break;
+		case 4: if (ch == ' ') etat++; else etat = 0; break;
+		case 5: if (ch == '[') { etat++; nbfloat = 0.0; }
+			  else etat = 0; break;
+			// x1_
+		case 6: if ((ch >= '0') && (ch <= '9')) { nbfloat *= 10; nbfloat += (ch - '0'); break; }
+			  if (ch == '.') { fletat = 0.1; etat++; break; }
+			  if (ch == ' ') { etat += 2; spdf.x1 = nbfloat; nbfloat = 0.0; break; }
+			  etat = 0; break;
+		case 7: if ((ch >= '0') && (ch <= '9')) { nbfloat += (ch - '0') * fletat; fletat *= 0.1; break; }
+			  if (ch == ' ') { etat++; spdf.x1 = nbfloat; nbfloat = 0.0; break; }
+			  etat = 0; break;
+			  // y1_
+		case 8: if ((ch >= '0') && (ch <= '9')) { nbfloat *= 10; nbfloat += (ch - '0'); break; }
+			  if (ch == '.') { fletat = 0.1; etat++; break; }
+			  if (ch == ' ') { etat += 2; spdf.y1 = nbfloat; nbfloat = 0.0; break; }
+			  etat = 0; break;
+		case 9: if ((ch >= '0') && (ch <= '9')) { nbfloat += (ch - '0') * fletat; fletat *= 0.1; break; }
+			  if (ch == ' ') { etat++; spdf.y1 = nbfloat; nbfloat = 0.0; break; }
+			  etat = 0; break;
+			  // x2_
+		case 10: if ((ch >= '0') && (ch <= '9')) { nbfloat *= 10; nbfloat += (ch - '0'); break; }
+			   if (ch == '.') { fletat = 0.1; etat++; break; }
+			   if (ch == ' ') { etat += 2; spdf.x2 = nbfloat; nbfloat = 0.0; break; }
+			   etat = 0; break;
+		case 11: if ((ch >= '0') && (ch <= '9')) { nbfloat += (ch - '0') * fletat; fletat *= 0.1; break; }
+			   if (ch == ' ') { etat++; spdf.x2 = nbfloat; nbfloat = 0.0; break; }
+			   etat = 0; break;
+			   // y2]
+		case 12: if ((ch >= '0') && (ch <= '9')) { nbfloat *= 10.0; nbfloat += float(ch - '0'); break; }
+			   if (ch == '.') { fletat = 0.1; etat++; break; }
+			   if (ch == ']') { etat += 2; spdf.y2 = nbfloat; nbfloat = 0.0; break; }
+			   etat = 0; break;
+		case 13: if ((ch >= '0') && (ch <= '9')) { nbfloat += (ch - '0') * fletat; fletat *= 0.1; break; }
+			   if (ch == ']') { etat++; spdf.y2 = nbfloat; nbfloat = 0.0; break; }
+			   etat = 0; break;
+			   // search for the lilipond point-and-click reference in teh PDF. Pattern "*.ly:line:column:width]"
+		case 14:  if (ch == '.') { etat++; }
+			   else { if (ch == '>' ) etat = 0; } break;
+		case 15:  if (ch == 'l') { etat++; }
+			   else { if (ch == '>') etat = 0; else etat = 14; } break;
+		case 16:  if (ch == 'y') { etat++; }
+			   else { if (ch == '>') etat = 0; else etat = 14; } break;
+		case 17:  if (ch == ':') { etat++; nbint = 0; }
+			   else { if (ch == '>') etat = 0; else etat = 14; } break;
+			// posx:posy:l)
+		case 18: if ((ch >= '0') && (ch <= '9')) { nbint *= 10; nbint += (ch - '0'); break; }
+			   if (ch == ':') { etat++; mly.line = nbint; nbint = 0; break; }
+			   etat = 0; break;
+		case 19: if ((ch >= '0') && (ch <= '9')) { nbint *= 10; nbint += (ch - '0'); break; }
+			   if (ch == ':') { etat++; mly.column = nbint; nbint = 0; break; }
+			   etat = 0; break;
+		case 20: if ((ch >= '0') && (ch <= '9')) { nbint *= 10; nbint += (ch - '0'); break; }
+			   if (ch == ']') { etat++; nbint = 0; break; }
+			   etat = 0; break;
+			   // end Rect [402.632 226.067 410.763 232.778]....ly:128:5:6)
+		case 21:
+			etat = 0;
+			// search this PDF object rectangle in the posnotes generated by liypond script
+			for (l_posnotes::iterator iter_posnotes = lposnotes.begin(); iter_posnotes != lposnotes.end(); ++iter_posnotes)
+			{
+				cposnote* current_posnotes = *iter_posnotes;
+				if ((current_posnotes->empty) && (mly.line = current_posnotes->ply.line) && (mly.column = current_posnotes->ply.column))
+				{
+					current_posnotes->empty = false;
+					current_posnotes->page = page;
+					current_posnotes->pdf.x1 = spdf.x1 ;
+					current_posnotes->pdf.y1 = spdf.y1;
+					current_posnotes->pdf.x2 = spdf.x2;
+					current_posnotes->pdf.y1 = spdf.y2;
+				}
+			}
+			break;
+	    // size of the image-page in the pdf, pattern "MediaBox [0 0 798 598]"
+		case 101: if (ch == 'e') etat++; else etat = 0; break;
+		case 102: if (ch == 'd') etat++; else etat = 0; break;
+		case 103: if (ch == 'i') etat++; else etat = 0; break;
+		case 104: if (ch == 'a') etat++; else etat = 0; break;
+		case 105: if (ch == ' ') etat++; else etat = 0; break;
+		case 106: if (ch == 'B') etat++; else etat = 0; break;
+		case 107: if (ch == 'o') etat++; else etat = 0; break;
+		case 108: if (ch == 'x') etat++; else etat = 0; break;
+		case 109: if (ch == ' ') etat++; else etat = 0; break;
+		case 110: if (ch == '[') { etat++; nbint = 0; }
+				else etat = 0; break;
+		case 111: if ((ch >= '0') && (ch <= '9')) { nbint *= 10; nbint += (ch - '0'); break; }
+				if (ch == ' ') { etat++; spdf.x1 = nbint; nbint = 0; break; }
+				etat = 0; break;
+		case 112: if ((ch >= '0') && (ch <= '9')) { nbint *= 10; nbint += (ch - '0'); break; }
+				if (ch == ']') { etat = 0; spdf.y1 = nbint; break; }
+				etat = 0; break;
+		case 113: if ((ch >= '0') && (ch <= '9')) { nbint *= 10; nbint += (ch - '0'); break; }
+				if (ch == ' ') { etat++; spdf.x2 = nbint; nbint = 0; break; }
+				etat = 0; break;
+		case 114: if ((ch >= '0') && (ch <= '9')) { nbint *= 10; nbint += (ch - '0'); break; }
+				if (ch == ']') { etat = 0; spdf.y2 = nbint  ; break; }
+				etat = 0; break;
+		default: etat = 0; break;
+		}
+	}
+	fclose(fp);
+	if (spdf.x2 == 0)
+	{
+		wxMessageBox("Cannot read size Lilypond pdf", "build score", wxOK | wxICON_ERROR);
+		return false;
+	}
+	float fxpng = (float)(xpng);
+	float fypng = (float)(ypng);
+	float fxpdf = (float)(spdf.x2 - spdf.x1);
+	float fypdf = (float)(spdf.y2 - spdf.y1);
+	// readjust teh size of pdf rectangle in the page to png rectangle 
+	for (l_posnotes::iterator iter_posnotes = lposnotes.begin(); iter_posnotes != lposnotes.end(); ++iter_posnotes)
+	{
+		cposnote* current_posnotes = *iter_posnotes;
+		if ((! current_posnotes->empty) && (page == current_posnotes->page))
+		{
+			current_posnotes->png.x1 = (int)(fxpng *current_posnotes->pdf.x1 / fxpdf);
+			current_posnotes->png.y1 = (int)(fypng *current_posnotes->pdf.y1 / fypdf);
+			current_posnotes->png.x2 = (int)(fxpng *current_posnotes->pdf.x2 / fxpdf);
+			current_posnotes->png.y1 = (int)(fypng *current_posnotes->pdf.y2 / fypdf);
+		}
+	}
+
+	return true;
+}
+bool musicxmlscore::readpngsize(uint32_t* xpng, uint32_t* ypng)
+{
+	// read size png
+	*xpng = 0; *ypng = 0;
+	wxString fpng;
+	fpng.Printf(FILE_SCORE_PNG, 0);
+	FILE* fp = fopen(fpng, "rb");
+	if (fp == NULL)
+	{
+		wxMessageBox("Cannot open Lilypond png", "build score", wxOK | wxICON_ERROR);
+		return false;
+	}
+	fseek(fp, 16, SEEK_SET);  // Move to the IHDR chunk's location
+	fread(xpng, sizeof(uint32_t), 1, fp);
+	fread(ypng, sizeof(uint32_t), 1, fp);
+
+	// Convert from big-endian to host-endian
+	*xpng = bswap32(*xpng);
+	*ypng = bswap32(*ypng);
+
+	fclose(fp);
+	return true;
+}
+bool musicxmlscore::readlilypond(char* score, char* fpos)
+{
+	char files[1024];
+	uint32_t pagenr = 0;
+	uint32_t xpng, ypng;
+	sprintf(files, "%s_%d.png", score, 0);
+	if (!readpngsize(files, &xpng, &ypng))
+	{
+		// no png score
+		wxMessageBox("no Lilypond png", "build score", wxOK | wxICON_ERROR); 
+		return false;
+	}
+
+	while (true)
+	{
+		sprintf(files, "%s_%d.txt", fpos, pagenr);
+		if (!readlilypos(files, pagenr))
+		{
+			// no more page
+			break;
+		}
+
+		sprintf(files, "%s_%d.pdf", score, pagenr);
+		if (!readlilypdf(files, pagenr,  xpng,  ypng))
+		{
+			// no png score
+			wxMessageBox("no Lilypond pdf page correpsondance", "build score", wxOK | wxICON_ERROR);
+			break;
+		}
+
+		pagenr++;
+	}
+
+	// output of the lilypond calculation to the lilypos file
+	FILE* fp = fopen(lilypos, "w");
+	if (fp == NULL)
+	{
+		wxMessageBox("Cannot write Lilypos", "build score", wxOK | wxICON_ERROR);
+		return false;
+	}
+
+	for (l_posnotes::iterator iter_posnotes = lposnotes.begin(); iter_posnotes != lposnotes.end(); ++iter_posnotes)
+	{
+		cposnote* current_posnotes = *iter_posnotes;
+		if (!current_posnotes->empty)
+		{
+		}
+	}
+	return true;
+}
+
+
 bool musicxmlscore::readPos()
 {
 	int previous_page_nr = -1;
 	bool returnCode = false ;
-	wxFileName fp(musescorepos);
-	if (! fp.IsFileReadable())
+	wxFileName fp;
+	fp.SetPath(mxconf::getTmpDir());
+	fp.SetFullName(FILE_POS_TXT);
+	if (!fp.IsFileReadable())
+	{
+		wxMessageBox("No position score", "build score", wxOK | wxICON_ERROR);
 		return false;
+	}
 	wxTextFile f;
 	f.Open(fp.GetFullPath());
 	if (f.IsOpened() == false)
+	{
+		wxMessageBox("Cannot open position score", "build score", wxOK | wxICON_ERROR);
 		return false;
+	}
 	wxArrayInt measureTurnPage;
 	wxString line;
+	wxRect rect_pixel;
 	int line_nb = f.GetLineCount();
 	for (int line_nr = 0; line_nr < line_nb; line_nr++)
 	{
@@ -1146,6 +1374,7 @@ bool musicxmlscore::readPos()
 		}
 		wxArrayString msplit = wxSplit(line, ' ');
 		long l;
+
 		if (msplit[0].ToLong(&l) == false)
 		{
 			char buferr[1024];
@@ -1154,6 +1383,7 @@ bool musicxmlscore::readPos()
 			break;
 		}
 		int nr_measure = l;
+
 		if (msplit[1].ToLong(&l) == false)
 		{
 			char buferr[1024];
@@ -1161,7 +1391,8 @@ bool musicxmlscore::readPos()
 			mlog_in("musicxmlscore / readpos / err [1] tolong(%s)",buferr);
 			break;
 		}
-		int t_480 = l;
+		int t480 = l;
+
 		if (msplit[2].ToLong(&l) == false)
 		{
 			char buferr[1024];
@@ -1176,62 +1407,57 @@ bool musicxmlscore::readPos()
 		}
 		previous_page_nr = page_nr;
 		totalPages = page_nr;
-		double d;
-		if (msplit[3].ToDouble(&d) == false)
-		{
-			msplit[3].Replace(".",",");
-			if (msplit[3].ToDouble(&d) == false)
-			{
-				char buferr[1024];
-				strcpy(buferr,msplit[3].c_str());
-				mlog_in("musicxmlscore / readpos / err [3] tolong(%s)",buferr);
-				break;
-			}
-		}
-		float x_tenth = d * 10.0;
-		if (msplit[4].ToDouble(&d) == false)
-		{
-			msplit[4].Replace(".",",");
-			if (msplit[4].ToDouble(&d) == false)
-			{
-				char buferr[1024];
-				strcpy(buferr,msplit[4].c_str());
-				mlog_in("musicxmlscore / readpos / err [4] tolong(%s)",buferr);
-				break;
-			}
-		}
-		float y_tenth = d * 10.0;
-		if (msplit[5].ToDouble(&d) == false)
-		{
-			msplit[5].Replace(".",",");
-			if (msplit[5].ToDouble(&d) == false)
-			{
-				char buferr[1024];
-				strcpy(buferr,msplit[5].c_str());
-				mlog_in("musicxmlscore / readpos / err [5] tolong(%s)",buferr);
-				break;
-			}
-		}
-		float width_tenth = d * 10.0;
-		if (msplit[6].ToDouble(&d) == false)
-		{
-			msplit[6].Replace(".",",");
-			if (msplit[6].ToDouble(&d) == false)
-			{
-				char buferr[1024];
-				strcpy(buferr,msplit[6].c_str());
-				mlog_in("musicxmlscore / readpos / err [6] tolong(%s)",buferr);
-				break;
-			}
-		}
 
-		wxRect rect_pixel;
+		if (msplit[3].ToLong(&l) == false)
+		{
+			char buferr[1024];
+			strcpy(buferr, msplit[3].c_str());
+			mlog_in("musicxmlscore / readpos / err [3] tolong(%s)", buferr);
+			break;
+		}
+		rect_pixel.x = l;
 
-		rect_pixel.y += rect_pixel.height + 1;
+		if (msplit[4].ToLong(&l) == false)
+		{
+			char buferr[1024];
+			strcpy(buferr, msplit[4].c_str());
+			mlog_in("musicxmlscore / readpos / err [4] tolong(%s)", buferr);
+			break;
+		}
+		rect_pixel.y = l;
+
+		if (msplit[5].ToLong(&l) == false)
+		{
+			char buferr[1024];
+			strcpy(buferr, msplit[5].c_str());
+			mlog_in("musicxmlscore / readpos / err [5] tolong(%s)", buferr);
+			break;
+		}
+		rect_pixel.y = l;
+
+		if (msplit[6].ToLong(&l) == false)
+		{
+			char buferr[1024];
+			strcpy(buferr, msplit[6].c_str());
+			mlog_in("musicxmlscore / readpos / err [6] tolong(%s)", buferr);
+			break;
+		}
+		rect_pixel.width = l;
+
+		if (msplit[7].ToLong(&l) == false)
+		{
+			char buferr[1024];
+			strcpy(buferr, msplit[7].c_str());
+			mlog_in("musicxmlscore / readpos / err [7] tolong(%s)", buferr);
+			break;
+		}
+		rect_pixel.height = l;
+
 		rect_pixel.height /= 3;
 		if (rect_pixel.height < 3)
 			rect_pixel.height = 3;
-		xmlCompile->setPosEvent(nr_measure, t_480, page_nr, rect_pixel); // , mbitmap);
+
+		xmlCompile->setPosEvent(nr_measure, t480, page_nr, rect_pixel); // , mbitmap);
 	}
 	xmlCompile->setMeasureTurnEvent(0,true);
 	int nbTurn = measureTurnPage.GetCount();

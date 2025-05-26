@@ -4,6 +4,22 @@
 
 #define DEF_MUSICXMLSCORE
 
+struct spos { unsigned int x1, y1, x2, y2; };
+struct sfpos { float x1, y1, x2, y2; };
+struct sposly { unsigned int line, column; };
+class cposnote
+{
+public:
+	bool empty;
+	sposly ply;
+	spos png;
+	sfpos pdf;
+	unsigned int page;
+};
+
+// this macro declares and partly implements MyList class
+WX_DECLARE_LIST(cposnote, l_posnotes);
+
 
 class musicxmlscore
 	: public viewerscore
@@ -79,8 +95,13 @@ private:
 	int currentPageNr = 0 ;
 	int currentPageNrPartial = -1 ;
 	bool currentTurnPage = true ;
+	wxString lilypos;
 
 	void setCursor(wxDC& dc , int nrEvent,bool playing);
+	bool readlilypos();
+	bool readlilypdf(uint32_t page , uint32_t xpng, uint32_t ypng);
+	bool readpngsize(uint32_t* xpng, uint32_t* ypng);
+	bool musicxmlscore::readlilypond(char* score, char* fpos);
 	bool readPos();
 	bool setPage(wxDC& dc, int pos, wxRect *rectPos , bool playing ); //, wxBitmap **bitmapCursor);
 
@@ -89,6 +110,8 @@ private:
 	void crc_init();
 	wxULongLong crc_cumulate_file(wxString fname);
 	wxULongLong crc_cumulate_string(wxString buf);
+
+	l_posnotes lposnotes;
 
 	wxDECLARE_EVENT_TABLE();
 
