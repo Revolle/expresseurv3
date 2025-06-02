@@ -18,7 +18,7 @@ www.expresseur.com
     
 2. luabass :
 
-    This library can be used to manage audio output (MIDI, VST, SF2, wav) from a LUA script.
+    This library can be used to manage audio output (MIDI, VST, SF2, wav, DMX) from a LUA script.
     C library 64 bits. Started by lua script, to render midi-out, SF2, VSTi, Wav
  
     dependencies :
@@ -43,6 +43,7 @@ www.expresseur.com
    dependencies
    * wxwidgets3.1 64 bits
    * basslua 64 bits
+   * lilypond for the score rendering
           
 5. mac
 
