@@ -1367,11 +1367,6 @@ bool musicxmlscore::readPos()
 		line = f.GetLine(line_nr);
 		char bufline[10000];
 		strcpy(bufline,line.c_str());
-		if ( line == "eof" )
-		{
-			returnCode = true ;
-			break ;
-		}
 		wxArrayString msplit = wxSplit(line, ' ');
 		long l;
 
