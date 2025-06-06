@@ -132,6 +132,7 @@ public:
 		fifths = musicxmlevent.fifths;
 		visible = musicxmlevent.visible;
 		played = musicxmlevent.played;
+		nrnote = -1;
 	}
 	c_musicxmlevent(int ipartNr, int istaffNr, int ivoice, int istart_measureNr, int ioriginal_measureNr, int istart_t, int istop_measureNr, int istop_t, int ipitch, int idivision_measure, int idivision_beat, int idivision_quarter, int irepeat, int iorder, int ififths)
 	{
@@ -153,6 +154,7 @@ public:
 		division_quarter = idivision_quarter;
 		start_order = iorder;
 		fifths = ififths;
+		nrnote = -1;
 	}
 	int nr = 0; // index sorted with start_* as key
 	int nextNr = 0; // next element just which starts after the stop ;
@@ -213,6 +215,7 @@ public:
 	wxRect rect;
 	bool turnPage = false;
 	bool end_score = false;
+	int nrnote = -1; // indice o the note in the Expresseur rythm-line
 };
 WX_DECLARE_LIST(c_musicxmlevent, l_musicxmlevent);
 
@@ -279,7 +282,7 @@ public:
 	bool loadXmlFile(wxString xmlfilein,bool useMarkFile = true);
 	bool isOk(bool compiled_score = false);
 	bool getPosEvent(int nrEvent, int *pageNr, wxRect *rect, bool *turn, int *nr_ornament); // , wxBitmap **mbitmap);
-	void setPosEvent(int nrMeasure, int t480, int pageNr, wxRect rect); //  , wxBitmap *mbitmap);
+	int setPosEvent(int nrnote, int pageNr, wxRect rect); //  , wxBitmap *mbitmap);
 	void setMeasureTurnEvent(int nrMeasure, bool clean = false);
 	int getPartNr(wxString spart, int *partNb = NULL);
 	int pageToEventNr(int pageNr);
@@ -351,8 +354,8 @@ private:
 	void deleteBarLabel(c_measure *newMeasure);
 	void addExpresseurPart();
 	void compileExpresseurPart();
-	void addNote(c_measure *measure, bool after_measure , int from_t, int to_t, bool rest, bool tie_back, bool tie_next, bool *first_note , int nbOrnaments , wxString *text, bool *staccato, bool *fermata , bool *breath_mark , bool ternaire, bool cross);
-	void addSymbolNote(c_measure *measure, bool after_measure,  int duration, bool rest, bool tie_back, bool tie_next, bool *first_note, int nbOrnaments, wxString *text , bool *staccato, bool *fermata, bool *breath_mark, bool ternaire,  bool cross);
+	void addNote(c_measure *measure, bool after_measure , int from_t, int to_t, bool rest, bool tie_back, bool tie_next, bool *first_note , int *nrnote , int nbOrnaments , wxString *text, bool *staccato, bool *fermata , bool *breath_mark , bool ternaire, bool cross);
+	void addSymbolNote(c_measure *measure, bool after_measure,  int duration, bool rest, bool tie_back, bool tie_next, bool *first_note, int* nrnote, int nbOrnaments, wxString *text , bool *staccato, bool *fermata, bool *breath_mark, bool ternaire,  bool cross);
 	void calculateDuration(int duration, int divisions, bool ternaire , int *duration_done , wxString *typeNote , int *dot , int *tuplet);
 	wxFileName txtFile;
 	wxFileName musicxmlFile;

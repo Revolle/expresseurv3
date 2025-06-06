@@ -95,13 +95,13 @@ private:
 	int currentPageNr = 0 ;
 	int currentPageNrPartial = -1 ;
 	bool currentTurnPage = true ;
-	wxString lilypos;
+	wxString lilypos, expresseurpos;
 
 	void setCursor(wxDC& dc , int nrEvent,bool playing);
 	bool readlilypos();
 	bool readlilypdf(uint32_t page , uint32_t xpng, uint32_t ypng);
 	bool readpngsize(uint32_t* xpng, uint32_t* ypng);
-	bool musicxmlscore::readlilypond(char* score, char* fpos);
+	bool musicxmlscore::readlilypond();
 	bool readPos();
 	bool setPage(wxDC& dc, int pos, wxRect *rectPos , bool playing ); //, wxBitmap **bitmapCursor);
 
