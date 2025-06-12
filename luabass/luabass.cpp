@@ -371,8 +371,13 @@ static bool g_mutex_out_ok = false ;
 static HANDLE g_timer_out = NULL;
 // mutex to protect the output ( from LUA and timer, to outputs )
 static HANDLE g_mutex_out = NULL;
+
+// dmx management
 static HANDLE g_dmx = NULL;
 static DCB g_dmxdcb;
+byte vDmx[256];
+unsigned int nbDmx = 0;
+
 #endif
 #ifdef V_MAC
 // mutex to protect the access od the midiout queud messages
@@ -524,14 +529,14 @@ static void unlock_mutex_out()
 void startDmx()
 {
 #ifdef V_PC
-	//g_dmxdcb.BaudRate = CBR_57600;     //  baud rate
-	//SetCommState(g_dmx, &g_dmxdcb);
+	g_dmxdcb.BaudRate = CBR_115200;     //  baud rate
+	SetCommState(g_dmx, &g_dmxdcb);
 	SetCommBreak(g_dmx);
-	//g_dmxdcb.BaudRate = CBR_256000;     //  baud rate
-	//SetCommState(g_dmx, &g_dmxdcb);
+	g_dmxdcb.BaudRate = CBR_256000;     //  baud rate
+	SetCommState(g_dmx, &g_dmxdcb);
 #endif
 }
-bool initDmx(unsigned long comport)
+bool openDmx(unsigned long comport)
 {
 #ifdef V_PC
 	if (!g_dmx)
@@ -556,18 +561,17 @@ bool initDmx(unsigned long comport)
 		if (!SetCommState(g_dmx, &g_dmxdcb))
 			return false;
 	}
-	startDmx();
 	return true;
 #else
 	return false;
 #endif
 }
-void sendDmx(byte *vDmx, int nbByte)
+void sendDmx()
 {
 #ifdef V_PC
 	DWORD n;
 	// write dmx byte
-	WriteFile(g_dmx, vDmx, (DWORD)nbByte, &n, NULL);
+	WriteFile(g_dmx, vDmx, (DWORD)nbDmx, &n, NULL);
 #endif
 }
 void closeDmx()
@@ -578,18 +582,24 @@ void closeDmx()
 	g_dmx = NULL;
 #endif
 }
+void refreshDmx()
+{
+	if (g_dmx)
+	{
+		startDmx();
+		sendDmx();
+	}
+}
 static int LoutDmx(lua_State* L)
 {
 	lock_mutex_out();
 	int comport = lua_tointeger(L, 1);
-	if (!initDmx(comport))
-		lua_pushboolean(L, false);
 	int nrArg = 2 ;
-	byte vDmx[512];
+	int nbArg = lua_gettop(L);
 	byte* pDmx = vDmx ;
 	int nbByte = 0;
 	int v;
-	while (nrArg <= lua_gettop(L))
+	while (nrArg <= nbArg )
 	{
 		v = lua_tointeger(L, nrArg);
 		if ((v >= 0) && (v < 256))
@@ -602,9 +612,12 @@ static int LoutDmx(lua_State* L)
 		if (nbByte >= 512)
 			break;
 	}
-	sendDmx(vDmx , nbByte);
+	if (!openDmx(comport))
+		lua_pushboolean(L, false);
+	nbDmx = nbByte;
 	lua_pushboolean(L, true);
 	unlock_mutex_out();
+	return 1;
 }
 
 static int apply_volume(int nrTrack, int v)
@@ -2972,6 +2985,7 @@ static void process_timer_out()
 			lua_pop(g_LUAoutState, 1);
 		}
 	}
+	refreshDmx();
 }
 #ifdef V_PC
 VOID CALLBACK timer_out_callback(PVOID lpParam, BOOLEAN TimerOrWaitFired)

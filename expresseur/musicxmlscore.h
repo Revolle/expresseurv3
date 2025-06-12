@@ -108,8 +108,8 @@ private:
 	int prev_absolute_measure_nr = NULL_INT;
 
 	void crc_init();
-	wxULongLong crc_cumulate_file(wxString fname);
-	wxULongLong crc_cumulate_string(wxString buf);
+	std::uint64_t crc_cumulate_file(wxString fname);
+	std::uint64_t crc_cumulate_string(wxString buf);
 
 	l_posnotes lposnotes;
 

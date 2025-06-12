@@ -48,12 +48,16 @@
 #include <errno.h>
 #include <time.h>
 
+#include <conio.h>
+#include <direct.h>
+
 #include "basslua.h"
 
 #define sUsage "type help for list of functions available\n"
 
 int main(int argc, char* argv[])
 {
+
 	// define the default lua-script and its empty parameter
 	char fname[1024] = "expresscmd.lua";
 	char param[1024] = "";
@@ -64,6 +68,14 @@ int main(int argc, char* argv[])
 		strcpy_s(fname, argv[1]);
 	if (argc > 2)
 		strcpy_s(param, argv[2]);
+	if (argc > 3)
+		_chdir(argv[3]);
+	// _chdir("C:\\Users\\franc\\Documents\\GitHub\\expresseurV3_VC\\basslua\\x64\\Debug");
+	char full[_MAX_PATH];
+	if (_fullpath(full, ".\\", _MAX_PATH) != NULL)
+		fprintf(stderr, "working directory is : %s\n", full);
+	else
+		fprintf(stderr, "cannot calculate working directory\n");
 
 	// starts the basslua module with the lua-scipt
 	// this command loads :
@@ -79,7 +91,7 @@ int main(int argc, char* argv[])
 	fprintf(stderr,"Return code basslua_open =%s\n", retCode?"OK":"Error");
 
 	// print the usage of this command-line tool
-	printf(sUsage);
+	fprintf(stderr,sUsage);
 
 	// read the input
 	while (true)
@@ -133,7 +145,7 @@ int main(int argc, char* argv[])
 				if (ret_code )
 					printf(">Done\n");
 				else
-					printf(">Error\n");
+					printf(">Error command <%s>\n", line_read);
 			}
 		}
 	}
