@@ -349,7 +349,8 @@ IMPLEMENT_APP(MyApp)
 Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const wxPoint& pos,const wxSize& size,long style)
  :wxFrame(parent, id, title, pos, size, style)
 {
-    // Give it a status line
+
+	// Give it a status line
 	wxStatusBar *mStatusBar = CreateStatusBar(3);
 	int proportionStatusBar[3] = { -10,-10,-1 };
 	mStatusBar->SetStatusWidths(3, proportionStatusBar);
@@ -560,6 +561,7 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 }
 Expresseur::~Expresseur()
 {
+
 	checkUpdate();
 
 	musicxmlscore::cleanCache(mConf->get(CONFIG_DAYCACHE, 15));

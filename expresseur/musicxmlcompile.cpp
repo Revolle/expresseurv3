@@ -3088,8 +3088,9 @@ void musicxmlcompile::buildMeasures()
 	int nrPart = 0;
 	l_part::iterator iter_compiled_part;
 	l_part::iterator iter_part;
-	for (iter_compiled_part = compiled_score->parts.begin(), iter_part = score->parts.begin(), nrPart = 0; iter_part != compiled_score->parts.end(); ++iter_compiled_part, ++iter_part, ++nrPart)
-	{
+	//for (iter_compiled_part = compiled_score->parts.begin(), iter_part = score->parts.begin(), nrPart = 0; iter_part != compiled_score->parts.end(); ++iter_compiled_part, ++iter_part, ++nrPart)
+	for (iter_compiled_part = compiled_score->parts.begin(), iter_part = score->parts.begin(), nrPart = 0; iter_part != score->parts.end(); ++iter_compiled_part, ++iter_part, ++nrPart)
+		{
 		c_part *current_part = *iter_part;
 		c_part *current_compiled_part = *iter_compiled_part;
 		int nbMeasure_current_part = current_part->measures.GetCount();

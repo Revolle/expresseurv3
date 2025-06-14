@@ -125,7 +125,6 @@
 #define SUFFIXE_MUSICMXL "mxl"
 #define SUFFIXE_BITMAPCHORD "png"
 #define SUFFIXE_TEXT "txt"
-#define SUFFIXE_PRECONFIG "dua"
 
 #define SLINEAR "linear"
 #define SALLMIDIIN "all Midi-In"

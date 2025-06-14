@@ -70,11 +70,10 @@ int main(int argc, char* argv[])
 		strcpy_s(param, argv[2]);
 	if (argc > 3)
 		_chdir(argv[3]);
+	// debug :
 	// _chdir("C:\\Users\\franc\\Documents\\GitHub\\expresseurV3_VC\\basslua\\x64\\Debug");
 	char full[_MAX_PATH];
-	if (_fullpath(full, ".\\", _MAX_PATH) != NULL)
-		fprintf(stderr, "working directory is : %s\n", full);
-	else
+	if (_fullpath(full, ".\\", _MAX_PATH) == NULL)
 		fprintf(stderr, "cannot calculate working directory\n");
 
 	// starts the basslua module with the lua-scipt
@@ -86,7 +85,7 @@ int main(int argc, char* argv[])
 	//          - luascore ( to play a score )
 	//          - luachord ( to play chords )
 	//        The lua-scriptstarts the lua-function onStart(parameters) :
-	fprintf(stderr,"basslua_open <%s> param=<%s>\n",fname, param);
+	fprintf(stderr,"basslua_open argv[1].scriptlua=<%s> argv[2].param=<%s> (in argv[3].working_directory=%s)\n",fname, param , full);
 	bool retCode = basslua_open(fname, param, true, 0, NULL ,"expresscmd_log","./?.lua", false/*external timer*/,20);
 	fprintf(stderr,"Return code basslua_open =%s\n", retCode?"OK":"Error");
 

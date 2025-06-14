@@ -534,6 +534,9 @@ void startDmx()
 	SetCommBreak(g_dmx);
 	g_dmxdcb.BaudRate = CBR_256000;     //  baud rate
 	SetCommState(g_dmx, &g_dmxdcb);
+	byte hDmx = (byte)(255);
+	DWORD n; 
+	WriteFile(g_dmx, &hDmx, (DWORD)1, &n, NULL);
 #endif
 }
 bool openDmx(unsigned long comport)
