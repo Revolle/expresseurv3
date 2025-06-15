@@ -1091,7 +1091,9 @@ bool musicxmlscore::readlilypos()
 	FILE* fp = fopen(lilypos, "rb");
 	if (fp == NULL)
 	{
-		wxMessageBox("Cannot open Lilypond pos", "build score", wxOK | wxICON_ERROR);
+		wxString serr;
+		serr.Printf("Cannot open Lilypond pos file %s", lilypos);
+		wxMessageBox(serr, "build score", wxOK | wxICON_ERROR);
 		return false;
 	}
 	etat = 0;
@@ -1285,7 +1287,7 @@ bool musicxmlscore::readpngsize(uint32_t* xpng, uint32_t* ypng)
 	wxFileName fpng;
 	fpng.SetPath(mxconf::getTmpDir());
 	wxString s;
-	s.Printf(FILE_SCORE_PNG, 0);
+	s.Printf(FILE_SCORE_PNG, (0+1));
 	fpng.SetFullName(s);
 	FILE* fp = fopen(fpng.GetFullPath(), "rb");
 	if (fp == NULL)
