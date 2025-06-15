@@ -1463,14 +1463,11 @@ void Expresseur::setZoom()
 		if (typeViewer == MUSICXMLVIEWER)
 		{
 			zoom = mConf->get(CONFIG_ZOOM_MUSICXML, 0);
-			//mTextscore->zoom(0);
-			mViewerscore->zoom(zoom);
 		}
 		else
 		{
 			zoom = mConf->get(CONFIG_ZOOM_TEXT, 0);
 			mTextscore->zoom(zoom);
-			//mViewerscore->zoom(0);
 		}
 		wxMenuItem *mmenuItem = zoomMenu->FindChildItem(zoom + ID_MAIN_ZOOM_0);
 		if (mmenuItem)

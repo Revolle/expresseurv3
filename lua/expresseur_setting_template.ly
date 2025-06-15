@@ -1,65 +1,52 @@
 \version "2.24.4"
 
-%%%% write the lilypond-score positions of notes on a text efile
+%%%% Lilypond commands
+%%%%%%%%translate_xml_to_ly:%s %s --npl --no-beaming --output=%s %s
+%%%%%%%%translate_ly_to_png:%s -dlog-file=%s -dinclude-settings=%s -dresolution=72 -dseparate-page-formats=pdf,png  --output %s %s
 
-(define file_pos_exp null)
+%%%% Set size image, according to Exresseur window sizing
+#(set! paper-alist (cons '("expresseur_format" . (cons (* %d pt) (* %d pt))) paper-alist))
+
+%%%% Set layout
+\paper{
+  indent=2\mm
+  #(set-paper-size "expresseur_format")
+  oddFooterMarkup=##f
+  oddHeaderMarkup=##f
+}
+
+%%%% Set size notes, selecting the line according to the Expresseur zoom factor : -3 -2 -1 0 +1 +2 +3 
+#(set-global-staff-size 30)
+#(set-global-staff-size 35)
+#(set-global-staff-size 40)
+#(set-global-staff-size 45)
+#(set-global-staff-size 50)
+#(set-global-staff-size 55)
+#(set-global-staff-size 60)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% capture point-and-click position of Expresseur notes 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#(define exp-output-port (open-output-file "expresseur_out.lyp" ))
 
 #(define (format-note engraver event)
-   (
-		let* 
-		(
-			(inst-name (ly:context-property context 'instrumentName))
-			(pitch (ly:event-property event 'pitch))
-			(origin (ly:input-file-line-char-column (ly:event-property event 'origin)))
-		)
-		(
-			if (and (string=? inst-name "_X_" ) (ly:pitch? pitch))
-			(
-				display				
-					( ly:format "p:~a:~a:" (caddr origin) (cadr origin) )
-					file_pos_exp
-			)
-		)
-	)
-)
-
+   (let* ((origin (ly:input-file-line-char-column
+                   (ly:event-property event 'origin)))
+          (pitch (ly:event-property event 'pitch)))
+     ( if ly:pitch? (display (ly:format "p:~a:~a:\n" (caddr origin) (cadr origin)) exp-output-port ))
+     ))
+	 
 #(define event-listener-engraver
-  (
-	make-engraver
-	(
-		listeners
-		(
-			note-event . format-note
-		)
-     )
-   )
-)
+  (make-engraver
+    (listeners
+     (note-event . format-note) ;; works for notes
+     )))
 
-\layout 
-{
-	\context 
-	{
-        \Score
-        % Call the Scheme function at the start
-        \override Score.StartTextSpan.before-line-breaking =
-          #(
-				lambda (grob)
-				(
-					set! file_pos_exp (open-file "expresseur_out_ly.notes" "w")
-				)
-			)
-        % Call the Scheme function at the end
-           \override Score.EndTextSpan.after-line-breaking =
-          #(
-				lambda (grob)
-				(
-					close file_pos_exp
-				)
-			)
-	}  
-	\context 
-	{
-		\Voice
-		\consists #event-listener-engraver
-	}
+\layout {
+  \context {
+    \DrumStaff
+    \consists #event-listener-engraver
+  }
 }
+

@@ -61,17 +61,16 @@
 #include "musicxmlscore.h"
 
 #define FILE_OUT_XML "expresseur_out.xml" // musicXml export of Expresseur score
-#define FILE_OUT_LILY "expresseur_out.ly" // Lilypond translation of FILE_OUT_XML
-#define FILE_SRC_LILY "expresseur_src.ly" // Lilypond source file , adptated from FILE_OUT_LILY
-#define FILE_OUT_PRESETLILY "expresseur_setting_template.ly" // template of Lilypond script to extract pos of Expreseur notes, and se the size of image
+#define FILE_OUT_LILY "expresseur_translated.ly" // Lilypond translation of FILE_OUT_XML
+#define FILE_SRC_LILY "expresseur_out.ly" // Lilypond source file , adptated from FILE_OUT_LILY
+#define FILE_IN_PRESETLILY "expresseur_setting_template.ly" // template of Lilypond script to extract pos of Expreseur notes, and se the size of image
 #define FILE_OUT_SETLILY "expresseur_setting.ly" // Lilypond script, adapted from FILE_OUT_PRESETLILY
-#define FILE_LOG_LILY "expresseur_out.log" // Lilypond log during compilation of FILE_SRC_LILY
+#define FILE_LOG_LILY "expresseur_out" // Lilypond log during compilation of FILE_SRC_LILY
 #define FILE_SCORE_PDF "expresseur_out-%d.pdf" // PDF (one per page) , output of lilypond generation
 #define FILE_SCORE_PNG "expresseur_out-%d.png" // PNG (one per page) , output of lilypond generation
-#define FILE_POS_LILY "expresseur_out_ly.notes" // position of Lilypond Expresseur notes, output of lilypond generation
-#define FILE_POS_TXT "expresseur_out.notes" // position of Expresseur notes in FILE_SCORE_PNG
+#define FILE_POS_LILY "expresseur_out.lyp" // position of Lilypond Expresseur notes, output of lilypond generation
+#define FILE_POS_TXT "expresseur_out.pos" // position of Expresseur notes in FILE_SCORE_PNG
 #define FILE_IN_XML "expresseur_in.xml"
-#define RESOLUTION_PNG 72
 
 #define PREFIX_CACHE "CACHE_EXPRESSEUR"
 #define WIDTH_SEPARATOR_PAGE 10
@@ -255,7 +254,6 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 	xmlCompile = NULL;
 
 	cleanTmp();
-	zoom(mConf->get(CONFIG_ZOOM_MUSICXML, 0));
 }
 musicxmlscore::~musicxmlscore()
 {
@@ -446,20 +444,6 @@ bool musicxmlscore::xmlExtractXml(wxFileName f)
 		zipEntry = zip.GetNextEntry();
 	}
 	return false;
-}
-void musicxmlscore::zoom(int zoom)
-{
-	switch (zoom)
-	{
-	case -3: fzoom = 11;  break;
-	case -2: fzoom = 14;  break;
-	case -1: fzoom = 17;  break;
-	case 0: fzoom = 20;  break;
-	case 1: fzoom = 25;  break;
-	case 2: fzoom = 30;  break;
-	case 3: fzoom = 35;  break;
-	default: fzoom = 20;  break;
-	}
 }
 bool musicxmlscore::displayFile(wxSize sizeClient)
 {
@@ -844,7 +828,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	wxBusyCursor waitcursor;
 
 	wxFileName fm;
-	wxString xmlout, lilyscore, pythonexe, pythonscript, lilysrc, lilyexe, lilysetting, lilypresetting , lilylog;
+	wxString xmlout, lilyscore, pythonexe, pythonscript, lilysrc, lilyexe, lilysetting, lilylog;
 	wxString command_xmltolily , command_lilytopng;
 	long lexec;
 	wxTextFile fin, fout;
@@ -884,9 +868,6 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	if (fm.FileExists())
 		wxRemoveFile(fm.GetFullPath());
 	lilysetting = fm.GetFullPath();
-	// presettings for lilypond
-	fm.SetFullName(FILE_OUT_PRESETLILY);
-	lilypresetting = fm.GetFullPath();
 	// lily python
 	fm.SetPath(mxconf::getAppDir());
 	fm.AppendDir("lilypond");
@@ -917,25 +898,44 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	xmlCompile->compiled_score->write(xmlCompile->music_xml_displayed_file, true);
 
 	// adapt lilypond settings
-	fin.Open(lilypresetting);
+	fin.Open(FILE_IN_PRESETLILY);
 	fout.Create(lilysetting);
 	fout.Open(lilysetting);
 	if (fin.IsOpened() && fout.IsOpened())
 	{
 		wxString str;
+		int mzoom;
+		mzoom = mConf->get(CONFIG_ZOOM_MUSICXML, 0);
+		if (mzoom < -3) mzoom = -3;
+		if (mzoom > 3 ) mzoom = 3;
+		int nrzoom = -3;
 		for (str = fin.GetFirstLine(); !fin.Eof(); str = fin.GetNextLine())
 		{
+			if (str.StartsWith("%%%%%%%%translate_xml_to_ly:"))
+			{
+				command_xmltolily.Printf(str, pythonexe, pythonscript, lilyscore, xmlout);
+				fout.AddLine(command_xmltolily);
+				command_xmltolily.Replace("%%%%translate_xml_to_ly:", "");
+				continue;
+			}
+			if (str.StartsWith("%%%%%%%%translate_ly_to_png:"))
+			{
+				command_lilytopng.Printf(str, lilyexe, lilylog, lilysetting, mxconf::getTmpDir() , lilysrc);
+				fout.AddLine(command_lilytopng);
+				command_lilytopng.Replace("%%%%translate_ly_to_png:", "");
+				continue;
+			}
 			if (str.StartsWith("#(set-global-staff-size"))
 			{
-				wxString s1;
-				s1.Printf("#(set-global-staff-size %d)", fzoom);
-				fout.AddLine(s1);
+				if (nrzoom == mzoom)
+					fout.AddLine(str);
+				nrzoom++;
 				continue;
 			}
 			if (str.StartsWith("#(set! paper-alist"))
 			{
 				wxString s1;
-				s1.Printf("#(set! paper-alist (cons '(\"myformat\" . (cons (* %d pt) (* %d pt))) paper-alist))", sizePage.GetWidth() , sizePage.GetHeight());
+				s1.Printf(str, sizePage.GetWidth() , sizePage.GetHeight());
 				fout.AddLine(s1);
 				continue;
 			}
@@ -947,13 +947,11 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	}
 	else
 	{
-		wxMessageBox("Cannot adapt Lilypond settings", "build score", wxOK | wxICON_ERROR);
+		wxString serr;
+		serr.Printf("Cannot adapt Lilypond settings from %s", FILE_IN_PRESETLILY);
+		wxMessageBox(serr, "build score", wxOK | wxICON_ERROR);
 		return false;
 	}
-
-	// prepare the command line to run lilypond
-	command_xmltolily.Printf("%s %s --npl --nobeaming --output=%s %s", pythonexe , pythonscript , lilyscore , xmlout );
-	command_lilytopng.Printf("%s -dlog-file=%s -dinclude-settings=%s -dresolution=%d  -dseparate-page-formats=pdf,png  %s", lilyexe , lilylog , lilysetting , RESOLUTION_PNG , lilyscore);
 
 	bool alreadyAvailable = false;
 
@@ -964,7 +962,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	crc_cumulate_string(command_xmltolily);
 	crc_cumulate_string(command_lilytopng);
 	wxString prefix_cache ;
-	prefix_cache.Printf("%s_%lld__", PREFIX_CACHE, crc_value);
+	prefix_cache.Printf("%s_%llu_", PREFIX_CACHE, crc_value);
 
 	wxFileName poscache;
 	poscache.SetPath(mxconf::getTmpDir());
@@ -1016,8 +1014,15 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 			wxString str;
 			for (str = fin.GetFirstLine(); !fin.Eof(); str = fin.GetNextLine())
 			{
-				if (!str.StartsWith("\\pointAndClickOff"))
+				if (str.Contains( "clef \"None\""))
+				{
+					str.Replace("clef \"None\"", "clef \"percussion\"");
 					fout.AddLine(str);
+					continue;
+				}
+				if (str.StartsWith("\\pointAndClickOff"))
+					continue;
+				fout.AddLine(str);
 			}
 			fin.Close();
 			fout.Write();
@@ -1025,7 +1030,9 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		}
 		else
 		{
-			wxMessageBox("Cannot adapt Lilypond score", "build score", wxOK | wxICON_ERROR);
+			wxString serr;
+			serr.Printf("Cannot adapt Lilypond score from %s", lilyscore);
+			wxMessageBox(serr, "build score", wxOK | wxICON_ERROR);
 			return false;
 		}
 

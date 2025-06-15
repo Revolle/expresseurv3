@@ -56,7 +56,7 @@ public:
 	virtual int getTrackCount();
 	virtual wxString getTrackName(int trackNr);
 	virtual void setPosition(int pos, bool playing);
-	virtual void zoom(int zoom);
+	virtual void zoom(int) {} ;
 	virtual void gotoPosition(wxString gotovalue);
 	virtual void gotoNextPage(bool forward);
 
@@ -72,7 +72,6 @@ private:
 	bool docOK = false ;
 	int nrChord;
 
-	unsigned int fzoom = 20;
 	bool lily_def_xml = true ;
 
 	int newPaintPlaying = -1;
