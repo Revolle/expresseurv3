@@ -1143,7 +1143,7 @@ bool musicxmlscore::readlilypdf(uint32_t page, uint32_t xpng, uint32_t ypng)
 	char ch;
 	uint32_t etat = 0;
 	uint32_t nbint = 0 ;
-	sfpos spdf ;
+	sfpos spdf, pagepdf;
 	float fletat = 0.1 ;
 	float nbfloat = 0.0 ;
 	sposly mly;
@@ -1162,7 +1162,6 @@ bool musicxmlscore::readlilypdf(uint32_t page, uint32_t xpng, uint32_t ypng)
 #endif
 	if (fp == -1)
 	{
-		wxMessageBox("Cannot open Lilypond pdf", "build score", wxOK | wxICON_ERROR);
 		return false;
 	}
 	etat = 0;
@@ -1256,7 +1255,7 @@ bool musicxmlscore::readlilypdf(uint32_t page, uint32_t xpng, uint32_t ypng)
 					current_posnotes->pdf.x1 = spdf.x1 ;
 					current_posnotes->pdf.y1 = spdf.y1;
 					current_posnotes->pdf.x2 = spdf.x2;
-					current_posnotes->pdf.y1 = spdf.y2;
+					current_posnotes->pdf.y2 = spdf.y2;
 				}
 			}
 			break;
@@ -1272,16 +1271,16 @@ bool musicxmlscore::readlilypdf(uint32_t page, uint32_t xpng, uint32_t ypng)
 		case 109: if (ch == '[') { etat++; nbint = 0; }
 				else etat = 0; break;
 		case 110: if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
-				if (ch == ' ') { etat++; spdf.x1 = nbint; nbint = 0; break; }
+				if (ch == ' ') { etat++; pagepdf.x1 = nbint; nbint = 0; break; }
 				etat = 0; break;
 		case 111: if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
-				if (ch == ' ') { etat++; spdf.y1 = nbint; break; }
+				if (ch == ' ') { etat++; pagepdf.y1 = nbint; break; }
 				etat = 0; break;
 		case 112: if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
-				if (ch == ' ') { etat++; spdf.x2 = nbint; nbint = 0; break; }
+				if (ch == ' ') { etat++; pagepdf.x2 = nbint; nbint = 0; break; }
 				etat = 0; break;
 		case 113: if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
-				if (ch == ']') { etat = 0; spdf.y2 = nbint  ; break; }
+				if (ch == ']') { etat = 0; pagepdf.y2 = nbint  ; break; }
 				etat = 0; break;
 		default: etat = 0; break;
 		}
@@ -1291,25 +1290,23 @@ bool musicxmlscore::readlilypdf(uint32_t page, uint32_t xpng, uint32_t ypng)
 #else
 	close(fp);
 #endif
-	if (spdf.x2 == 0)
+	if (pagepdf.x2 == 0)
 	{
 		wxMessageBox("Cannot read size Lilypond pdf", "build score", wxOK | wxICON_ERROR);
 		return false;
 	}
-	float fxpng = (float)(xpng);
-	float fypng = (float)(ypng);
-	float fxpdf = (float)(spdf.x2 - spdf.x1);
-	float fypdf = (float)(spdf.y2 - spdf.y1);
+	float fxpng_pdf = (float)(xpng) / (float)(pagepdf.x2 - pagepdf.x1);
+	float fypng_pdf = (float)(ypng) / (float)(pagepdf.y2 - pagepdf.y1);
 	// readjust teh size of pdf rectangle in the page to png rectangle 
 	for (l_posnotes::iterator iter_posnotes = lposnotes.begin(); iter_posnotes != lposnotes.end(); ++iter_posnotes)
 	{
 		cposnote* current_posnotes = *iter_posnotes;
 		if ((! current_posnotes->empty) && (page == current_posnotes->page))
 		{
-			current_posnotes->png.x1 = (int)(fxpng *current_posnotes->pdf.x1 / fxpdf);
-			current_posnotes->png.y1 = (int)(fypng *current_posnotes->pdf.y1 / fypdf);
-			current_posnotes->png.x2 = (int)(fxpng *current_posnotes->pdf.x2 / fxpdf);
-			current_posnotes->png.y1 = (int)(fypng *current_posnotes->pdf.y2 / fypdf);
+			current_posnotes->png.x1 = (int)(fxpng_pdf *current_posnotes->pdf.x1);
+			current_posnotes->png.y1 = (int)(fypng_pdf *current_posnotes->pdf.y1);
+			current_posnotes->png.x2 = (int)(fxpng_pdf *current_posnotes->pdf.x2);
+			current_posnotes->png.y2 = (int)(fypng_pdf *current_posnotes->pdf.y2);
 		}
 	}
 
@@ -1375,12 +1372,9 @@ bool musicxmlscore::readlilypond()
 	for (l_posnotes::iterator iter_posnotes = lposnotes.begin(); iter_posnotes != lposnotes.end(); ++iter_posnotes)
 	{
 		cposnote* current_posnotes = *iter_posnotes;
-		if (!current_posnotes->empty)
-		{
-			wxString s;
-			s.Printf("p:%d:%d:%d:%d:%d:", current_posnotes->page , current_posnotes->png.x1 , current_posnotes->png.y1 , current_posnotes->png.x2 , current_posnotes->png.y2);
-			fout.AddLine(s);
-		}
+		wxString s;
+		s.Printf("%c:%u:%u:%u:%u:%u:", current_posnotes->empty?'?':'p' , current_posnotes->page, current_posnotes->png.x1, current_posnotes->png.y1, current_posnotes->png.x2, current_posnotes->png.y2);
+		fout.AddLine(s);
 	}
 	fout.Write();
 	fout.Close();
