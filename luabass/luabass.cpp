@@ -373,10 +373,12 @@ static HANDLE g_timer_out = NULL;
 static HANDLE g_mutex_out = NULL;
 
 // dmx management
-static HANDLE g_dmx = NULL;
-static DCB g_dmxdcb;
-byte vDmx[256];
-unsigned int nbDmx = 0;
+static HANDLE g_dmx = NULL;	// dmx comport handle
+static DCB g_dmxdcb; // dmx comport configuration
+float vDmx[256]; // // dmx values actual
+byte vbDmx[256]; // // dmx values to send
+float dDmx = 1.0; // decrease value in the time 
+unsigned int nbDmx = 0; // number of dmx values to send
 
 #endif
 #ifdef V_MAC
@@ -591,27 +593,48 @@ void refreshDmx()
 	{
 		startDmx();
 		sendDmx();
+		if (dDmx != 1.0)
+		{
+			// decrease dmx values
+			for (unsigned int i = 0; i < nbDmx; i++)
+			{
+				vDmx[i] *= dDmx;
+				vbDmx[i] = (byte)(cap((int)(vDmx[i]), 0, 255, 0));
+			}
+		}
 	}
 }
 static int LoutDmx(lua_State* L)
 {
+	// send dmx values
+	// param 1 : comport ( 0..255 )
+	// param 2 : release values in the time (0..100)%. 100%==no decrease 0%==quick decrease
+	// param 3..515 : dmx values (0..255)
+	if (lua_gettop(L) < 3)
+	{
+		lua_pushboolean(L, false);
+		return 1;
+	}
+
+
 	lock_mutex_out();
 	int comport = lua_tointeger(L, 1);
+	dDmx = (float)(lua_tointeger(L, 2)) / 100.0;
 	int nrArg = 2 ;
 	int nbArg = lua_gettop(L);
-	byte* pDmx = vDmx ;
+	float* pDmx = vDmx ;
+	byte* pvbDmx = vbDmx;
 	int nbByte = 0;
 	int v;
 	while (nrArg <= nbArg )
 	{
 		v = lua_tointeger(L, nrArg);
-		if ((v >= 0) && (v < 256))
-			*pDmx = (byte)(v);
-		else
-			*pDmx = (byte)(0);
+		*pDmx = (float)(v);
+		*pvbDmx = (byte)(cap((int)(*pDmx), 0, 255, 0));
 		nrArg++;
 		nbByte++;
 		pDmx++;
+		pvbDmx++;
 		if (nbByte >= 512)
 			break;
 	}

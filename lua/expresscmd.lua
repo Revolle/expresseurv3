@@ -217,7 +217,7 @@ function help()
   print("shortchord #" )
   print("transpose [-12..12]" )
   print("sound <file.wav>")
-  print("dmx <COMPORT> <v0>:<v1>:<v2>...")
+  print("dmx <COMPORT> <release[0..100]> <v0[0..255]>:<v1>:<v2>...")
   print("exit")
   print("help")
 end

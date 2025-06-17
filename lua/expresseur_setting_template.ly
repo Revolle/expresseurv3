@@ -34,7 +34,7 @@
    (let* ((origin (ly:input-file-line-char-column
                    (ly:event-property event 'origin)))
           (pitch (ly:event-property event 'pitch)))
-     ( if ly:pitch? (display (ly:format "p:~a:~a:\n" (caddr origin) (cadr origin)) exp-output-port ))
+     ( if ly:pitch? (display (ly:format "p:~a:~a:\n" (cadr origin) (caddr origin)) exp-output-port ))
      ))
 	 
 #(define event-listener-engraver
