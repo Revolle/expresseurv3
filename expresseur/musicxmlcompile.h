@@ -19,17 +19,17 @@ public:
 	void changeMeasure(int inr) { number = inr; name.sprintf("M%d", inr); }
 	void merge(const c_measureMark &m) 
 	{ 
-		rehearsal = rehearsal | m.rehearsal; 
-		restart = restart | m.restart;
-		segno = segno | m.segno;
-		repeatForward = repeatForward | m.repeatForward;
-		repeatBackward = repeatBackward | m.repeatBackward;
-		jumpnext = jumpnext | m.jumpnext;
-		coda = coda | m.coda;
-		tocoda = tocoda | m.tocoda;
-		dacapo = dacapo | m.dacapo;
-		fine = fine | m.fine;
-		dalsegno = dalsegno | m.dalsegno;
+		rehearsal = rehearsal || m.rehearsal;
+		restart = restart || m.restart;
+		segno = segno || m.segno;
+		repeatForward = repeatForward || m.repeatForward;
+		repeatBackward = repeatBackward || m.repeatBackward;
+		jumpnext = jumpnext || m.jumpnext;
+		coda = coda || m.coda;
+		tocoda = tocoda || m.tocoda;
+		dacapo = dacapo || m.dacapo;
+		fine = fine || m.fine;
+		dalsegno = dalsegno || m.dalsegno;
 	}
 	wxString name;
 	int number;
@@ -379,7 +379,7 @@ private:
 	wxLongLong t0Playback ;
 	wxLongLong t0RecordPlayback ;
 	wxLongLong timeReadPlayback;
-	int ratioPlayback;
+	int ratioPlayback = 100;
 
 
 };

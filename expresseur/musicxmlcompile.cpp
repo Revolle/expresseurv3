@@ -30,6 +30,7 @@
 #include "wx/arrstr.h"
 #include "wx/textfile.h"
 #include "wx/config.h"
+#include <wx/list.h>
 
 #include "global.h"
 

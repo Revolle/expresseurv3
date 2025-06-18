@@ -490,7 +490,7 @@ wxString musicxmlscore::getNamePage(int pageNr)
 {
 	// set the image file name according to the page-number
 	wxString fn;
-	fn.Printf(FILE_SCORE_PNG, pageNr);
+	fn.Printf(FILE_SCORE_PNG, pageNr + 1);
 	wxFileName fp;
 	fp.SetPath(mxconf::getTmpDir());
 	fp.SetName(fn);
@@ -525,9 +525,9 @@ bool musicxmlscore::setPage(wxDC& dc, int pos , wxRect *rectPos, bool playing )
 		((wxFrame *)mParent)->SetStatusText(wxEmptyString, 2);
 	}
 
-	if ((pageNr < 1) || (pageNr > totalPages))
+	if ((pageNr < 0) || (pageNr >= totalPages))
 	{
-		pageNr = totalPages;
+		pageNr = 0;
 		((wxFrame *)mParent)->SetStatusText(wxEmptyString, 2);
 	}
 
@@ -1005,7 +1005,6 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 			if ( ! wxCopyFile(fsource.GetFullPath(),fdest.GetFullPath()) ) alreadyAvailable = false ;
 			pp++;
 		}
-		readPos();
 	}
 	if ( alreadyAvailable)
 	{ 
@@ -1067,7 +1066,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		// cache this result for potential reuse
 		wxCopyFile(expresseurpos , poscache.GetFullPath());
 
-		// copy pages
+		// copy pages in CACHE
 		wxFileName fsource;
 		fsource.SetPath(mxconf::getTmpDir());
 		wxFileName fdest;
@@ -1086,6 +1085,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		}
 	}
 		
+	readPos();
 	currentPageNr = -1;
 	currentPageNrPartial = -1;
 	prevPos = -1 ;
@@ -1414,8 +1414,8 @@ bool musicxmlscore::readPos()
 			etat = 0; 	break;
 			// nrpage:x1:y1:x2:y2:
 		case 2: 
-			if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
-			if (ch == ':') { etat++; nrpage = nbint; nbint = 0; break; }
+			  if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
+			  if (ch == ':') { etat++; nrpage = nbint; nbint = 0; break; }
 			  etat = 0; break;
 		case 3: if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
 			  if (ch == ':') { etat++; rect.x = nbint; nbint = 0; break; }
@@ -1431,12 +1431,13 @@ bool musicxmlscore::readPos()
 			  etat = 0; break;
 		case 7:
 			nrmeasure = xmlCompile->setPosEvent(nrnote , nrpage , rect);
+			nrnote++;	
 			if (nrpage != previous_nrpage)
 			{
 				measureTurnPage.Add(nrmeasure - 1);
 			}
 			previous_nrpage = nrpage;
-			totalPages = nrpage;
+			totalPages = nrpage + 1;
 			etat = 0; break;
 		default: etat = 0; break;
 		}
