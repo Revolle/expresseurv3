@@ -749,11 +749,14 @@ void musicxmlscore::gotoNextPage(bool forward)
 {
 	int pageNr = currentPageNr;
 	pageNr += (forward) ? 1 : -1;
-	if ((pageNr < 1) || (pageNr > totalPages))
+	if ((pageNr < 0) || (pageNr >= totalPages))
 		return;
 	int nrEvent = xmlCompile->pageToEventNr(pageNr);
 	if (nrEvent != -1)
+	{
+		currentPageNr = pageNr;	
 		basslua_call(moduleScore, functionScoreGotoNrEvent, "i", nrEvent + 1);
+	}
 }
 void musicxmlscore::OnLeftDown(wxMouseEvent& event)
 {
@@ -763,13 +766,16 @@ void musicxmlscore::OnLeftDown(wxMouseEvent& event)
 	wxPoint mPoint = event.GetLogicalPosition(dc);
 	if (buttonPage.Contains(mPoint) && ( totalPages > 0 ))
 	{
-		int nrPage = mPoint.x / (sizePage.GetWidth()  / totalPages ) + 1 ;
+		int nrPage = mPoint.x / (sizePage.GetWidth()  / totalPages )  ;
+		if ((nrPage < 0) || (nrPage >= totalPages))
+			return;
 		int nrEvent;
 		nrEvent = xmlCompile->pageToEventNr(nrPage);
 		if (nrEvent == -1)
 			return;
 		prevPos = -1;
 		prevPlaying = true;
+		currentPageNr = nrPage;	
 		basslua_call(moduleScore, functionScoreGotoNrEvent, "i", nrEvent + 1);
 		return;
 	}
@@ -1304,9 +1310,9 @@ bool musicxmlscore::readlilypdf(uint32_t page, uint32_t xpng, uint32_t ypng)
 		if ((! current_posnotes->empty) && (page == current_posnotes->page))
 		{
 			current_posnotes->png.x1 = (int)(fxpng_pdf *current_posnotes->pdf.x1);
-			current_posnotes->png.y1 = (int)(fypng_pdf *current_posnotes->pdf.y1);
 			current_posnotes->png.x2 = (int)(fxpng_pdf *current_posnotes->pdf.x2);
-			current_posnotes->png.y2 = (int)(fypng_pdf *current_posnotes->pdf.y2);
+			current_posnotes->png.y1 = pagepdf.y2 - pagepdf.y1 - (int)(fypng_pdf *current_posnotes->pdf.y2);
+			current_posnotes->png.y2 = (pagepdf.y2 - pagepdf.y1) - (int)(fypng_pdf * current_posnotes->pdf.y1);
 		}
 	}
 
