@@ -383,7 +383,7 @@ public:
 	c_lyric(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
 	wxString placement = NULL_STRING;
-	int number = NULL_INT;
+	int number = 1 ;
 	wxString name = NULL_STRING;
 	wxString text = NULL_STRING;
 	wxString syllabic = NULL_STRING;

@@ -16,13 +16,13 @@
 }
 
 %%%% Set size notes, selecting the line according to the Expresseur zoom factor : -3 -2 -1 0 +1 +2 +3 
+#(set-global-staff-size 20)
+#(set-global-staff-size 25)
 #(set-global-staff-size 30)
 #(set-global-staff-size 35)
 #(set-global-staff-size 40)
 #(set-global-staff-size 45)
 #(set-global-staff-size 50)
-#(set-global-staff-size 55)
-#(set-global-staff-size 60)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%% capture point-and-click position of Expresseur notes 

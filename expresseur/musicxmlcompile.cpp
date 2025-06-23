@@ -3491,7 +3491,7 @@ void musicxmlcompile::addSymbolNote(c_measure *measure, bool after_measure, int 
 			{
 				(*nrnote)++; // note suivante dans la partition (pour la coorelation avec lilypond )
 				c_pitch *pitch = new c_pitch();
-				pitch->unpitched = true;
+				//pitch->unpitched = true;
 				pitch->step = "E";
 				pitch->octave = 5;
 				note->stem = "up";
@@ -3945,7 +3945,7 @@ bool musicxmlcompile::getPosEvent(int nrEvent, int *pageNr, wxRect *rect , bool 
 	{
 		*nr_ornament = m->nb_ornaments - m->nr_ornament;
 	}
-	return (m->pageNr > 0);
+	return (m->pageNr >= 0);
 }
 int musicxmlcompile::setPosEvent(int nrnote, int pageNr, wxRect rect)
 {

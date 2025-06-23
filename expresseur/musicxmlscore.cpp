@@ -214,10 +214,12 @@ void crc_cumulate(char *stream, unsigned int n)
     {
     	std::uint64_t mc = std::uint64_t(stream[i]);
         std::uint64_t index = mc ^ crc_value;
-		std::uint32_t ii = (index && 0xFFFF);
-		std::uint32_t i256 = 256;
+		std::uint64_t ff = 0xFFFF;
+		std::uint64_t ii = (index & ff);
+		std::uint64_t i256 = 256;
 		ii = ii % i256;
-        std::uint64_t lookup = crc_table[ii];
+		int si = ii;
+        std::uint64_t lookup = crc_table[si];
 
         crc_value >>= 8;
         crc_value ^= lookup;
@@ -619,7 +621,7 @@ bool musicxmlscore::setPage(wxDC& dc, int pos , wxRect *rectPos, bool playing )
 		for (int nrPage = 0; nrPage < totalPages; nrPage++)
 		{
 			wxString spage;
-			if (nrPage == (pageNr -1))
+			if (nrPage == pageNr)
 				spage.Printf("[%d]", nrPage + 1);
 			else
 				spage.Printf("%d", nrPage + 1);
@@ -775,7 +777,7 @@ void musicxmlscore::OnLeftDown(wxMouseEvent& event)
 			return;
 		prevPos = -1;
 		prevPlaying = true;
-		currentPageNr = nrPage;	
+		//currentPageNr = nrPage;	
 		basslua_call(moduleScore, functionScoreGotoNrEvent, "i", nrEvent + 1);
 		return;
 	}
@@ -1041,6 +1043,13 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 					fout.AddLine(str);
 					continue;
 				}
+				if (str.Contains("set stanza = \"1.\""))
+				{
+					str.Replace("set stanza = \"1.\"", "set stanza = \"\"");
+					fout.AddLine(str);
+					continue;
+				}
+
 				if (str.StartsWith("\\pointAndClickOff"))
 					continue;
 				fout.AddLine(str);
@@ -1354,6 +1363,7 @@ bool musicxmlscore::readlilypond()
 		return false;
 	}
 
+	lposnotes.clear();
 	if (!readlilypos())
 	{
 		// no pos file
@@ -1436,6 +1446,8 @@ bool musicxmlscore::readPos()
 			  if (ch == ':') { etat ++; rect.height = nbint - rect.y ; nbint = 0; break; }
 			  etat = 0; break;
 		case 7:
+			rect.y += 1.2 * rect.height;
+			rect.height /= 2;
 			nrmeasure = xmlCompile->setPosEvent(nrnote , nrpage , rect);
 			nrnote++;	
 			if (nrpage != previous_nrpage)
