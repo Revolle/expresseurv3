@@ -103,11 +103,15 @@ The script should contains ones of these functions :
     onProgram(integer trackNr 1.. , integer programNr 0..127)
     onChannelPressure(integer trackNr 1.. , integer value 0..127)
     onPitchBend(integer trackNr 1.. , integer LSB 0..127, integer MSB 0..127)
-These functions must return a list of zero or many MIDI messages, to send on midi-out. One message is 4 values :
-  integer trackNr 1.., 
-  string typeMessage ( NoteOn, noteOff, keyPressure, Control, Program, channelPressure, pitchBend )
-  integer value1 0..127 ( pitch for note, programNr, controlNr, LSB for pitchbend )
-  integer value2 0.127 ( velcoity for note, 0 fro program, cnotrolValue, MSB for pitchben )
+These functions return a list of zero or many MIDI messages to play, and optional DMX message for lights 
+  - One MIDI message is 4 values :
+      integer trackNr 1.., 
+      integer value1 0..127 ( pitch for note, programNr, controlNr, LSB for pitchbend )
+      integer value2 0.127 ( velcoity for note, controlValue, MSB for pitchbend , 0 for program, )
+      string typeMessage, in this list : "NoteOn",  "noteOff", "keyPressure", "Control", "Program", "channelPressure",  "pitchBend"
+  - One DMX message is 2 values :
+      string of DMX values separated with "/", using table.concat'(mydmxv,"/"); e.g.: "1/2/3/4/5/6/7/8"
+      string "DMX"
 
 --]]
 
