@@ -173,6 +173,11 @@ function onStart(param)
 		end
 	end
 	
+	-- open optional DMX for light control (cf. postluabass.lua to control lights with MIDI-out )
+	luabass.dmxOpen(3) -- open DMXport on COM-3
+	luabass.dmxSet(100) -- set tenuto of lights to medium value
+	--luabass.dmxSend(100,100,100,0) -- exemple to send 4 bytes on DMX
+	luabass.onMidiOut("dmx.lua")
 end
 
 --===================== stop
