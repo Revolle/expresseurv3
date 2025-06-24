@@ -120,6 +120,10 @@ These functions return a list of zero or many MIDI/DMX messages :
 --]]
 
 
+function dmxset(v)
+	luabass.dmxSet(v)
+end
+
 -- list of values, for the GUI ( throug basslua )
 values = {
   -- callFunction is used by GUI, through basslua. E.G to change MIDI parameters
@@ -134,7 +138,7 @@ values = {
   { name = "mixer_meso" , defaultValue=64 , help="volume of mesoforte, for the mixer with onekey shortcut (30..100)" },
   { name = "mixer_piano" , defaultValue=20 , help="volume of piano, for the mixer with onekey shortcut (5..64)" },
   { name = "mixer_tacet" , defaultValue=0 , help="volume of tacet, for the mixer with onekey shortcut (0=not-played..30)" },
-  { name = "dmx_tenuto" , defaultValue=200 , help="Tenuto for the DMX lights (128: constant)" },
+  { name = "dmx_tenuto" , defaultValue=200 , callFunction = dmxset , help="Tenuto for the DMX lights (128: constant)" },
 }
 
 -- list of the tracks, for the GUI
@@ -189,6 +193,8 @@ function midiInIsValid(midiin_name)
   end
   return true ;
 end
+
+
 
 --===================== initialization
 function onStart(param)
@@ -262,11 +268,6 @@ function setLuaValue( t, bid, ch, typemsg, pitch, velo , paramString )
 				values[luaparam]=velo
 				return
 			end
-		end
-	end
-	if luaparam then
-		if luaparam == "dmx_tenuto" then
-			luabass.dmxSet(values[dmx_tenuto]*2)
 		end
 	end
 end

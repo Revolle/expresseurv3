@@ -1044,9 +1044,12 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 			wxString str;
 			for (str = fin.GetFirstLine(); !fin.Eof(); str = fin.GetNextLine())
 			{
+				str.Replace("\\stemUp", "");
+				str.Replace("\\stemDown", "");
+
 				if (str.Contains( "clef \"None\""))
 				{
-					str.Replace("clef \"None\"", "clef \"percussion\"");
+					str.Replace("clef \"None\"", "clef \"percussion\" \\stemUp ");
 					fout.AddLine(str);
 					continue;
 				}
@@ -1059,6 +1062,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 
 				if (str.StartsWith("\\pointAndClickOff"))
 					continue;
+
 				fout.AddLine(str);
 			}
 			fin.Close();

@@ -39,7 +39,7 @@
 
 enum
 {
-	IDM_EXPRESSION_VALUE = ID_EXPRESSION
+	IDM_EXPRESSION_VALUE = ID_EXPRESSION 
 };
 
 
@@ -138,7 +138,7 @@ void expression::OnValue(wxEvent& event)
 	mConf->set(CONFIG_EXPRESSIONVALUE, v, false, nameV);
 
 	basslua_table(moduleGlobal, tableValues, -1, nameV, NULL, &v, tableSetKeyValue);
-	basslua_table(moduleGlobal, tableValues, nrValue, fieldCallFunction, NULL, &v, tableCallKeyFunction);
+	basslua_table(moduleGlobal, tableValues, nrValue, fieldCallFunction, NULL, &v, tableCallKeyFunction); 
 
 	wxString s;
 	s.Printf("%s %d ", nameV, v);
