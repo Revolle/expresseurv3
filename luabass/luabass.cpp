@@ -607,7 +607,7 @@ void dmxRefresh()
 	{
 		dmxStart();
 		dmxSend();
-		if (g_dmx_tenuto <  0.9999)
+		if (g_dmx_tenuto <  0.9999999)
 		{
 			// decrease dmx values
 			for (unsigned int i = 0; i < g_dmx_byte_nb; i++)
@@ -653,10 +653,19 @@ static int LdmxSet(lua_State* L)
 	// optioanl param 3 : release value in the time (0..256). 256==direct release 0==slow release, default 256
 
 	lock_mutex_out();
-
-	g_dmx_tenuto = (float)(cap((int)luaL_optinteger(L, 1, 128), 1, DMX_V_MAX, 0)) / ((float)DMX_V_MAX) ;
-	//g_dmx_attack = (float)(cap((int)luaL_optinteger(L, 2, 64), 1, DMX_V_MAX, 0)) / ((float)DMX_V_MAX) ;
-	//g_dmx_release = (float)(cap((int)luaL_optinteger(L, 3, 64), 1, DMX_V_MAX, 0)) / ((float)DMX_V_MAX) ;
+	int tenuto = luaL_optinteger(L, 1, DMX_V_MAX);
+	if ( tenuto >= 255)
+	{
+		// no tenuto
+		g_dmx_tenuto = 1.0;
+	}
+	else
+	{
+		g_dmx_tenuto = (float)(cap(tenuto, 1, DMX_V_MAX, 0)) / ((float)DMX_V_MAX);
+		g_dmx_tenuto = g_dmx_tenuto / 100 + 0.99;
+	}
+	//g_dmx_attack = (float)(cap((int)luaL_optinteger(L, 2, DMX_V_MAX), 1, DMX_V_MAX, 0)) / ((float)DMX_V_MAX) ;
+	//g_dmx_release = (float)(cap((int)luaL_optinteger(L, 3, DMX_V_MAX64), 1, DMX_V_MAX, 0)) / ((float)DMX_V_MAX) ;
 	
 	unlock_mutex_out();
 
@@ -4623,8 +4632,8 @@ static const struct luaL_Reg luabass[] =
 	////// Dmx //////
 	{ "dmxOpen" , LdmxOpen },
 	{ "dmxSet" , LdmxSet },
-	{ "dmxOut" , LdmxOutAll },
-	{ "dmxOutOne" , LdmxOut },
+	{ "dmxOut" , LdmxOut },
+	{ "dmxOutall" , LdmxOutAll },
 
 	////// in ///////
 

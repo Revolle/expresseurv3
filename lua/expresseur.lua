@@ -211,7 +211,7 @@ function onStart(param)
 	end
 	
 	-- open DMX for light control (cf. postluabass.lua to control lights with MIDI-out )
-	luabass.dmxOpen(3,16) -- open DMXport on COM-3 with 16 channels
+	luabass.dmxOpen(4,8) -- open DMXport on COM-4 with 8 channels
 	luabass.dmxSet(200) -- set tenuto of lights ( set by a controler or using "values" through GUI )
 	--luabass.dmxOut(2,100) -- exemple to change DMX-channel 2 to the value 100
 	

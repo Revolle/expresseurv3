@@ -70,8 +70,10 @@ int main(int argc, char* argv[])
 		strcpy_s(param, argv[2]);
 	if (argc > 3)
 		_chdir(argv[3]);
+
 	// debug :
-	// _chdir("C:\\Users\\franc\\Documents\\GitHub\\expresseurV3_VC\\basslua\\x64\\Debug");
+	_chdir("C:\\Users\\franc\\Documents\\GitHub\\expresseurV3_VC\\basslua\\x64\\Debug");
+
 	char full[_MAX_PATH];
 	if (_fullpath(full, ".\\", _MAX_PATH) == NULL)
 		fprintf(stderr, "cannot calculate working directory\n");
