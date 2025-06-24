@@ -96,14 +96,14 @@ private:
 	bool currentTurnPage = true ;
 	wxString lilypos, expresseurpos;
 
-	void setCursor(wxDC& dc , int nrEvent,bool playing);
+	void setCursor(wxDC& dc , int nrEvent,bool playing ,bool redraw);
 	bool readlilypos();
 	bool readlilypdf(uint32_t page , uint32_t xpng, uint32_t ypng);
 	bool readpngsize(uint32_t* xpng, uint32_t* ypng);
 	bool musicxmlscore::readlilypond();
 	bool readPos();
-	bool setPage(wxDC& dc, int pos, wxRect *rectPos , bool playing ); //, wxBitmap **bitmapCursor);
-
+	bool setPage(wxDC& dc, int pageNr, bool turnPage, bool redraw);
+	wxBitmap *scoreBitmap = NULL ;
 	int prev_absolute_measure_nr = NULL_INT;
 
 	void crc_init();

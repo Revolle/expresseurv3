@@ -194,12 +194,12 @@ function echo(d)
   myDelay =  tonumber(d or 0)
 end
 
-function dmx(port , stringvalues)
-  t={}
-  for x in string.gmatch(stringvalues, "%d+") do
-   table.insert(t,x)
-  end
-  luabass.outDmx(port,table.unpack(t))
+function opendmx(port , nbchannel)
+  luabass.dmxOpen(tonumber(port),tonumber(nbchannel))
+end
+function dmx(channel , value , tenuto)
+  luabass.dmxSet(tonumber(tenuto))
+  luabass.dmxOut(tonumber(channel),tonumber(value))
 end
 
 function help()
@@ -217,7 +217,8 @@ function help()
   print("shortchord #" )
   print("transpose [-12..12]" )
   print("sound <file.wav>")
-  print("dmx <COMPORT> <release[0..100]> <v0[0..255]>:<v1>:<v2>...")
+  print("opendmx <com[1..16]> <nbchannel[1..255]>")
+  print("dmx <channel[0..255]> <value[0..255]> <tenuto[0..255]")
   print("exit")
   print("help")
 end

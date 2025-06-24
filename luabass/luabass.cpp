@@ -155,7 +155,7 @@ typedef union t_midimsg
 	BYTE bData[4]; /*!< The data, byte per byte. */
 } T_midimsg;
 
-#define MAX_VSTI_PENDING_MIDIMSG 256
+#define MAX_VSTI_PENDING_MIDIMSG DMX_V_MAX
 
 /**
 * \struct T_vi_opened
@@ -376,9 +376,10 @@ static HANDLE g_mutex_out = NULL;
 static HANDLE g_dmx_port = NULL;	// dmx comport handle
 static int g_portdmx_nr = -1; // numbr of dmx port com
 static DCB g_dmxdcb; // dmx comport configuration
-#define DMXMAX 256
-float g_dmx_float_value[DMXMAX]; // // dmx values actual
-byte g_dmx_byte_value[DMXMAX]; // // dmx values to send
+#define DMX_CH_MAX 256
+#define DMX_V_MAX 256
+float g_dmx_float_value[DMX_CH_MAX]; // // dmx values actual
+byte g_dmx_byte_value[DMX_CH_MAX]; // // dmx values to send
 unsigned int g_dmx_byte_nb = 0; // number of dmx values to send
 float g_dmx_attack = 1.0; // attack value in the time (0..256). 256==direct attack 0==slow attack, default 256
 float g_dmx_tenuto = 1.0; // attack value in the time (0..256). 256==direct attack 0==slow attack, default 256
@@ -606,7 +607,7 @@ void dmxRefresh()
 	{
 		dmxStart();
 		dmxSend();
-		if (g_dmx_tenuto != 1.0)
+		if (g_dmx_tenuto <  0.9999)
 		{
 			// decrease dmx values
 			for (unsigned int i = 0; i < g_dmx_byte_nb; i++)
@@ -615,7 +616,7 @@ void dmxRefresh()
 				{
 					g_dmx_float_value[i] *= g_dmx_tenuto;
 				}
-				g_dmx_byte_value[i] = (byte)(cap((int)(g_dmx_float_value[i] * 256.0), 0, 255, 0));
+				g_dmx_byte_value[i] = (byte)(cap((int)(g_dmx_float_value[i] * (float)(DMX_V_MAX)), 0, DMX_V_MAX, 0));
 			}
 		}
 	}
@@ -623,17 +624,19 @@ void dmxRefresh()
 static int LdmxOpen(lua_State* L)
 {
 	// open dmx com port
-	// param 1 : comport ( 0..255 )
-	// retrun true if open, else return false
+	// param 1 : comport ( 0..DMX_V_MAX )
+	// param 2 : nb channel ( 1..DMX_CH_MAX )
+	// retun true if open, else return false
 
-	if (lua_gettop(L) < 1)
+	if (lua_gettop(L) < 2)
 	{
 		lua_pushboolean(L, false);
 		return 1;
 	}
 	lock_mutex_out();
 
-	int comport = cap((int)lua_tointeger(L, 1),1,128,0);
+	int comport = cap((int)lua_tointeger(L, 1), 1, 128, 0);
+	g_dmx_byte_nb = cap((int)lua_tointeger(L, 2), 1, DMX_CH_MAX, 0);
 	if (!dmxOpen(comport))
 		lua_pushboolean(L, false);
 
@@ -651,36 +654,52 @@ static int LdmxSet(lua_State* L)
 
 	lock_mutex_out();
 
-	g_dmx_tenuto = (float)(cap((int)luaL_optinteger(L, 1, 64), 1, 256, 0)) / 256.0;
-	g_dmx_attack = (float)(cap((int)luaL_optinteger(L, 2, 64), 1, 256, 0)) / 256.0;
-	g_dmx_release = (float)(cap((int)luaL_optinteger(L, 3, 64), 1, 256, 0)) / 256.0;
+	g_dmx_tenuto = (float)(cap((int)luaL_optinteger(L, 1, 128), 1, DMX_V_MAX, 0)) / ((float)DMX_V_MAX) ;
+	//g_dmx_attack = (float)(cap((int)luaL_optinteger(L, 2, 64), 1, DMX_V_MAX, 0)) / ((float)DMX_V_MAX) ;
+	//g_dmx_release = (float)(cap((int)luaL_optinteger(L, 3, 64), 1, DMX_V_MAX, 0)) / ((float)DMX_V_MAX) ;
 	
 	unlock_mutex_out();
 
 	return 0;
 }
-static int LdmxOut(lua_State* L)
+static int LdmxOutAll(lua_State* L)
 {
 	// send dmx values
 	// param 1..512 : dmx values (0..255)
 
 	lock_mutex_out();
-	int nrArg = 1;
-	int nbArg = lua_gettop(L);
+
+	int nbArg = cap(lua_gettop(L),0,DMX_CH_MAX,0);
 	float* pDmx = g_dmx_float_value;
-	byte* pDmxByte = g_dmx_byte_value;	
-	int g_dmx_byte_nb = 0;
-	while (nrArg <= nbArg)
+	byte* pDmxByte = g_dmx_byte_value;
+	for (unsigned int nrArg = 1 ; nrArg <= nbArg; nrArg ++)
 	{
-		*pDmxByte = cap(lua_tointeger(L, nrArg), 0, 255, 0);
-		*pDmx = (float)(*pDmxByte)/256.0;
+		*pDmxByte = (byte)(cap(lua_tointeger(L, nrArg), 0, DMX_V_MAX, 0));
+		*pDmx = (float)(*pDmxByte) / (float)(DMX_V_MAX);
 		nrArg++;
-		g_dmx_byte_nb++;
 		pDmxByte++;
 		pDmx++;
-		if (g_dmx_byte_nb >= 512)
-			break;
 	}
+
+	unlock_mutex_out();
+	return 0;
+}
+static int LdmxOut(lua_State* L)
+{
+	// send dmx value
+	// param 1 : channel (0..255)
+	// param 2 : dmx value (0..255)
+	if (lua_gettop(L) < 2)
+	{
+		return 0;
+	}
+
+	lock_mutex_out();
+
+	int c = cap((int)luaL_optinteger(L, 1, 1), 0, DMX_CH_MAX, 0);
+	int v = cap((int)luaL_optinteger(L, 2, 1), 0, DMX_V_MAX, 0);
+	g_dmx_byte_value[c] = (byte)v;
+	g_dmx_float_value[c] = ((float)(v))/((float)DMX_V_MAX);
 
 	unlock_mutex_out();
 	return 0;
@@ -2044,7 +2063,8 @@ static bool processPostMidiOut(T_midioutmsg midioutmsg)
 		// pop midi-msgs from the returned values, to send it imediatly
 		// syntax of retrunerd values :
 		// list of MIDI : track 1..MAXTRACK , integer byte 1 ( e.g. pitch ), integer byte 2 ( e.g. velocity ), string type msg ( Noteon, Noteoff, Control, Program, Pressure, Keypressuer, Pichbend )
-		// DMX values : "1/2/3/4/5/6/7/8" Dmx
+		// DMX values : "1/2/3/4/5/6/7/8" DMXall
+		// DMX value : channel value DMX
 
 		while (lua_gettop(g_LUAoutState) >= 1)
 		{
@@ -2054,32 +2074,46 @@ static bool processPostMidiOut(T_midioutmsg midioutmsg)
 			byte nbbyte = 3;
 			int min = 0;
 			bool midiok = false;
-			switch (stype[0])
+			switch (*stype)
 			{
-			case 'D':
+			case 'D': // DMX or DMXall
 			case 'd':
-				// start DMX values
-				if (lua_gettop(g_LUAoutState) >= 1)
+				if (strlen(stype) < 4)
 				{
-					const char* dmxstr = lua_tostring(g_LUAoutState, -1);
-					lua_pop(g_LUAoutState, 1);
-					g_dmx_byte_nb = 0;
-					char* pch = strtok((char*)dmxstr, "/");
-					while (pch != NULL)
+					if (lua_gettop(g_LUAoutState) >= 2)
 					{
-						if (g_dmx_byte_nb < DMXMAX)
-						{
-							g_dmx_byte_value[g_dmx_byte_nb] = cap(atoi(pch), 0, 255, 0);
-							g_dmx_float_value[g_dmx_byte_nb] = (float)(g_dmx_byte_value[g_dmx_byte_nb]) / 255.0f;
-							g_dmx_byte_nb++;
-						}
-						pch = strtok(NULL, "/");
+						// set oneDMX channel
+						int v = cap(lua_tonumber(g_LUAoutState, -1),0,DMX_V_MAX,0);
+						lua_pop(g_LUAoutState, 1);
+						int c = cap(lua_tonumber(g_LUAoutState, -1),0,DMX_CH_MAX,0);
+						lua_pop(g_LUAoutState, 1);
+						g_dmx_byte_value[c] = v;
+						g_dmx_float_value[c] = ((float)(v)) / ((float)DMX_V_MAX);
 					}
-					if (g_dmx_byte_nb > DMXMAX)
-						g_dmx_byte_nb = DMXMAX;
+				}
+				else
+				{
+					// reload all DMX values
+					if (lua_gettop(g_LUAoutState) >= 1)
+					{
+						const char* dmxstr = lua_tostring(g_LUAoutState, -1);
+						lua_pop(g_LUAoutState, 1);
+						int dmx_byte_nb = 0;
+						char* pch = strtok((char*)dmxstr, "/");
+						while (pch != NULL)
+						{
+							if (dmx_byte_nb < DMX_CH_MAX)
+							{
+								g_dmx_byte_value[dmx_byte_nb] = cap(atoi(pch), 0, DMX_V_MAX, 0);
+								g_dmx_float_value[dmx_byte_nb] = (float)(g_dmx_byte_value[dmx_byte_nb]) / ((float)DMX_V_MAX);
+								dmx_byte_nb++;
+							}
+							pch = strtok(NULL, "/");
+						}
+					}
 				}
 				break;
-			case 'P':
+			case 'P': // Program or Pitchbend
 			case 'p':
 				if (strlen(stype) > 7)
 					data0 = (L_MIDI_PITCHBEND << 4);
@@ -2090,7 +2124,7 @@ static bool processPostMidiOut(T_midioutmsg midioutmsg)
 				}
 				midiok = (lua_gettop(g_LUAoutState) >= 3);
 				break;
-			case 'N':
+			case 'N': // NoteOn or NoteOff
 			case 'n':
 				if (strlen(stype) > 6)
 				{
@@ -2103,7 +2137,7 @@ static bool processPostMidiOut(T_midioutmsg midioutmsg)
 				}
 				midiok = (lua_gettop(g_LUAoutState) >= 3);
 				break;
-			case 'C':
+			case 'C': // Control or ChannelPressure
 			case 'c':
 				if (strlen(stype) > 7)
 				{
@@ -2113,7 +2147,7 @@ static bool processPostMidiOut(T_midioutmsg midioutmsg)
 					data0 = (L_MIDI_CONTROL << 4);
 				midiok = (lua_gettop(g_LUAoutState) >= 3);
 				break;
-			case 'K':
+			case 'K': // keyPressure
 			case 'k':
 				data0 = (L_MIDI_KEYPRESSURE << 4);
 				midiok = (lua_gettop(g_LUAoutState) >= 3);
@@ -2738,6 +2772,11 @@ static void all_note_off(const char *soption, int nrTrack)
 			break;
 		default: break;
 		}
+	}
+	for (int i = 0; i < DMX_CH_MAX; i++)
+	{
+		g_dmx_byte_value[i] = 0;
+		g_dmx_float_value[i] = 0.0 ;
 	}
 }
 static void onMidiOut_filter_set()
@@ -4054,7 +4093,7 @@ static int LoutSystem(lua_State *L)
 	lock_mutex_out();
 	
 	T_midioutmsg u;
-	u.midimsg.bData[0] = cap((int)lua_tointeger(L, 1), 0, 256, 0);
+	u.midimsg.bData[0] = cap((int)lua_tointeger(L, 1), 0, DMX_V_MAX, 0);
 	u.midimsg.bData[1] = cap((int)lua_tointeger(L, 2), 0, 128, 0);
 	u.midimsg.bData[2] = cap((int)lua_tointeger(L, 3), 0, 128, 0);
 	u.nbbyte = 3;
@@ -4584,7 +4623,8 @@ static const struct luaL_Reg luabass[] =
 	////// Dmx //////
 	{ "dmxOpen" , LdmxOpen },
 	{ "dmxSet" , LdmxSet },
-	{ "dmxOut" , LdmxOut },
+	{ "dmxOut" , LdmxOutAll },
+	{ "dmxOutOne" , LdmxOut },
 
 	////// in ///////
 
