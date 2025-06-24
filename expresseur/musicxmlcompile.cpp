@@ -3926,7 +3926,7 @@ bool musicxmlcompile::getPosEvent(int nrEvent, int *pageNr, wxRect *rect , bool 
 	*nr_ornament = -1; 
 	if ((nrEvent < 0) || (nrEvent >= nbEvents))
 	{
-		*pageNr = 0 ;
+		*pageNr = -1 ;
 		rect->x = 0;
 		rect->y = 0;
 		rect->width = 0;
@@ -3950,6 +3950,10 @@ bool musicxmlcompile::getPosEvent(int nrEvent, int *pageNr, wxRect *rect , bool 
 int musicxmlcompile::setPosEvent(int nrnote, int pageNr, wxRect rect)
 {
 	l_musicxmlevent::iterator iter_musicxmlevent;
+	c_musicxmlevent* start_musicxmlevent = NULL;
+	int measure = -1;
+	int t = -1;
+
 	for (iter_musicxmlevent = lMusicxmlevents.begin(); iter_musicxmlevent != lMusicxmlevents.end(); iter_musicxmlevent++)
 	{
 		c_musicxmlevent* musicxmlevent = *iter_musicxmlevent;
@@ -3957,10 +3961,23 @@ int musicxmlcompile::setPosEvent(int nrnote, int pageNr, wxRect rect)
 		{
 			musicxmlevent->pageNr = pageNr;
 			musicxmlevent->rect = rect;
-			return musicxmlevent->start_measureNr;
+			measure = musicxmlevent->start_measureNr;
+			t = musicxmlevent->start_t;
+			break;
 		}
 	}
-	return -1;
+	if (measure == -1)
+		return -1;
+	for (iter_musicxmlevent = lMusicxmlevents.begin(); iter_musicxmlevent != lMusicxmlevents.end(); iter_musicxmlevent++)
+	{
+		c_musicxmlevent* musicxmlevent = *iter_musicxmlevent;
+		if ((musicxmlevent->start_measureNr == measure) && (musicxmlevent->start_t == t))
+		{
+			musicxmlevent->pageNr = pageNr;
+			musicxmlevent->rect = rect;
+		}
+	}
+	return measure;
 }
 int musicxmlcompile::pageToEventNr(int pageNr)
 {

@@ -132,7 +132,12 @@ public:
 		fifths = musicxmlevent.fifths;
 		visible = musicxmlevent.visible;
 		played = musicxmlevent.played;
-		nrnote = -1;
+		//nrnote = musicxmlevent.nrnote;
+		//pageNr = musicxmlevent.pageNr;
+		//rect = musicxmlevent.rect;
+		//turnPage = musicxmlevent.turnPage;
+		end_score = musicxmlevent.end_score;
+
 	}
 	c_musicxmlevent(int ipartNr, int istaffNr, int ivoice, int istart_measureNr, int ioriginal_measureNr, int istart_t, int istop_measureNr, int istop_t, int ipitch, int idivision_measure, int idivision_beat, int idivision_quarter, int irepeat, int iorder, int ififths)
 	{

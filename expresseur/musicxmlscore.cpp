@@ -519,7 +519,7 @@ bool musicxmlscore::setPage(wxDC& gdc, int pageNr, bool turnPage, bool redraw)
 	if (!isOk() || !docOK )	return false;
 
 
-	if ((currentPageNr == pageNr) && (currentTurnPage == turnPage))
+	if ((pageNr == -1) || ((currentPageNr == pageNr) && (currentTurnPage == turnPage)))
 	{
 		if ( redraw )
 		{
@@ -528,7 +528,7 @@ bool musicxmlscore::setPage(wxDC& gdc, int pageNr, bool turnPage, bool redraw)
 		}
 	}
 	else
-	{
+	{ 
 		nbPaint++;
 		//prevRectPos.SetWidth(0);
 
@@ -632,7 +632,6 @@ void musicxmlscore::setCursor(wxDC& dc , int pos,bool playing, bool redraw )
 
 	if ((pageNr < 0) || (pageNr >= totalPages))
 	{
-		pageNr = 0;
 		((wxFrame*)mParent)->SetStatusText(wxEmptyString, 2);
 	}
 	if (nr_ornament != -1)
@@ -651,7 +650,7 @@ void musicxmlscore::setCursor(wxDC& dc , int pos,bool playing, bool redraw )
 		}
 	}
 
-	bool cont = setPage(dc,  pageNr , turnPage , redraw );
+	setPage(dc,  pageNr , turnPage , redraw );
 	
 	// nbSetPosition ++ ;
 	int absolute_measure_nr, measure_nr, repeat, beat, t , uid;
@@ -692,10 +691,6 @@ void musicxmlscore::setCursor(wxDC& dc , int pos,bool playing, bool redraw )
 		wxDCClipper cursorclip(dc, prevRectPos);
 		dc.SetBackground(this->GetBackgroundColour());
 		dc.Clear();
-	}
-	if (!cont)
-	{
-		return;
 	}
 
 	// draw the cursor

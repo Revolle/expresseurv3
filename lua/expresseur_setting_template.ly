@@ -9,8 +9,12 @@
 
 %%%% Set layout
 \paper{
-  indent=2\mm
+  indent=25\mm
   #(set-paper-size "expresseur_format")
+  left-margin = 15\mm
+  right-margin = 5\mm
+  top-margin = 5\mm
+  bottom-margin = 5\mm
   oddFooterMarkup=##f
   oddHeaderMarkup=##f
 }
