@@ -379,11 +379,11 @@ static DCB g_dmxdcb; // dmx comport configuration
 #define DMX_CH_MAX 256
 #define DMX_V_MAX 256
 float g_dmx_float_value[DMX_CH_MAX]; // // dmx values actual
+float g_dmx_float_target[DMX_CH_MAX]; // // dmx values target
 byte g_dmx_byte_value[DMX_CH_MAX]; // // dmx values to send
 unsigned int g_dmx_byte_nb = 0; // number of dmx values to send
-float g_dmx_attack = 1.0; // attack value in the time (0..256). 256==direct attack 0==slow attack, default 256
-float g_dmx_tenuto = 1.0; // attack value in the time (0..256). 256==direct attack 0==slow attack, default 256
-float g_dmx_release = 1.0; // attack value in the time (0..256). 256==direct attack 0==slow attack, default 256
+float g_dmx_ramping = 1.0; // attack value in the time (0..256). 256==direct attack 0==slow ramping, default 256
+float g_dmx_tenuto = 1.0; // tenuto value in the time (0..256). 256==no decrease 0==quick decrease, default 256
 
 #endif
 #ifdef V_MAC
@@ -601,22 +601,46 @@ void dmxSend()
 	WriteFile(g_dmx_port, g_dmx_byte_value, (DWORD)g_dmx_byte_nb, &n, NULL);
 #endif
 }
+void dmx_init()
+{
+	// initialize dmx values
+	for (unsigned int i = 0; i < DMX_CH_MAX; i++)
+	{
+		g_dmx_float_value[i] = 0.0;
+		g_dmx_float_target[i] = 0.0;
+		g_dmx_byte_value[i] = 0;
+	}
+	g_dmx_byte_nb = 0;
+	g_dmx_ramping = 1.0;
+	g_dmx_tenuto = 1.0;
+	g_portdmx_nr = -1; // comport closed
+}
 void dmxRefresh()
 {
 	if (g_dmx_port)
 	{
 		dmxStart();
 		dmxSend();
-		if (g_dmx_tenuto <  0.9999999)
+		if (g_dmx_ramping != 1.0)
+		{
+			// ramping dmx values
+			for (unsigned int i = 0; i < g_dmx_byte_nb; i++)
+			{
+				g_dmx_float_value[i] += (g_dmx_float_target[i] - g_dmx_float_value[i]) * g_dmx_ramping;
+				g_dmx_byte_value[i] = (byte)(cap((int)(g_dmx_float_value[i] * (float)(DMX_V_MAX)), 0, DMX_V_MAX, 0));
+			}
+		}
+		if (g_dmx_tenuto != 0.0)
 		{
 			// decrease dmx values
 			for (unsigned int i = 0; i < g_dmx_byte_nb; i++)
 			{
-				if (g_dmx_float_value[i] > 0.001)
+				if (abs(g_dmx_float_value[i] - g_dmx_float_target[i]) < 0.01)
 				{
-					g_dmx_float_value[i] *= g_dmx_tenuto;
+					g_dmx_float_value[i] += (0.0 - g_dmx_float_value[i]) * g_dmx_tenuto;
+					g_dmx_float_target[i] = g_dmx_float_value[i];
+					g_dmx_byte_value[i] = (byte)(cap((int)(g_dmx_float_value[i] * (float)(DMX_V_MAX)), 0, DMX_V_MAX, 0));
 				}
-				g_dmx_byte_value[i] = (byte)(cap((int)(g_dmx_float_value[i] * (float)(DMX_V_MAX)), 0, DMX_V_MAX, 0));
 			}
 		}
 	}
@@ -648,25 +672,31 @@ static int LdmxOpen(lua_State* L)
 static int LdmxSet(lua_State* L)
 {
 	// set dmx values
-	// optional param 1 : tenuto value in the time (0..256). 256==no decrease 0==quick decrease, default 256
-	// optional param 2 : attack value in the time (0..256). 256==direct attack 0==slow attack, default 256
-	// optioanl param 3 : release value in the time (0..256). 256==direct release 0==slow release, default 256
+	// optional param 1 : tenuto value in the time (0..256). 256==direct 0,  0==no decrease, default 256
+	// optional param 2 : ramping value in the time (0..256). 256==direct value,  0==slow ramping, default 256
 
 	lock_mutex_out();
 	int tenuto = luaL_optinteger(L, 1, DMX_V_MAX);
-	if ( tenuto >= 255)
+	int ramping = luaL_optinteger(L, 2, DMX_V_MAX);
+	if (tenuto <= 1)
 	{
-		// no tenuto
-		g_dmx_tenuto = 1.0;
+		// tenuto
+		g_dmx_tenuto = 0.0;
 	}
 	else
 	{
-		g_dmx_tenuto = (float)(cap(tenuto, 1, DMX_V_MAX, 0)) / ((float)DMX_V_MAX);
-		g_dmx_tenuto = g_dmx_tenuto / 100 + 0.99;
+		g_dmx_tenuto = 0.2 * (float)(cap(tenuto, 1, DMX_V_MAX, 0)) / ((float)DMX_V_MAX);
 	}
-	//g_dmx_attack = (float)(cap((int)luaL_optinteger(L, 2, DMX_V_MAX), 1, DMX_V_MAX, 0)) / ((float)DMX_V_MAX) ;
-	//g_dmx_release = (float)(cap((int)luaL_optinteger(L, 3, DMX_V_MAX64), 1, DMX_V_MAX, 0)) / ((float)DMX_V_MAX) ;
-	
+	if (ramping >= 255)
+	{
+		// no ramping
+		g_dmx_ramping = 1.0;
+	}
+	else
+	{
+		g_dmx_ramping = 0.2* (float)(cap(ramping, 1, DMX_V_MAX, 0)) / ((float)DMX_V_MAX);
+	}
+
 	unlock_mutex_out();
 
 	return 0;
@@ -679,15 +709,24 @@ static int LdmxOutAll(lua_State* L)
 	lock_mutex_out();
 
 	int nbArg = cap(lua_gettop(L),0,DMX_CH_MAX,0);
-	float* pDmx = g_dmx_float_value;
+	float* ptDmx = g_dmx_float_target;
+	float* pvDmx = g_dmx_float_value;
 	byte* pDmxByte = g_dmx_byte_value;
+	int v; 
 	for (unsigned int nrArg = 1 ; nrArg <= nbArg; nrArg ++)
 	{
-		*pDmxByte = (byte)(cap(lua_tointeger(L, nrArg), 0, DMX_V_MAX, 0));
-		*pDmx = (float)(*pDmxByte) / (float)(DMX_V_MAX);
+		v = (byte)(cap(lua_tointeger(L, nrArg), 0, DMX_V_MAX, 0));
+		*ptDmx = (float)(*pDmxByte) / (float)(DMX_V_MAX);
+		if (g_dmx_ramping == 1.0)
+		{
+			// no ramping , direct assignment
+			*pvDmx = *ptDmx;
+			*pDmxByte = v;
+		}
 		nrArg++;
 		pDmxByte++;
-		pDmx++;
+		ptDmx++;
+		pvDmx++;
 	}
 
 	unlock_mutex_out();
@@ -707,8 +746,13 @@ static int LdmxOut(lua_State* L)
 
 	int c = cap((int)luaL_optinteger(L, 1, 1), 0, DMX_CH_MAX, 0);
 	int v = cap((int)luaL_optinteger(L, 2, 1), 0, DMX_V_MAX, 0);
-	g_dmx_byte_value[c] = (byte)v;
-	g_dmx_float_value[c] = ((float)(v))/((float)DMX_V_MAX);
+	g_dmx_float_target[c] = ((float)(v))/((float)DMX_V_MAX);
+	if (g_dmx_ramping == 1.0)
+	{
+		// no ramping , direct assignment
+		g_dmx_float_value[c] = g_dmx_float_target[c];
+		g_dmx_byte_value[c] = (byte)v;
+	}
 
 	unlock_mutex_out();
 	return 0;
@@ -2096,8 +2140,13 @@ static bool processPostMidiOut(T_midioutmsg midioutmsg)
 						lua_pop(g_LUAoutState, 1);
 						int c = cap(lua_tonumber(g_LUAoutState, -1),0,DMX_CH_MAX,0);
 						lua_pop(g_LUAoutState, 1);
-						g_dmx_byte_value[c] = v;
-						g_dmx_float_value[c] = ((float)(v)) / ((float)DMX_V_MAX);
+						g_dmx_float_target[c] = ((float)(v)) / ((float)DMX_V_MAX);
+						if (g_dmx_ramping == 1.0)
+						{
+							// no ramping
+							g_dmx_byte_value[c] = v;
+							g_dmx_float_value[c] = g_dmx_float_target[c];
+						}
 					}
 				}
 				else
@@ -2108,13 +2157,20 @@ static bool processPostMidiOut(T_midioutmsg midioutmsg)
 						const char* dmxstr = lua_tostring(g_LUAoutState, -1);
 						lua_pop(g_LUAoutState, 1);
 						int dmx_byte_nb = 0;
+						int v;
 						char* pch = strtok((char*)dmxstr, "/");
 						while (pch != NULL)
 						{
 							if (dmx_byte_nb < DMX_CH_MAX)
 							{
-								g_dmx_byte_value[dmx_byte_nb] = cap(atoi(pch), 0, DMX_V_MAX, 0);
-								g_dmx_float_value[dmx_byte_nb] = (float)(g_dmx_byte_value[dmx_byte_nb]) / ((float)DMX_V_MAX);
+								v = cap(atoi(pch), 0, DMX_V_MAX, 0);
+								g_dmx_float_target[dmx_byte_nb] = (float)(v) / ((float)DMX_V_MAX);
+								if (g_dmx_ramping == 1.0)
+								{
+									// no ramping
+									g_dmx_byte_value[dmx_byte_nb] = v;
+									g_dmx_float_value[dmx_byte_nb] = g_dmx_float_target[dmx_byte_nb];
+								}
 								dmx_byte_nb++;
 							}
 							pch = strtok(NULL, "/");
@@ -3285,6 +3341,7 @@ static void init_out(const char *fname, bool externalTimer , int timerDt)
 	channel_extended_init();
 	track_init();
 	curve_init();
+	dmx_init();
 	//if (!externalTimer) // external process protects conflicts with its own mutex
 	mutex_out_init();
 	timer_out_init(externalTimer, timerDt);

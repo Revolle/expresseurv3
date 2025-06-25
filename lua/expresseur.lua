@@ -120,10 +120,6 @@ These functions return a list of zero or many MIDI/DMX messages :
 --]]
 
 
-function dmxset(v)
-	luabass.dmxSet(v)
-end
-
 -- list of values, for the GUI ( throug basslua )
 values = {
   -- callFunction is used by GUI, through basslua. E.G to change MIDI parameters
@@ -138,7 +134,6 @@ values = {
   { name = "mixer_meso" , defaultValue=64 , help="volume of mesoforte, for the mixer with onekey shortcut (30..100)" },
   { name = "mixer_piano" , defaultValue=20 , help="volume of piano, for the mixer with onekey shortcut (5..64)" },
   { name = "mixer_tacet" , defaultValue=0 , help="volume of tacet, for the mixer with onekey shortcut (0=not-played..30)" },
-  { name = "dmx_tenuto" , defaultValue=200 , callFunction = dmxset , help="Tenuto for the DMX lights (128: constant)" },
 }
 
 -- list of the tracks, for the GUI
@@ -218,7 +213,7 @@ function onStart(param)
 	
 	-- open DMX for light control (cf. postluabass.lua to control lights with MIDI-out )
 	luabass.dmxOpen(4,8) -- open DMXport on COM-4 with 8 channels
-	luabass.dmxSet(200) -- set tenuto of lights ( set by a controler or using "values" through GUI )
+	luabass.dmxSet(20, 200) -- set tenuto/ramping of lights ( can set by a MIDI controler using onControl)
 	--luabass.dmxOut(2,100) -- exemple to change DMX-channel 2 to the value 100
 	
 	-- load the hook on midiout , to manage DMX according to midi-out

@@ -202,9 +202,9 @@ function senddmx(channel , value)
   luabass.dmxOut(tonumber(channel),tonumber(value))
   print("senddmx ch=" .. tonumber(channel) .. " v=" .. tonumber(value))
 end
-function setdmx(tenuto)
-  luabass.dmxSet(tonumber(tenuto))
-  print("setdmx tenuto=" .. tonumber(tenuto))
+function setdmx(tenuto , ramping)
+  luabass.dmxSet(tonumber(tenuto), tonumber(ramping))
+  print("setdmx tenuto=" .. tonumber(tenuto) .. " ramping=" .. tonumber(ramping))
 end
 
 function help()
@@ -224,7 +224,7 @@ function help()
   print("sound <file.wav>")
   print("opendmx <com[1..16]> <nbchannel[1..255]>")
   print("senddmx <channel[0..255]> <value[0..255]>")
-  print("setdmx <tenuto[0..255]>")
+  print("setdmx <tenuto[0..255]> <ramping[0..255]>")
   print("exit")
   print("help")
 end

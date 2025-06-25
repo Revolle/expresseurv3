@@ -1049,7 +1049,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 
 				if (str.Contains( "clef \"None\""))
 				{
-					str.Replace("clef \"None\"", "clef \"percussion\" \\stemUp ");
+					str.Replace("clef \"None\"", "clef \"percussion\" \\stemUp "); 
 					fout.AddLine(str);
 					continue;
 				}
