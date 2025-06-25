@@ -501,7 +501,7 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	wxMenu *helpMenu = new wxMenu;
 	helpMenu->Append(wxID_HELP, _("help"));
 	helpMenu->Append(wxID_ABOUT, _("About"));
-	helpMenu->Append(ID_MAIN_TEST, _("test"));
+	//helpMenu->Append(ID_MAIN_TEST, _("test"));
 	helpMenu->Append(ID_MAIN_UPDATE, _("Check update"), _("check if an update is available on the www.expresseur.com web site"));
 
     mMenuBar = new wxMenuBar( wxMB_DOCKABLE );

@@ -38,11 +38,10 @@ private:
 	wxFileName fileInDC;
 	wxFileName fileRectChord;
 	wxSize sizePage;
-	wxMemoryDC *currentDC;
 
 	bool newLayout(wxSize sizeClient);
-	bool setPage();
-	bool setCursor(wxDC& dc, int pos);
+	bool setPage(wxDC& gdc , bool redraw);
+	bool setCursor(wxDC& dc, int pos , bool redraw);
 
 	double xScale, yScale;
 
@@ -61,6 +60,7 @@ private:
 	wxRect highlight(bool on, wxPoint start, wxPoint end, wxDC& dc);
 	wxRect rectChord[MAX_RECTCHORD];
 	int nbRectChord;
+	wxBitmap* scoreBitmap = NULL;
 	int nrChord = -1;
 	void readRectChord();
 	void writeRectChord();

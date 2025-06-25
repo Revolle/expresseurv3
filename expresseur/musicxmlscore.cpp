@@ -264,6 +264,11 @@ musicxmlscore::~musicxmlscore()
 	if (xmlCompile != NULL)
 		delete xmlCompile;
 	xmlCompile = NULL;
+	if (scoreBitmap != NULL)
+	{
+		delete scoreBitmap;
+		scoreBitmap = NULL;
+	}
 	cleanTmp();
 }
 void musicxmlscore::cleanTmp()
