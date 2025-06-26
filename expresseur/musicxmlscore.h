@@ -94,7 +94,7 @@ private:
 	int currentPageNr = 0 ;
 	int currentPageNrPartial = -1 ;
 	bool currentTurnPage = true ;
-	wxString lilypos, expresseurpos;
+	wxString lilypos, expresseurpos , lilysrc;
 
 	void setCursor(wxDC& dc , int nrEvent,bool playing ,bool redraw);
 	bool readlilypos();

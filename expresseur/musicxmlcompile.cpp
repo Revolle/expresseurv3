@@ -3518,8 +3518,8 @@ void musicxmlcompile::addSymbolNote(c_measure *measure, bool after_measure, int 
 				(*nrnote)++; // note suivante dans la partition (pour la coorelation avec lilypond )
 				c_pitch *pitch = new c_pitch();
 				//pitch->unpitched = true;
-				pitch->step = "E";
-				pitch->octave = 5;
+				pitch->step = "F";
+				pitch->octave = 4;
 				note->stem = "up";
 				note->pitch = pitch;
 				if ((*first_note && tie_back) || (! *first_note))
