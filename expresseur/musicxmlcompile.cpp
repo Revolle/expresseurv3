@@ -3288,6 +3288,7 @@ void musicxmlcompile::compileExpresseurPart()
 	bool tie_back = false;
 	bool firstNote = true;
 	bool ternaire = false;
+	int ituplet = 0;
 	l_musicxmlevent::iterator iter_musicxmlevent_from;
 	for (iter_musicxmlevent_from = lMusicxmlevents.begin(); iter_musicxmlevent_from != lMusicxmlevents.end(); iter_musicxmlevent_from++)
 	{
@@ -3353,7 +3354,7 @@ void musicxmlcompile::compileExpresseurPart()
 		while (start_measureNr > currentMeasure->number)
 		{
 			// finish the current measure with rests
-			addNote(currentMeasure, false , currentT, currentMeasure->division_measure, true, false, false, &unused_first_note, &nrnote ,  0,&text, &staccato, &fermata, &breath_mark, ternaire, false);
+			addNote(currentMeasure, false , currentT, currentMeasure->division_measure, true, false, false, &unused_first_note, &nrnote ,  0,&text, &staccato, &fermata, &breath_mark, ternaire, false, &ituplet);
 			// go to next measure
 			currentT = 0;
 			iter_measure++;
@@ -3365,7 +3366,7 @@ void musicxmlcompile::compileExpresseurPart()
 			currentMeasure = *iter_measure;
 		}
 		// add rests to fill the gap up to this note
-		addNote(currentMeasure, false , currentT, startT, true, false, false, &unused_first_note, &nrnote, 0, &text, &staccato, &fermata, &breath_mark, ternaire , false);
+		addNote(currentMeasure, false , currentT, startT, true, false, false, &unused_first_note, &nrnote, 0, &text, &staccato, &fermata, &breath_mark, ternaire , false, &ituplet);
 
 		// calculate total_duration 
 		currentT = startT;
@@ -3375,7 +3376,7 @@ void musicxmlcompile::compileExpresseurPart()
 		// add the figure-note per measure
 		for (int n = start_measureNr; n < stop_measureNr; n++)
 		{
-			addNote(currentMeasure, (stopT > 0 ) , startT, currentMeasure->division_measure, false, tie_back, true, &firstNote, &nrnote , musicxmlevent_from->nb_ornaments, &text , &staccato, &fermata, &breath_mark, ternaire , cross);
+			addNote(currentMeasure, (stopT > 0 ) , startT, currentMeasure->division_measure, false, tie_back, true, &firstNote, &nrnote , musicxmlevent_from->nb_ornaments, &text , &staccato, &fermata, &breath_mark, ternaire , cross , &ituplet);
 			firstNote = false;
 			iter_measure++;
 			if (iter_measure == part_expresseur->measures.end())
@@ -3389,16 +3390,16 @@ void musicxmlcompile::compileExpresseurPart()
 			startT = 0;
 			tie_back = true;
 		}
-		addNote(currentMeasure, (stopT > 0), currentT, stopT, false, tie_back, false, &firstNote, &nrnote, musicxmlevent_from->nb_ornaments, &text, &staccato, &fermata, &breath_mark, ternaire , cross);
+		addNote(currentMeasure, (stopT > 0), currentT, stopT, false, tie_back, false, &firstNote, &nrnote, musicxmlevent_from->nb_ornaments, &text, &staccato, &fermata, &breath_mark, ternaire , cross , &ituplet);
 		firstNote = false;
 		currentT = stopT;
 	}
-	addNote(currentMeasure, false, currentT, currentMeasure->division_measure, true, false, false, &firstNote, &nrnote , 0, &text, &staccato, &fermata, &breath_mark, ternaire , cross);
+	addNote(currentMeasure, false, currentT, currentMeasure->division_measure, true, false, false, &firstNote, &nrnote , 0, &text, &staccato, &fermata, &breath_mark, ternaire , cross , &ituplet);
 
 }
 void musicxmlcompile::addNote(c_measure *measure, bool after_measure, int from_t, int to_t, bool rest, bool tie_back, bool tie_next, 
 	                          bool *first_note, int *nrnote , int nbOrnaments, wxString *text , bool *staccato, bool *fermata, 
-	                          bool *breath_mark, bool ternaire , bool cross)
+	                          bool *breath_mark, bool ternaire , bool cross, int *ituplet)
 {
 	// add symbols for one note [from_t,to_t], to_t <= divisions, inside one measure
 
@@ -3433,16 +3434,16 @@ void musicxmlcompile::addNote(c_measure *measure, bool after_measure, int from_t
 		t0 += measure->division_beat;
 		if (t0 < to_t)
 		{
-			addSymbolNote(measure, after_measure, t0 - from_t, rest, tie_back, true, first_note, nrnote , nbOrnaments, text, staccato, fermata, breath_mark, ternaire , cross);
+			addSymbolNote(measure, after_measure, t0 - from_t, rest, tie_back, true, first_note, nrnote , nbOrnaments, text, staccato, fermata, breath_mark, ternaire , cross , ituplet);
 			*first_note = false;
 			ttie_back = true;
 			ffrom_t = t0;
 		}
 	}
 	// insert figures starting on the beat
-	addSymbolNote(measure, after_measure, to_t - ffrom_t, rest, ttie_back, tie_next, first_note, nrnote , nbOrnaments, text, staccato, fermata, breath_mark, ternaire , cross);
+	addSymbolNote(measure, after_measure, to_t - ffrom_t, rest, ttie_back, tie_next, first_note, nrnote , nbOrnaments, text, staccato, fermata, breath_mark, ternaire , cross, ituplet);
 }
-void musicxmlcompile::addSymbolNote(c_measure *measure, bool after_measure, int duration, bool rest, bool tie_back, bool tie_next, bool *first_note, int *nrnote , int nbOrnaments, wxString *text , bool *staccato, bool *fermata, bool *breath_mark, bool ternaire , bool cross)
+void musicxmlcompile::addSymbolNote(c_measure *measure, bool after_measure, int duration, bool rest, bool tie_back, bool tie_next, bool *first_note, int *nrnote , int nbOrnaments, wxString *text , bool *staccato, bool *fermata, bool *breath_mark, bool ternaire , bool cross, int *ituplet)
 {
 	c_note *note = NULL ;
 	int duration_todo = duration;
@@ -3465,8 +3466,33 @@ void musicxmlcompile::addSymbolNote(c_measure *measure, bool after_measure, int 
 			note->duration = duration_done;
 			note->mtype = typeNote;
 			note->dots = dot;
+			if (*ituplet > 0)
+			{
+				(*ituplet)--;
+				if (*ituplet == 1)
+				{
+					if (!note->notations)
+						note->notations = new c_notations();
+					if (!note->notations->tuplet)
+						note->notations->tuplet = new c_tuplet();
+					note->notations->tuplet->type = "stop";
+				}
+
+			}
 			if (tuplet > 1)
 			{
+				if (*ituplet == 0)
+				{
+					if (!note->notations)
+						note->notations = new c_notations();
+					if (!note->notations->tuplet)
+						note->notations->tuplet = new c_tuplet();
+					if (strcmp(note->notations->tuplet->type, "stop") != 0)
+					{
+						note->notations->tuplet->type = "start";
+						*ituplet = tuplet;
+					}
+				}
 				note->time_modification = new c_time_modification();
 				switch (tuplet)
 				{
