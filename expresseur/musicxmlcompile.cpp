@@ -3542,7 +3542,9 @@ void musicxmlcompile::addSymbolNote(c_measure *measure, bool after_measure, int 
 			}
 
 			if (cross)
+			{
 				note->notehead = "x";
+			}
 			if (*first_note)
 			{
 				if (nbOrnaments > 0)

@@ -1153,6 +1153,8 @@ bool musicxmlscore::readlilypos()
 	uint32_t etat = 0;
 	uint32_t nrline = 0; // line number in the file
 	uint32_t nrcolumn = 0; // column number in the file
+	uint32_t memnrline = 0; // line number in the file
+	uint32_t memnrcolumn = 0; // column number in the file
 
 	int nbwaitf8 = 0;
 	cposnote mposnote;
@@ -1196,15 +1198,77 @@ bool musicxmlscore::readlilypos()
 			  else
 				etat = 0 ;
 			break;
-		case 1000: if (ch == 'f') etat++; else etat = 1000;	break;
+		case 1000: 
+			if (ch == 'f')
+			{
+				memnrline = nrline+1;
+				memnrcolumn = nrcolumn - 1; // -1 because of the f
+				etat++;
+				break;
+			}
+			if (ch == '\\')
+			{
+				memnrline = nrline+1;
+				memnrcolumn = nrcolumn - 1; // -1 because of the f
+				etat = 2000;
+				break;
+			}
+			etat = 1000;	
+			break;
 		case 1001: 
 			if ((ch >= '0') && (ch <= '9'))
 			{
-				mposnote.ply.line = nrline + 1;
-				mposnote.ply.column = nrcolumn - 2;
+				mposnote.ply.line = memnrline;
+				mposnote.ply.column = memnrcolumn;
 				lposnotes.Append(new cposnote(mposnote));
 			}
 			etat = 1000; 
+			break;
+		case 2000: if (ch == 't') etat++; else etat = 1000; break;
+		case 2001: if (ch == 'w') etat++; else etat = 1000; break;
+		case 2002: if (ch == 'e') etat++; else etat = 1000; break;
+		case 2003: if (ch == 'a') etat++; else etat = 1000; break;
+		case 2004: 
+			if (ch == 'k')
+			{
+				nbwaitf8 = 0;
+				etat++;
+			}
+			else 
+				etat = 1000; 
+			break;
+		case 2005: 
+			if (ch == ' ')
+			{
+				etat ++;
+				break;
+			}
+			if (nbwaitf8++ > 50)
+			{
+				// too many wait for f8. Reset the state
+				nbwaitf8 = 0;
+				etat = 1000;
+				break;
+			}
+			break;
+		case 2006:
+			if (ch == 'f')
+			{
+				etat++;
+				break;
+			}
+			etat = 2005;
+			break;
+		case 2007:
+			if ((ch >= '0') && (ch <= '9'))
+			{
+				mposnote.ply.line = memnrline;
+				mposnote.ply.column = memnrcolumn;
+				lposnotes.Append(new cposnote(mposnote));
+				etat = 1000;
+				break;
+			}
+			etat = 2005;
 			break;
 		}
 	}
