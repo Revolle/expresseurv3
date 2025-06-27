@@ -1,4 +1,3 @@
-// update : 20/11/2016 19:00
 
 #ifndef DEF_MUSICXML
 
@@ -10,6 +9,7 @@ class c_default_xy
 {
 public:
 	c_default_xy();
+	~c_default_xy() {};
 	c_default_xy(const c_default_xy &default_xy);
 	c_default_xy(wxXmlNode *xmlnode);
 	void write_xy(wxFFile *f);
@@ -22,6 +22,7 @@ class c_score_part
 {
 public:
 	c_score_part();
+	~c_score_part() {};
 	c_score_part(wxString id , wxString part_name, wxString part_abbreviation);
 	c_score_part(const c_score_part & score_part);
 	c_score_part(wxXmlNode *xmlnode);
@@ -40,6 +41,7 @@ class c_time
 {
 public:
 	c_time();
+	~c_time() {};
 	c_time(const c_time & time);
 	c_time(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -52,6 +54,7 @@ class c_transpose
 {
 public:
 	c_transpose();
+	~c_transpose() {};
 	c_transpose(const c_transpose & transpose);
 	c_transpose(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -64,6 +67,7 @@ class c_key
 {
 public:
 	c_key();
+	~c_key() {};
 	c_key(const c_key & key);
 	c_key(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -75,6 +79,7 @@ class c_root
 {
 public:
 	c_root();
+	~c_root() {};
 	c_root(const c_root & root);
 	c_root(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -85,6 +90,7 @@ class c_bass
 {
 public:
 	c_bass();
+	~c_bass() {};
 	c_bass(const c_bass &bass);
 	c_bass(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -95,6 +101,7 @@ class c_kind
 {
 public:
 	c_kind();
+	~c_kind() {};
 	c_kind(const c_kind &kind);
 	c_kind(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -108,7 +115,11 @@ public:
 	c_harmony();
 	c_harmony(const c_harmony &harmony);
 	c_harmony(wxXmlNode *xmlnode);
-	~c_harmony();
+	~c_harmony() {
+		delete root;
+		delete bass;
+		delete kind;
+	};
 	void write(wxFFile *f);
 	wxString function = NULL_STRING ;
 	int inversion = NULL_INT;
@@ -121,6 +132,7 @@ class c_backup
 {
 public:
 	c_backup();
+	~c_backup() {};
 	c_backup(const c_backup &backup);
 	c_backup(wxXmlNode *xmlnode);
 	void compile(bool twelved);
@@ -132,6 +144,7 @@ class c_forward
 {
 public:
 	c_forward();
+	~c_forward() {};
 	c_forward(const c_forward &forward);
 	c_forward(wxXmlNode *xmlnode);
 	void compile(bool twelved);
@@ -143,6 +156,7 @@ class c_repeat
 {
 public:
 	c_repeat();
+	~c_repeat() {};
 	c_repeat(const c_repeat & repeat);
 	c_repeat(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -153,6 +167,7 @@ class c_ending : c_default_xy
 {
 public:
 	c_ending();
+	~c_ending() {};
 	c_ending(const c_ending &ending);
 	c_ending(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -165,6 +180,7 @@ class c_pedal :c_default_xy
 {
 public:
 	c_pedal();
+	~c_pedal() {};
 	c_pedal(const c_pedal &pedal);
 	c_pedal(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -176,6 +192,7 @@ class c_octave_shift :c_default_xy
 {
 public:
 	c_octave_shift();
+	~c_octave_shift() {};
 	c_octave_shift(const c_octave_shift &octave_shift);
 	c_octave_shift(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -187,6 +204,7 @@ class c_rehearsal :c_default_xy
 {
 public:
 	c_rehearsal();
+	~c_rehearsal() {};
 	c_rehearsal(const c_rehearsal &rehearsal);
 	c_rehearsal(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -196,6 +214,7 @@ class c_words :c_default_xy
 {
 public:
 	c_words();
+	~c_words() {};
 	c_words(const c_words &words);
 	c_words(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -205,6 +224,7 @@ class c_wedge :c_default_xy
 {
 public:
 	c_wedge();
+	~c_wedge() {};
 	c_wedge(const c_wedge &wedge);
 	c_wedge(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -215,6 +235,7 @@ class c_coda :c_default_xy
 {
 public:
 	c_coda();
+	~c_coda() {};
 	c_coda(c_coda const &coda);
 	c_coda(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -223,6 +244,7 @@ class c_segno :c_default_xy
 {
 public:
 	c_segno();
+	~c_segno() {};
 	c_segno(c_segno const &segno);
 	c_segno(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -231,6 +253,7 @@ class c_dynamics : c_default_xy
 {
 public:
 	c_dynamics();
+	~c_dynamics() {};
 	c_dynamics(const c_dynamics &dynamics);
 	c_dynamics(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -242,9 +265,25 @@ class c_direction_type
 {
 public:
 	c_direction_type();
+	~c_direction_type() {
+		if (pt != NULL)
+		{
+			switch (type)
+			{
+			case t_pedal: delete ((c_pedal*)(pt)); break;
+			case t_octave_shift: delete ((c_octave_shift*)(pt)); break;
+			case t_rehearsal: delete ((c_rehearsal*)(pt)); break;
+			case t_wedge: delete ((c_wedge*)(pt)); break;
+			case t_coda: delete ((c_coda*)(pt)); break;
+			case t_dynamics: delete ((c_dynamics*)(pt)); break;
+			case t_segno: delete ((c_segno*)(pt)); break;
+			case t_words: delete ((c_words*)(pt)); break;
+			default:  wxASSERT(false);  break;
+			}
+		}
+	}
 	c_direction_type(c_direction_type const &direction_type);
 	c_direction_type(wxXmlNode *xmlnode);
-	~c_direction_type();
 	void write(wxFFile *f);
 	void *pt = NULL;
 	int type = NULL_INT;
@@ -254,6 +293,7 @@ class c_sound
 {
 public:
 	c_sound();
+	~c_sound() {};
 	c_sound(c_sound const &sound);
 	c_sound(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -266,7 +306,12 @@ class c_direction
 {
 public:
 	c_direction();
-	~c_direction();
+	~c_direction() {
+		direction_types.DeleteContents(true);
+		direction_types.Clear();
+		sounds.DeleteContents(true);
+		sounds.Clear();
+	};
 	c_direction(const c_direction &direction);
 	c_direction(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -280,6 +325,7 @@ class c_clef
 {
 public:
 	c_clef();
+	~c_clef() {};
 	c_clef(const c_clef & clef);
 	c_clef(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -296,7 +342,10 @@ public:
 	c_barline();
 	c_barline(const c_barline & barline);
 	c_barline(wxXmlNode *xmlnode);
-	~c_barline();
+	~c_barline() {
+		delete repeat;
+		delete ending;
+	}
 	void write(wxFFile *f);
 	c_repeat *repeat = NULL;
 	c_ending *ending = NULL;
@@ -311,6 +360,7 @@ class c_staff_details
 {
 public: 
 	c_staff_details();
+	~c_staff_details() {};
 	c_staff_details(const c_staff_details & staff_details);
 	c_staff_details(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -324,14 +374,22 @@ public:
 	c_attributes();
 	c_attributes(const c_attributes & attributes , bool withContent = true);
 	c_attributes(wxXmlNode *xmlnode);
-	~c_attributes();
+	c_attributes::~c_attributes()
+	{
+		clefs.DeleteContents(true);
+		clefs.Clear();
+		delete key;
+		delete mtime;
+		delete staff_details;
+		delete transpose;
+	}
 	void compile(bool twelved, c_measure *measure);
 	void divisionsAlign();
 	void write(wxFFile *f);
-	c_key *key = NULL;
+	l_clef clefs;
+	c_key* key = NULL;
 	c_time *mtime = NULL;
 	c_staff_details *staff_details = NULL;
-	l_clef clefs;
 	c_transpose *transpose = NULL;
 	int divisions = NULL_INT;
 	int staves = NULL_INT;
@@ -341,6 +399,7 @@ class c_pitch
 {
 public:
 	c_pitch();
+	~c_pitch() {};
 	c_pitch(const c_pitch & pitch);
 	c_pitch(wxXmlNode *xmlnode , bool unpitched = false);
 	void compile();
@@ -358,6 +417,7 @@ class c_rest
 {
 public:
 	c_rest();
+	~c_rest() {};
 	c_rest(const c_rest & rest);
 	c_rest(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -369,6 +429,7 @@ class c_time_modification
 {
 public:
 	c_time_modification();
+	~c_time_modification() {};
 	c_time_modification(const c_time_modification & time_modification);
 	c_time_modification(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -379,6 +440,7 @@ class c_lyric : c_default_xy
 {
 public:
 	c_lyric();
+	~c_lyric() {};
 	c_lyric(const c_lyric & lyric);
 	c_lyric(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -395,6 +457,7 @@ class c_beam
 {
 public:
 	c_beam();
+	~c_beam() {};
 	c_beam(const c_beam &beam);
 	c_beam(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -407,6 +470,7 @@ class c_articulations
 {
 public:
 	c_articulations();
+	~c_articulations() {};
 	c_articulations(const c_articulations & articulations);
 	c_articulations(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -419,6 +483,7 @@ class c_ornaments
 {
 public:
 	c_ornaments();
+	~c_ornaments() {};
 	c_ornaments(const c_ornaments & lOrnaments);
 	c_ornaments(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -431,6 +496,7 @@ class c_arpeggiate
 {
 public:
 	c_arpeggiate();
+	~c_arpeggiate() {};
 	c_arpeggiate(const c_arpeggiate & arpeggiate);
 	c_arpeggiate(wxXmlNode *xmlNode);
 	void write(wxFFile *f);
@@ -441,6 +507,7 @@ class c_fermata : c_default_xy
 {
 public:
 	c_fermata();
+	~c_fermata() {};
 	c_fermata(const c_fermata &fermata);
 	c_fermata(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -451,6 +518,7 @@ class c_glissando : c_default_xy
 {
 public:
 	c_glissando();
+	~c_glissando() {};
 	c_glissando(const c_glissando &glissando);
 	c_glissando(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -461,6 +529,7 @@ class c_slide : c_default_xy
 {
 public:
 	c_slide();
+	~c_slide() {};
 	c_slide(const c_slide &slide);
 	c_slide(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -471,6 +540,7 @@ class c_slur : c_default_xy
 {
 public:
 	c_slur();
+	~c_slur() {};
 	c_slur(const c_slur &slur);
 	c_slur(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -484,6 +554,7 @@ class c_tied
 {
 public:
 	c_tied();
+	~c_tied() {};
 	c_tied(const c_tied &tied);
 	c_tied(wxXmlNode *xmlnode);
 	void complete(wxXmlNode *xmlnode);
@@ -495,6 +566,7 @@ class c_tie
 {
 public:
 	c_tie();
+	~c_tie() {};
 	c_tie(const c_tie &tie);
 	c_tie(wxXmlNode *xmlnode);
 	void complete(wxXmlNode *xmlnode);
@@ -507,6 +579,7 @@ class c_tuplet : c_default_xy
 {
 public:
 	c_tuplet();
+	~c_tuplet() {};
 	c_tuplet(const c_tuplet & tuplet);
 	c_tuplet(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -520,7 +593,20 @@ public:
 	c_notations();
 	c_notations(const c_notations & notations);
 	c_notations(wxXmlNode *xmlnode);
-	~c_notations();
+	c_notations::~c_notations()
+	{
+		delete arpeggiate;
+		delete articulations;
+		delete lOrnaments;
+		delete dynamics;
+		delete fermata;
+		delete glissando;
+		delete slide;
+		delete tied;
+		delete tuplet;
+		slurs.DeleteContents(true);
+		slurs.Clear();
+	};
 	void write(wxFFile *f);
 	c_arpeggiate *arpeggiate = NULL;
 	c_articulations *articulations = NULL;
@@ -529,9 +615,9 @@ public:
 	c_fermata *fermata = NULL;
 	c_glissando *glissando = NULL;
 	c_slide *slide = NULL;
-	l_slur slurs ;
 	c_tied *tied = NULL;
 	c_tuplet *tuplet = NULL;
+	l_slur slurs;
 };
 class c_note : c_default_xy
 {
@@ -539,7 +625,18 @@ public:
 	c_note();
 	c_note(const c_note & note);
 	c_note(wxXmlNode *xmlnode );
-	~c_note();
+	c_note::~c_note()
+	{
+		delete pitch;
+		delete rest;
+		delete tie;
+		delete time_modification;
+		delete notations;
+		lyrics.DeleteContents(true);
+		lyrics.Clear();
+		beams.DeleteContents(true);
+		beams.Clear();
+	};
 	void compile(int partNr , bool twelved = false);
 	void divisionsAlign(int ratio);
 	void write(wxFFile *f);
@@ -573,7 +670,20 @@ public:
 	c_measure_sequence();
 	c_measure_sequence(const c_measure_sequence & measure_sequence, bool withContent = true);
 	c_measure_sequence(void *pt, int type);
-	~c_measure_sequence();
+	c_measure_sequence::~c_measure_sequence()
+	{
+		switch (type)
+		{
+		case t_note: delete ((c_note*)(pt)); break;
+		case t_harmony: delete ((c_harmony*)(pt)); break;
+		case t_backup: delete ((c_backup*)(pt)); break;
+		case t_forward: delete ((c_forward*)(pt)); break;
+		case t_barline: delete ((c_barline*)(pt)); break;
+		case t_direction: delete ((c_direction*)(pt)); break;
+		case t_attributes: delete ((c_attributes*)(pt)); break;
+		default: wxASSERT(false);  break;
+		}
+	};
 	void compile(int partNr , bool twelved , c_measure *measure);
 	void divisionsAlign(int ratio);
 	void write(wxFFile *f);
@@ -585,7 +695,11 @@ class c_measure
 {
 public:
 	c_measure();
-	~c_measure();
+	c_measure::~c_measure()
+	{
+		measure_sequences.DeleteContents(true);
+		measure_sequences.Clear();
+	};
 	c_measure(int number, int width);
 	c_measure(const c_measure &measure, bool withContent = true );
 	c_measure(wxXmlNode *xmlnode);
@@ -611,7 +725,11 @@ class c_part
 {
 public:
 	c_part();
-	~c_part();
+	c_part::~c_part()
+	{
+		measures.DeleteContents(true);
+		measures.Clear();
+	};
 	c_part(wxString id);
 	c_part(const c_part &part, bool withMeasures = true);
 	c_part(wxXmlNode *xmlnode);
@@ -631,7 +749,11 @@ public:
 	c_part_list();
 	c_part_list(const c_part_list &parlist);
 	c_part_list(wxXmlNode *xmlnode);
-	~c_part_list();
+	c_part_list::~c_part_list()
+	{
+		score_parts.DeleteContents(true);
+		score_parts.Clear();
+	};
 	void write(wxFFile *f);
 	l_score_part score_parts;
 };
@@ -639,6 +761,7 @@ class c_work
 {
 public:
 	c_work();
+	~c_work() {};
 	c_work(const c_work &work);
 	c_work(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -648,6 +771,7 @@ class c_scaling
 {
 public:
 	c_scaling();
+	~c_scaling() {};
 	c_scaling(const c_scaling &scaling);
 	void read(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -658,6 +782,7 @@ class c_page_layout
 {
 public:
 	c_page_layout();
+	~c_page_layout() {};
 	c_page_layout(const c_page_layout &page_layout);
 	void read(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -669,6 +794,7 @@ class c_defaults
 {
 public:
 	c_defaults();
+	~c_defaults() {};
 	c_defaults(const c_defaults &work);
 	c_defaults(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
@@ -681,12 +807,18 @@ public:
 	c_score_partwise();
 	c_score_partwise(const c_score_partwise &score_partwise, bool withMeasures = true);
 	c_score_partwise(wxXmlNode *xmlnode);
-	~c_score_partwise();
+	c_score_partwise::~c_score_partwise()
+	{
+		parts.DeleteContents(true);
+		parts.Clear();
+		delete work;
+		delete part_list;
+	};
 	void write(wxString filename, bool layout);
-	c_work *work = NULL;
-	c_defaults defaults;
-	c_part_list *part_list = NULL;
 	l_part parts;
+	c_work *work = NULL;
+	c_part_list* part_list = NULL;
+	c_defaults defaults;
 	void compile( bool twelved = false);
 	bool already_twelved = false;
 };
