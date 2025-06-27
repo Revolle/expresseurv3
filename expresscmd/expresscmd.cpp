@@ -72,7 +72,8 @@ int main(int argc, char* argv[])
 		_chdir(argv[3]);
 
 	// debug :
-	_chdir("C:\\Users\\franc\\Documents\\GitHub\\expresseurV3_VC\\basslua\\x64\\Debug");
+	// line to suppress for realease
+	// _chdir("C:\\Users\\franc\\Documents\\GitHub\\expresseurV3_VC\\basslua\\x64\\Debug");
 
 	char full[_MAX_PATH];
 	if (_fullpath(full, ".\\", _MAX_PATH) == NULL)

@@ -908,8 +908,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	// lily python
 	fm.SetPath(mxconf::getAppDir());
 	fm.AppendDir("lilypond");
-	// debug mode :
-	fm.SetPath("C:\\Users\\franc\\Documents\\lilypond\\lilypond-2.25.26");
+
 	fm.AppendDir("bin");
 	fm.SetFullName("python.exe");
 	pythonexe = fm.GetFullPath();
@@ -1282,17 +1281,42 @@ bool musicxmlscore::readlilypdf(uint32_t page, uint32_t xpng, uint32_t ypng)
 	char ch;
 	uint32_t etat = 0;
 	uint32_t nbint = 0 ;
-	sfpos spdf, pagepdf;
 	float fletat = 0.1 ;
 	float nbfloat = 0.0 ;
-	sposly mly;
-	spdf.x1 = 0; spdf.y1 = 0; spdf.x2 = 0; spdf.y2 = 0;
+	float spdfx1 = 0.0;
+	float spdfy1 = 0.0;
+	float spdfx2 = 0.0;
+	float spdfy2 = 0.0;
+	float pagepdfx1 = 0.0;
+	float pagepdfy1 = 0.0;
+	float pagepdfx2 = 0.0;
+	float pagepdfy2 = 0.0;
+	uint32_t mlyline = 0;
+	uint32_t mlycolumn = 0;
+
+	spdfx1 = 10.0;
+	spdfy1 = 20.0;
+	spdfx2 = 30.0;
+	spdfy2 = 40.0;
+	mlyline = 10;
+	mlycolumn = 20;
+	spdfx1 = 110.0;
+	spdfy1 = 120.0;
+	spdfx2 = 130.0;
+	spdfy2 = 140.0;
+	mlyline = 110;
+	mlycolumn = 120;
+	spdfx1 = 210.0;
+	spdfy1 = 220.0;
+	spdfx2 = 230.0;
+	spdfy2 = 240.0;
+	mlyline = 210;
+	mlycolumn = 220;
 
 	wxFileName fpdf;
 	fpdf.SetPath(mxconf::getTmpDir());
 	wxString s;
 	s.Printf(FILE_SCORE_PDF, page + 1);
-	//s.Printf(FILE_SCORE_PDF, 0);
 	fpdf.SetFullName(s);
 #ifdef RUN_WIN
 	int fp = _open(fpdf.GetFullPath(), _O_RDONLY | _O_BINARY);
@@ -1332,34 +1356,34 @@ bool musicxmlscore::readlilypdf(uint32_t page, uint32_t xpng, uint32_t ypng)
 			// x1_
 		case 6: if ((ch >= '0') && (ch <= '9')) { nbfloat = nbfloat * 10.0 + (float)(ch - '0'); break; }
 			  if (ch == '.') { fletat = 0.1; etat++; break; }
-			  if (ch == ' ') { etat += 2; spdf.x1 = nbfloat; nbfloat = 0.0; break; }
+			  if (ch == ' ') { etat += 2; spdfx1 = nbfloat; nbfloat = 0.0; break; }
 			  etat = 0; break;
 		case 7: if ((ch >= '0') && (ch <= '9')) { nbfloat += (float)(ch - '0') * fletat; fletat *= 0.1; break; }
-			  if (ch == ' ') { etat++; spdf.x1 = nbfloat; nbfloat = 0.0; break; }
+			  if (ch == ' ') { etat++; spdfx1 = nbfloat; nbfloat = 0.0; break; }
 			  etat = 0; break;
 			  // y1_
 		case 8: if ((ch >= '0') && (ch <= '9')) { nbfloat = nbfloat * 10.0 + (float)(ch - '0'); break; }
 			  if (ch == '.') { fletat = 0.1; etat++; break; }
-			  if (ch == ' ') { etat += 2; spdf.y1 = nbfloat; nbfloat = 0.0; break; }
+			  if (ch == ' ') { etat += 2; spdfy1 = nbfloat; nbfloat = 0.0; break; }
 			  etat = 0; break;
 		case 9: if ((ch >= '0') && (ch <= '9')) { nbfloat += (ch - '0') * fletat; fletat *= 0.1; break; }
-			  if (ch == ' ') { etat++; spdf.y1 = nbfloat; nbfloat = 0.0; break; }
+			  if (ch == ' ') { etat++; spdfy1 = nbfloat; nbfloat = 0.0; break; }
 			  etat = 0; break;
 			  // x2_
 		case 10: if ((ch >= '0') && (ch <= '9')) { nbfloat = nbfloat * 10.0 + (float)(ch - '0'); break; }
 			   if (ch == '.') { fletat = 0.1; etat++; break; }
-			   if (ch == ' ') { etat += 2; spdf.x2 = nbfloat; nbfloat = 0.0; break; }
+			   if (ch == ' ') { etat += 2; spdfx2 = nbfloat; nbfloat = 0.0; break; }
 			   etat = 0; break;
 		case 11: if ((ch >= '0') && (ch <= '9')) { nbfloat += (ch - '0') * fletat; fletat *= 0.1; break; }
-			   if (ch == ' ') { etat++; spdf.x2 = nbfloat; nbfloat = 0.0; break; }
+			   if (ch == ' ') { etat++; spdfx2 = nbfloat; nbfloat = 0.0; break; }
 			   etat = 0; break;
 			   // y2]
 		case 12: if ((ch >= '0') && (ch <= '9')) { nbfloat = nbfloat * 10.0 + (float)(ch - '0'); break; }
 			   if (ch == '.') { fletat = 0.1; etat++; break; }
-			   if (ch == ']') { etat += 2; spdf.y2 = nbfloat; nbfloat = 0.0; break; }
+			   if (ch == ']') { etat += 2; spdfy2 = nbfloat; nbfloat = 0.0; break; }
 			   etat = 0; break;
 		case 13: if ((ch >= '0') && (ch <= '9')) { nbfloat += (ch - '0') * fletat; fletat *= 0.1; break; }
-			   if (ch == ']') { etat++; spdf.y2 = nbfloat; nbfloat = 0.0; break; }
+			   if (ch == ']') { etat++; spdfy2 = nbfloat; nbfloat = 0.0; break; }
 			   etat = 0; break;
 			   // search for the lilipond point-and-click reference in teh PDF. Pattern "*.ly:line:column:width]"
 		case 14:  if (ch == '.') { etat++; }
@@ -1372,10 +1396,10 @@ bool musicxmlscore::readlilypdf(uint32_t page, uint32_t xpng, uint32_t ypng)
 			   else { if (ch == '>') etat = 0; else etat = 14; } break;
 			// posx:posy:l)
 		case 18: if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
-			   if (ch == ':') { etat++; mly.line = nbint; nbint = 0; break; }
+			   if (ch == ':') { etat++; mlyline = nbint; nbint = 0; break; }
 			   etat = 0; break;
 		case 19: if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
-			   if (ch == ':') { etat++; mly.column = nbint; nbint = 0; break; }
+			   if (ch == ':') { etat++; mlycolumn = nbint; nbint = 0; break; }
 			   etat = 0; break;
 		case 20: if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
 			   if (ch == ')') { etat++; nbint = 0; break; }
@@ -1387,16 +1411,18 @@ bool musicxmlscore::readlilypdf(uint32_t page, uint32_t xpng, uint32_t ypng)
 			for (l_posnotes::iterator iter_posnotes = lposnotes.begin(); iter_posnotes != lposnotes.end(); ++iter_posnotes)
 			{
 				cposnote* current_posnotes = *iter_posnotes;
-				if ((current_posnotes->empty) && (mly.line == current_posnotes->ply.line) && (mly.column == current_posnotes->ply.column))
+				if ((current_posnotes->empty) && (mlyline == current_posnotes->ply.line) && (mlycolumn == current_posnotes->ply.column))
 				{
 					current_posnotes->empty = false;
 					current_posnotes->page = page;
-					current_posnotes->pdf.x1 = spdf.x1 ;
-					current_posnotes->pdf.y1 = spdf.y1;
-					current_posnotes->pdf.x2 = spdf.x2;
-					current_posnotes->pdf.y2 = spdf.y2;
+					current_posnotes->pdf.x1 = spdfx1 ;
+					current_posnotes->pdf.y1 = spdfy1;
+					current_posnotes->pdf.x2 = spdfx2;
+					current_posnotes->pdf.y2 = spdfy2;
 				}
 			}
+			spdfx1 = 0; spdfy1 = 0; spdfx2 = 0; spdfy2 = 0;
+			mlyline = 0;  mlycolumn = 0;
 			break;
 	    // size of the image-page in the pdf, pattern "MediaBox [0 0 798 598]"
 		case 101: if (ch == 'e') etat++; else etat = 0; break;
@@ -1410,16 +1436,16 @@ bool musicxmlscore::readlilypdf(uint32_t page, uint32_t xpng, uint32_t ypng)
 		case 109: if (ch == '[') { etat++; nbint = 0; }
 				else etat = 0; break;
 		case 110: if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
-				if (ch == ' ') { etat++; pagepdf.x1 = nbint; nbint = 0; break; }
+				if (ch == ' ') { etat++; pagepdfx1 = nbint; nbint = 0; break; }
 				etat = 0; break;
 		case 111: if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
-				if (ch == ' ') { etat++; pagepdf.y1 = nbint; break; }
+				if (ch == ' ') { etat++; pagepdfy1 = nbint; break; }
 				etat = 0; break;
 		case 112: if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
-				if (ch == ' ') { etat++; pagepdf.x2 = nbint; nbint = 0; break; }
+				if (ch == ' ') { etat++; pagepdfx2 = nbint; nbint = 0; break; }
 				etat = 0; break;
 		case 113: if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
-				if (ch == ']') { etat = 0; pagepdf.y2 = nbint  ; break; }
+				if (ch == ']') { etat = 0; pagepdfy2 = nbint  ; break; }
 				etat = 0; break;
 		default: etat = 0; break;
 		}
@@ -1429,13 +1455,13 @@ bool musicxmlscore::readlilypdf(uint32_t page, uint32_t xpng, uint32_t ypng)
 #else
 	close(fp);
 #endif
-	if (pagepdf.x2 == 0)
+	if (pagepdfx2 == 0)
 	{
 		wxMessageBox("Cannot read size Lilypond pdf", "build score", wxOK | wxICON_ERROR);
 		return false;
 	}
-	float fxpng_pdf = (float)(xpng) / (float)(pagepdf.x2 - pagepdf.x1);
-	float fypng_pdf = (float)(ypng) / (float)(pagepdf.y2 - pagepdf.y1);
+	float fxpng_pdf = (float)(xpng) / (float)(pagepdfx2 - pagepdfx1);
+	float fypng_pdf = (float)(ypng) / (float)(pagepdfy2 - pagepdfy1);
 	// readjust teh size of pdf rectangle in the page to png rectangle 
 	for (l_posnotes::iterator iter_posnotes = lposnotes.begin(); iter_posnotes != lposnotes.end(); ++iter_posnotes)
 	{
@@ -1444,8 +1470,8 @@ bool musicxmlscore::readlilypdf(uint32_t page, uint32_t xpng, uint32_t ypng)
 		{
 			current_posnotes->png.x1 = (int)(fxpng_pdf *current_posnotes->pdf.x1);
 			current_posnotes->png.x2 = (int)(fxpng_pdf *current_posnotes->pdf.x2);
-			current_posnotes->png.y1 = pagepdf.y2 - pagepdf.y1 - (int)(fypng_pdf *current_posnotes->pdf.y2);
-			current_posnotes->png.y2 = (pagepdf.y2 - pagepdf.y1) - (int)(fypng_pdf * current_posnotes->pdf.y1);
+			current_posnotes->png.y1 = pagepdfy2 - pagepdfy1 - (int)(fypng_pdf *current_posnotes->pdf.y2);
+			current_posnotes->png.y2 = (pagepdfy2 - pagepdfy1) - (int)(fypng_pdf * current_posnotes->pdf.y1);
 		}
 	}
 

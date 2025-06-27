@@ -2,8 +2,6 @@
 * \file luabass.c
 * \brief LUA extension to drive Midi-out
 * \author Franck Revolle
-* \version 1.1
-* \date 05/10/2015
 * Objective :
 *  LUA script language can use these functions to create easily any logic over MIDI-out.
 *  List of function is available at the end of this source code file.
@@ -155,7 +153,7 @@ typedef union t_midimsg
 	BYTE bData[4]; /*!< The data, byte per byte. */
 } T_midimsg;
 
-#define MAX_VSTI_PENDING_MIDIMSG DMX_V_MAX
+#define MAX_VSTI_PENDING_MIDIMSG 256
 
 /**
 * \struct T_vi_opened
@@ -4159,7 +4157,7 @@ static int LoutSystem(lua_State *L)
 	lock_mutex_out();
 	
 	T_midioutmsg u;
-	u.midimsg.bData[0] = cap((int)lua_tointeger(L, 1), 0, DMX_V_MAX, 0);
+	u.midimsg.bData[0] = cap((int)lua_tointeger(L, 1), 0, 256, 0);
 	u.midimsg.bData[1] = cap((int)lua_tointeger(L, 2), 0, 128, 0);
 	u.midimsg.bData[2] = cap((int)lua_tointeger(L, 3), 0, 128, 0);
 	u.nbbyte = 3;
