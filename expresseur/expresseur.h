@@ -108,18 +108,19 @@ public:
 	void preClose();
 	bool testModeMidi();
 
-	mixer *mMixer = NULL;
-	midishortcut *mMidishortcut = NULL;
-	expression *mExpression = NULL;
-	logerror *mLog;
+	////mixer *mMixer = NULL;
+	////midishortcut *mMidishortcut = NULL;
+	////expression *mExpression = NULL;
+	////logerror *mLog;
 	wxTimer *mtimer;
 
 private:
-	viewerscore *mViewerscore;
-	textscore *mTextscore;
+	////viewerscore *mViewerscore;
+	////textscore *mTextscore;
 	wxScrollBar *mScrollHorizontal;
 	wxScrollBar *mScrollVertical;
-	int posScrollHorizontal, posScrollVertical;
+	int posScrollHorizontal = 20;
+	int posScrollVertical = 50 ;
 	wxBoxSizer *sizer_text_viewer;
 	wxSizerItem *sizer_A, *sizer_B;
 
@@ -130,7 +131,7 @@ private:
 	int waitToCompile = 1; 
 	int timerDt = 20 ;
 
-	mxconf *mConf;
+	////mxconf *mConf;
 	wxMenuBar *mMenuBar;
 
 	void setRightDisplay(bool right);
@@ -213,10 +214,10 @@ private:
 
 	int typeViewer;
 
-	int mode = modeChord ;
+	int mode = 0 ;
 	bool editMode = true;
-	bool logMidiMsg;
-	bool localoff;
+	bool logMidiMsg = false;
+	bool localoff = false;
 	wxToolBar *toolBar;
 	
 	wxSize sizeFrame ;

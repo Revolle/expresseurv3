@@ -256,6 +256,11 @@ c_part_list::c_part_list(const c_part_list &part_list)
 		score_parts.Append(new c_score_part(*current_score_part));
 	}
 }
+c_part_list::~c_part_list()
+{
+	score_parts.DeleteContents(true);
+	score_parts.Clear();
+}
 void c_part_list::write(wxFFile *f)
 {
 	f->Write(wxString::Format("<part-list>\n"));
@@ -475,6 +480,15 @@ c_attributes::c_attributes(wxXmlNode *xmlnode)
 			transpose = new c_transpose(child);
 		child = child->GetNext();
 	}
+}
+c_attributes::~c_attributes()
+{
+	clefs.DeleteContents(true);
+	clefs.Clear();
+	delete key;
+	delete mtime;
+	delete staff_details;
+	delete transpose;
 }
 c_attributes::c_attributes(const c_attributes & attributes, bool withContent)
 {
@@ -1290,7 +1304,20 @@ c_notations::c_notations(wxXmlNode *xmlnode)
 		child = child->GetNext();
 	}
 }
-
+c_notations::~c_notations()
+{
+	delete arpeggiate;
+	delete articulations;
+	delete lOrnaments;
+	delete dynamics;
+	delete fermata;
+	delete glissando;
+	delete slide;
+	delete tied;
+	delete tuplet;
+	slurs.DeleteContents(true);
+	slurs.Clear();
+}
 c_notations::c_notations(const c_notations & notations)
 {
 	if (notations.arpeggiate != NULL)
@@ -1406,6 +1433,18 @@ c_note::c_note(wxXmlNode *xmlnode) : c_default_xy(xmlnode)
 			cue = true;
 		child = child->GetNext();
 	}
+}
+c_note::~c_note()
+{
+	beams.DeleteContents(true);
+	beams.Clear();
+	lyrics.DeleteContents(true);
+	lyrics.Clear();
+	delete pitch;
+	delete rest;
+	delete time_modification;
+	delete notations;
+	delete tie;
 }
 c_note::c_note(const c_note & note) : c_default_xy(note)
 {
@@ -1683,6 +1722,11 @@ c_barline::c_barline(wxXmlNode *xmlnode)
 		child = child->GetNext();
 	}
 }
+c_barline::~c_barline()
+{
+	delete ending;
+	delete repeat;
+}
 c_barline::c_barline(const c_barline & barline)
 {
 	location = barline.location;
@@ -1842,6 +1886,12 @@ c_harmony::c_harmony(const c_harmony &harmony) :c_default_xy(harmony)
 		bass = new c_bass(*(harmony.bass));
 	if (harmony.kind != NULL)
 		kind = new c_kind(*(harmony.kind));
+}
+c_harmony::~c_harmony()
+{
+	delete root;
+	delete bass;
+	delete kind;
 }
 void c_harmony::write(wxFFile *f)
 {
@@ -2070,6 +2120,24 @@ c_direction_type::c_direction_type(wxXmlNode *xmlnode)
 		child = child->GetNext();
 	}
 }
+c_direction_type::~c_direction_type()
+{
+	if (pt != NULL)
+	{
+		switch (type)
+		{
+		case t_pedal: delete ((c_pedal*)(pt)); break;
+		case t_octave_shift: delete ((c_octave_shift*)(pt)); break;
+		case t_rehearsal: delete ((c_rehearsal*)(pt)); break;
+		case t_wedge: delete ((c_wedge*)(pt)); break;
+		case t_coda: delete ((c_coda*)(pt)); break;
+		case t_dynamics: delete ((c_dynamics*)(pt)); break;
+		case t_segno: delete ((c_segno*)(pt)); break;
+		case t_words: delete ((c_words*)(pt)); break;
+		default:  break;
+		}
+	}
+}
 c_direction_type::c_direction_type(c_direction_type const &direction_type)
 {
 	type = direction_type.type;
@@ -2161,7 +2229,13 @@ c_direction::c_direction(const c_direction &direction)
 		sounds.Append(new c_sound(*current));
 	}
 }
-
+c_direction::~c_direction()
+{
+	direction_types.DeleteContents(true);
+	direction_types.Clear();
+	sounds.DeleteContents(true);
+	sounds.Clear();
+}
 void c_direction::write(wxFFile *f)
 {
 	if ((direction_types.GetCount() == 0) && (sounds.GetCount() == 0))
@@ -2203,6 +2277,20 @@ c_measure_sequence::c_measure_sequence(void *ipt, int itype)
 {
 	type = itype;
 	pt = ipt;
+}
+c_measure_sequence::~c_measure_sequence()
+{
+	switch (type)
+	{
+	case t_note: delete ((c_note*)(pt)); break;
+	case t_harmony: delete ((c_harmony*)(pt)); break;
+	case t_backup: delete ((c_backup*)(pt)); break;
+	case t_forward: delete ((c_forward*)(pt)); break;
+	case t_barline: delete ((c_barline*)(pt)); break;
+	case t_direction: delete ((c_direction*)(pt)); break;
+	case t_attributes: delete ((c_attributes*)(pt)); break;
+	default: wxASSERT(false);  break;
+	}
 }
 c_measure_sequence::c_measure_sequence(const c_measure_sequence & measure_sequence, bool withContent)
 {
@@ -2342,6 +2430,11 @@ c_measure::c_measure(const c_measure &measure , bool withContent)
 		}
 	}
 }
+c_measure::~c_measure()
+{
+	measure_sequences.DeleteContents(true);
+	measure_sequences.Clear();
+}
 void c_measure::write(wxFFile *f, bool layout = true)
 {
 	f->Write(wxString::Format("<measure"));
@@ -2433,6 +2526,11 @@ c_part::c_part(const c_part &part, bool withMeasures)
 			measures.Append(new c_measure(*current));
 		}
 	}
+}
+c_part::~c_part()
+{
+	measures.DeleteContents(true);
+	measures.Clear();
 }
 void c_part::write(wxFFile *f, bool layout = true)
 {
@@ -2655,6 +2753,13 @@ c_score_partwise::c_score_partwise(const c_score_partwise &score_partwise, bool 
 		parts.Append(new c_part(*current, withMeasures));
 	}
 	already_twelved = score_partwise.already_twelved;
+}
+c_score_partwise::~c_score_partwise()
+{
+	parts.DeleteContents(true);
+	parts.Clear();
+	delete work;
+	delete part_list;
 }
 void c_score_partwise::write(wxString filename , bool layout = true)
 {

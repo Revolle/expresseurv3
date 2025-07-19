@@ -11,7 +11,7 @@
 
 -- 4 lights , with 4 channels RVBW/light
 -- map ( pitch%12 ) => ( channels DMX RVB light)
-dmxp={0,1,2,3,4,5,6,7,0,1,2,3}
+dmxp={0,1,2,4,5,6,8,9,10,12,13,14}
 
 -- cath midi-out note-on to calculate DMX values
 function onNoteon(nrTrack,pitch,velocity)
