@@ -26,7 +26,7 @@ class musicxmlscore
 {
 
 public:
-	musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* config );
+	musicxmlscore(wxWindow *parent, wxWindowID id );
 	~musicxmlscore();
 
 	void onPaint(wxPaintEvent& event);
@@ -62,7 +62,6 @@ public:
 
 private:
 	wxWindow *mParent;
-	mxconf *mConf;
 	wxFileName xmlName;
 	musicxmlcompile *xmlCompile = NULL;
 	bool xmlExtractXml(wxFileName f);

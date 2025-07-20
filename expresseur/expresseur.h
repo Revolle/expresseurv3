@@ -131,7 +131,6 @@ private:
 	int waitToCompile = 1; 
 	int timerDt = 20 ;
 
-	////mxconf *mConf;
 	wxMenuBar *mMenuBar;
 
 	void setRightDisplay(bool right);

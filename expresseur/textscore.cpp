@@ -74,11 +74,10 @@ wxBEGIN_EVENT_TABLE(textscore, wxPanel)
 EVT_SIZE(textscore::OnSize)
 END_EVENT_TABLE()
 
-textscore::textscore(wxWindow *parent, wxWindowID id, mxconf* lMxconf)
+textscore::textscore(wxWindow *parent, wxWindowID id)
 : wxTextCtrl(parent, id, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxSUNKEN_BORDER | wxTE_RICH | wxTE_DONTWRAP)
 {
 	mParent = parent;
-	mConf = lMxconf;
 	
 	textAttrRecognized.SetFontFamily(wxFONTFAMILY_TELETYPE);
 	textAttrNormal.SetFontFamily(wxFONTFAMILY_TELETYPE);

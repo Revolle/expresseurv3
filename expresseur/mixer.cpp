@@ -67,12 +67,11 @@ EVT_BUTTON(ID_MIXER_SETTING_ALLNOTEOFF, mixer::OnSettingAllNoteOff)
 EVT_BUTTON(IDM_MIXER_CLOSE, mixer::OnClose)
 wxEND_EVENT_TABLE()
 
-mixer::mixer(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf, viewerscore *lviewerscore , wxArrayString lMidiout, wxArrayString lOpenMidiout, bool audio)
+mixer::mixer(wxFrame *parent, wxWindowID id, const wxString &title, viewerscore *lviewerscore , wxArrayString lMidiout, wxArrayString lOpenMidiout, bool audio)
 : wxDialog(parent, id, title, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 {
 	mParent = parent;
 	mThis = this;
-	mConf = lMxconf;
 	mViewerscore = lviewerscore;
 	nbMidioutDevice = lMidiout.GetCount();
 	topsizer = NULL;
@@ -102,7 +101,7 @@ mixer::~mixer()
 }
 void mixer::close()
 {
-	mConf->set( CONFIG_MIXER_EXTENSION, mCheckBox->GetValue()?1:0 , true);
+	configSet( CONFIG_MIXER_EXTENSION, mCheckBox->GetValue()?1:0 , true);
 }
 void mixer::OnClose(wxCloseEvent& event)
 {
@@ -121,10 +120,10 @@ void mixer::OnClose(wxCommandEvent& WXUNUSED(event))
 void mixer::savePos()
 {
 	wxRect mrect = GetRect();
-	mConf->set( CONFIG_MIXERWIDTH, mrect.GetWidth());
-	mConf->set( CONFIG_MIXERHEIGHT, mrect.GetHeight());
-	mConf->set( CONFIG_MIXERX, mrect.GetX());
-	mConf->set( CONFIG_MIXERY, mrect.GetY());
+	configSet( CONFIG_MIXERWIDTH, mrect.GetWidth());
+	configSet( CONFIG_MIXERHEIGHT, mrect.GetHeight());
+	configSet( CONFIG_MIXERX, mrect.GetX());
+	configSet( CONFIG_MIXERY, mrect.GetY());
 
 }
 void mixer::BuildSizer()
@@ -144,7 +143,7 @@ void mixer::BuildSizer()
 
 	button_sizer->Add(new wxButton(this, ID_MIXER_SETTING_ALLNOTEOFF, _("All Note off")), sizerFlagMinimumPlace.Border(wxALL, 10));
 	mCheckBox = new wxCheckBox(this, IDM_MIXER_EXTENSION, _("extended channels")) ;
-	mCheckBox->SetValue(mConf->get(CONFIG_MIXER_EXTENSION,1, true));
+	mCheckBox->SetValue(configGet(CONFIG_MIXER_EXTENSION,1, true));
 	button_sizer->Add(mCheckBox, sizerFlagMinimumPlace.Border(wxALL, 10));
 	button_sizer->Add(new wxButton(this, IDM_MIXER_CLOSE, _("Close")), sizerFlagMinimumPlace.Border(wxALL, 10));
 
@@ -219,7 +218,7 @@ void mixer::createMainMixer()
 	wxStaticText *mControl = new wxStaticText(this, wxID_ANY, _("MAIN volume"));
 	mixchannelSizer->Add(mControl, sizerFlagMinimumPlace);
 
-	long value = mConf->get(CONFIG_MIXERMAIN,64, true);
+	long value = configGet(CONFIG_MIXERMAIN,64, true);
 	slmainVolume = new wxSlider(this, ID_MIXER_MAIN_VOLUME, value, 0, 127);
 	slmainVolume->SetHelpText(_("Main volume which influence all tracks"));
 	slmainVolume->Bind(wxEVT_SLIDER, &mixer::OnMainMixerVolume, this);
@@ -232,7 +231,7 @@ void mixer::OnMainMixerVolume(wxEvent& WXUNUSED(event))
 	{
 		mainVolume = slmainVolume->GetValue();
 
-		mConf->set( CONFIG_MIXERMAIN, mainVolume, true);
+		configSet( CONFIG_MIXERMAIN, mainVolume, true);
 
 		basslua_call(moduleLuabass, soutSetVolume, "i", mainVolume);
 
@@ -267,7 +266,7 @@ void mixer::AddMixerName( wxString label)
 }
 void mixer::AddMixerVolume(int nrTrack)
 {
-	trackVolume[nrTrack] = mConf->get(CONFIG_MIXERVOLUME, 64, true, nameTrack[nrTrack]);
+	trackVolume[nrTrack] = configGet(CONFIG_MIXERVOLUME, 64, true, nameTrack[nrTrack]);
 
 	sltrackVolume[nrTrack] = new wxSlider(this, ID_MIXER_VOLUME + nrTrack, trackVolume[nrTrack], 0, 127);
 	sltrackVolume[nrTrack]->SetToolTip(helpTrack[nrTrack]);
@@ -281,7 +280,7 @@ void mixer::OnMixerVolume(wxEvent& event)
 	{
 		trackVolume[nrTrack] = sltrackVolume[nrTrack]->GetValue();
 
-		mConf->set(CONFIG_MIXERVOLUME, trackVolume[nrTrack], true, nameTrack[nrTrack]);
+		configSet(CONFIG_MIXERVOLUME, trackVolume[nrTrack], true, nameTrack[nrTrack]);
 		basslua_call(moduleLuabass, soutSetTrackVolume, "ii", trackVolume[nrTrack], nrTrack + 1);
 
 		wxString s;
@@ -296,7 +295,7 @@ void mixer::OnDefaultMixer(wxCommandEvent& WXUNUSED(event))
 	if (wxMessageBox(s, _("default device"), wxYES_NO, this) == wxYES)
 	{
 		defaultDevice = lastDevice;
-		mConf->set(CONFIG_MIXERDEVICEDEFAULT, defaultDevice, true);
+		configSet(CONFIG_MIXERDEVICEDEFAULT, defaultDevice, true);
 	}
 }
 void mixer::OnNeutralMixer(wxCommandEvent& WXUNUSED(event))
@@ -304,23 +303,23 @@ void mixer::OnNeutralMixer(wxCommandEvent& WXUNUSED(event))
 	for (unsigned int nrTrack = 0; nrTrack < nameTrack.GetCount(); nrTrack++)
 	{
 		sltrackVolume[nrTrack]->SetValue(64);
-		mConf->set(CONFIG_MIXERVOLUME, 64, true, nameTrack[nrTrack]);
+		configSet(CONFIG_MIXERVOLUME, 64, true, nameTrack[nrTrack]);
 		basslua_call(moduleLuabass, soutSetTrackVolume, "ii", 64, nrTrack + 1);
 	}
 
 	slmainVolume->SetValue(64);
 	basslua_call(moduleLuabass, soutSetVolume, "i", 64);
-	mConf->set(CONFIG_MIXERMAIN, 64, true);
+	configSet(CONFIG_MIXERMAIN, 64, true);
 }
 void mixer::setMixerVolume(int nrTrack, int value)
 {
 	sltrackVolume[nrTrack]->SetValue(value);
-	mConf->set(CONFIG_MIXERVOLUME, value, true, nameTrack[nrTrack]);
+	configSet(CONFIG_MIXERVOLUME, value, true, nameTrack[nrTrack]);
 }
 void mixer::setMainVolume(int value)
 {
 	slmainVolume->SetValue(value);
-	mConf->set( CONFIG_MIXERMAIN, 64, true);
+	configSet( CONFIG_MIXERMAIN, 64, true);
 }
 void mixer::InitListChannel()
 {
@@ -402,7 +401,7 @@ void mixer::getMidioutDevices(wxArrayString lMidiout, wxArrayString lOpenMidiout
 	{
 
 		wxArrayString filesVI;
-		wxString sdir = mxconf::getResourceDir();
+		wxString sdir = getResourceDir();
 		wxFileName fvi;
 		fvi.AssignDir(sdir);
 		wxDir::GetAllFiles(sdir, &filesVI, "*.sf2", wxDIR_DEFAULT);
@@ -425,7 +424,7 @@ void mixer::getMidioutDevices(wxArrayString lMidiout, wxArrayString lOpenMidiout
 	if (firstDeviceDefault.IsEmpty() == false)
 		defaultDevice = firstDeviceDefault;
 	
-	defaultDevice = mConf->get(CONFIG_MIXERDEVICEDEFAULT, defaultDevice, true);
+	defaultDevice = configGet(CONFIG_MIXERDEVICEDEFAULT, defaultDevice, true);
 
 	lastDevice = defaultDevice;
 }
@@ -433,7 +432,7 @@ bool mixer::createViList(wxString fileVI , wxString ext)
 {
 	// create if necessary the list of programs inside the VI. It is stored int the text file with same name than the VI
 	wxFileName flist;
-	flist.AssignDir(mxconf::getResourceDir());
+	flist.AssignDir(getResourceDir());
 	flist.SetName(fileVI);
 	flist.SetExt(ext);
 	int retCode;
@@ -456,7 +455,7 @@ void mixer::getListMidioutDevice(wxString fileName , int nrDevice)
 	fname = fname.BeforeFirst('@');
 
 	wxFileName flist;
-	flist.AssignDir(mxconf::getResourceDir());
+	flist.AssignDir(getResourceDir());
 	flist.SetName(fname);
 	flist.SetExt("txt");
 
@@ -493,7 +492,7 @@ void mixer::AddSoundDevice(int nrTrack)
 {
 	mSoundDevice[nrTrack] = new wxChoice(this, ID_MIXER_SOUND_DEVICE + nrTrack, wxDefaultPosition, wxDefaultSize, nameDevices);
 
-	wxString svalue = mConf->get(CONFIG_MIXERDEVICENAME, defaultDevice, true, nameTrack[nrTrack]);
+	wxString svalue = configGet(CONFIG_MIXERDEVICENAME, defaultDevice, true, nameTrack[nrTrack]);
 
 	int nrItem = mSoundDevice[nrTrack]->FindString(svalue);
 	if (nrItem != wxNOT_FOUND)
@@ -509,7 +508,7 @@ void mixer::AddSoundDevice(int nrTrack)
 				mSoundDevice[nrTrack]->SetSelection(0);
 		}
 	}
-	mConf->set(CONFIG_MIXERDEVICENAME, mSoundDevice[nrTrack]->GetStringSelection(), true, nameTrack[nrTrack]);
+	configSet(CONFIG_MIXERDEVICENAME, mSoundDevice[nrTrack]->GetStringSelection(), true, nameTrack[nrTrack]);
 
 	mSoundDevice[nrTrack]->Bind(wxEVT_CHOICE, &mixer::OnSoundDevice, this);
 	mixchannelSizer->Add(mSoundDevice[nrTrack], sizerFlagMinimumPlace);
@@ -521,7 +520,7 @@ void mixer::OnSoundDevice(wxEvent& event)
 	unsigned int nrDevice = mControl->GetSelection();
 
 	wxString s1;
-	mConf->set(CONFIG_MIXERDEVICENAME, nameDevices[nrDevice], true, nameTrack[nrTrack]);
+	configSet(CONFIG_MIXERDEVICENAME, nameDevices[nrDevice], true, nameTrack[nrTrack]);
 	
 	lastDevice = nameDevices[nrDevice];
 
@@ -536,7 +535,7 @@ void mixer::OnSoundDevice(wxEvent& event)
 		mInstrument[nrTrack]->SetValue(instrument);
 	}
 
-	mConf->set(CONFIG_MIXERINSTRUMENT, instrument, true, nameTrack[nrTrack]);
+	configSet(CONFIG_MIXERINSTRUMENT, instrument, true, nameTrack[nrTrack]);
 
 	replicate(nrTrack);
 	Layout();
@@ -549,7 +548,7 @@ void mixer::AddSoundChannel(int nrTrack)
 	long value = 0 ;
 	if (mSoundDevice[nrTrack]->GetSelection() != wxNOT_FOUND)
 	{
-		value = mConf->get(CONFIG_MIXERCHANNEL, 0, true, nameTrack[nrTrack]);
+		value = configGet(CONFIG_MIXERCHANNEL, 0, true, nameTrack[nrTrack]);
 	}
 
 	mControl->SetSelection(value);
@@ -562,7 +561,7 @@ void mixer::OnSoundChannel(wxEvent& event)
 	wxChoice *mControl = (wxChoice*)(event.GetEventObject());
 	int value = mControl->GetSelection();
 
-	mConf->set(CONFIG_MIXERCHANNEL, value, true, nameTrack[nrTrack]);
+	configSet(CONFIG_MIXERCHANNEL, value, true, nameTrack[nrTrack]);
 
 	replicate(nrTrack);
 
@@ -575,7 +574,7 @@ void mixer::AddSoundInstrument(int nrTrack)
 	wxString s1;
 	if (mSoundDevice[nrTrack]->GetSelection() != wxNOT_FOUND)
 	{
-		instrument = mConf->get(CONFIG_MIXERINSTRUMENT, "", true, nameTrack[nrTrack]);
+		instrument = configGet(CONFIG_MIXERINSTRUMENT, "", true, nameTrack[nrTrack]);
 		mInstrument[nrTrack] = new wxComboBox(this, ID_MIXER_INSTRUMENT + nrTrack, instrument, wxDefaultPosition, wxDefaultSize,  listInstrumensDevices[mSoundDevice[nrTrack]->GetSelection()]  );
 	}
 	else
@@ -593,7 +592,7 @@ void mixer::OnSoundInstrument(wxEvent& event)
 	int nrTrack = event.GetId() - ID_MIXER_INSTRUMENT;
 	wxString value = mInstrument[nrTrack]->GetValue();
 
-	mConf->set(CONFIG_MIXERINSTRUMENT, value, true, nameTrack[nrTrack]);
+	configSet(CONFIG_MIXERINSTRUMENT, value, true, nameTrack[nrTrack]);
 
 	char bufInstrument[MAXBUFCHAR];
 	strcpy(bufInstrument, value.c_str());
@@ -603,19 +602,19 @@ void mixer::OnSoundInstrument(wxEvent& event)
 }
 void mixer::replicate(int nrTrack)
 {
-	int channel_nrTrack = mConf->get(CONFIG_MIXERCHANNEL, 0, true, nameTrack[nrTrack]);
-	wxString device_nrTrack = mConf->get(CONFIG_MIXERDEVICENAME, defaultDevice, true, nameTrack[nrTrack]);
+	int channel_nrTrack = configGet(CONFIG_MIXERCHANNEL, 0, true, nameTrack[nrTrack]);
+	wxString device_nrTrack = configGet(CONFIG_MIXERDEVICENAME, defaultDevice, true, nameTrack[nrTrack]);
 	for (int n = 0; n < nbTrack; n++)
 	{
 		if (n != nrTrack)
 		{
-			int channel_n = mConf->get(CONFIG_MIXERCHANNEL, 0, true, nameTrack[n]);
-			wxString device_n = mConf->get(CONFIG_MIXERDEVICENAME, defaultDevice, true, nameTrack[n]);
+			int channel_n = configGet(CONFIG_MIXERCHANNEL, 0, true, nameTrack[n]);
+			wxString device_n = configGet(CONFIG_MIXERDEVICENAME, defaultDevice, true, nameTrack[n]);
 			if ((channel_nrTrack == channel_n) && (device_nrTrack == device_n))
 			{
-				wxString value = mConf->get(CONFIG_MIXERINSTRUMENT, "", true, nameTrack[nrTrack]);
+				wxString value = configGet(CONFIG_MIXERINSTRUMENT, "", true, nameTrack[nrTrack]);
 				mInstrument[n]->ChangeValue(value);
-				mConf->set(CONFIG_MIXERINSTRUMENT, value, true, nameTrack[n]);
+				configSet(CONFIG_MIXERINSTRUMENT, value, true, nameTrack[n]);
 			}
 		}
 	}
@@ -647,16 +646,16 @@ void mixer::reset(bool localoff ,bool doreset)
 		nameVi[i] = NULL_STRING;
 	}
 
-	int mainvolume = mConf->get( CONFIG_MIXERMAIN,64,true);
+	int mainvolume = configGet( CONFIG_MIXERMAIN,64,true);
 
 	//mlog_in("mixer / reset / nbTrack=%d",nbTrack);
 	for (int nrTrack = 0; nrTrack < nbTrack; nrTrack++)
 	{
-		sdevice[nrTrack] = mConf->get(CONFIG_MIXERDEVICENAME, defaultDevice, true, nameTrack[nrTrack]);
+		sdevice[nrTrack] = configGet(CONFIG_MIXERDEVICENAME, defaultDevice, true, nameTrack[nrTrack]);
 		getMidiVi(sdevice[nrTrack], &(nrDevice[nrTrack]), &(nameVi[nrTrack]));
-		channel[nrTrack] = mConf->get(CONFIG_MIXERCHANNEL, 0, true, nameTrack[nrTrack]);
-		volume[nrTrack] = mConf->get(CONFIG_MIXERVOLUME, 64, true, nameTrack[nrTrack]);
-		instrument[nrTrack] = mConf->get(CONFIG_MIXERINSTRUMENT, "", true, nameTrack[nrTrack]);
+		channel[nrTrack] = configGet(CONFIG_MIXERCHANNEL, 0, true, nameTrack[nrTrack]);
+		volume[nrTrack] = configGet(CONFIG_MIXERVOLUME, 64, true, nameTrack[nrTrack]);
+		instrument[nrTrack] = configGet(CONFIG_MIXERINSTRUMENT, "", true, nameTrack[nrTrack]);
 	}
 
 	//mlog_in("mixer / reset / soutTracksClose");
@@ -728,7 +727,7 @@ void mixer::reset(bool localoff ,bool doreset)
 			strcpy(bufInstrument, instrument[nrTrack].c_str());
 			char bufNameVi[512];
 			wxFileName fvi;
-			fvi.AssignDir(mxconf::getResourceDir());
+			fvi.AssignDir(getResourceDir());
 			fvi.SetFullName(nameVi[nrTrack]);
 			wxString svi = fvi.GetFullPath();
 			strcpy(bufNameVi, svi.c_str());
@@ -754,25 +753,25 @@ void mixer::reset(bool localoff ,bool doreset)
 }
 void mixer::write(wxTextFile *lfile)
 {
-	mConf->writeFile(lfile, CONFIG_MIXERMAIN,64,true);
-	mConf->writeFile(lfile, CONFIG_MIXER_EXTENSION,1,true);
+	configWriteFile(lfile, CONFIG_MIXERMAIN,64,true);
+	configWriteFile(lfile, CONFIG_MIXER_EXTENSION,1,true);
 	for (unsigned int nrTrack = 0; nrTrack < nameTrack.GetCount(); nrTrack++)
 	{
-		mConf->writeFile(lfile, CONFIG_MIXERDEVICENAME, defaultDevice, true, nameTrack[nrTrack]);
-		mConf->writeFile(lfile, CONFIG_MIXERCHANNEL, 0, true, nameTrack[nrTrack]);
-		mConf->writeFile(lfile, CONFIG_MIXERINSTRUMENT, "", true, nameTrack[nrTrack]);
-		mConf->writeFile(lfile, CONFIG_MIXERVOLUME, 64, true, nameTrack[nrTrack]);
+		configWriteFile(lfile, CONFIG_MIXERDEVICENAME, defaultDevice, true, nameTrack[nrTrack]);
+		configWriteFile(lfile, CONFIG_MIXERCHANNEL, 0, true, nameTrack[nrTrack]);
+		configWriteFile(lfile, CONFIG_MIXERINSTRUMENT, "", true, nameTrack[nrTrack]);
+		configWriteFile(lfile, CONFIG_MIXERVOLUME, 64, true, nameTrack[nrTrack]);
 	}
 }
 void mixer::read(wxTextFile *lfile)
 {
-	mConf->readFile(lfile, CONFIG_MIXERMAIN,64);
-	mConf->readFile(lfile, CONFIG_MIXER_EXTENSION,1);
+	configReadFile(lfile, CONFIG_MIXERMAIN,64);
+	configReadFile(lfile, CONFIG_MIXER_EXTENSION,1);
 	for (unsigned int nrTrack = 0; nrTrack < nameTrack.GetCount(); nrTrack++)
 	{
-		mConf->readFile(lfile, CONFIG_MIXERDEVICENAME, defaultDevice, true, nameTrack[nrTrack]);
-		mConf->readFile(lfile, CONFIG_MIXERCHANNEL, 0, true, nameTrack[nrTrack]);
-		mConf->readFile(lfile, CONFIG_MIXERINSTRUMENT, "", true, nameTrack[nrTrack]);
-		mConf->readFile(lfile, CONFIG_MIXERVOLUME, 64, true, nameTrack[nrTrack]);
+		configReadFile(lfile, CONFIG_MIXERDEVICENAME, defaultDevice, true, nameTrack[nrTrack]);
+		configReadFile(lfile, CONFIG_MIXERCHANNEL, 0, true, nameTrack[nrTrack]);
+		configReadFile(lfile, CONFIG_MIXERINSTRUMENT, "", true, nameTrack[nrTrack]);
+		configReadFile(lfile, CONFIG_MIXERVOLUME, 64, true, nameTrack[nrTrack]);
 	}
 }

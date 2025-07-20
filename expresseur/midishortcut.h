@@ -9,7 +9,7 @@ class midishortcut
 {
 
 public:
-	midishortcut(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf, wxArrayString inameAction, wxArrayString lMidiin, wxArrayString lOpenedMidiin);
+	midishortcut(wxFrame *parent, wxWindowID id, const wxString &title, wxArrayString inameAction, wxArrayString lMidiin, wxArrayString lOpenedMidiin);
 	~midishortcut();
 
 	void reset();
@@ -41,7 +41,6 @@ public:
 private:
 	wxFrame *mParent;
 	wxDialog *mThis;
-	mxconf *mConf;
 
 	editshortcut *medit;
 

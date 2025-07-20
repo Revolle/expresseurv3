@@ -60,9 +60,9 @@
 
 #include "version.h"
 #include "global.h"
+#include "mxconf.h"
 ////#include "basslua.h"
 ////#include "luabass.h"
-////#include "mxconf.h"
 ////#include "viewerscore.h"
 ////#include "mixer.h"
 ////#include "editshortcut.h"
@@ -357,11 +357,9 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	int proportionStatusBar[3] = { -10,-10,-1 };
 	mStatusBar->SetStatusWidths(3, proportionStatusBar);
 
-	// configuration object ( with memory of all parameters
-	////mConf = new mxconf();
+	getAppDir();
 
-	////mxconf::getAppDir();
-	//CreateExpresseurV3();
+	CreateExpresseurV3();
 
 	////mode = modeNil;
 	listChanged = false;
@@ -379,8 +377,8 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	mtimer = NULL;
 	fileHistory = NULL;
 
-	////if (mConf->get(CONFIG_VERSION_CHECKED, VERSION_EXPRESSEUR) < VERSION_EXPRESSEUR)
-	////	mConf->set(CONFIG_VERSION_CHECKED, VERSION_EXPRESSEUR);
+	if (configGet(CONFIG_VERSION_CHECKED, VERSION_EXPRESSEUR) < VERSION_EXPRESSEUR)
+		configSet(CONFIG_VERSION_CHECKED, VERSION_EXPRESSEUR);
 
 	// set the menus
 	wxMenu *fileMenu = new wxMenu;
@@ -396,7 +394,7 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	fileHistory = new wxFileHistory();
 	fileHistory->UseMenu(menuRecent);
 	fileHistory->AddFilesToMenu(menuRecent);
-	////fileHistory->Load(*mConf->getConfig());
+	fileHistory->Load(*configGet());
 
 	editMenu = new wxMenu;
 	editMenu->Append(wxID_UNDO, _("Undo\tCtrl+Z"));
@@ -526,15 +524,14 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	logMidiMsg = false;
 	//settingMenu->Check(ID_MAIN_MIDILOG, false);
 
-	////localoff = (bool)(mConf->get(CONFIG_LOCALOFF, true));
+	localoff = (bool)(configGet(CONFIG_LOCALOFF, true));
 	settingMenu->Check(ID_MAIN_LOCAL_OFF, localoff);
 
 	// scroll horizontal
-	////posScrollHorizontal = mConf->get(CONFIG_MAIN_SCROLLHORIZONTAL, 20);
+	posScrollHorizontal = configGet(CONFIG_MAIN_SCROLLHORIZONTAL, 20);
 	mScrollHorizontal = new	wxScrollBar(this, ID_MAIN_SCROLL_HORIZONTAL, wxDefaultPosition, wxDefaultSize, wxSB_HORIZONTAL);
 	mScrollHorizontal->SetToolTip(_("split horizontally the text and the image of the Score"));
 	mScrollHorizontal->SetScrollbar(posScrollHorizontal, 1, 100, 1, false);
-	////posScrollVertical = mConf->get(CONFIG_MAIN_SCROLLVERTICAL, 50);
 	mScrollVertical = new	wxScrollBar(this, ID_MAIN_SCROLL_VERTICAL, wxDefaultPosition, wxDefaultSize, wxSB_VERTICAL);
 	mScrollVertical->SetScrollbar(posScrollVertical, 1, 100, 1, false);
 	mScrollVertical->SetToolTip(_("split vertically the text and the image of the Score"));
@@ -542,7 +539,6 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 
 	waitToCompile = 1 ;
 	waitToRefresh = 1 ;
-	////timerDt = mConf->get(CONFIG_TIMERDT, 20);
 
 	sizer_text_viewer = new wxBoxSizer(wxVERTICAL);
 	wxBoxSizer *sizer_scroll_horizontal = new wxBoxSizer(wxHORIZONTAL);
@@ -568,38 +564,36 @@ Expresseur::~Expresseur()
 	checkUpdate();
 
 	////musicxmlscore::cleanCache(mConf->get(CONFIG_DAYCACHE, 15));
-	////
-	////if ( fileHistory)
-	////	fileHistory->Save(*mConf->getConfig());
+	
+	if ( fileHistory)
+		fileHistory->Save(*configGet());
 
-	////if (listName.IsFileReadable())
-	////	mConf->set(CONFIG_LISTNAME, listName.GetFullPath());
-	////else
-	////	mConf->remove(CONFIG_LISTNAME);
+	if (listName.IsFileReadable())
+		configSet(CONFIG_LISTNAME, listName.GetFullPath());
+	else
+		configRemove(CONFIG_LISTNAME);
 
-	////if (fileName.IsFileReadable())
-	////	mConf->set(CONFIG_FILENAME, fileName.GetFullPath());
-	////else
-	////	mConf->remove(CONFIG_FILENAME);
+	if (fileName.IsFileReadable())
+		configSet(CONFIG_FILENAME, fileName.GetFullPath());
+	else
+		configRemove(CONFIG_FILENAME);
 
-	////mConf->set(CONFIG_MAINMAXIMIZED, IsMaximized());
-	////if (!IsMaximized())
-	////{
-	////	wxSize msize = GetSize() ;
-	////	mConf->set(CONFIG_MAINWIDTH, msize.GetWidth());
-	////	mConf->set(CONFIG_MAINHEIGHT, msize.GetHeight());
-	////}
+	configSet(CONFIG_MAINMAXIMIZED, IsMaximized());
+	if (!IsMaximized())
+	{
+		wxSize msize = GetSize() ;
+		configSet(CONFIG_MAINWIDTH, msize.GetWidth());
+		configSet(CONFIG_MAINHEIGHT, msize.GetHeight());
+	}
 
-	////mConf->set(CONFIG_MAIN_SCROLLHORIZONTAL, posScrollHorizontal);
-	////mConf->set(CONFIG_MAIN_SCROLLVERTICAL, posScrollVertical);
+	configSet(CONFIG_MAIN_SCROLLHORIZONTAL, posScrollHorizontal);
+	configSet(CONFIG_MAIN_SCROLLVERTICAL, posScrollVertical);
 
-	////mConf->set(CONFIG_LOCALOFF, localoff);
+	configSet(CONFIG_LOCALOFF, localoff);
 
 	preClose();
 
 	delete fileHistory;
-
-	////delete mConf;
 
 	////basslua_close();
 }
@@ -617,23 +611,23 @@ wxString Expresseur::checkFile(wxString dir, wxString fullName)
 bool Expresseur::checkConfig()
 {
 	wxString merrors ;
-	////merrors += checkFile(mxconf::getCwdDir(), "test.wav");
-	////merrors += checkFile(mxconf::getCwdDir(), "scan_position.qml");
-	////merrors += checkFile(mxconf::getCwdDir(), "wizard_audio.jpg");
-	////merrors += checkFile(mxconf::getCwdDir(), "all_note_off.png");
-	////merrors += checkFile(mxconf::getCwdDir(), "expresscmd.lua");
-	////merrors += checkFile(mxconf::getCwdDir(), "luachord.lua");
-	////merrors += checkFile(mxconf::getCwdDir(), "luascore.lua");
-	////merrors += checkFile(mxconf::getCwdDir(), "texttochord.lua");
-	////merrors += checkFile(mxconf::getCwdDir(), "expresseur.lua");
-	////merrors += checkFile(mxconf::getResourceDir(), "default_piano.sf2");
-	////merrors += checkFile(mxconf::getResourceDir(), "guitare.sf2");
-	////merrors += checkFile(mxconf::getResourceDir(), "default_piano.txt");
-	////merrors += checkFile(mxconf::getUserDir(), "A_la_claire_fontaine.txt");
-	////merrors += checkFile(mxconf::getUserDir(), "A_la_claire_fontaine.mxl");
-	////merrors += checkFile(mxconf::getUserDir(), "fairy_chords.txb");
-	////merrors += checkFile(mxconf::getUserDir(), "fairy_chords.txt");
-	////merrors += checkFile(mxconf::getUserDir(), "fairy_chords.png");
+	merrors += checkFile(getCwdDir(), "test.wav");
+	merrors += checkFile(getCwdDir(), "scan_position.qml");
+	merrors += checkFile(getCwdDir(), "wizard_audio.jpg");
+	merrors += checkFile(getCwdDir(), "all_note_off.png");
+	merrors += checkFile(getCwdDir(), "expresscmd.lua");
+	merrors += checkFile(getCwdDir(), "luachord.lua");
+	merrors += checkFile(getCwdDir(), "luascore.lua");
+	merrors += checkFile(getCwdDir(), "texttochord.lua");
+	merrors += checkFile(getCwdDir(), "expresseur.lua");
+	merrors += checkFile(getResourceDir(), "default_piano.sf2");
+	merrors += checkFile(getResourceDir(), "guitare.sf2");
+	merrors += checkFile(getResourceDir(), "default_piano.txt");
+	merrors += checkFile(getUserDir(), "A_la_claire_fontaine.txt");
+	merrors += checkFile(getUserDir(), "A_la_claire_fontaine.mxl");
+	merrors += checkFile(getUserDir(), "fairy_chords.txb");
+	merrors += checkFile(getUserDir(), "fairy_chords.txt");
+	merrors += checkFile(getUserDir(), "fairy_chords.png");
 	wxString msg;
 	bool ret = true;
 	if (merrors.IsEmpty())
@@ -705,11 +699,11 @@ bool Expresseur::checkConfig()
 			msg += "    - " + nameaudioDevices[i] + "\n";
 	}
 
-	////msg += "\nConf=" + mConf->getConfPath() + "\n";
-	////msg += "Working directory=" + mConf->getCwdDir() + "\n";
-	////msg += "User directory=" + mConf->getUserDir() + "\n";
-	////msg += "Temp directory=" + mConf->getTmpDir() + "\n";
-	////msg += "App directory=" + mConf->getAppDir() + "\n";
+	msg += "\nConf=" + getConfPath() + "\n";
+	msg += "Working directory=" + getCwdDir() + "\n";
+	msg += "User directory=" + getUserDir() + "\n";
+	msg += "Temp directory=" + getTmpDir() + "\n";
+	msg += "App directory=" + getAppDir() + "\n";
 
 	wxMessageBox(msg,"Config check");
 	return ret ;
@@ -766,34 +760,35 @@ void Expresseur::postInit()
 	//preClose();
 	
 	// resize the main frame
-	//bool tobeMaximized = false;
-	////sizeFrame.SetWidth(mConf->get(CONFIG_MAINWIDTH, 1010) );
-	////sizeFrame.SetHeight(mConf->get(CONFIG_MAINHEIGHT, 780) );
-	////tobeMaximized = mConf->get(CONFIG_MAINMAXIMIZED, false);
-	////if (sizeFrame.GetWidth() < 600)
-	////	sizeFrame.SetWidth(600);
-	////if (sizeFrame.GetHeight() < 400)
-	////	sizeFrame.SetHeight(400);
-	////wxRect sizeToSet;
-	////sizeToSet.SetWidth(sizeFrame.GetWidth() - mConf->get(CONFIG_MAINDELTAWIDTH, 0));
-	////sizeToSet.SetHeight(sizeFrame.GetHeight() - mConf->get(CONFIG_MAINDELTAHEIGHT, 0));
-	////frame->SetSize(sizeToSet);
-	
+	bool tobeMaximized = configGet(CONFIG_MAINMAXIMIZED, false);
+	if (tobeMaximized)
+	{
+		frame->Maximize(true);
+	}
+	else
+	{
 
-	////if (tobeMaximized)
-	////	frame->Maximize(true);
-	////else
-	////frame->Maximize(false);
-	//frame->CenterOnScreen();
+		sizeFrame.SetWidth(configGet(CONFIG_MAINWIDTH, 1010));
+		sizeFrame.SetHeight(configGet(CONFIG_MAINHEIGHT, 780));
+		if (sizeFrame.GetWidth() < 600)
+			sizeFrame.SetWidth(600);
+		if (sizeFrame.GetHeight() < 400)
+			sizeFrame.SetHeight(400);
+		wxRect sizeToSet;
+		sizeToSet.SetWidth(sizeFrame.GetWidth() - configGet(CONFIG_MAINDELTAWIDTH, 0));
+		sizeToSet.SetHeight(sizeFrame.GetHeight() - configGet(CONFIG_MAINDELTAHEIGHT, 0));
+		frame->SetSize(sizeToSet);
+	}
+
 	frame->Show(true);
 
 	// check if it the first use ( for intialization, wizard, .. )
 	initFirstUse(false);
 
 	// read the list of scores
-	////listName.Assign(mConf->get(CONFIG_LISTNAME, ""));
-	////if (listName.IsFileReadable())
-	////	ListOpen();
+	listName.Assign(configGet(CONFIG_LISTNAME, ""));
+	if (listName.IsFileReadable())
+		ListOpen();
 
 	////fileName.Assign(mConf->get(CONFIG_FILENAME, ""));
 	// text for the score
@@ -2348,74 +2343,74 @@ void Expresseur::OnHelp(wxCommandEvent& WXUNUSED(event))
 }
 void Expresseur::CreateExpresseurV3()
 {
-	////// get the user directory in its documents folder
-	////wxFileName fname;
-	////fname.AssignDir(mxconf::getResourceDir());
-	////fname.Mkdir(wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
+	// get the user directory in its documents folder
+	wxFileName fname;
+	fname.AssignDir(getResourceDir());
+	fname.Mkdir(wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
 
-	////// copy examples from example-folder in documents/expresseurV3-folder
-	////wxFileName fdirExample;
-	////fdirExample.Assign(mxconf::getCwdDir());
-	////fdirExample.AppendDir(DIR_EXAMPLE);
-	////wxString sExample = fdirExample.GetFullPath();
-	//////wxMessageBox(sExample,"example dir");
-	////bool firstExample = true ;
-	////wxDir dirExample(sExample);
-	////if (dirExample.IsOpened())
-	////{
-	////	wxString file1, file2;
-	////	bool cont = dirExample.GetFirst(&file1, "*.*", wxDIR_FILES);
-	////	while (cont)
-	////	{
-	////		wxFileName ffile1(file1);
-	////		wxFileName ffile2(file1);
-	////		ffile1.SetPath(fdirExample.GetPath());
-	////		file1 = ffile1.GetFullPath();
-	////		ffile2.SetPath(mxconf::getUserDir());
-	////		file2 = ffile2.GetFullPath();
-	////		if ( file2.Contains(wxT("fontaine.txt")))
-	////		{
-	////			mConf->set(CONFIG_FILENAME, file2);
-	////			firstExample = false;
-	////		}
-	////		//wxMessageBox(file1 + " to " + file2 , "copy example");
-	////		wxCopyFile(file1, file2);
-	////		cont = dirExample.GetNext(&file1);
-	////	}
-	////}
+	// copy examples from example-folder in documents/expresseurV3-folder
+	wxFileName fdirExample;
+	fdirExample.Assign(getCwdDir());
+	fdirExample.AppendDir(DIR_EXAMPLE);
+	wxString sExample = fdirExample.GetFullPath();
+	//wxMessageBox(sExample,"example dir");
+	bool firstExample = true ;
+	wxDir dirExample(sExample);
+	if (dirExample.IsOpened())
+	{
+		wxString file1, file2;
+		bool cont = dirExample.GetFirst(&file1, "*.*", wxDIR_FILES);
+		while (cont)
+		{
+			wxFileName ffile1(file1);
+			wxFileName ffile2(file1);
+			ffile1.SetPath(fdirExample.GetPath());
+			file1 = ffile1.GetFullPath();
+			ffile2.SetPath(getUserDir());
+			file2 = ffile2.GetFullPath();
+			if ( file2.Contains(wxT("fontaine.txt")))
+			{
+				configSet(CONFIG_FILENAME, file2);
+				firstExample = false;
+			}
+			//wxMessageBox(file1 + " to " + file2 , "copy example");
+			wxCopyFile(file1, file2);
+			cont = dirExample.GetNext(&file1);
+		}
+	}
 
-	////// copy instruments-ressources from ressources-folder in documents/expresseurV3/ressources-folder
-	////wxFileName fdirRessources;
-	////fdirRessources.Assign(mxconf::getCwdDir());
-	////fdirRessources.AppendDir(DIR_RESOURCES);
-	////wxString sRessources = fdirRessources.GetFullPath();
-	//////wxMessageBox(sRessources,"ressources dir");
-	////wxDir dirRessources(sRessources);
-	////if (dirRessources.IsOpened())
-	////{
-	////	wxString file1, file2;
-	////	bool cont = dirRessources.GetFirst(&file1, "*.*", wxDIR_FILES);
-	////	while (cont)
-	////	{
-	////		wxFileName ffile1(file1);
-	////		wxFileName ffile2(file1);
-	////		ffile1.SetPath(fdirRessources.GetPath());
-	////		ffile2.SetPath(mxconf::getResourceDir());
-	////		wxString ext = ffile1.GetExt();
-	////		ext.MakeLower();
-	////		bool tocopy = true;
-	////		if ((ext == "sf2") && (ffile2.FileExists()) && (ffile1.GetSize() == ffile2.GetSize()))
-	////				tocopy = false;
-	////		file1 = ffile1.GetFullPath();
-	////		file2 = ffile2.GetFullPath();
-	////		if (tocopy)
-	////		{
-	////			// wxMessageBox(file1 + " to " + file2 , "copy ressource");
-	////			wxCopyFile(file1, file2);
-	////		}
-	////		cont = dirRessources.GetNext(&file1);
-	////	}
-	////}
+	// copy instruments-ressources from ressources-folder in documents/expresseurV3/ressources-folder
+	wxFileName fdirRessources;
+	fdirRessources.Assign(getCwdDir());
+	fdirRessources.AppendDir(DIR_RESOURCES);
+	wxString sRessources = fdirRessources.GetFullPath();
+	//wxMessageBox(sRessources,"ressources dir");
+	wxDir dirRessources(sRessources);
+	if (dirRessources.IsOpened())
+	{
+		wxString file1, file2;
+		bool cont = dirRessources.GetFirst(&file1, "*.*", wxDIR_FILES);
+		while (cont)
+		{
+			wxFileName ffile1(file1);
+			wxFileName ffile2(file1);
+			ffile1.SetPath(fdirRessources.GetPath());
+			ffile2.SetPath(getResourceDir());
+			wxString ext = ffile1.GetExt();
+			ext.MakeLower();
+			bool tocopy = true;
+			if ((ext == "sf2") && (ffile2.FileExists()) && (ffile1.GetSize() == ffile2.GetSize()))
+					tocopy = false;
+			file1 = ffile1.GetFullPath();
+			file2 = ffile2.GetFullPath();
+			if (tocopy)
+			{
+				// wxMessageBox(file1 + " to " + file2 , "copy ressource");
+				wxCopyFile(file1, file2);
+			}
+			cont = dirRessources.GetNext(&file1);
+		}
+	}
 
 }
 void Expresseur::initFirstUse(bool force)

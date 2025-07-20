@@ -53,31 +53,23 @@ wxString tmpDir ;
 wxString userDir;
 wxString confPath;
 wxString resourceDir ;
+wxString mPrefix = "";
+wxConfig mConfig(APP_NAME);
 
-mxconf::mxconf()
-{
-	mConfig = new wxConfig(APP_NAME);
-	// Mac : stored in Library/Preferences/Expresseur... 
-	mConfig->Write("creation",1);
-	if ( ! mConfig->Flush() )
-		wxMessageBox("error flush mxconf","mxconf");
-	mPrefix = "";
-#ifdef RUN_WIN
-	confPath = "regedit.exe HKEY_CURRENT_USER\\Software\\ExpresseurV3";
-#else
-	confPath = ((wxFileConfig *)mConfig)->GetPath() ;
-#endif
-}
-mxconf::~mxconf()
-{
-	mConfig->Flush();
-	delete mConfig;
-}
-void mxconf::setDir()
+void setDir()
 {
 	if ( todoDir )
 	{
 		todoDir = false ;
+		// Mac : stored in Library/Preferences/Expresseur... 
+		mConfig.Write("creation", 1);
+		if (!mConfig.Flush())
+			wxMessageBox("error flush mxconf", "mxconf");
+#ifdef RUN_WIN
+		confPath = "regedit.exe HKEY_CURRENT_USER\\Software\\ExpresseurV3";
+#else
+		confPath = ((wxFileConfig*)mConfig)->GetPath();
+#endif
 		wxFileName fd(wxStandardPaths::Get().GetExecutablePath());
 		fd.SetName("");
 		fd.SetExt("");
@@ -91,12 +83,8 @@ void mxconf::setDir()
 
 		wxStandardPaths mpath = wxStandardPaths::Get();
 		wxFileName fuserDir;
-		// 2025 04 27 pb de membe non static ????
-		//if (! mConfig->Exists(CONFIG_USERDIRECTORY))
-		//	mConfig->Write(CONFIG_USERDIRECTORY, mpath.GetAppDocumentsDir());
-		//fuserDir.AssignDir(mConfig->read(CONFIG_USERDIRECTORY, mpath.GetAppDocumentsDir()));
 		fuserDir.AssignDir(mpath.GetAppDocumentsDir());
-		if (fuserDir.GetFullPath().Contains(APP_NAME) == false)
+		if (fuserDir.GetFullPath().EndsWith(APP_NAME) == false)
 			fuserDir.AppendDir(APP_NAME);
 		userDir = fuserDir.GetFullPath() ;
 		if ( ! fuserDir.DirExists() )
@@ -128,46 +116,50 @@ void mxconf::setDir()
 
 	}
 }
-wxString mxconf::getAppDir()
+wxString getAppDir()
 {
 	setDir() ;
 	return appDir ;
 }
-wxString mxconf::getCwdDir()
+wxString getCwdDir()
 {
 	setDir();
 	return cwdDir ;
 }
-wxString mxconf::getTmpDir()
+wxString getTmpDir()
 {
 	setDir();
 	return tmpDir ;
 }
-wxString mxconf::getUserDir()
+wxString getUserDir()
 {
 	setDir();
-	return userDir;
+	wxString s;
+	if (! mConfig.Exists(CONFIG_USERDIRECTORY))
+		mConfig.Write(CONFIG_USERDIRECTORY, userDir);
+	mConfig.Read(CONFIG_USERDIRECTORY, &s , userDir);
+	return s;
 }
-wxString mxconf::getConfPath()
+wxString getConfPath()
 {
 	setDir();
 	return confPath;
 }
-wxString mxconf::getResourceDir()
+wxString getResourceDir()
 {
 	setDir();
 	return resourceDir ;
 }
 
-wxConfig *mxconf::getConfig()
+wxConfig *configGet()
 {
-	return mConfig;
+	return &mConfig;
 }
-void mxconf::deleteConf()
+void configErase()
 {
-	mConfig->DeleteAll() ;
+	mConfig.DeleteAll() ;
 }
-void mxconf::setPrefix(wxArrayString nameOpenMidiOutDevices)
+void configSetPrefix(wxArrayString nameOpenMidiOutDevices)
 {
 	// the prefix is a checksum of all valid midiout's name
 	wxString name;
@@ -193,25 +185,61 @@ void mxconf::setPrefix(wxArrayString nameOpenMidiOutDevices)
 	}
 	mPrefix.Printf("%s/%s/", CONFIG_HARDWARE, names);
 }
-
-long mxconf::writeFile(wxTextFile *lfile, wxString key, long defaultvalue, bool prefix, wxString name)
+wxString configPrefixKey(wxString key, bool prefix, wxString name)
 {
-	wxString s, v;
-	long l = this->get(key, defaultvalue, prefix, name);
-	s.Printf("%s=%ld", prefixKey( key , false, name), l);
-	lfile->AddLine(s);
-	return l;
+	wxString s1;
+	if (name.IsEmpty())
+		s1.Printf("%s%s", prefix ? mPrefix : "", key);
+	else
+		s1.Printf("%s%s/%s", prefix ? mPrefix : "", key, name);
+	return s1;
 }
-wxString mxconf::writeFile(wxTextFile *lfile, wxString key, wxString defaultvalue, bool prefix , wxString name)
+wxString configGet(wxString key, wxString defaultvalue, bool prefix, wxString name)
 {
 	wxString s;
-	wxString l = this->get(key, defaultvalue, prefix, name);
-	s.Printf("%s=%s", prefixKey(key, false, name), l);
+	mConfig.Read(configPrefixKey(key, prefix, name), &s, defaultvalue);
+	mConfig.Write(configPrefixKey(key, prefix, name), s);
+	return s;
+}
+long configGet(wxString key, long defaultvalue, bool prefix, wxString name)
+{
+	long l;
+	mConfig.Read(configPrefixKey(key, prefix, name), &l, defaultvalue);
+	mConfig.Write(configPrefixKey(key, prefix, name), l);
+	return(l);
+}
+
+void configSet(wxString key, wxString s, bool prefix, wxString name)
+{
+	mConfig.Write(configPrefixKey(key, prefix, name), s);
+}
+void configSet(wxString key, long l, bool prefix, wxString name)
+{
+	mConfig.Write(configPrefixKey(key, prefix, name), l);
+}
+
+void configRemove(wxString key, bool prefix, wxString name)
+{
+	mConfig.DeleteEntry(configPrefixKey(key, prefix = false, name));
+}
+
+long configWriteFile(wxTextFile *lfile, wxString key, long defaultvalue, bool prefix, wxString name)
+{
+	wxString s, v;
+	long l = configGet(key, defaultvalue, prefix, name);
+	s.Printf("%s=%ld", configPrefixKey( key , false, name), l);
 	lfile->AddLine(s);
 	return l;
 }
-
-wxString mxconf::readFileLines(wxTextFile *lfile, wxString key)
+wxString configWriteFile(wxTextFile *lfile, wxString key, wxString defaultvalue, bool prefix , wxString name)
+{
+	wxString s;
+	wxString l = configGet(key, defaultvalue, prefix, name);
+	s.Printf("%s=%s", configPrefixKey(key, false, name), l);
+	lfile->AddLine(s);
+	return l;
+}
+wxString configReadFileLines(wxTextFile *lfile, wxString key)
 {
 	wxString str;
 	for (str = lfile->GetFirstLine(); !lfile->Eof(); str = lfile->GetNextLine())
@@ -221,74 +249,38 @@ wxString mxconf::readFileLines(wxTextFile *lfile, wxString key)
 	}
 	return wxEmptyString;
 }
-bool mxconf::readFile(wxTextFile *lfile, wxString key, wxString defaultvalue, bool prefix, wxString name)
+bool configReadFile(wxTextFile *lfile, wxString key, wxString defaultvalue, bool prefix, wxString name)
 {
 	wxString s, s2;
-	s = readFileLines(lfile, prefixKey(key, false, name));
+	s = configReadFileLines(lfile, configPrefixKey(key, false, name));
 	if (s.IsEmpty())
 		return false;
-	if (!s.StartsWith(prefixKey(key, false, name)))
+	if (!s.StartsWith(configPrefixKey(key, false, name)))
 		s2 = defaultvalue;
 	else
 		s2 = s.AfterFirst('=');
-	this->set(key, s2, prefix , name);
+	configSet(key, s2, prefix , name);
 	return true;
 }
-bool mxconf::readFile(wxTextFile *lfile, wxString key, long defaultvalue, bool prefix, wxString name)
+bool configReadFile(wxTextFile *lfile, wxString key, long defaultvalue, bool prefix, wxString name)
 {
 	wxString s, s2;
 	long l;
-	s = readFileLines(lfile, prefixKey(key, false, name));
+	s = configReadFileLines(lfile, configPrefixKey(key, false, name));
 	if (s.IsEmpty())
 		return false;
-	if (!s.StartsWith(prefixKey(key, false, name)))
+	if (!s.StartsWith(configPrefixKey(key, false, name)))
 		l = defaultvalue;
 	else
 	{
 		s2 = s.AfterFirst('=');
 		s2.ToLong(&l);
 	}
-	this->set(key, l, prefix , name);
+	configSet(key, l, prefix , name);
 	return(true);
 }
-bool mxconf::exists(wxString key, bool prefix, wxString name)
+bool configExists(wxString key, bool prefix, wxString name)
 {
-	return (mConfig->Exists(prefixKey(key, prefix, name)));
-}
-wxString mxconf::get(wxString key, wxString defaultvalue, bool prefix, wxString name)
-{
-	wxString s;
-	mConfig->Read(prefixKey(key, prefix,name), &s, defaultvalue);
-	mConfig->Write(prefixKey(key, prefix,name), s);
-	return s;
-}
-long mxconf::get(wxString key, long defaultvalue, bool prefix, wxString name)
-{
-	long l;
-	mConfig->Read(prefixKey(key, prefix, name), &l, defaultvalue);
-	mConfig->Write(prefixKey(key, prefix, name), l);
-	return(l);
+	return (mConfig.Exists(configPrefixKey(key, prefix, name)));
 }
 
-void mxconf::set(wxString key, wxString s, bool prefix, wxString name)
-{
-	mConfig->Write(prefixKey(key, prefix, name), s);
-}
-void mxconf::set(wxString key, long l, bool prefix, wxString name)
-{
-	mConfig->Write(prefixKey(key, prefix, name), l);
-}
-
-void mxconf::remove(wxString key, bool prefix, wxString name)
-{
-	mConfig->DeleteEntry(prefixKey(key, prefix = false, name));
-}
-wxString mxconf::prefixKey(wxString key, bool prefix, wxString name)
-{
-	wxString s1;
-	if (name.IsEmpty())
-		s1.Printf("%s%s", prefix ? mPrefix : "", key);
-	else
-		s1.Printf("%s%s/%s", prefix ? mPrefix : "", key, name);
-	return s1;
-}

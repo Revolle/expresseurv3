@@ -237,14 +237,13 @@ EVT_LEFT_DOWN(musicxmlscore::OnLeftDown)
 EVT_PAINT(musicxmlscore::onPaint)
 wxEND_EVENT_TABLE()
 
-musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
+musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id )
 : viewerscore(parent, id)
 {
 	crc_generate_table();
 
 
 	mParent = parent;
-	mConf = lconf;
 	nrChord = -1;
 	xmlName.Clear();
 	prevRectPos.SetWidth(0);
@@ -273,12 +272,12 @@ musicxmlscore::~musicxmlscore()
 }
 void musicxmlscore::cleanTmp()
 {
-	wxDir dir(mxconf::getTmpDir());
+	wxDir dir(getTmpDir());
 	if (dir.IsOpened())
 	{
 		wxString filename;
 		wxFileName ft;
-		ft.SetPath(mxconf::getTmpDir());
+		ft.SetPath(getTmpDir());
 		wxArrayString fileToBeDeleted ;
 		bool cont = dir.GetFirst(&filename, "expresseur*.png", wxDIR_FILES);
 		while (cont)
@@ -300,7 +299,7 @@ void musicxmlscore::cleanTmp()
 		}
 	}
 	wxFileName fp;
-	fp.SetPath(mxconf::getTmpDir());
+	fp.SetPath(getTmpDir());
 	fp.SetFullName(FILE_SRC_LILY);
 	if (fp.FileExists())
 		wxRemoveFile(fp.GetFullPath());
@@ -322,7 +321,7 @@ void musicxmlscore::cleanTmp()
 }
 void musicxmlscore::cleanCache(int nbDayCache)
 {
-	wxDir dir(mxconf::getTmpDir());
+	wxDir dir(getTmpDir());
 	if (dir.IsOpened())
 	{
 		wxDateTime mlimitdate = wxDateTime::Now();
@@ -332,7 +331,7 @@ void musicxmlscore::cleanCache(int nbDayCache)
 		}
 		wxString filename;
 		wxFileName ft;
-		ft.SetPath(mxconf::getTmpDir());
+		ft.SetPath(getTmpDir());
 		wxString sn;
 		sn.Printf("%s*.*", PREFIX_CACHE);
 		wxArrayString fileToBeDeleted ;
@@ -369,7 +368,7 @@ bool musicxmlscore::setFile(const wxFileName &lfilename)
 	xmlCompile = new musicxmlcompile();
 
 	wxFileName fm;
-	fm.SetPath(mxconf::getTmpDir());
+	fm.SetPath(getTmpDir());
 	fm.SetFullName(FILE_IN_XML);
 	xmlCompile->music_xml_complete_file = fm.GetFullPath();
 
@@ -500,7 +499,7 @@ wxString musicxmlscore::getNamePage(int pageNr)
 	wxString fn;
 	fn.Printf(FILE_SCORE_PNG, pageNr + 1);
 	wxFileName fp;
-	fp.SetPath(mxconf::getTmpDir());
+	fp.SetPath(getTmpDir());
 	fp.SetName(fn);
 
 	if (!fp.IsFileReadable())
@@ -546,7 +545,7 @@ bool musicxmlscore::setPage(wxDC& gdc, int pageNr, bool turnPage, bool redraw)
 		currentTurnPage = turnPage;
 
 		wxFileName fp;
-		fp.SetPath(mxconf::getTmpDir());
+		fp.SetPath(getTmpDir());
 		wxString fn = getNamePage(pageNr);
 		if (fn.IsEmpty()) return false;
 		wxBitmap fnbitmap(fn, wxBITMAP_TYPE_PNG);
@@ -876,7 +875,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		return false;
 	
 	// XML score to display
-	fm.SetPath(mxconf::getTmpDir());
+	fm.SetPath(getTmpDir());
 	fm.SetFullName(FILE_OUT_XML);
 	xmlout = fm.GetFullPath();
 	//  file to store lilypond position of notes
@@ -906,7 +905,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		wxRemoveFile(fm.GetFullPath());
 	lilysetting = fm.GetFullPath();
 	// lily python
-	fm.SetPath(mxconf::getAppDir());
+	fm.SetPath(getAppDir());
 	fm.AppendDir("lilypond");
 	// debug mode :
 	fm.SetPath("C:\\Users\\franc\\Documents\\lilypond\\lilypond-2.25.26");
@@ -942,7 +941,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	{
 		wxString str;
 		int mzoom;
-		mzoom = mConf->get(CONFIG_ZOOM_MUSICXML, 0);
+		mzoom = configGet(CONFIG_ZOOM_MUSICXML, 0);
 		if (mzoom < -3) mzoom = -3;
 		if (mzoom > 3 ) mzoom = 3;
 		int nrzoom = -3;
@@ -961,7 +960,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 			}
 			if (str.StartsWith("%%%%%%%%translate_ly_to_png:"))
 			{
-				command_lilytopng.Printf(str, lilyexe, lilylog, lilysetting, mxconf::getTmpDir() , lilysrc);
+				command_lilytopng.Printf(str, lilyexe, lilylog, lilysetting, getTmpDir() , lilysrc);
 				fout.AddLine(command_lilytopng);
 				command_lilytopng.Replace("%%%%translate_ly_to_png:", "");
 				continue;
@@ -1006,7 +1005,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	prefix_cache.Printf("%s_%llu_", PREFIX_CACHE, crc_value);
 
 	wxFileName poscache;
-	poscache.SetPath(mxconf::getTmpDir());
+	poscache.SetPath(getTmpDir());
 	poscache.SetFullName( prefix_cache + FILE_POS_TXT);
 	if (poscache.FileExists())
 	{
@@ -1015,9 +1014,9 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		if ( ! wxCopyFile(poscache.GetFullPath(), expresseurpos) ) alreadyAvailable = false ;
 		// copy pages
 		wxFileName fsource;
-		fsource.SetPath(mxconf::getTmpDir());
+		fsource.SetPath(getTmpDir());
 		wxFileName fdest;
-		fdest.SetPath(mxconf::getTmpDir());
+		fdest.SetPath(getTmpDir());
 		wxString ffn;
 		int pp = 1;
 		while (true)
@@ -1120,9 +1119,9 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 
 		// copy pages in CACHE
 		wxFileName fsource;
-		fsource.SetPath(mxconf::getTmpDir());
+		fsource.SetPath(getTmpDir());
 		wxFileName fdest;
-		fdest.SetPath(mxconf::getTmpDir());
+		fdest.SetPath(getTmpDir());
 		wxString ffn;
 		int pp = 1;
 		while (true)
@@ -1289,7 +1288,7 @@ bool musicxmlscore::readlilypdf(uint32_t page, uint32_t xpng, uint32_t ypng)
 	spdf.x1 = 0; spdf.y1 = 0; spdf.x2 = 0; spdf.y2 = 0;
 
 	wxFileName fpdf;
-	fpdf.SetPath(mxconf::getTmpDir());
+	fpdf.SetPath(getTmpDir());
 	wxString s;
 	s.Printf(FILE_SCORE_PDF, page + 1);
 	//s.Printf(FILE_SCORE_PDF, 0);
@@ -1456,7 +1455,7 @@ bool musicxmlscore::readpngsize(uint32_t* xpng, uint32_t* ypng)
 	// read size png
 	*xpng = 0; *ypng = 0;
 	wxFileName fpng;
-	fpng.SetPath(mxconf::getTmpDir());
+	fpng.SetPath(getTmpDir());
 	wxString s;
 	s.Printf(FILE_SCORE_PNG, (0+1));
 	fpng.SetFullName(s);

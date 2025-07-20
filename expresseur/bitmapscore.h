@@ -9,7 +9,7 @@ class bitmapscore
 {
 
 public:
-	bitmapscore(wxWindow *parent, wxWindowID id, mxconf* lMxconf);
+	bitmapscore(wxWindow *parent, wxWindowID id);
 	~bitmapscore();
 	void onPaint(wxPaintEvent& event);
 	void OnLeftDown(wxMouseEvent& event);
@@ -32,7 +32,6 @@ public:
 private:
 	void refresh(wxDC& dc, int pos);
 	wxWindow *mParent;
-	mxconf *mConf;
 	
 	wxFileName filename;
 	wxFileName fileInDC;

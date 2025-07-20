@@ -53,11 +53,10 @@ EVT_LEFT_UP(bitmapscore::OnLeftUp)
 EVT_MOUSE_EVENTS(bitmapscore::OnMouse)
 wxEND_EVENT_TABLE()
 
-bitmapscore::bitmapscore(wxWindow *parent, wxWindowID id, mxconf* lMxconf)
+bitmapscore::bitmapscore(wxWindow *parent, wxWindowID id)
 : viewerscore(parent, id)
 {
 	mParent = parent;
-	mConf = lMxconf;
 	scoreBitmap = NULL;
 	mPointStart = wxDefaultPosition;
 	alertSetRect = true;
@@ -418,14 +417,14 @@ void bitmapscore::readRectChord()
 
 	if (nbRectChord == 0 )
 	{
-		if (mConf->get(CONFIG_BITMAPSCOREWARNINGTAGIMAGE, 1) == 1)
+		if (configGet(CONFIG_BITMAPSCOREWARNINGTAGIMAGE, 1) == 1)
 		{
 			wxMessageDialog *mDialog = new wxMessageDialog(this, _("No chord tagged in the image"), _("Score image"), wxYES | wxNO | wxHELP | wxICON_INFORMATION | wxCENTRE);
 			mDialog->SetYesNoLabels(_("OK"), _("Don't show again this message"));
 			switch (mDialog->ShowModal())
 			{
 			case wxID_NO:
-				mConf->set(CONFIG_BITMAPSCOREWARNINGTAGIMAGE, 0);
+				configSet(CONFIG_BITMAPSCOREWARNINGTAGIMAGE, 0);
 				break;
 			case wxID_HELP:
 				wxLaunchDefaultBrowser("http://www.expresseur.com/help/imagechord.html");
