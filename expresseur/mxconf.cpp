@@ -82,15 +82,31 @@ void setDir()
 		appDir = fd.GetFullPath();
 
 		wxStandardPaths mpath = wxStandardPaths::Get();
+
+
+		wxString s;
+
 		wxFileName fuserDir;
 		fuserDir.AssignDir(mpath.GetAppDocumentsDir());
-		if (fuserDir.GetFullPath().EndsWith(APP_NAME) == false)
+		if (fuserDir.GetFullPath().Contains(APP_NAME) == false)
 			fuserDir.AppendDir(APP_NAME);
-		userDir = fuserDir.GetFullPath() ;
-		if ( ! fuserDir.DirExists() )
-			wxFileName::Mkdir(userDir) ;
-		if ( ! fuserDir.DirExists() )
-			wxMessageBox(userDir , "Directory user error");	
+		userDir = fuserDir.GetFullPath();
+		if (!fuserDir.DirExists())
+			wxFileName::Mkdir(userDir);
+		if (!fuserDir.DirExists())
+			wxMessageBox(userDir, "Directory user error");
+		if (mConfig.Exists(CONFIG_USERDIRECTORY))
+		{
+			mConfig.Read(CONFIG_USERDIRECTORY, &s, userDir);
+			if (s.length() > 3)
+			{
+				userDir = s;
+			}
+		}
+		else
+		{
+			mConfig.Write(CONFIG_USERDIRECTORY, userDir);
+		}
 
 		wxFileName fresourcesDir;
 		fresourcesDir.AssignDir(userDir);
@@ -134,11 +150,7 @@ wxString getTmpDir()
 wxString getUserDir()
 {
 	setDir();
-	wxString s;
-	if (! mConfig.Exists(CONFIG_USERDIRECTORY))
-		mConfig.Write(CONFIG_USERDIRECTORY, userDir);
-	mConfig.Read(CONFIG_USERDIRECTORY, &s , userDir);
-	return s;
+	return userDir;
 }
 wxString getConfPath()
 {

@@ -61,8 +61,8 @@
 #include "version.h"
 #include "global.h"
 #include "mxconf.h"
-////#include "basslua.h"
-////#include "luabass.h"
+#include "basslua.h"
+#include "luabass.h"
 ////#include "viewerscore.h"
 ////#include "mixer.h"
 ////#include "editshortcut.h"
@@ -75,7 +75,7 @@
 ////#include "musicxmlcompile.h"
 ////#include "musicxmlscore.h"
 ////#include "textscore.h"
-////#include "luafile.h"
+#include "luafile.h"
 #include "expresseur.h"
 
 // define this to use XPMs everywhere (by default, BMPs are used under Win)
@@ -1102,7 +1102,7 @@ void Expresseur::OnTimer(wxTimerEvent& WXUNUSED(event))
 		return;
 	}
 	// trigger external timer for luabass and basslua
-	////basslua_external_timer();
+	basslua_external_timer();
 	waitToCompile--;
 	waitToRefresh--;
 }
@@ -1930,11 +1930,11 @@ void Expresseur::OnExpression(wxCommandEvent& WXUNUSED(event))
 }
 void Expresseur::OnLuafile(wxCommandEvent& WXUNUSED(event))
 {
-	////editMode = true ;
-	////luafile mLuafile(this, wxID_ANY, _("Lua script"), mConf);
-	////if ( mLuafile.ShowModal() == 1 )
-	////	settingReset(true);
-	////editMode = false ;
+	editMode = true ;
+	luafile mluafile(this, wxID_ANY, "lua script");
+	if ( mluafile.ShowModal() == 1 )
+		settingReset(true);
+	editMode = false ;
 }
 void Expresseur::settingSave()
 {

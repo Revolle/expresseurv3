@@ -908,7 +908,9 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	fm.SetPath(getAppDir());
 	fm.AppendDir("lilypond");
 	// debug mode :
+#ifdef _DEBUG
 	fm.SetPath("C:\\Users\\franc\\Documents\\lilypond\\lilypond-2.25.26");
+#endif
 	fm.AppendDir("bin");
 	fm.SetFullName("python.exe");
 	pythonexe = fm.GetFullPath();

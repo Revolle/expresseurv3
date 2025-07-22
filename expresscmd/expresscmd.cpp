@@ -72,7 +72,9 @@ int main(int argc, char* argv[])
 		_chdir(argv[3]);
 
 	// debug :
+#ifdef _DEBUG
 	_chdir("C:\\Users\\franc\\Documents\\GitHub\\expresseurV3_VC\\basslua\\x64\\Debug");
+#endif
 
 	char full[_MAX_PATH];
 	if (_fullpath(full, ".\\", _MAX_PATH) == NULL)

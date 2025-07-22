@@ -1,4 +1,3 @@
-// update : 31 / 10 / 2016 10 : 00
 #ifndef DEF_LUAFILE
 
 #define DEF_LUAFILE
