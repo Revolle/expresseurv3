@@ -306,8 +306,8 @@ void bitmapscore::OnLeftUp(wxMouseEvent& event)
 	{
 		if (alertSetRect)
 		{
-			wxMessageDialog *mDialog = new wxMessageDialog(this, _("link this rectangle to the current chord ?"), _("Score link"), wxYES | wxNO | wxCANCEL | wxICON_QUESTION | wxCENTRE);
-			mDialog->SetYesNoCancelLabels(_("Always link"), _("Link now"), _("Cancel"));
+			wxMessageDialog *mDialog = new wxMessageDialog(this, _("link this rectangle to the current chord ?"), "Score link", wxYES | wxNO | wxCANCEL | wxICON_QUESTION | wxCENTRE);
+			mDialog->SetYesNoCancelLabels("Always link", "Link now", "Cancel");
 			switch (mDialog->ShowModal())
 			{
 			case wxID_YES:	alertSetRect = false; break;
@@ -419,8 +419,8 @@ void bitmapscore::readRectChord()
 	{
 		if (configGet(CONFIG_BITMAPSCOREWARNINGTAGIMAGE, 1) == 1)
 		{
-			wxMessageDialog *mDialog = new wxMessageDialog(this, _("No chord tagged in the image"), _("Score image"), wxYES | wxNO | wxHELP | wxICON_INFORMATION | wxCENTRE);
-			mDialog->SetYesNoLabels(_("OK"), _("Don't show again this message"));
+			wxMessageDialog *mDialog = new wxMessageDialog(this, "No chord tagged in the image", "Score image", wxYES | wxNO | wxHELP | wxICON_INFORMATION | wxCENTRE);
+			mDialog->SetYesNoLabels("OK", _("Don't show again this message"));
 			switch (mDialog->ShowModal())
 			{
 			case wxID_NO:

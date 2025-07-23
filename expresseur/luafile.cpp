@@ -101,7 +101,7 @@ luafile::luafile(wxFrame *parent, wxWindowID id, const wxString &title)
 		wxFileName fsUser(lUserScript[i]);
 		lfUserScript.Add(fsUser.GetFullName());
 	}
-	paramsizer->Add(new wxStaticText(this, wxID_ANY, _("LUA Script")), sizerFlagMaximumPlace);
+	paramsizer->Add(new wxStaticText(this, wxID_ANY, "LUA Script"), sizerFlagMaximumPlace);
 	wxString luauserscriptfile = configGet(CONFIG_LUA_USER_SCRIPT, DEFAULT_LUA_USER_FILE);
 	wxChoice *cLuaUserScript = new wxChoice(this, IDM_LUAFILE_LUA_USER_SCRIPT, wxDefaultPosition, wxDefaultSize, lfUserScript);
 	if (lfUserScript.Index(luauserscriptfile) != wxNOT_FOUND)
@@ -111,9 +111,9 @@ luafile::luafile(wxFrame *parent, wxWindowID id, const wxString &title)
 
 	wxString luascriptparameter = configGet(CONFIG_LUA_PARAMETER, DEFAULT_LUA_PARAMETER);
 
-	paramsizer->Add(new wxStaticText(this, wxID_ANY, _("LUA start parameter")), sizerFlagMaximumPlace);
+	paramsizer->Add(new wxStaticText(this, wxID_ANY, "LUA start parameter"), sizerFlagMaximumPlace);
 	wxTextCtrl *mLuaParameter = new wxTextCtrl(this, IDM_LUAFILE_LUA_PARAMETER, luascriptparameter);
-	mLuaParameter->SetToolTip(_("parameter for the LUA script."));
+	mLuaParameter->SetToolTip("parameter for the LUA script.");
 	paramsizer->Add(mLuaParameter, sizerFlagMaximumPlace);
 
 	topsizer->Add(paramsizer, sizerFlagMaximumPlace);

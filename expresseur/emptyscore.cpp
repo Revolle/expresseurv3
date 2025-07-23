@@ -69,11 +69,11 @@ bool emptyscore::setFile(const wxFileName & WXUNUSED(lfilename))
 {
 	wxClientDC dc(this);
 	dc.Clear();
-	dc.DrawText(_("No image score"), 20, 20);
+	dc.DrawText("No image score", 20, 20);
 	if (configGet(CONFIG_EMPTYSCOREWARNING, 1) == 1)
 	{
-		wxMessageDialog *mDialog = new wxMessageDialog(this, _("No score available"), _("Score viewer"), wxYES | wxNO | wxHELP | wxICON_INFORMATION | wxCENTRE);
-		mDialog->SetYesNoLabels(_("OK"), _("Don't show again this message"));
+		wxMessageDialog *mDialog = new wxMessageDialog(this, "No score available", "Score viewer", wxYES | wxNO | wxHELP | wxICON_INFORMATION | wxCENTRE);
+		mDialog->SetYesNoLabels("OK", _("Don't show again this message"));
 		switch (mDialog->ShowModal())
 		{
 		case wxID_NO:
@@ -110,7 +110,7 @@ void emptyscore::onPaint(wxPaintEvent& WXUNUSED(event))
 	wxPaintDC dc(this);
 
 	dc.Clear();
-	dc.DrawText(_("No image score"), 20, 20);
+	dc.DrawText("No image score", 20, 20);
 }
 void emptyscore::setPosition(int WXUNUSED(pos), bool WXUNUSED(playing))
 {

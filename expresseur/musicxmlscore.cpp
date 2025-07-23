@@ -664,7 +664,7 @@ void musicxmlscore::setCursor(wxDC& dc , int pos,bool playing, bool redraw )
 		prev_absolute_measure_nr = absolute_measure_nr;
 		wxString spos;
 		if (end_score)
-			spos = _("end");
+			spos = "end";
 		else
 		{
 			switch (repeat)

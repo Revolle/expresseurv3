@@ -138,14 +138,14 @@ void mixer::BuildSizer()
 	wxBoxSizer *button_sizer = new wxBoxSizer(wxHORIZONTAL);
 
 
-	button_sizer->Add(new wxButton(this, ID_MIXER_DEFAULT, _("Default...")), sizerFlagMinimumPlace.Border(wxALL, 10));
-	button_sizer->Add(new wxButton(this, ID_MIXER_NEUTRAL, _("Neutral")), sizerFlagMinimumPlace.Border(wxALL, 10));
+	button_sizer->Add(new wxButton(this, ID_MIXER_DEFAULT, "Default..."), sizerFlagMinimumPlace.Border(wxALL, 10));
+	button_sizer->Add(new wxButton(this, ID_MIXER_NEUTRAL, "Neutral"), sizerFlagMinimumPlace.Border(wxALL, 10));
 
-	button_sizer->Add(new wxButton(this, ID_MIXER_SETTING_ALLNOTEOFF, _("All Note off")), sizerFlagMinimumPlace.Border(wxALL, 10));
-	mCheckBox = new wxCheckBox(this, IDM_MIXER_EXTENSION, _("extended channels")) ;
+	button_sizer->Add(new wxButton(this, ID_MIXER_SETTING_ALLNOTEOFF, "All Note off"), sizerFlagMinimumPlace.Border(wxALL, 10));
+	mCheckBox = new wxCheckBox(this, IDM_MIXER_EXTENSION, "extended channels") ;
 	mCheckBox->SetValue(configGet(CONFIG_MIXER_EXTENSION,1, true));
 	button_sizer->Add(mCheckBox, sizerFlagMinimumPlace.Border(wxALL, 10));
-	button_sizer->Add(new wxButton(this, IDM_MIXER_CLOSE, _("Close")), sizerFlagMinimumPlace.Border(wxALL, 10));
+	button_sizer->Add(new wxButton(this, IDM_MIXER_CLOSE, "Close"), sizerFlagMinimumPlace.Border(wxALL, 10));
 
 	txtValue = new wxStaticText(this, wxID_ANY, "");
 	txtValue->SetForegroundColour(*wxLIGHT_GREY);
@@ -215,12 +215,12 @@ void mixer::getTracks()
 }
 void mixer::createMainMixer()
 {
-	wxStaticText *mControl = new wxStaticText(this, wxID_ANY, _("MAIN volume"));
+	wxStaticText *mControl = new wxStaticText(this, wxID_ANY, "MAIN volume");
 	mixchannelSizer->Add(mControl, sizerFlagMinimumPlace);
 
 	long value = configGet(CONFIG_MIXERMAIN,64, true);
 	slmainVolume = new wxSlider(this, ID_MIXER_MAIN_VOLUME, value, 0, 127);
-	slmainVolume->SetHelpText(_("Main volume which influence all tracks"));
+	slmainVolume->SetHelpText("Main volume which influence all tracks");
 	slmainVolume->Bind(wxEVT_SLIDER, &mixer::OnMainMixerVolume, this);
 	mixchannelSizer->Add(slmainVolume, sizerFlagMaximumPlace);
 
@@ -292,7 +292,7 @@ void mixer::OnDefaultMixer(wxCommandEvent& WXUNUSED(event))
 {
 	wxString s;
 	s.Printf("%s : %s", lastDevice, _("Set this last device used as default ?"));
-	if (wxMessageBox(s, _("default device"), wxYES_NO, this) == wxYES)
+	if (wxMessageBox(s, "default device", wxYES_NO, this) == wxYES)
 	{
 		defaultDevice = lastDevice;
 		configSet(CONFIG_MIXERDEVICEDEFAULT, defaultDevice, true);
@@ -327,7 +327,7 @@ void mixer::InitListChannel()
 	wxString s;
 	for (int i = 0; i < 16; i++)
 	{
-		s.Printf("%s.%d", _("ch"), i + 1);
+		s.Printf("%s.%d", "ch", i + 1);
 		nameChannel.Add(s);
 	}
 }

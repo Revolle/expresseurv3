@@ -66,9 +66,9 @@ logerror::logerror(wxFrame *parent, wxWindowID id, const wxString &title)
 
 	wxBoxSizer *buttonSizer = new wxBoxSizer(wxHORIZONTAL);
 
-	wxButton *bClear = new wxButton(this, IDM_LOGERROR_CLEAR, _("Clear"));
+	wxButton *bClear = new wxButton(this, IDM_LOGERROR_CLEAR, "Clear");
 	buttonSizer->Add(bClear, sizerFlagMaximumPlace);
-	wxButton *bClose = new wxButton(this, IDM_LOGERROR_CLOSE, _("Close"));
+	wxButton *bClose = new wxButton(this, IDM_LOGERROR_CLOSE, "Close");
 	buttonSizer->Add(bClose, sizerFlagMaximumPlace);
 
 	topsizer->Add(buttonSizer, sizerFlagMinimumPlace);

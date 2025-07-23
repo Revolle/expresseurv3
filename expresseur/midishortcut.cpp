@@ -110,26 +110,26 @@ midishortcut::midishortcut(wxFrame *parent, wxWindowID id, const wxString &title
 			widthColumn[i] = -1;
 	}
 	listShortchut = new wxListView(this, IDM_MIDISHORTCUT_LIST);
-	listShortchut->AppendColumn(_("name"), wxLIST_FORMAT_LEFT, widthColumn[0]);
+	listShortchut->AppendColumn("name", wxLIST_FORMAT_LEFT, widthColumn[0]);
 	listShortchut->AppendColumn(_("ALT+key"), wxLIST_FORMAT_LEFT, widthColumn[1]);
-	listShortchut->AppendColumn(_("device"), wxLIST_FORMAT_LEFT, widthColumn[2]);
-	listShortchut->AppendColumn(_("channel"), wxLIST_FORMAT_LEFT, widthColumn[3]);
-	listShortchut->AppendColumn(_("event"), wxLIST_FORMAT_LEFT, widthColumn[4]);
-	listShortchut->AppendColumn(_("min"), wxLIST_FORMAT_LEFT, widthColumn[5]);
-	listShortchut->AppendColumn(_("max"), wxLIST_FORMAT_LEFT, widthColumn[6]);
-	listShortchut->AppendColumn(_("action"), wxLIST_FORMAT_LEFT, widthColumn[7]);
-	listShortchut->AppendColumn(_("param"), wxLIST_FORMAT_LEFT, widthColumn[8]);
-	listShortchut->AppendColumn(_("on match"), wxLIST_FORMAT_LEFT, widthColumn[9]);
+	listShortchut->AppendColumn("device", wxLIST_FORMAT_LEFT, widthColumn[2]);
+	listShortchut->AppendColumn("channel", wxLIST_FORMAT_LEFT, widthColumn[3]);
+	listShortchut->AppendColumn("event", wxLIST_FORMAT_LEFT, widthColumn[4]);
+	listShortchut->AppendColumn("min", wxLIST_FORMAT_LEFT, widthColumn[5]);
+	listShortchut->AppendColumn("max", wxLIST_FORMAT_LEFT, widthColumn[6]);
+	listShortchut->AppendColumn("action", wxLIST_FORMAT_LEFT, widthColumn[7]);
+	listShortchut->AppendColumn("param", wxLIST_FORMAT_LEFT, widthColumn[8]);
+	listShortchut->AppendColumn("on match", wxLIST_FORMAT_LEFT, widthColumn[9]);
 
 	topsizer->Add(listShortchut, sizerFlagMaximumPlace);
 
 	wxBoxSizer *button_sizer = new wxBoxSizer(wxHORIZONTAL);
-	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_DELETE, _("Delete")), sizerFlagMinimumPlace.Border(wxALL, 10));
-	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_ADD, _("Add")), sizerFlagMinimumPlace.Border(wxALL, 10));
-	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_EDIT, _("Edit")), sizerFlagMinimumPlace.Border(wxALL, 10));
-	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_UP, _("Up")), sizerFlagMinimumPlace.Border(wxALL, 10));
-	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_DOWN, _("Down")), sizerFlagMinimumPlace.Border(wxALL, 10));
-	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_CLOSE, _("Close")), sizerFlagMinimumPlace.Border(wxALL, 10));
+	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_DELETE, "Delete"), sizerFlagMinimumPlace.Border(wxALL, 10));
+	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_ADD, "Add"), sizerFlagMinimumPlace.Border(wxALL, 10));
+	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_EDIT, "Edit"), sizerFlagMinimumPlace.Border(wxALL, 10));
+	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_UP, "Up"), sizerFlagMinimumPlace.Border(wxALL, 10));
+	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_DOWN, "Down"), sizerFlagMinimumPlace.Border(wxALL, 10));
+	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_CLOSE, "Close"), sizerFlagMinimumPlace.Border(wxALL, 10));
 	topsizer->Add(button_sizer, sizerFlagMaximumPlace);
 
 	loadShortcut();
@@ -283,7 +283,7 @@ void midishortcut::InitLists()
 	nameChannel.Add(SALLCHANNEL);
 	for (int i = 0; i < 16; i++)
 	{
-		s.Printf("%s#%d", _("channel"), i + 1);
+		s.Printf("%s#%d", "channel", i + 1);
 		nameChannel.Add(s);
 	}
 
@@ -330,7 +330,7 @@ void midishortcut::OnAdd(wxCommandEvent& WXUNUSED(event))
 	if (i == -1)
 		i = listShortchut->GetItemCount();
 	wxString s;
-	s.Printf("%s#%d", _("trigger"), i);
+	s.Printf("%s#%d", "trigger", i);
 	i = listShortchut->InsertItem(i, s);
 	listShortchut->SetItem(i, 2, SALLMIDIIN);
 	listShortchut->SetItem(i, 3, SALLCHANNEL);

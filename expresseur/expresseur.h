@@ -108,15 +108,15 @@ public:
 	void preClose();
 	bool testModeMidi();
 
-	////mixer *mMixer = NULL;
-	////midishortcut *mMidishortcut = NULL;
-	////expression *mExpression = NULL;
-	////logerror *mLog;
+	mixer *mMixer = NULL;
+	midishortcut *mMidishortcut = NULL;
+	expression *mExpression = NULL;
+	logerror *mLog = NULL;
 	wxTimer *mtimer;
 
 private:
-	////viewerscore *mViewerscore;
-	////textscore *mTextscore;
+	viewerscore *mViewerscore;
+	textscore *mTextscore;
 	wxScrollBar *mScrollHorizontal;
 	wxScrollBar *mScrollVertical;
 	int posScrollHorizontal = 20;
