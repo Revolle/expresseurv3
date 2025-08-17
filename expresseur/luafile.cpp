@@ -42,9 +42,7 @@
 #define DEFAULT_LUA_USER_FILE "expresseur.lua"
 #define DEFAULT_LUA_PARAMETER ""
 
-#include <wx/listimpl.cpp>
-WX_DEFINE_LIST(l_eventMidi);
-l_eventMidi g_lEventMidis;
+std::vector <c_eventMidi> g_lEventMidis;
 wxCriticalSection g_CriticalSection ;
 
 bool c_eventMidi::OneIsProcessed = false ;

@@ -1,4 +1,3 @@
-// update : 20/11/2016 19:00
 
 #ifndef DEF_MUSICXML
 
@@ -34,7 +33,7 @@ public:
 	bool play = true;
 	bool view = true;
 };
-WX_DECLARE_LIST(c_score_part, l_score_part);
+
 
 class c_time
 {
@@ -248,8 +247,9 @@ public:
 	void write(wxFFile *f);
 	void *pt = NULL;
 	int type = NULL_INT;
+	bool tobedeleted = false; // to delete the direction type
 };
-WX_DECLARE_LIST(c_direction_type, l_direction_type);
+
 class c_sound
 {
 public:
@@ -260,7 +260,6 @@ public:
 	wxString name;
 	wxString value;
 };
-WX_DECLARE_LIST(c_sound, l_sound);
 
 class c_direction
 {
@@ -272,8 +271,8 @@ public:
 	void write(wxFFile *f);
 	wxString placement = NULL_STRING;
 	wxString directive = NULL_STRING;
-	l_direction_type direction_types;
-	l_sound sounds;
+	std::vector<c_direction_type> direction_types;
+	std::vector<c_sound> sounds;
 };
 
 class c_clef
@@ -288,7 +287,6 @@ public:
 	int line = NULL_INT;
 	int clef_octave_change = NULL_INT;
 };
-WX_DECLARE_LIST(c_clef, l_clef);
 
 class c_barline
 {
@@ -331,7 +329,7 @@ public:
 	c_key *key = NULL;
 	c_time *mtime = NULL;
 	c_staff_details *staff_details = NULL;
-	l_clef clefs;
+	std::vector<c_clef> clefs;
 	c_transpose *transpose = NULL;
 	int divisions = NULL_INT;
 	int staves = NULL_INT;
@@ -389,7 +387,6 @@ public:
 	wxString syllabic = NULL_STRING;
 	wxString extend_type = NULL_STRING;
 };
-WX_DECLARE_LIST(c_lyric, l_lyric);
 
 class c_beam
 {
@@ -401,7 +398,6 @@ public:
 	int number = NULL_INT ;
 	wxString value;
 };
-WX_DECLARE_LIST(c_beam, l_beam);
 
 class c_articulations
 {
@@ -410,10 +406,10 @@ public:
 	c_articulations(const c_articulations & articulations);
 	c_articulations(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
-	wxArrayString articulations;
-	wxArrayString placements;
-	wxArrayInt default_xs;
-	wxArrayInt default_ys;
+	std::vector<wxString> articulations;
+	std::vector<wxString> placements;
+	std::vector<int> default_xs;
+	std::vector<int> default_ys;
 };
 class c_ornaments
 {
@@ -422,10 +418,10 @@ public:
 	c_ornaments(const c_ornaments & lOrnaments);
 	c_ornaments(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
-	wxArrayString lOrnaments;
-	wxArrayString placements;
-	wxArrayInt default_xs;
-	wxArrayInt default_ys;
+	std::vector<wxString> lOrnaments;
+	std::vector<wxString> placements;
+	std::vector<int> default_xs;
+	std::vector<int> default_ys;
 };
 class c_arpeggiate
 {
@@ -478,7 +474,6 @@ public:
 	int number = NULL_INT;
 	wxString placement = NULL_STRING;
 };
-WX_DECLARE_LIST(c_slur, l_slur);
 
 class c_tied
 {
@@ -529,7 +524,7 @@ public:
 	c_fermata *fermata = NULL;
 	c_glissando *glissando = NULL;
 	c_slide *slide = NULL;
-	l_slur slurs ;
+	std::vector<c_slur> slurs ;
 	c_tied *tied = NULL;
 	c_tuplet *tuplet = NULL;
 };
@@ -548,8 +543,8 @@ public:
 	c_tie *tie = NULL;
 	c_time_modification *time_modification = NULL;
 	c_notations *notations = NULL;
-	l_lyric lyrics;
-	l_beam beams;
+	std::vector<c_lyric> lyrics;
+	std::vector<c_beam> beams;
 	int duration = NULL_INT;
 	int voice = NULL_INT;
 	wxString mtype = NULL_STRING  ;
@@ -579,8 +574,9 @@ public:
 	void write(wxFFile *f);
 	int type = NULL_INT ;
 	void *pt = NULL ;
+	bool tobedeleted = false; 
 };
-WX_DECLARE_LIST(c_measure_sequence, l_measure_sequence);
+
 class c_measure
 {
 public:
@@ -603,9 +599,8 @@ public:
 	int width = NULL_INT;
 	int original_number; // original number of the measure
 	int repeat = 0; // internal sequence number of the repetition of this measure
-	l_measure_sequence measure_sequences;
+	std::vector<c_measure_sequence> measure_sequences;
 };
-WX_DECLARE_LIST(c_measure, l_measure);
 
 class c_part
 {
@@ -621,9 +616,8 @@ public:
 	wxString id = NULL_STRING;
 	int idNr = 0;
 	int partNr = 0;
-	l_measure measures;
+	std::vector<c_measure> measures;
 };
-WX_DECLARE_LIST(c_part, l_part);
 
 class c_part_list
 {
@@ -633,7 +627,7 @@ public:
 	c_part_list(wxXmlNode *xmlnode);
 	~c_part_list();
 	void write(wxFFile *f);
-	l_score_part score_parts;
+	std::vector<c_score_part> score_parts;
 };
 class c_work
 {
@@ -686,7 +680,7 @@ public:
 	c_work *work = NULL;
 	c_defaults defaults;
 	c_part_list *part_list = NULL;
-	l_part parts;
+	std::vector<c_part> parts;
 	void compile( bool twelved = false);
 	bool already_twelved = false;
 };

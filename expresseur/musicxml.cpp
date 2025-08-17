@@ -11,6 +11,8 @@
 
 // For compilers that support precompilation, includes "wx/wx.h".
 #include "wx/wxprec.h"
+#include <vector>
+#include <algorithm>
 
 #ifdef __BORLANDC__
 #pragma hdrstop
@@ -45,18 +47,6 @@
 #include "global.h"
 
 #include "musicxml.h"
-
-#include <wx/listimpl.cpp>
-WX_DEFINE_LIST(l_score_part);
-WX_DEFINE_LIST(l_part);
-WX_DEFINE_LIST(l_measure);
-WX_DEFINE_LIST(l_clef);
-WX_DEFINE_LIST(l_measure_sequence);
-WX_DEFINE_LIST(l_beam);
-WX_DEFINE_LIST(l_lyric);
-WX_DEFINE_LIST(l_direction_type);
-WX_DEFINE_LIST(l_sound);
-WX_DEFINE_LIST(l_slur);
 
 static int gchord_counter = 0;
 static int gtranspose = 0;
@@ -243,32 +233,27 @@ c_part_list::c_part_list(wxXmlNode *xmlnode)
 	{
 		wxString name = child->GetName();
 		if (name == "score-part")
-			score_parts.Append(new c_score_part(child));
+			score_parts.push_back(c_score_part(child));
 		child = child->GetNext();
 	}
 }
 c_part_list::c_part_list(const c_part_list &part_list)
 {
-	l_score_part::const_iterator iter;
-	for (iter = part_list.score_parts.begin(); iter != part_list.score_parts.end(); ++iter)
+	for (auto current_score_part : part_list.score_parts ) 
 	{
-		c_score_part *current_score_part = *iter;
-		score_parts.Append(new c_score_part(*current_score_part));
+		score_parts.push_back( c_score_part(current_score_part));
 	}
 }
 c_part_list::~c_part_list()
 {
-	score_parts.DeleteContents(true);
-	score_parts.Clear();
+	score_parts.clear();
 }
 void c_part_list::write(wxFFile *f)
 {
 	f->Write(wxString::Format("<part-list>\n"));
-	l_score_part::iterator iter;
-	for (iter = score_parts.begin(); iter != score_parts.end(); ++iter)
+	for (auto current_score_part : score_parts ) 
 	{
-		c_score_part *current_score_part = *iter;
-		current_score_part->write(f);
+		current_score_part.write(f);
 	}
 	f->Write(wxString::Format("</part-list>\n"));
 }
@@ -475,7 +460,7 @@ c_attributes::c_attributes(wxXmlNode *xmlnode)
 		else if (name == "staves")
 			staves = GetIntContent(child);
 		else if (name == "clef")
-			clefs.Append(new c_clef(child));
+			clefs.push_back(c_clef(child));
 		else if (name == "transpose")
 			transpose = new c_transpose(child);
 		child = child->GetNext();
@@ -483,8 +468,7 @@ c_attributes::c_attributes(wxXmlNode *xmlnode)
 }
 c_attributes::~c_attributes()
 {
-	clefs.DeleteContents(true);
-	clefs.Clear();
+	clefs.clear();
 	delete key;
 	delete mtime;
 	delete staff_details;
@@ -500,11 +484,9 @@ c_attributes::c_attributes(const c_attributes & attributes, bool withContent)
 		staves = attributes.staves;
 		if ((attributes.key != NULL) && (withContent))
 			key = new c_key(*(attributes.key));
-		l_clef::const_iterator iter;
-		for (iter = attributes.clefs.begin(); iter != attributes.clefs.end(); ++iter)
+		for (auto & current : attributes.clefs) 
 		{
-			c_clef *current = *iter;
-			clefs.Append(new c_clef(*current));
+			clefs.push_back(c_clef(current));
 		}
 		if (attributes.staff_details != NULL)
 			staff_details = new c_staff_details(*(attributes.staff_details));
@@ -523,11 +505,9 @@ void c_attributes::write(wxFFile *f)
 		mtime->write(f);
 	if (staves != NULL_INT)
 		f->Write(wxString::Format("<staves>%d</staves>\n", staves));
-	l_clef::iterator iter;
-	for (iter = clefs.begin(); iter != clefs.end(); ++iter)
+	for (auto & current : clefs )
 	{
-		c_clef *current = *iter;
-		current->write(f);
+		current.write(f);
 	}
 	if (staff_details != NULL)
 		staff_details->write(f);
@@ -917,27 +897,27 @@ c_articulations::c_articulations(wxXmlNode *xmlnode)
 	while (child)
 	{
 		wxString name = child->GetName();
-		articulations.Add(name);
-		placements.Add(GetStringAttribute(child,"placement"));
-		default_xs.Add(GetIntAttribute(child, "default-x"));
-		default_ys.Add(GetIntAttribute(child, "default-y"));
+		articulations.push_back(name);
+		placements.push_back(GetStringAttribute(child,"placement"));
+		default_xs.push_back(GetIntAttribute(child, "default-x"));
+		default_ys.push_back(GetIntAttribute(child, "default-y"));
 		child = child->GetNext();
 	}
 }
 c_articulations::c_articulations(const c_articulations & carticulations)
 {
-	unsigned int nb = carticulations.articulations.GetCount();
+	unsigned int nb = carticulations.articulations.size();
 	for (unsigned int i = 0; i < nb; i++)
 	{
-		articulations.Add(carticulations.articulations[i]);
-		placements.Add(carticulations.placements[i]);
-		default_xs.Add(carticulations.default_xs[i]);
-		default_ys.Add(carticulations.default_ys[i]);
+		articulations.push_back(carticulations.articulations[i]);
+		placements.push_back(carticulations.placements[i]);
+		default_xs.push_back(carticulations.default_xs[i]);
+		default_ys.push_back(carticulations.default_ys[i]);
 	}
 }
 void c_articulations::write(wxFFile *f)
 {
-	unsigned int nb = articulations.GetCount();
+	unsigned int nb = articulations.size();
 	if (nb > 0)
 	{
 		f->Write("<articulations>\n");
@@ -966,27 +946,27 @@ c_ornaments::c_ornaments(wxXmlNode *xmlnode)
 	while (child)
 	{
 		wxString name = child->GetName();
-		lOrnaments.Add(name);
-		placements.Add(GetStringAttribute(child,"placement"));
-		default_xs.Add(GetIntAttribute(child, "default-x"));
-		default_ys.Add(GetIntAttribute(child, "default-y"));
+		lOrnaments.push_back(name);
+		placements.push_back(GetStringAttribute(child,"placement"));
+		default_xs.push_back(GetIntAttribute(child, "default-x"));
+		default_ys.push_back(GetIntAttribute(child, "default-y"));
 		child = child->GetNext();
 	}
 }
 c_ornaments::c_ornaments(const c_ornaments & cornaments)
 {
-	unsigned int nb = cornaments.lOrnaments.GetCount();
+	unsigned int nb = cornaments.lOrnaments.size();
 	for (unsigned int i = 0; i < nb; i++)
 	{
-		lOrnaments.Add(cornaments.lOrnaments[i]);
-		placements.Add(cornaments.placements[i]);
-		default_xs.Add(cornaments.default_xs[i]);
-		default_ys.Add(cornaments.default_ys[i]);
+		lOrnaments.push_back(cornaments.lOrnaments[i]);
+		placements.push_back(cornaments.placements[i]);
+		default_xs.push_back(cornaments.default_xs[i]);
+		default_ys.push_back(cornaments.default_ys[i]);
 	}
 }
 void c_ornaments::write(wxFFile *f)
 {
-	unsigned int nb = lOrnaments.GetCount();
+	unsigned int nb = lOrnaments.size();
 	if (nb > 0)
 	{
 		f->Write("<ornaments>\n");
@@ -1286,7 +1266,7 @@ c_notations::c_notations(wxXmlNode *xmlnode)
 			tuplet = new c_tuplet(child);
 		}
 		else if (name == "slur")
-			slurs.Append(new c_slur(child));
+			slurs.push_back(c_slur(child));
 		else if (name == "lOrnaments")
 		{
 			if (tied == NULL)
@@ -1315,8 +1295,7 @@ c_notations::~c_notations()
 	delete slide;
 	delete tied;
 	delete tuplet;
-	slurs.DeleteContents(true);
-	slurs.Clear();
+	slurs.clear();
 }
 c_notations::c_notations(const c_notations & notations)
 {
@@ -1338,11 +1317,9 @@ c_notations::c_notations(const c_notations & notations)
 		tied = new c_tied(*(notations.tied));
 	if (notations.tuplet != NULL)
 		tuplet = new c_tuplet(*(notations.tuplet));
-	l_slur::const_iterator iter_slur;
-	for (iter_slur = notations.slurs.begin(); iter_slur != notations.slurs.end(); ++iter_slur)
+	for (auto & current : notations.slurs )
 	{
-		c_slur *current = *iter_slur;
-		slurs.Append(new c_slur(*current));
+		slurs.push_back(c_slur(current));
 	}
 }
 void c_notations::write(wxFFile *f)
@@ -1366,11 +1343,9 @@ void c_notations::write(wxFFile *f)
 		tied->write(f);
 	if (tuplet != NULL)
 		tuplet->write(f);
-	l_slur::iterator iter_slur;
-	for (iter_slur = slurs.begin(); iter_slur != slurs.end(); ++iter_slur)
+	for (auto & current : slurs )
 	{
-		c_slur *current = *iter_slur;
-		current->write(f);
+		current.write(f);
 	}
 	f->Write(wxString::Format("</notations>\n"));
 }
@@ -1396,9 +1371,9 @@ c_note::c_note(wxXmlNode *xmlnode) : c_default_xy(xmlnode)
 		else if (name == "notations")
 			notations = new c_notations(child);
 		else if (name == "lyric")
-			lyrics.Append( new c_lyric(child));
+			lyrics.push_back(c_lyric(child));
 		else if (name == "beam")
-			beams.Append(new c_beam(child));
+			beams.push_back(c_beam(child));
 		else if (name == "duration")
 			duration = GetIntContent(child);
 		else if (name == "voice")
@@ -1436,10 +1411,8 @@ c_note::c_note(wxXmlNode *xmlnode) : c_default_xy(xmlnode)
 }
 c_note::~c_note()
 {
-	beams.DeleteContents(true);
-	beams.Clear();
-	lyrics.DeleteContents(true);
-	lyrics.Clear();
+	beams.clear();
+	lyrics.clear();
 	delete pitch;
 	delete rest;
 	delete time_modification;
@@ -1458,17 +1431,13 @@ c_note::c_note(const c_note & note) : c_default_xy(note)
 		notations = new c_notations(*(note.notations));
 	if (note.tie != NULL)
 		tie = new c_tie(*(note.tie));
-	l_lyric::const_iterator iter_lyric;
-	for (iter_lyric = note.lyrics.begin(); iter_lyric != note.lyrics.end(); ++iter_lyric)
+	for (auto & current : note.lyrics )
 	{
-		c_lyric *current = *iter_lyric;
-		lyrics.Append(new c_lyric(*current));
+		lyrics.push_back(c_lyric(current));
 	}
-	l_beam::const_iterator iter_beam;
-	for (iter_beam = note.beams.begin(); iter_beam != note.beams.end(); ++iter_beam)
+	for (auto & current : note.beams )
 	{
-		c_beam *current = *iter_beam;
-		beams.Append(new c_beam(*current));
+		beams.push_back(c_beam(current));
 	}
 	duration = note.duration;
 	voice = note.voice;
@@ -1529,19 +1498,15 @@ void c_note::write(wxFFile *f)
 	}
 	if (staff != NULL_INT)
 		f->Write(wxString::Format("<staff>%d</staff>\n", staff));
-	l_beam::iterator iter_beam;
-	for (iter_beam = beams.begin(); iter_beam != beams.end(); ++iter_beam)
+	for (auto & current : beams )
 	{
-		c_beam *current = *iter_beam;
-		current->write(f);
+		current.write(f);
 	}
 	if (notations != NULL)
 		notations->write(f);
-	l_lyric::iterator iter_lyric;
-	for (iter_lyric = lyrics.begin(); iter_lyric != lyrics.end(); ++iter_lyric)
+	for (auto & current : lyrics )
 	{
-		c_lyric *current = *iter_lyric;
-		current->write(f);
+		current.write(f);
 	}
 	f->Write(wxString::Format("</note>\n"));
 }
@@ -2206,9 +2171,9 @@ c_direction::c_direction(wxXmlNode *xmlnode)
 	{
 		wxString name = child->GetName();
 		if (name == "direction-type")
-			direction_types.Append(new c_direction_type(child));
+			direction_types.push_back(c_direction_type(child));
 		else if (name == "sound")
-			sounds.Append(new c_sound(child));
+			sounds.push_back(c_sound(child));
 		child = child->GetNext();
 	}
 }
@@ -2216,29 +2181,23 @@ c_direction::c_direction(const c_direction &direction)
 {
 	placement = direction.placement;
 	directive = direction.directive;
-	l_direction_type::const_iterator iter_direction_type;
-	for (iter_direction_type = direction.direction_types.begin(); iter_direction_type != direction.direction_types.end(); ++iter_direction_type)
+	for (auto & current: direction.direction_types ) 
 	{
-		c_direction_type *current = *iter_direction_type;
-		direction_types.Append(new c_direction_type(*current));
+		direction_types.push_back(c_direction_type(current));
 	}
-	l_sound::const_iterator iter_sound;
-	for (iter_sound = direction.sounds.begin(); iter_sound != direction.sounds.end(); ++iter_sound)
+	for (auto & current : direction.sounds )
 	{
-		c_sound *current = *iter_sound;
-		sounds.Append(new c_sound(*current));
+		sounds.push_back(c_sound(current));
 	}
 }
 c_direction::~c_direction()
 {
-	direction_types.DeleteContents(true);
-	direction_types.Clear();
-	sounds.DeleteContents(true);
-	sounds.Clear();
+	direction_types.clear();
+	sounds.clear();
 }
 void c_direction::write(wxFFile *f)
 {
-	if ((direction_types.GetCount() == 0) && (sounds.GetCount() == 0))
+	if ((direction_types.size() == 0) && (sounds.size() == 0))
 		return;
 	f->Write(wxString::Format("<direction"));
 	if (placement != NULL_STRING)
@@ -2246,24 +2205,20 @@ void c_direction::write(wxFFile *f)
 	if (directive != NULL_STRING)
 		f->Write(wxString::Format(" directive=\"%s\"", directive));
 	f->Write(wxString::Format(">\n"));
-	if (direction_types.GetCount() > 0)
+	if (direction_types.size() > 0)
 	{
-		l_direction_type::iterator iter;
 		f->Write(wxString::Format("<direction-type>\n"));
-		for (iter = direction_types.begin(); iter != direction_types.end(); ++iter)
+		for (auto & current : direction_types )
 		{
-			c_direction_type *current = *iter;
-			current->write(f);
+			current.write(f);
 		}
 		f->Write(wxString::Format("</direction-type>\n"));
 	}
-	if (sounds.GetCount() > 0)
+	if (sounds.size() > 0)
 	{
-		l_sound::iterator iter;
-		for (iter = sounds.begin(); iter != sounds.end(); ++iter)
+		for (auto & current : sounds )
 		{
-			c_sound *current = *iter;
-			current->write(f);
+			current.write(f);
 		}
 	}
 	f->Write(wxString::Format("</direction>\n"));
@@ -2373,31 +2328,31 @@ c_measure::c_measure(wxXmlNode *xmlnode)
 		if (name == "note")
 		{
 			// c_measure_sequence *mnote = new c_measure_sequence(new c_note(child), t_note);
-			measure_sequences.Append(new c_measure_sequence(new c_note(child), t_note));
+			measure_sequences.push_back(c_measure_sequence(new c_note(child), t_note));
 		}
 		else if (name == "harmony")
 		{
-			measure_sequences.Append(new c_measure_sequence(new c_harmony(child), t_harmony));
+			measure_sequences.push_back(c_measure_sequence(new c_harmony(child), t_harmony));
 		}
 		else if (name == "backup")
 		{
-			measure_sequences.Append(new c_measure_sequence(new c_backup(child), t_backup));
+			measure_sequences.push_back(c_measure_sequence(new c_backup(child), t_backup));
 		}
 		else if (name == "forward")
 		{
-			measure_sequences.Append(new c_measure_sequence(new c_forward(child), t_forward));
+			measure_sequences.push_back( c_measure_sequence(new c_forward(child), t_forward));
 		}
 		else if (name == "barline")
 		{
-			measure_sequences.Append(new c_measure_sequence(new c_barline(child), t_barline));
+			measure_sequences.push_back( c_measure_sequence(new c_barline(child), t_barline));
 		}
 		else if (name == "direction")
 		{
-			measure_sequences.Append(new c_measure_sequence(new c_direction(child), t_direction));
+			measure_sequences.push_back( c_measure_sequence(new c_direction(child), t_direction));
 		}
 		else if (name == "attributes")
 		{
-			measure_sequences.Append(new c_measure_sequence(new c_attributes(child), t_attributes));
+			measure_sequences.push_back( c_measure_sequence(new c_attributes(child), t_attributes));
 		}
 		child = child->GetNext();
 	}
@@ -2412,11 +2367,9 @@ c_measure::c_measure(const c_measure &measure , bool withContent)
 	original_number = measure.original_number;
 	repeat = measure.repeat;
 	key_fifths = measure.key_fifths;
-	l_measure_sequence::const_iterator iter;
-	for (iter = measure.measure_sequences.begin(); iter != measure.measure_sequences.end(); ++iter)
+	for (auto & current : measure.measure_sequences )
 	{
-		c_measure_sequence *current = *iter;
-		int type = current->type;
+		int type = current.type;
 		switch (type)
 		{
 		//case t_note: ((c_note*)(pt))->compile(partNr, twelved); break;
@@ -2425,15 +2378,14 @@ c_measure::c_measure(const c_measure &measure , bool withContent)
 		//case t_forward: ((c_forward*)(pt))->compile(twelved); break;
 		//case t_barline: ((c_barline*)(pt))->compile(twelved); break;
 		//case t_direction: ((c_direction*)(pt))->compile(twelved); break;
-		case t_attributes: measure_sequences.Append(new c_measure_sequence(*current,withContent)); break;
-		default: if (withContent) measure_sequences.Append(new c_measure_sequence(*current, true));  break;
+		case t_attributes: measure_sequences.push_back(c_measure_sequence(current,withContent)); break;
+		default: if (withContent) measure_sequences.push_back(c_measure_sequence(current, true));  break;
 		}
 	}
 }
 c_measure::~c_measure()
 {
-	measure_sequences.DeleteContents(true);
-	measure_sequences.Clear();
+	measure_sequences.clear();
 }
 void c_measure::write(wxFFile *f, bool layout = true)
 {
@@ -2443,11 +2395,9 @@ void c_measure::write(wxFFile *f, bool layout = true)
 	if (layout && (width != NULL_INT))
 		f->Write(wxString::Format(" width=\"%d\"", width));
 	f->Write(wxString::Format(">\n"));
-	l_measure_sequence::iterator iter;
-	for (iter = measure_sequences.begin(); iter != measure_sequences.end(); ++iter)
+	for (auto & current : measure_sequences )
 	{
-		c_measure_sequence *current = *iter;
-		current->write(f);
+		current.write(f);
 	}
 	f->Write(wxString::Format("</measure>\n"));
 }
@@ -2467,11 +2417,9 @@ void c_measure::compile(c_measure *previous_measure , int partNr, bool twelved)
 	else
 		original_number = previous_measure->original_number + 1;
 	repeat = 0;
-	l_measure_sequence::iterator iter;
-	for (iter = measure_sequences.begin(); iter != measure_sequences.end(); ++iter)
+	for (auto & current : measure_sequences )
 	{
-		c_measure_sequence *current = *iter;
-		current->compile(partNr , twelved , this);
+		current.compile(partNr , twelved , this);
 	}
 }
 void c_measure::divisionsAlign()
@@ -2486,11 +2434,9 @@ void c_measure::divisionsAlign()
 	division_beat *= ratioDivisions;
 	division_measure *= ratioDivisions;
 
-	l_measure_sequence::iterator iter;
-	for (iter = measure_sequences.begin(); iter != measure_sequences.end(); ++iter)
+	for (auto & current : measure_sequences )
 	{
-		c_measure_sequence *current = *iter;
-		current->divisionsAlign(ratioDivisions);
+		current.divisionsAlign(ratioDivisions);
 	}
 }
 
@@ -2510,7 +2456,7 @@ c_part::c_part(wxXmlNode *xmlnode)
 	{
 		wxString name = child->GetName();
 		if (name == "measure")
-			measures.Append(new c_measure(child));
+			measures.push_back(c_measure(child));
 		child = child->GetNext();
 	}
 }
@@ -2519,18 +2465,15 @@ c_part::c_part(const c_part &part, bool withMeasures)
 	id = part.id;
 	if (withMeasures)
 	{
-		l_measure::const_iterator iter;
-		for (iter = part.measures.begin(); iter != part.measures.end(); ++iter)
+		for (auto & current : part.measures )
 		{
-			c_measure *current = *iter;
-			measures.Append(new c_measure(*current));
+			measures.push_back(c_measure(current));
 		}
 	}
 }
 c_part::~c_part()
 {
-	measures.DeleteContents(true);
-	measures.Clear();
+	measures.clear();
 }
 void c_part::write(wxFFile *f, bool layout = true)
 {
@@ -2538,11 +2481,9 @@ void c_part::write(wxFFile *f, bool layout = true)
 	if (id != NULL_STRING)
 		f->Write(wxString::Format(" id=\"%s\" ", id));
 	f->Write(wxString::Format(" >\n"));
-	l_measure::iterator iter;
-	for (iter = measures.begin(); iter != measures.end(); ++iter)
+	for (auto & current : measures )
 	{
-		c_measure *current_measure = *iter;
-		current_measure->write(f, layout);
+		current.write(f, layout);
 	}
 	f->Write(wxString::Format("</part>\n"));
 }
@@ -2552,21 +2493,17 @@ void c_part::compile(int ipartNr, bool twelved)
 	gtranspose = 0;
 	partNr = ipartNr;
 	c_measure *previous_measure = NULL;
-	l_measure::iterator iter;
-	for (iter = measures.begin(); iter != measures.end(); ++iter)
+	for (auto & current : measures )
 	{
-		c_measure *current_measure = *iter;
-		current_measure->compile(previous_measure, partNr, twelved);
-		previous_measure = current_measure;
+		current.compile(previous_measure, partNr, twelved);
+		previous_measure = & current;
 	}
 }
 void c_part::divisionsAlign()
 {
-	l_measure::iterator iter;
-	for (iter = measures.begin(); iter != measures.end(); ++iter)
+	for (auto & current : measures )
 	{
-		c_measure *current_measure = *iter;
-		current_measure->divisionsAlign();
+		current.divisionsAlign();
 	}
 }
 
@@ -2736,7 +2673,7 @@ c_score_partwise::c_score_partwise(wxXmlNode *xmlnode)
 		else if (name == "part-list")
 			part_list = new c_part_list(child);
 		else if (name == "part")
-			parts.Append(new c_part(child));
+			parts.push_back(c_part(child));
 		child = child->GetNext();
 	}
 }
@@ -2746,18 +2683,15 @@ c_score_partwise::c_score_partwise(const c_score_partwise &score_partwise, bool 
 		work = new c_work(*(score_partwise.work));
 	if (score_partwise.part_list != NULL)
 		part_list = new c_part_list(*(score_partwise.part_list));
-	l_part::const_iterator iter;
-	for (iter = score_partwise.parts.begin(); iter != score_partwise.parts.end(); ++iter)
+	for (auto & current : score_partwise.parts)
 	{
-		c_part *current = *iter;
-		parts.Append(new c_part(*current, withMeasures));
+		parts.push_back(c_part(current, withMeasures));
 	}
 	already_twelved = score_partwise.already_twelved;
 }
 c_score_partwise::~c_score_partwise()
 {
-	parts.DeleteContents(true);
-	parts.Clear();
+	parts.clear();
 	delete work;
 	delete part_list;
 }
@@ -2773,12 +2707,10 @@ void c_score_partwise::write(wxString filename , bool layout = true)
 	defaults.write(&xf);
 	if (part_list != NULL)
 		part_list->write(&xf);
-	l_part::iterator iter_part;
-	l_score_part::iterator iter_score_part;
-	for (iter_part = parts.begin(), iter_score_part = part_list->score_parts.begin(); iter_part != parts.end(); ++iter_part, ++iter_score_part )
+	for (size_t i = 0 ; i < parts.size(); i++ )
 	{
-		c_score_part *current_score_part = *iter_score_part;
-		c_part *current_part = *iter_part;
+		c_score_part *current_score_part = & (part_list->score_parts[i] );
+		c_part *current_part = &(parts[i]);
 		if (current_score_part->view)
 			current_part->write(&xf, layout);
 	}
@@ -2798,18 +2730,14 @@ void c_score_partwise::compile(bool twelved)
 			already_twelved = true;
 		}
 	}
-	l_part::iterator iter;
-	int partNr ;
-	for (iter = parts.begin(), partNr = 0; iter != parts.end(); ++iter, ++partNr)
+	for (size_t i = 0; i < parts.size(); i++)
 	{
-		c_part *current_part = *iter;
-		current_part->compile(partNr , tobe_twelved);
+		parts[i].compile(i, tobe_twelved);
 	}
 
 	// to align divisions for each measure
-	for (iter = parts.begin(), partNr = 0; iter != parts.end(); ++iter, ++partNr)
+	for (auto & current : parts )
 	{
-		c_part *current_part = *iter;
-		current_part->divisionsAlign();
+		current.divisionsAlign();
 	}
 }

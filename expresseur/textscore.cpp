@@ -1,13 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        textscore.cpp
 // Purpose:     display a text of the score /  expresseur V3
-// Author:      Franck REVOLLE
-// Modified by:
-// Created:     27/07/2015
-// update : 31 / 10 / 2016 10 : 00
-// Copyright:   (c) Franck REVOLLE Expresseur
-// Licence:    Expresseur licence
-/////////////////////////////////////////////////////////////////////////////
+
 
 // For compilers that support precompilation, includes "wx/wx.h".
 #include "wx/wxprec.h"
@@ -103,6 +97,7 @@ textscore::~textscore()
 }
 void textscore::compileText()
 {
+return ;
 	if (editMode) return;
 
 	if (oldText == GetValue())
@@ -134,6 +129,9 @@ void textscore::compileText()
 }
 int textscore::scanPosition()
 {
+	////nop
+	return 0;
+
 	int chordStart, chordEnd, nrChord;
 	bool userModification = this->IsModified();
 	basslua_call(moduleChord, functionChordGetPosition, ">iii", &chordStart, &chordEnd, &nrChord);
@@ -160,6 +158,7 @@ int textscore::scanPosition()
 }
 void textscore::scanTextPosition()
 {
+return;
 	if ( editMode )  return ;
 
 	int insertionPoint = GetInsertionPoint();
@@ -198,6 +197,7 @@ bool textscore::setFile(const wxFileName &filename)
 }
 void textscore::saveFile(const wxFileName &filename)
 {
+return;
 	wxFileName f(filename);
 	f.SetExt(SUFFIXE_TEXT);
 	wxString s = f.GetFullPath();
@@ -208,7 +208,9 @@ void textscore::saveFile(const wxFileName &filename)
 }
 bool textscore::needToSave()
 {
-	return this->IsModified();
+
+	//// return this->IsModified();
+	return false;
 }
 void textscore::noNeedToSave()
 {
@@ -216,10 +218,12 @@ void textscore::noNeedToSave()
 }
 void textscore::OnSize(wxSizeEvent& WXUNUSED(event))
 {
+	return;
 	Refresh();
 }
 void textscore::setEditMode(bool ieditMode)
 {
+	return;
 	editMode = ieditMode ;
 
 	if (editMode)
@@ -235,6 +239,7 @@ void textscore::setEditMode(bool ieditMode)
 }
 void textscore::setFontSize(int s)
 {
+	return;
 	sizeFont = s;
 	if (sizeFont < 4)
 		sizeFont = 4;
@@ -251,6 +256,7 @@ void textscore::setFontSize(int s)
 }
 void textscore::zoom(int zoom)
 {
+	return;
 	switch (zoom)
 	{
 	case -3: sizeFont = 6;  break;
@@ -273,6 +279,7 @@ void textscore::zoom(int zoom)
 }
 void textscore::savePlayback(wxString f)
 {
+	return;
 	wxString m(SET_PLAYBACK);
 	wxASSERT(m.StartsWith("~"));
 

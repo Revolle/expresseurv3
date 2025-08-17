@@ -17,9 +17,6 @@ public:
 	unsigned int page;
 };
 
-// this macro declares and partly implements MyList class
-WX_DECLARE_LIST(cposnote, l_posnotes);
-
 
 class musicxmlscore
 	: public viewerscore
@@ -109,7 +106,7 @@ private:
 	std::uint64_t crc_cumulate_file(wxString fname);
 	std::uint64_t crc_cumulate_string(wxString buf);
 
-	l_posnotes lposnotes;
+	std::vector <cposnote> lposnotes;
 
 	wxDECLARE_EVENT_TABLE();
 

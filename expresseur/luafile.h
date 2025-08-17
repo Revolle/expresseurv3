@@ -10,7 +10,6 @@ public:
 	int nr_device; int type_msg; int channel; int value1; int value2 , isProcessed ; 
 	static bool OneIsProcessed ;
 };
-WX_DECLARE_LIST(c_eventMidi, l_eventMidi);
 
 class luafile
 	: public wxDialog

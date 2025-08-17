@@ -46,7 +46,6 @@ public:
 	bool dalsegno = false;
 	bool toBeDeleted = false;
 };
-WX_DECLARE_LIST(c_measureMark, l_measureMark);
 
 // class to have a list of ornements
 ////////////////////////////////////
@@ -64,22 +63,6 @@ public:
 		before = ibefore;
 		value = ivalue;
 	};
-	bool isSameAs(c_ornament *m)
-	{
-		bool r =
-			(type == m->type) &&
-			(partNr == m->partNr) &&
-			(staffNr == m->staffNr) &&
-			(measureNumber == m->measureNumber) &&
-			(t == m->t) &&
-			(chord_order == m->chord_order) &&
-			(repeat == m->repeat) &&
-			(before == m->before) &&
-			(value == m->value) &&
-			(absolute_measureNr == m->absolute_measureNr) &&
-			(mark_prefix == m->mark_prefix);
-		return r;
-	};
 	int type; // type of lOrnaments : enum lOrnaments o_xx
 	int partNr = -1; // track to apply the ornament ( -1 == all )
 	int staffNr = -1; // staff to apply the ornament ( -1 == all )
@@ -93,10 +76,10 @@ public:
 	int mark_prefix = -1; // if there is a marker to specify the relative measure nr 
 	int tInBeat = NULL_INT;
 	int beat = NULL_INT;
-  bool calculated=false;
+	bool calculated=false;
 	bool processed = false;
+	bool tobedeleted = false;
 };
-WX_DECLARE_LIST(c_ornament, l_ornament);
 
 // class to have a sorted list of musicXml events
 /////////////////////////////////////////////////
@@ -222,7 +205,6 @@ public:
 	bool end_score = false;
 	int nrnote = -1; // indice o the note in the Expresseur rythm-line
 };
-WX_DECLARE_LIST(c_musicxmlevent, l_musicxmlevent);
 
 // class to have a list of arpeggiate
 ////////////////////////////////////
@@ -241,7 +223,6 @@ public:
 	bool before;
 	c_musicxmlevent *musicxmlevent;
 };
-WX_DECLARE_LIST(c_arpeggiate_toapply, l_arpeggiate_toapply);
 
 // class to have a list of pedal_bar
 ////////////////////////////////////
@@ -255,7 +236,6 @@ public:
 	}
 	int value , measureNr;
 };
-WX_DECLARE_LIST(c_pedal_bar_toapply, l_pedal_bar_toapply);
 
 // class for playback
 /////////////////////
@@ -268,7 +248,6 @@ public:
 	 }
 	wxLongLong time ; int nr_device; int type_msg; int channel; int value1; int value2 ; 
 };
-WX_DECLARE_LIST(c_eventPlayback, l_eventPlayback);
 
 
 
@@ -296,19 +275,19 @@ public:
 	bool getScorePosition( int nrEvent , int *absolute_measure_nr , int *measure_nr, int *repeat , int *beat, int *t , int *uid);
 	bool getTrackDisplay(int nrTrack);
 	bool getTrackPlay(int nrTrack);
-	wxArrayInt getTracksPlay();
-	wxArrayInt getTracksDisplay();
+	std::vector <int> getTracksPlay();
+	std::vector <int> getTracksDisplay();
 	int getTrackNr(wxString idTrack);
 	wxString getTitle();
-	wxArrayString getTracksName();
+	std::vector <wxString> getTracksName();
 	wxString getTrackName(int nrTrack);
 	wxString getTrackId(int nrTrack);
 	int getTracksCount();
 	static void clearLuaScore();
 	wxString pitchToString(int p);
-	wxString pitchToString(wxArrayInt p);
-	wxArrayInt stringToPitch(wxString s, int *nbChord);
-	static wxArrayString getListOrnament();
+	wxString pitchToString(std::vector <int> p);
+	std::vector <int> stringToPitch(wxString s, int *nbChord);
+	static std::vector <wxString> getListOrnament();
 	wxString music_xml_complete_file;
 	wxString music_xml_displayed_file;
 	c_score_partwise *compiled_score = NULL; // score compiled, refer to score, measureList, partidToPlay, partidToPlay
@@ -355,7 +334,7 @@ private:
 	void removeExpresseurPart();
 	void createListMeasures();
 	void buildMeasures();
-	void compileScore();
+	void compilePlayedScore();
 	void deleteBarLabel(c_measure *newMeasure);
 	void addExpresseurPart();
 	void compileExpresseurPart();
@@ -365,25 +344,25 @@ private:
 	wxFileName txtFile;
 	wxFileName musicxmlFile;
 	c_score_partwise *score; // original score
-	l_measureMark lMeasureMarks; // list of markers : a marker is linked to a measure in the original score . e.g. marker[1]=measure(10), marker[2] =measure(14) , marker[3]=18
-	wxArrayInt markList; // list of markers to play succesfully, refer to measureMark . e.g. 1,2,2,1 means play marker[1], marker[2] twice, and marker[1] to finish
-	wxArrayInt measureList; // list of measures to play, refer to markList and score. e.g. 10,11,12,13,14,15,16,17,14,15,16,17,10,11,12,13
-	l_ornament lOrnaments; // list of lOrnaments to compile and add
-	l_musicxmlevent lMusicxmlevents;
-	l_musicxmlevent lOrnamentsMusicxmlevents;
+	std::vector <c_measureMark> lMeasureMarks; // list of markers : a marker is linked to a measure in the original score . e.g. marker[1]=measure(10), marker[2] =measure(14) , marker[3]=18
+	std::vector <int> markList; // list of markers to play succesfully, refer to measureMark . e.g. 1,2,2,1 means play marker[1], marker[2] twice, and marker[1] to finish
+	std::vector <int>  measureList; // list of measures to play, refer to markList and score. e.g. 10,11,12,13,14,15,16,17,14,15,16,17,10,11,12,13
+	std::vector < c_ornament> lOrnaments; // list of lOrnaments to compile and add
+	std::vector <c_musicxmlevent> lMusicxmlevents;
+	std::vector <c_musicxmlevent> lOrnamentsMusicxmlevents;
 	wxString grace;
-	l_arpeggiate_toapply lArpeggiate_toapply;
-	l_pedal_bar_toapply lPedal_bar_toapply;
+	std::vector <c_arpeggiate_toapply> lArpeggiate_toapply;
+	std::vector <c_pedal_bar_toapply> lPedal_bar_toapply;
 	int nbEvents = 0;
 	int nb_measure = 0;
-	wxArrayInt indexStop; // inex des lMusicxmlevents classes par stop
+	std::vector <int>  indexStop; // inex des lMusicxmlevents classes par stop
 
 
-	l_eventPlayback lEventPlaybacks;
-	l_eventPlayback::iterator playback_iter_eventPlayback;
+	std::vector <c_eventPlayback> lEventPlaybacks;
 	wxLongLong t0Playback ;
 	wxLongLong t0RecordPlayback ;
 	wxLongLong timeReadPlayback;
+	long nrEventPlayback = 0; // number of the event in the playback;
 	int ratioPlayback = 100;
 
 
