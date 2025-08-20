@@ -122,7 +122,7 @@ void emptyscore::zoom(int WXUNUSED(dzoom))
 {
 
 }
-void emptyscore::gotoPosition(wxString gotovalue)
+void emptyscore::gotoPosition(wxString WXUNUSED(gotovalue))
 {
 
 }

@@ -221,7 +221,7 @@ void bitmapscore::onPaint(wxPaintEvent& WXUNUSED(event))
 	wxPaintDC dc(this);
 	if (!isOk()) return;
 	wxRegionIterator upd(GetUpdateRegion()); // get the update rect list
-	int vX, vY, vW, vH;
+	// int vX, vY, vW, vH;
 	bool redraw = false;
 	while (upd)
 	{
@@ -463,7 +463,7 @@ void bitmapscore::gotoNextPage(bool WXUNUSED(forward))
 {
 
 }
-void bitmapscore::gotoPosition(wxString gotovalue)
+void bitmapscore::gotoPosition(wxString WXUNUSED(gotovalue))
 {
 
 }

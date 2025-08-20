@@ -202,16 +202,14 @@ void luafile::functioncallback(double time , int nr_device , int type_msg , int 
 	if (time == NULL_INT)
 		return;
 	wxCriticalSectionLocker locker(g_CriticalSection);
-	g_lEventMidis.Append(new c_eventMidi((wxLongLong)(time*1000.0) ,  nr_device ,  type_msg ,  channel ,  value1 ,  value2 ,  isProcessed));
+	g_lEventMidis.push_back(c_eventMidi((wxLongLong)(time*1000.0) ,  nr_device ,  type_msg ,  channel ,  value1 ,  value2 ,  isProcessed));
 }
 bool luafile::isCalledback(wxLongLong *time , int *nr_device , int *type_msg , int *channel , int *value1 , int *value2 , bool *isProcessed , bool *oneIsProcessed )
 {
 	wxCriticalSectionLocker locker(g_CriticalSection);
-	if (g_lEventMidis.IsEmpty())
+	if (g_lEventMidis.empty())
 		return false;
-	l_eventMidi::iterator iter_eventMidi;
-	iter_eventMidi = g_lEventMidis.begin();
-	c_eventMidi *m_eventMidi = *iter_eventMidi ;
+	c_eventMidi *m_eventMidi = & (g_lEventMidis.front() );
 	*time = m_eventMidi->time ;
 	*nr_device = m_eventMidi->nr_device ;
 	*type_msg = m_eventMidi->type_msg ;
@@ -220,9 +218,8 @@ bool luafile::isCalledback(wxLongLong *time , int *nr_device , int *type_msg , i
 	*value2 = m_eventMidi->value2 ;
 	*isProcessed = m_eventMidi->isProcessed;
 	*oneIsProcessed = c_eventMidi::OneIsProcessed;
-	g_lEventMidis.DeleteContents(true) 	;
-	g_lEventMidis.pop_front();
-	if (g_lEventMidis.IsEmpty())
+	g_lEventMidis.erase(g_lEventMidis.begin());
+	if (g_lEventMidis.empty())
 		c_eventMidi::OneIsProcessed = false ;
 	return true;
 }

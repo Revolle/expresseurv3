@@ -239,7 +239,7 @@ c_part_list::c_part_list(wxXmlNode *xmlnode)
 }
 c_part_list::c_part_list(const c_part_list &part_list)
 {
-	for (auto current_score_part : part_list.score_parts ) 
+	for (auto & current_score_part : part_list.score_parts ) 
 	{
 		score_parts.push_back( c_score_part(current_score_part));
 	}
@@ -251,7 +251,7 @@ c_part_list::~c_part_list()
 void c_part_list::write(wxFFile *f)
 {
 	f->Write(wxString::Format("<part-list>\n"));
-	for (auto current_score_part : score_parts ) 
+	for (auto & current_score_part : score_parts ) 
 	{
 		current_score_part.write(f);
 	}
