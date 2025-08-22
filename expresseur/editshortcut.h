@@ -11,15 +11,15 @@ class editshortcut
 public:
 	editshortcut(wxWindow *parent, wxWindowID id, const wxString &title,
 		wxString *lname,
-		wxString *laction, wxArrayString nameAction,
-		wxString *lkey, wxArrayString nameKey,
-		wxString *ldevice, wxArrayString nameDevice,  wxArrayString nameOpenDevice ,
-		wxString *lchannel, wxArrayString nameChannel,
-		wxString *levent, wxArrayString nameEvent,
-		wxString *lmin, wxArrayString nameValueMin,
-		wxString *lmax, wxArrayString nameValueMax,
+		wxString *laction, std::vector <wxString> nameAction,
+		wxString *lkey, std::vector <wxString> nameKey,
+		wxString *ldevice, std::vector <wxString> nameDevice,  std::vector <wxString> nameOpenDevice ,
+		wxString *lchannel, std::vector <wxString> nameChannel,
+		wxString *levent, std::vector <wxString> nameEvent,
+		wxString *lmin, std::vector <wxString> nameValueMin,
+		wxString *lmax, std::vector <wxString> nameValueMax,
 		wxString *lparam,
-		wxString *lstopOnMatch, wxArrayString namestopOnMatch
+		wxString *lstopOnMatch, std::vector <wxString> namestopOnMatch
 		);
 	~editshortcut();
 
@@ -33,8 +33,8 @@ private:
 	wxChoice *fTdevice;
 	wxChoice *fTchannel;
 	wxChoice *fMin;
-	wxArrayString nameDevice;
-	wxArrayString nameOpenDevice;
+	std::vector <wxString> nameDevice;
+	std::vector <wxString> nameOpenDevice;
 	wxDECLARE_EVENT_TABLE();
 
 };

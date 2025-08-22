@@ -155,17 +155,17 @@ private:
 	void ListSelect(int id);
 	bool listChanged;
 	wxMenu *listMenu;
-	wxArrayString listFiles;
+	std::vector <wxString> listFiles;
 	wxFileName listName;
 	int listSelection;
 
 	wxMenu *listSettingMenu;
 	void readListSettings();
-	wxArrayString listSettings ; 
+	std::vector <wxString> listSettings ; 
 
-	wxArrayString nameAction;
-	wxArrayString nameValue;
-	wxArrayString helpValue;
+	std::vector <wxString> nameAction;
+	std::vector <wxString> nameValue;
+	std::vector <wxString> helpValue;
 
 	wxFileName settingName;
 	void settingOpen();
@@ -196,14 +196,14 @@ private:
 	wxListBox *mlistMidiout;
 	wxListBox *mlistMidiin;
 	wxListBox *mlistAudio;
-	wxArrayString nameaudioDevices;
+	std::vector <wxString> nameaudioDevices;
 	wxString nameDefaultaudioDevices;
-	wxArrayString nameMidiOutDevices;
-	wxArrayString nameMidiInDevices;
-	wxArrayString nameValideMidiOutDevices;
-	wxArrayString nameValideMidiInDevices;
-	wxArrayString nameOpenMidiOutDevices;
-	wxArrayString nameOpenMidiInDevices;
+	std::vector <wxString> nameMidiOutDevices;
+	std::vector <wxString> nameMidiInDevices;
+	std::vector <wxString> nameValideMidiOutDevices;
+	std::vector <wxString> nameValideMidiInDevices;
+	std::vector <wxString> nameOpenMidiOutDevices;
+	std::vector <wxString> nameOpenMidiInDevices;
 	int getListAudio();
 	void setAudioChoice(int nrDevice);
 

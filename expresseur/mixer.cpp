@@ -67,13 +67,13 @@ EVT_BUTTON(ID_MIXER_SETTING_ALLNOTEOFF, mixer::OnSettingAllNoteOff)
 EVT_BUTTON(IDM_MIXER_CLOSE, mixer::OnClose)
 wxEND_EVENT_TABLE()
 
-mixer::mixer(wxFrame *parent, wxWindowID id, const wxString &title, viewerscore *lviewerscore , wxArrayString lMidiout, wxArrayString lOpenMidiout, bool audio)
+mixer::mixer(wxFrame *parent, wxWindowID id, const wxString &title, viewerscore *lviewerscore , std::vector <wxString> lMidiout, std::vector <wxString> lOpenMidiout, bool audio)
 : wxDialog(parent, id, title, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 {
 	mParent = parent;
 	mThis = this;
 	mViewerscore = lviewerscore;
-	nbMidioutDevice = lMidiout.GetCount();
+	nbMidioutDevice = lMidiout.size();
 	topsizer = NULL;
 	// some sizerFlags commonly used
 	sizerFlagMaximumPlace.Proportion(1);
@@ -96,7 +96,7 @@ mixer::~mixer()
 {
 	for (int i = 0; i < MAX_TRACK; i++)
 	{
-		listInstrumensDevices[i].Clear();
+		listInstrumensDevices[i].clear();
 	}
 }
 void mixer::close()
@@ -184,8 +184,8 @@ void mixer::scanVolume()
 }
 void mixer::getTracks()
 {
-	nameTrack.Clear();
-	helpTrack.Clear();
+	nameTrack.clear();
+	helpTrack.clear();
 	int nrTrack = 0 ;
 	if (mViewerscore != NULL)
 	{
@@ -196,22 +196,22 @@ void mixer::getTracks()
 			wxString name;
 			wxString help;
 			name = mViewerscore->getTrackName(trackNr);
-			nameTrack.Add("score:" + name);
+			nameTrack.push_back("score:" + name);
 			help.Printf(_("track#%d of the score : %s"), trackNr, name);
-			helpTrack.Add(help);
+			helpTrack.push_back(help);
 		}
 	}
 	// from lua
 	char name[MAXBUFCHAR];
 	while (basslua_table(moduleGlobal, tableTracks, nrTrack, fieldName, name, NULL, tableGetKeyValue) == tableGetKeyValue)
 	{
-		nameTrack.Add(name);
+		nameTrack.push_back(name);
 		char help[MAXBUFCHAR] = "";
 		basslua_table(moduleGlobal, tableTracks, nrTrack, fieldHelp, help, NULL, tableGetKeyValue);
-		helpTrack.Add(help);
+		helpTrack.push_back(help);
 		nrTrack++;
 	}
-	nbTrack = nameTrack.GetCount();
+	nbTrack = nameTrack.size();
 }
 void mixer::createMainMixer()
 {
@@ -250,7 +250,7 @@ void mixer::OnSettingAllNoteOff(wxCommandEvent& WXUNUSED(event))
 }
 void mixer::createMixers()
 {
-	for (unsigned int nrTrack = 0; nrTrack < nameTrack.GetCount(); nrTrack++)
+	for (unsigned int nrTrack = 0; nrTrack < nameTrack.size(); nrTrack++)
 	{
 		AddMixerName(nameTrack[nrTrack]);
 		AddMixerVolume(nrTrack);
@@ -300,7 +300,7 @@ void mixer::OnDefaultMixer(wxCommandEvent& WXUNUSED(event))
 }
 void mixer::OnNeutralMixer(wxCommandEvent& WXUNUSED(event))
 {
-	for (unsigned int nrTrack = 0; nrTrack < nameTrack.GetCount(); nrTrack++)
+	for (unsigned int nrTrack = 0; nrTrack < nameTrack.size(); nrTrack++)
 	{
 		sltrackVolume[nrTrack]->SetValue(64);
 		configSet(CONFIG_MIXERVOLUME, 64, true, nameTrack[nrTrack]);
@@ -328,7 +328,7 @@ void mixer::InitListChannel()
 	for (int i = 0; i < 16; i++)
 	{
 		s.Printf("%s.%d", "ch", i + 1);
-		nameChannel.Add(s);
+		nameChannel.push_back(s);
 	}
 }
 void mixer::getMidiVi(wxString fullNameDevice, int *nrDevice, wxString *nameVi)
@@ -347,13 +347,15 @@ void mixer::getMidiVi(wxString fullNameDevice, int *nrDevice, wxString *nameVi)
 			*nameVi = nameDevice + "." + SSF2;
 		else
 			*nameVi = nameDevice + "." + SVST;
-		if (listVIused.Index(nameDevice) == wxNOT_FOUND)
-			listVIused.Add(nameDevice);
-		*nrDevice = VI_ZERO + listVIused.Index(nameDevice);
+		auto id = std::find(listVIused.begin(), listVIused.end(), nameDevice);
+		if (id == listVIused.end())
+			listVIused.push_back(nameDevice);
+		else
+			*nrDevice = VI_ZERO + std::distance(listVIused.begin(), id);
 	}
 	else
 	{
-		for (unsigned int i = 0; i < nameMidiDevices.GetCount(); i++)
+		for (unsigned int i = 0; i < nameMidiDevices.size(); i++)
 		{
 			wxString s = nameMidiDevices[i].AfterFirst(':');
 			if (s == nameDevice)
@@ -375,24 +377,24 @@ wxString mixer::setMidiVi( wxString nameMidi, wxString nameVi, wxString extVi)
 	}
 	return s;
 }
-void mixer::getMidioutDevices(wxArrayString lMidiout, wxArrayString lOpenMidiout, bool audio)
+void mixer::getMidioutDevices(std::vector <wxString> lMidiout, std::vector <wxString> lOpenMidiout, bool audio)
 {
 	// list all midi devices ( midiout and VI )
 
 	wxString s ;
 	wxString name;
-	nameDevices.Clear();
-	nameMidiDevices.Clear();
-	nameDevices.Add(_("(no output)"));
+	nameDevices.clear();
+	nameMidiDevices.clear();
+	nameDevices.push_back(_("(no output)"));
 
-	for (int i = 0; i < lOpenMidiout.GetCount(); i++)
+	for (int i = 0; i < lOpenMidiout.size(); i++)
 	{
-		nameDevices.Add(setMidiVi(lOpenMidiout[i], "", ""));
-		getListMidioutDevice(lOpenMidiout[i], nameDevices.GetCount() - 1);
+		nameDevices.push_back(setMidiVi(lOpenMidiout[i], "", ""));
+		getListMidioutDevice(lOpenMidiout[i], nameDevices.size() - 1);
 	}
-	for (int i = 0; i < lMidiout.GetCount(); i++)
+	for (int i = 0; i < lMidiout.size(); i++)
 	{
-		nameMidiDevices.Add(setMidiVi(lMidiout[i], "", ""));
+		nameMidiDevices.push_back(setMidiVi(lMidiout[i], "", ""));
 	}
 
 	wxString firstDeviceDefault;
@@ -413,12 +415,12 @@ void mixer::getMidioutDevices(wxArrayString lMidiout, wxArrayString lOpenMidiout
 			fvi.Assign(filesVI[nrVi]);
 			if ( createViList(fvi.GetName(), fvi.GetExt()) )
 				name = setMidiVi("", fvi.GetName(), fvi.GetExt());
-			nameDevices.Add(name);
+			nameDevices.push_back(name);
 			if (defaultDevice.IsEmpty())
 				defaultDevice = name;
 			if (name.Contains("default_"))
 				firstDeviceDefault = name;
-			getListMidioutDevice(fvi.GetName(), nameDevices.GetCount() - 1);
+			getListMidioutDevice(fvi.GetName(), nameDevices.size() - 1);
 		}
 	}
 	if (firstDeviceDefault.IsEmpty() == false)
@@ -482,7 +484,7 @@ void mixer::getListMidioutDevice(wxString fileName , int nrDevice)
 	{
 		if (str.IsEmpty() == false)
 		{
-			listInstrumensDevices[nrDevice].Add(str);
+			listInstrumensDevices[nrDevice].push_back(str);
 		}
 		str = tfile.GetNextLine();
 	}
@@ -525,11 +527,11 @@ void mixer::OnSoundDevice(wxEvent& event)
 	lastDevice = nameDevices[nrDevice];
 
 	wxString instrument;
-	if (nrDevice < listInstrumensDevices->GetCount())
+	if (nrDevice < (listInstrumensDevices[nrDevice]).size())
 	{
 		mInstrument[nrTrack]->Set(listInstrumensDevices[nrDevice]);
-		if (listInstrumensDevices[nrDevice].GetCount() > 0)
-			instrument = listInstrumensDevices[nrDevice].Item(0);
+		if (listInstrumensDevices[nrDevice].size() > 0)
+			instrument = (listInstrumensDevices[nrDevice])[0];
 		else
 			instrument = "";
 		mInstrument[nrTrack]->SetValue(instrument);
@@ -579,7 +581,7 @@ void mixer::AddSoundInstrument(int nrTrack)
 	}
 	else
 	{
-		wxArrayString e;
+		std::vector <wxString> e;
 		mInstrument[nrTrack] = new wxComboBox(this, ID_MIXER_INSTRUMENT + nrTrack, instrument, wxDefaultPosition, wxDefaultSize, e);
 	}
 
@@ -755,7 +757,7 @@ void mixer::write(wxTextFile *lfile)
 {
 	configWriteFile(lfile, CONFIG_MIXERMAIN,64,true);
 	configWriteFile(lfile, CONFIG_MIXER_EXTENSION,1,true);
-	for (unsigned int nrTrack = 0; nrTrack < nameTrack.GetCount(); nrTrack++)
+	for (unsigned int nrTrack = 0; nrTrack < nameTrack.size(); nrTrack++)
 	{
 		configWriteFile(lfile, CONFIG_MIXERDEVICENAME, defaultDevice, true, nameTrack[nrTrack]);
 		configWriteFile(lfile, CONFIG_MIXERCHANNEL, 0, true, nameTrack[nrTrack]);
@@ -767,7 +769,7 @@ void mixer::read(wxTextFile *lfile)
 {
 	configReadFile(lfile, CONFIG_MIXERMAIN,64);
 	configReadFile(lfile, CONFIG_MIXER_EXTENSION,1);
-	for (unsigned int nrTrack = 0; nrTrack < nameTrack.GetCount(); nrTrack++)
+	for (unsigned int nrTrack = 0; nrTrack < nameTrack.size(); nrTrack++)
 	{
 		configReadFile(lfile, CONFIG_MIXERDEVICENAME, defaultDevice, true, nameTrack[nrTrack]);
 		configReadFile(lfile, CONFIG_MIXERCHANNEL, 0, true, nameTrack[nrTrack]);

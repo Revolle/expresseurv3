@@ -26,8 +26,8 @@ public:
 private:
 	wxFrame *mParent;
 	wxDialog *mThis;
-	wxArrayString nameValue;
-	wxArrayString helpValue;
+	std::vector <wxString> nameValue;
+	std::vector <wxString> helpValue;
 	wxStaticText *txtValue;
 
 	wxSizerFlags sizerFlagMinimumPlace;

@@ -169,8 +169,8 @@ public:
 	int stop_t = 0; // stop of the note in divisions of the quarter
 	int stop_order = 0; 
 
-	wxArrayInt starts; // index of musicxmlevent to start synchronously at the trigger-on
-	wxArrayInt stops; // index of musicxmlevent to stop synchronously 
+	std::vector <int> starts; // index of musicxmlevent to start synchronously at the trigger-on
+	std::vector <int> stops; // index of musicxmlevent to stop synchronously 
 	int will_stop_index = -1 ; // in a starts musicxmlevent, link with the index of musicxmlevent to stop at the trigger-off
 	int stop_index = -1; // in a starts musicxmlevent, link with the index of musicxmlevent to stop synchronously with the trigger-on 
 	bool stop_orpheline = true; // true when the stop is not linked to a musicxmlevent
@@ -325,7 +325,7 @@ private:
 	void createImperativeOrnament(c_ornament *ornament);
 	void createImperativePartOrnament(c_ornament *ornament,int nrPart,int nrStaff, int end_measure,int end_start_t, int division_measure, int division_beat , int division_quarter );
 	void addGraces(wxString gracePitches, bool before, c_musicxmlevent *musicxmlevent);
-	void addGraces(wxArrayInt gracePitches, bool before, c_musicxmlevent *musicxmlevent);
+	void addGraces(std::vector <int> gracePitches, bool before, c_musicxmlevent *musicxmlevent);
 	void addOrnament(c_ornament *ornament, c_musicxmlevent *musicxmlevent,int nr_ornament);
 	void compileCrescendo();
 	void compileTransposition();
@@ -338,8 +338,8 @@ private:
 	void deleteBarLabel(c_measure *newMeasure);
 	void addExpresseurPart();
 	void compileExpresseurPart();
-	void addNote(c_measure *measure, bool after_measure , int from_t, int to_t, bool rest, bool tie_back, bool tie_next, bool *first_note , int *nrnote , int nbOrnaments , wxString *text, bool *staccato, bool *fermata , bool *breath_mark , bool ternaire, bool cross, int* ituplet);
-	void addSymbolNote(c_measure *measure, bool after_measure,  int duration, bool rest, bool tie_back, bool tie_next, bool *first_note, int* nrnote, int nbOrnaments, wxString *text , bool *staccato, bool *fermata, bool *breath_mark, bool ternaire,  bool cross, int *ituplet);
+	void addNote(std::vector<c_measure>::iterator measure, bool after_measure , int from_t, int to_t, bool rest, bool tie_back, bool tie_next, bool *first_note , int *nrnote , int nbOrnaments , wxString *text, bool *staccato, bool *fermata , bool *breath_mark , bool ternaire, bool cross, int* ituplet);
+	void addSymbolNote(std::vector<c_measure>::iterator measure, bool after_measure,  int duration, bool rest, bool tie_back, bool tie_next, bool *first_note, int* nrnote, int nbOrnaments, wxString *text , bool *staccato, bool *fermata, bool *breath_mark, bool ternaire,  bool cross, int *ituplet);
 	void calculateDuration(int duration, int divisions, bool ternaire , int *duration_done , wxString *typeNote , int *dot , int *tuplet);
 	wxFileName txtFile;
 	wxFileName musicxmlFile;

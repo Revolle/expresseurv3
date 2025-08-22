@@ -399,7 +399,7 @@ bool musicxmlcompile::loadXmlFile(wxString xmlfilein, bool useMarkFile)
 
 	// load the musicxml musicxmlFile, compile it, and generate the MUSICXML_FILE for the musicxml-viewer
 
-	// load the inupt muscixml file in the C++ score structure
+	// load the input muscixml file in the C++ score structure
 	xmlLoad(xmlfilein);
 
 	if (!isOk())
@@ -455,7 +455,7 @@ void musicxmlcompile::xmlLoad(wxString xmlfilein)
 void musicxmlcompile::compileScore(bool useMarkFile)
 {
 	// compile the C++ score structure into :
-	// - a musicxml file to diplay 
+	// - a musicxml file to display 
 	// - a set of events to play
 	// - a file of parameters ( lOrnaments, repetitions, .. )
 
@@ -496,7 +496,7 @@ void musicxmlcompile::compileScore(bool useMarkFile)
 	addExpresseurPart();
 
 	buildMeasures();
-	
+
 	// save the parameters in the text file
 	if (!useMarkFile)
 		writeMarks();
@@ -627,7 +627,7 @@ void musicxmlcompile::analyseMeasure()
 	//	int i = current_measureMark->number;
 	//	wxString s = current_measureMark->name;
 	//}
-	//wxArrayInt::iterator iter_markList;
+	//std::vector <int>::iterator iter_markList;
 	//for (auto & current_markList : markList)
 	//{
 	//	int i = current_markList;
@@ -865,7 +865,7 @@ void musicxmlcompile::analyseNoteOrnaments(c_note *note, int measureNumber, int 
 		wxString s;
 		wxString sep;
 		wxString alter;
-		if (grace.IsEmpty() == false)
+		if (grace.empty() == false)
 		{
 			if (note->chord)
 				sep = "+";
@@ -885,7 +885,7 @@ void musicxmlcompile::analyseNoteOrnaments(c_note *note, int measureNumber, int 
 	}
 	else
 	{
-		if (grace.IsEmpty() == false)
+		if (grace.empty() == false)
 		{
 			lOrnaments.push_back(c_ornament(o_grace, measureNumber, t, note->partNr, note->staff, -1, false, grace));
 			grace.Empty();
@@ -1253,7 +1253,7 @@ void musicxmlcompile::writeMarks()
 			}
 			if (ornament.before)
 				sbefore = "<";
-			if (ornament.value.IsEmpty() == false)
+			if (ornament.value.empty() == false)
 			{
 				/*if (ornament.type == o_divisions)
 				{
@@ -1306,7 +1306,7 @@ bool musicxmlcompile::readMarkLine(wxString s, wxString sectionName)
 			return false;
 		c_measureMark measureMark(l_number);
 		s_name.Trim(true).Trim(false);
-		if (s_name.IsEmpty() == false)
+		if (s_name.empty() == false)
 			measureMark.name = s_name;
 		lMeasureMarks.push_back(measureMark);
 		return true;
@@ -1314,7 +1314,7 @@ bool musicxmlcompile::readMarkLine(wxString s, wxString sectionName)
 	if (sectionName == SET_PLAY_MARKS)
 	{
 		s.Trim(true).Trim(false);
-		if (s.IsEmpty() == false)
+		if (s.empty() == false)
 		{
 			int i = -1;
 			for (auto & measureMark : lMeasureMarks)
@@ -1342,12 +1342,12 @@ bool musicxmlcompile::readMarkLine(wxString s, wxString sectionName)
 		current->view = ! ( r.Contains(PART_NOT_VISIBLE)); // view
 		current->play = !(r.Contains(PART_NOT_PLAYED)); // play
 		wxString alias = s.AfterFirst('=');
-		if (!(alias.IsEmpty()))
+		if (!(alias.empty()))
 		{
 			wxString abbreviation;
 			wxString part_alias = alias.BeforeFirst('/', &abbreviation);
 			current->part_alias = part_alias;
-			if (!(abbreviation.IsEmpty()))
+			if (!(abbreviation.empty()))
 				current->part_alias_abbreviation = abbreviation;
 		}
 		return true;
@@ -1357,9 +1357,9 @@ bool musicxmlcompile::readMarkLine(wxString s, wxString sectionName)
 		if (s.StartsWith(SET_RATIO))
 		{
 			wxString r = s.AfterFirst('=');
-			if ( r.IsEmpty())
+			if ( r.empty())
 				r = s.AfterFirst(':');
-			if (!r.IsEmpty())
+			if (!r.empty())
 			{
 				long rl;
 				if (r.ToLong(&rl))
@@ -1606,7 +1606,7 @@ void musicxmlcompile::readMarks(bool full)
 			line.Truncate(posComment);
 		wxString s = line.Upper().Trim();
 		// ret_code = true;
-		if (s.IsEmpty() == false )
+		if (s.empty() == false )
 		{
 			if (s.StartsWith(SET_MUSICXML_FILE))
 			{
@@ -1985,7 +1985,7 @@ std::vector <int> musicxmlcompile::stringToPitch(wxString s, int *nbChord)
 	//      then stringToPitch("") return empty arrary
 	static std::vector <int> t;
 	static unsigned int pt;
-	if (s.IsEmpty() == false)
+	if (s.empty() == false)
 	{
 		*nbChord = 0;
 		t.clear();
@@ -2055,7 +2055,7 @@ std::vector <int> musicxmlcompile::stringToPitch(wxString s, int *nbChord)
 	}
 	return ap;
 }
-void musicxmlcompile::addGraces(wxArrayInt gracePitches, bool before, c_musicxmlevent *musicxmlevent)
+void musicxmlcompile::addGraces(std::vector <int> gracePitches, bool before, c_musicxmlevent *musicxmlevent)
 {
 	// add grace notes, using a array of grace integer pitches. 
 	int nbChord = gracePitches.size() ;
@@ -2240,17 +2240,17 @@ void musicxmlcompile::addOrnament(c_ornament *ornament, c_musicxmlevent *musicxm
 	}
 	case o_grace:
 	{
-		wxArrayInt gracePitches;
-		if (ornament->value.IsEmpty())
+		std::vector <int> gracePitches;
+		if (ornament->value.empty())
 		{
 			// just one grace note one diatonic tone upper
-			gracePitches.Add(c_pitch::shiftPitch(musicxmlevent->pitch, 1, musicxmlevent->fifths));
+			gracePitches.push_back(c_pitch::shiftPitch(musicxmlevent->pitch, 1, musicxmlevent->fifths));
 			addGraces(gracePitches, ornament->before, musicxmlevent);
 		}
 		else if (ornament->value.StartsWith("i"))
 		{
 			// "i"nverted : just one grace note one diatonic tone lower
-			gracePitches.Add(c_pitch::shiftPitch(musicxmlevent->pitch, 1, musicxmlevent->fifths));
+			gracePitches.push_back(c_pitch::shiftPitch(musicxmlevent->pitch, 1, musicxmlevent->fifths));
 			addGraces(gracePitches, ornament->before, musicxmlevent);
 		}
 		else
@@ -2260,18 +2260,18 @@ void musicxmlcompile::addOrnament(c_ornament *ornament, c_musicxmlevent *musicxm
 	}
 	case o_mordent:
 	{
-	    wxArrayInt gracePitches;
-		gracePitches.Add(musicxmlevent->pitch);
-		gracePitches.Add(c_pitch::shiftPitch(musicxmlevent->pitch, (ornament->value.StartsWith('i'/*inverted*/)) ? -1 : 1, musicxmlevent->fifths));
+	    std::vector <int> gracePitches;
+		gracePitches.push_back(musicxmlevent->pitch);
+		gracePitches.push_back(c_pitch::shiftPitch(musicxmlevent->pitch, (ornament->value.StartsWith('i'/*inverted*/)) ? -1 : 1, musicxmlevent->fifths));
 		addGraces(gracePitches, ornament->before, musicxmlevent); 
 		break;
 	}
 	case o_turn:
 	{
-		wxArrayInt gracePitches;
-		gracePitches.Add(c_pitch::shiftPitch(musicxmlevent->pitch, (ornament->value.StartsWith('i'/*inverted*/)) ? -1 : 1, musicxmlevent->fifths));
-		gracePitches.Add(musicxmlevent->pitch);
-		gracePitches.Add(c_pitch::shiftPitch(musicxmlevent->pitch, (ornament->value.StartsWith('i'/*inverted*/)) ? 1 : -1, musicxmlevent->fifths));
+		std::vector <int> gracePitches;
+		gracePitches.push_back(c_pitch::shiftPitch(musicxmlevent->pitch, (ornament->value.StartsWith('i'/*inverted*/)) ? -1 : 1, musicxmlevent->fifths));
+		gracePitches.push_back(musicxmlevent->pitch);
+		gracePitches.push_back(c_pitch::shiftPitch(musicxmlevent->pitch, (ornament->value.StartsWith('i'/*inverted*/)) ? 1 : -1, musicxmlevent->fifths));
 		addGraces(gracePitches, ornament->before, musicxmlevent);
 		break;
 	}
@@ -2279,7 +2279,7 @@ void musicxmlcompile::addOrnament(c_ornament *ornament, c_musicxmlevent *musicxm
 		btrill = true;
 	case o_trill:
 	{
-		wxArrayInt gracePitches;
+		std::vector <int> gracePitches;
 		int p0, p1;
 		if (btrill)
 		{
@@ -2298,9 +2298,9 @@ void musicxmlcompile::addOrnament(c_ornament *ornament, c_musicxmlevent *musicxm
 		v /= 2;
 		for (int i = 0; i < v; i++)
 		{
-			gracePitches.Add(p0);
+			gracePitches.push_back(p0);
 			if (i != (v - 1))
-				gracePitches.Add(p1);
+				gracePitches.push_back(p1);
 		}
 		addGraces(gracePitches, ornament->before, musicxmlevent);
 		musicxmlevent->pitch = p1;
@@ -2605,7 +2605,7 @@ void musicxmlcompile::compileMusicxmlevents()
 			p_musicxmlevent = current_musicxmlevent;
 		if (p_musicxmlevent)
 		{
-			p_musicxmlevent->stops.Add(current_musicxmlevent->nr);
+			p_musicxmlevent->stops.push_back(current_musicxmlevent->nr);
 			if (p_musicxmlevent != current_musicxmlevent)
 				current_musicxmlevent->stop_orpheline = false;
 		}
@@ -2627,7 +2627,7 @@ void musicxmlcompile::compileMusicxmlevents()
 		if ((current_musicxmlevent->start_measureNr != p_MeasureNr) || (current_musicxmlevent->start_t != p_t) || (current_musicxmlevent->start_order != p_order))
 			p_musicxmlevent = current_musicxmlevent;
 		if (p_musicxmlevent)
-			p_musicxmlevent->starts.Add(current_musicxmlevent->nr);
+			p_musicxmlevent->starts.push_back(current_musicxmlevent->nr);
 
 		p_MeasureNr = current_musicxmlevent->start_measureNr;
 		p_t = current_musicxmlevent->start_t;
@@ -2645,14 +2645,14 @@ void musicxmlcompile::compileMusicxmlevents()
 	{
 		c_musicxmlevent *current_musicxmlevent = & ( lMusicxmlevents[nrEvent] );
 		if (! current_musicxmlevent->played) continue;
-		if (current_musicxmlevent->starts.IsEmpty()) continue;
+		if (current_musicxmlevent->starts.empty()) continue;
 		if (current_musicxmlevent->will_stop_index != -1) continue;
 		bool triggerOnFound = false; // become true if a trigger-on event appears before the end of this event
 		for (int nrTriggerEvent = nrEvent + 1 ; nrTriggerEvent < nbEvents ; nrTriggerEvent++)
 		{
 			c_musicxmlevent *current_trigger_musicxmlevent = & ( lMusicxmlevents[nrTriggerEvent] ) ;
 			if (!current_trigger_musicxmlevent->played) continue;
-			if (current_trigger_musicxmlevent->starts.IsEmpty()) continue;
+			if (current_trigger_musicxmlevent->starts.empty()) continue;
 			if (current_trigger_musicxmlevent->start_measureNr > current_musicxmlevent->stop_measureNr) break;
 			if (current_trigger_musicxmlevent->start_measureNr < current_musicxmlevent->stop_measureNr) { triggerOnFound = true; break; }
 			if (current_trigger_musicxmlevent->start_t > current_musicxmlevent->stop_t) break;
@@ -2666,7 +2666,7 @@ void musicxmlcompile::compileMusicxmlevents()
 		{
 			c_musicxmlevent *current_reverse_musicxmlevent = & ( lMusicxmlevents[nrReverseEvent] );
 			if (! current_reverse_musicxmlevent->played) continue;
-			if (current_reverse_musicxmlevent->stops.IsEmpty()) continue;
+			if (current_reverse_musicxmlevent->stops.empty()) continue;
 			if (current_reverse_musicxmlevent->tenuto) continue;
 			if (current_reverse_musicxmlevent->stop_measureNr != current_musicxmlevent->stop_measureNr) continue;
 			if (current_reverse_musicxmlevent->stop_t != current_musicxmlevent->stop_t) continue;
@@ -2780,8 +2780,7 @@ void musicxmlcompile::addExpresseurPart()
 	for (auto & measure : score->parts[0].measures)
 	{
 		c_measure newMeasure(measure, false);
-		// FR 01/2020 :  bug on next measure with attributes ..? 
-		if (measure.number == 1)
+		if ( measure.number == 1)
 		{
 			c_attributes *current_attributes = NULL;
 			for (auto & measure_sequence : newMeasure.measure_sequences)
@@ -2808,7 +2807,6 @@ void musicxmlcompile::addExpresseurPart()
 				delete (current_attributes->staff_details);
 			current_attributes->staff_details = new c_staff_details();
 			current_attributes->staff_details->staff_lines = 2;
-			current_attributes->clefs.clear();
 			current_attributes->clefs.clear();
 			current_attributes->staves = 1;
 			c_clef clef;
@@ -2951,7 +2949,7 @@ void musicxmlcompile::buildMeasures()
 
 			deleteBarLabel(&newMeasure);
 			
-			//if ((label.IsEmpty() == false) && (nrPart == nrFirstPartVisible))
+			//if ((label.empty() == false) && (nrPart == nrFirstPartVisible))
 			//{
 			//	// write a label
 			//	if (newMeasure->repeat > 0)
@@ -3069,13 +3067,13 @@ void musicxmlcompile::compileExpresseurPart()
 
 	std::sort(lMusicxmlevents.begin() , lMusicxmlevents.end() , musicXmlEventsCompareStart);
 
-	c_part *part_expresseur = & ( compiled_score->parts.back() );
-	
+	auto part_expresseur = compiled_score->parts.end() - 1;	
+	auto currentMeasure = part_expresseur->measures.begin();
+
 	//l_measure::iterator iter_measure;
 	//iter_measure = part_expresseur->measures.begin();
 	//c_measure *currentMeasure = *(part_expresseur->measures[0]);
 	size_t currentMeasure_i = 0;
-	c_measure* currentMeasure = &(part_expresseur->measures[currentMeasure_i]);
 	wxString text;
 	bool breath_mark = false;
 	bool fermata = false;
@@ -3089,11 +3087,11 @@ void musicxmlcompile::compileExpresseurPart()
 	int ituplet = 0;
 	for (size_t musicxmlevent_from_i = 0 ; musicxmlevent_from_i < lMusicxmlevents.size() ; musicxmlevent_from_i++)
 	{
-		c_musicxmlevent* musicxmlevent_from = & ( lMusicxmlevents[musicxmlevent_from_i] );
+		auto musicxmlevent_from = lMusicxmlevents.begin() + musicxmlevent_from_i;
 		ternaire = false ;
 		if (musicxmlevent_from->division_beat == ( (3 * musicxmlevent_from->division_quarter) / 2))
 			ternaire = true;
-		if (musicxmlevent_from->text.IsEmpty() == false)
+		if (musicxmlevent_from->text.empty() == false)
 			text = musicxmlevent_from->text;
 		if (musicxmlevent_from->staccato)
 			staccato = true;
@@ -3101,7 +3099,7 @@ void musicxmlcompile::compileExpresseurPart()
 			breath_mark = true;
 		if (musicxmlevent_from->fermata)
 			fermata = true;
-		if ((musicxmlevent_from->visible == false) || (musicxmlevent_from->starts.IsEmpty()))
+		if ((musicxmlevent_from->visible == false) || (musicxmlevent_from->starts.empty()))
 			continue;
 		wxASSERT(musicxmlevent_from->duration >= 0);
 		musicxmlevent_from->nrnote = nrnote; // to have a sequential marker for the list of Expresseur notes
@@ -3120,8 +3118,8 @@ void musicxmlcompile::compileExpresseurPart()
 		int to_stopT = 0;
 		for (size_t musicxmlevent_to_i = musicxmlevent_from_i + 1; musicxmlevent_to_i < lMusicxmlevents.size(); musicxmlevent_to_i++)
 		{
-			c_musicxmlevent* musicxmlevent_to = &(lMusicxmlevents[musicxmlevent_to_i]);
-			if (((musicxmlevent_to->visible == false) || (musicxmlevent_to->starts.IsEmpty()))
+			auto musicxmlevent_to = lMusicxmlevents.begin() + musicxmlevent_to_i;
+			if (((musicxmlevent_to->visible == false) || (musicxmlevent_to->starts.empty()))
 				|| ((musicxmlevent_to->start_measureNr == from_start_measureNr) && ((musicxmlevent_to->start_t ) == from_startT)))
 				continue;;
 			to_start_measureNr = musicxmlevent_to->start_measureNr;
@@ -3147,7 +3145,7 @@ void musicxmlcompile::compileExpresseurPart()
 		bool unused_first_note;
 
 		// add rests
-		currentMeasure = &(part_expresseur->measures[currentMeasure_i]);
+		currentMeasure = part_expresseur->measures.begin() + currentMeasure_i;
 		while (start_measureNr > currentMeasure->number)
 		{
 			// finish the current measure with rests
@@ -3160,8 +3158,9 @@ void musicxmlcompile::compileExpresseurPart()
 				wxASSERT(false);
 				break;
 			}
-			currentMeasure = &(part_expresseur->measures[currentMeasure_i]);
+			currentMeasure = part_expresseur->measures.begin() + currentMeasure_i;
 		}
+
 		// add rests to fill the gap up to this note
 		addNote(currentMeasure, false , currentT, startT, true, false, false, &unused_first_note, &nrnote, 0, &text, &staccato, &fermata, &breath_mark, ternaire , false, &ituplet);
 
@@ -3181,7 +3180,7 @@ void musicxmlcompile::compileExpresseurPart()
 				wxASSERT(false);
 				break;
 			}
-			currentMeasure = &(part_expresseur->measures[currentMeasure_i]);
+			currentMeasure = part_expresseur->measures.begin() + currentMeasure_i;
 			currentT = 0;
 			start_measureNr++;
 			startT = 0;
@@ -3194,12 +3193,12 @@ void musicxmlcompile::compileExpresseurPart()
 	addNote(currentMeasure, false, currentT, currentMeasure->division_measure, true, false, false, &firstNote, &nrnote , 0, &text, &staccato, &fermata, &breath_mark, ternaire , cross , &ituplet);
 
 }
-void musicxmlcompile::addNote(c_measure *measure, bool after_measure, int from_t, int to_t, bool rest, bool tie_back, bool tie_next, 
+void musicxmlcompile::addNote(std::vector<c_measure>::iterator measure, bool after_measure, int from_t, int to_t, bool rest, bool tie_back, bool tie_next,
 	                          bool *first_note, int *nrnote , int nbOrnaments, wxString *text , bool *staccato, bool *fermata, 
 	                          bool *breath_mark, bool ternaire , bool cross, int *ituplet)
 {
 	// add symbols for one note [from_t,to_t], to_t <= divisions, inside one measure
-
+	return;
 	if (from_t == to_t)
 		return;
 
@@ -3240,7 +3239,7 @@ void musicxmlcompile::addNote(c_measure *measure, bool after_measure, int from_t
 	// insert figures starting on the beat
 	addSymbolNote(measure, after_measure, to_t - ffrom_t, rest, ttie_back, tie_next, first_note, nrnote , nbOrnaments, text, staccato, fermata, breath_mark, ternaire , cross, ituplet);
 }
-void musicxmlcompile::addSymbolNote(c_measure *measure, bool after_measure, int duration, bool rest, bool tie_back, bool tie_next, bool *first_note, int *nrnote , int nbOrnaments, wxString *text , bool *staccato, bool *fermata, bool *breath_mark, bool ternaire , bool cross, int *ituplet)
+void musicxmlcompile::addSymbolNote(std::vector<c_measure>::iterator measure, bool after_measure, int duration, bool rest, bool tie_back, bool tie_next, bool *first_note, int *nrnote , int nbOrnaments, wxString *text , bool *staccato, bool *fermata, bool *breath_mark, bool ternaire , bool cross, int *ituplet)
 {
 
 	c_note *note = NULL ;
@@ -3257,7 +3256,7 @@ void musicxmlcompile::addSymbolNote(c_measure *measure, bool after_measure, int 
 		int tuplet;
 		calculateDuration(duration_todo, measure->division_quarter, ternaire , &duration_done, & typeNote , &dot , &tuplet);
 		duration_todo -= duration_done;
-		if (typeNote.IsEmpty() == false)
+		if (typeNote.empty() == false)
 		{
 			note = new c_note();
 
@@ -3950,7 +3949,7 @@ std::vector <wxString>  musicxmlcompile::getListOrnament()
 		default:
 			break;
 		}
-		if ( ! s.IsEmpty() )
+		if ( ! s.empty() )
 			a.push_back(s);
 	}
 	return a;

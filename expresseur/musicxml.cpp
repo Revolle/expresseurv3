@@ -452,7 +452,7 @@ c_attributes::c_attributes(wxXmlNode *xmlnode)
 		if (name == "divisions")
 			divisions = GetIntContent(child);
 		else if (name == "key")
-			key = new c_key(child);
+			key = new c_key(child); 
 		else if (name == "time")
 			mtime = new c_time(child);
 		else if (name == "staff-details")
@@ -482,7 +482,7 @@ c_attributes::c_attributes(const c_attributes & attributes, bool withContent)
 	if (withContent)
 	{
 		staves = attributes.staves;
-		if ((attributes.key != NULL) && (withContent))
+		if (attributes.key)
 			key = new c_key(*(attributes.key));
 		for (auto & current : attributes.clefs) 
 		{

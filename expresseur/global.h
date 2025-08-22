@@ -130,6 +130,8 @@
 #define SALLMIDIIN "all Midi-In"
 #define SALLCHANNEL "All channels"
 #define SSTOP "stop"
+#define SCONTINUE "continue"
+#define SNONE 	 "(none)"
 #define SMIDI "MIDI"
 #define SVI "VI"
 #define NSF2 "SF2"

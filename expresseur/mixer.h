@@ -11,7 +11,7 @@ class mixer
 {
 
 public:
-	mixer(wxFrame *parent, wxWindowID id, const wxString &title, viewerscore *mscore, wxArrayString lMidiout, wxArrayString lOpenMidiout, bool audio );
+	mixer(wxFrame *parent, wxWindowID id, const wxString &title, viewerscore *mscore, std::vector <wxString> lMidiout, std::vector <wxString> lOpenMidiout, bool audio );
 	~mixer();
 
 	void reset(bool localoff = true, bool doreset = false);
@@ -61,8 +61,8 @@ private:
 
 	void getTracks();
 	int nbTrack = 0;
-	wxArrayString nameTrack;
-	wxArrayString helpTrack;
+	std::vector <wxString> nameTrack;
+	std::vector <wxString> helpTrack;
 	wxSizerFlags sizerFlagMinimumPlace;
 	wxSizerFlags sizerFlagMaximumPlace;
 
@@ -74,10 +74,10 @@ private:
 	void AddMixerName(wxString label);
 	void AddMixerVolume(int nrTrack);
 
-	wxArrayString nameChannel;
-	wxArrayString listInstrumensDevices[OUT_MAX_DEVICE];
-	wxArrayString nameDevices;
-	wxArrayString nameMidiDevices;
+	std::vector <wxString> nameChannel;
+	std::vector <wxString> listInstrumensDevices[OUT_MAX_DEVICE];
+	std::vector <wxString> nameDevices;
+	std::vector <wxString> nameMidiDevices;
 	wxString defaultDevice , lastDevice ;
 
 	bool createViList(wxString fileName, wxString ext);
@@ -92,9 +92,9 @@ private:
 	wxChoice *mSoundDevice[MAX_TRACK];
 	wxComboBox *mInstrument[MAX_TRACK];
 
-	wxArrayString listVIused;
+	std::vector <wxString> listVIused;
 
-	void getMidioutDevices(wxArrayString lMidiout, wxArrayString lValideMidiout, bool audio);
+	void getMidioutDevices(std::vector <wxString> lMidiout, std::vector <wxString> lValideMidiout, bool audio);
 	void getListMidioutDevice(wxString fileName , int nrDevice);
 
 	void getMidiVi(wxString fullNameDevice, int *nrMidiDevice, wxString *nameVi);

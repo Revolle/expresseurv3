@@ -3,7 +3,7 @@
 
 #define DEF_MXCONF
 
-void configSetPrefix(wxArrayString nameOpenMidiOutDevices);
+void configSetPrefix(std::vector <wxString> nameOpenMidiOutDevices);
 wxConfig *configGet();
 void configErase();
 

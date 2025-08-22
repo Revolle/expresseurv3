@@ -19,6 +19,8 @@
 #ifndef WX_PRECOMP
 #include "wx/wx.h"
 #endif
+#include <vector>
+#include <algorithm>
 
 
 #include "wx/dialog.h"
@@ -51,15 +53,15 @@ wxEND_EVENT_TABLE()
 
 editshortcut::editshortcut(wxWindow *parent, wxWindowID id, const wxString &title,
 wxString *lname,
-wxString *laction, wxArrayString nameAction,
-wxString *lkey, wxArrayString nameKey,
-wxString *ldevice, wxArrayString lnameDevice, wxArrayString lnameOpenDevice,
-wxString *lchannel, wxArrayString nameChannel,
-wxString *levent, wxArrayString nameEvent,
-wxString *lmin, wxArrayString nameValueMin,
-wxString *lmax, wxArrayString nameValueMax,
+wxString *laction, std::vector <wxString> nameAction,
+wxString *lkey, std::vector <wxString> nameKey,
+wxString *ldevice, std::vector <wxString> lnameDevice, std::vector <wxString> lnameOpenDevice,
+wxString *lchannel, std::vector <wxString> nameChannel,
+wxString *levent, std::vector <wxString> nameEvent,
+wxString *lmin, std::vector <wxString> nameValueMin,
+wxString *lmax, std::vector <wxString> nameValueMax,
 wxString *lparam ,
-wxString *lstopOnMatch, wxArrayString nameStopOnMatch
+wxString *lstopOnMatch, std::vector <wxString> nameStopOnMatch
 )
 : wxDialog(parent, id, title, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 {
@@ -204,9 +206,10 @@ void editshortcut::OnMidi(wxCommandEvent& event)
 		token = tokenizer.GetNextToken();
 		long d; token.ToLong(&d);
 		wxString ndev = nameDevice[d - 1];
-		int ps = nameOpenDevice.Index(ndev);
-		if (ps == wxNOT_FOUND)
-			ps = 0;
+		int ps = 0;
+		auto id = std::find(nameOpenDevice.begin(), nameOpenDevice.end(), ndev);
+		if ( id != nameOpenDevice.end())
+			ps = std::distance(nameOpenDevice.begin(),id);
 		fTdevice->SetSelection(ps);
 
 		//channel

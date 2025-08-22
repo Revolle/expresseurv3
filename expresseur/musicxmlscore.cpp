@@ -267,56 +267,32 @@ musicxmlscore::~musicxmlscore()
 		delete scoreBitmap;
 		scoreBitmap = NULL;
 	}
-	cleanTmp();
 }
 void musicxmlscore::cleanTmp()
 {
+	wxFileName ft;
+	ft.SetPath(getTmpDir());
+	wxString filename;
+	std::vector<wxString> masqs = { "ex*.png" , "ex*.pdf", "ex*.ly*" , "ex*.pos" , "ex*.xml" , "ex*.log"};
+	std::vector<wxString> fileToBeDeleted;
 	wxDir dir(getTmpDir());
 	if (dir.IsOpened())
 	{
-		wxString filename;
-		wxFileName ft;
-		ft.SetPath(getTmpDir());
-		wxArrayString fileToBeDeleted ;
-		bool cont = dir.GetFirst(&filename, "expresseur*.png", wxDIR_FILES);
-		while (cont)
+		for (auto & masq : masqs)
 		{
-			ft.SetFullName(filename);
-			fileToBeDeleted.Add(ft.GetFullPath());
-			cont = dir.GetNext(&filename);
+			bool cont = dir.GetFirst(&filename, masq, wxDIR_FILES);
+			while (cont)
+			{
+				ft.SetFullName(filename);
+				fileToBeDeleted.push_back(ft.GetFullPath());
+				cont = dir.GetNext(&filename);
+			}
 		}
-		cont = dir.GetFirst(&filename, "expresseur*.pdf", wxDIR_FILES);
-		while (cont)
+		for (auto f : fileToBeDeleted)
 		{
-			ft.SetFullName(filename);
-			fileToBeDeleted.Add(ft.GetFullPath());
-			cont = dir.GetNext(&filename);
-		}
-		for(unsigned int i = 0 ; i < fileToBeDeleted.GetCount() ; i ++ )
-		{
-			wxRemoveFile(fileToBeDeleted[i]);
+			wxRemoveFile(f);
 		}
 	}
-	wxFileName fp;
-	fp.SetPath(getTmpDir());
-	fp.SetFullName(FILE_SRC_LILY);
-	if (fp.FileExists())
-		wxRemoveFile(fp.GetFullPath());
-	fp.SetFullName(FILE_OUT_SETLILY);
-	if (fp.FileExists())
-		wxRemoveFile(fp.GetFullPath());
-	fp.SetFullName(FILE_LOG_LILY);
-	if (fp.FileExists())
-		wxRemoveFile(fp.GetFullPath());
-	fp.SetFullName(FILE_POS_LILY);
-	if (fp.FileExists())
-		wxRemoveFile(fp.GetFullPath());
-	fp.SetFullName(FILE_POS_TXT);
-	if (fp.FileExists())
-		wxRemoveFile(fp.GetFullPath());
-	fp.SetFullName(FILE_OUT_XML);
-	if (fp.FileExists())
-		wxRemoveFile(fp.GetFullPath());
 }
 void musicxmlscore::cleanCache(int nbDayCache)
 {
@@ -333,7 +309,7 @@ void musicxmlscore::cleanCache(int nbDayCache)
 		ft.SetPath(getTmpDir());
 		wxString sn;
 		sn.Printf("%s*.*", PREFIX_CACHE);
-		wxArrayString fileToBeDeleted ;
+		std::vector<wxString> fileToBeDeleted;
 		bool cont = dir.GetFirst(&filename, sn , wxDIR_FILES);
 		while (cont)
 		{
@@ -342,13 +318,13 @@ void musicxmlscore::cleanCache(int nbDayCache)
 			//wxMessageBox(mlimitdate.FormatDate() + ">?" + dateFile.FormatDate()  + " " + ft.GetName(),"Date expiration cache");
 			if ((nbDayCache == -1 ) || ( dateFile.IsEarlierThan(mlimitdate)))
 			{
-				fileToBeDeleted.Add(ft.GetFullPath());
+				fileToBeDeleted.push_back(ft.GetFullPath());
 			}
 			cont = dir.GetNext(&filename);
 		}
-		for(unsigned int i = 0 ; i < fileToBeDeleted.GetCount() ; i ++ )
+		for(auto f : fileToBeDeleted)
 		{
-			wxRemoveFile(fileToBeDeleted[i]);
+			wxRemoveFile(f);
 		}
 	}
 }
@@ -857,6 +833,7 @@ std::uint64_t musicxmlscore::crc_cumulate_string(wxString s)
 }
 bool musicxmlscore::newLayout(wxSize sizeClient)
 {
+	//// NOP
 
 	if (!isOk())
 		return false;
@@ -955,14 +932,14 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 			}
 			if (str.StartsWith("%%%%%%%%translate_xml_to_ly:"))
 			{
-				command_xmltolily.Printf(str, pythonexe, pythonscript, lilyscore, xmlout);
+				command_xmltolily.Printf(str, pythonexe, pythonscript, FILE_OUT_LILY , FILE_OUT_XML);
 				fout.AddLine(command_xmltolily);
 				command_xmltolily.Replace("%%%%translate_xml_to_ly:", "");
 				continue;
 			}
 			if (str.StartsWith("%%%%%%%%translate_ly_to_png:"))
 			{
-				command_lilytopng.Printf(str, lilyexe, lilylog, lilysetting, getTmpDir() , lilysrc);
+				command_lilytopng.Printf(str, lilyexe, FILE_LOG_LILY, FILE_OUT_SETLILY, FILE_SRC_LILY);
 				fout.AddLine(command_lilytopng);
 				command_lilytopng.Replace("%%%%translate_ly_to_png:", "");
 				continue;
@@ -1032,6 +1009,10 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 			pp++;
 		}
 	}
+
+	////NOP
+	//return false;
+
 	if ( alreadyAvailable)
 	{ 
 		((wxFrame *)mParent)->SetStatusText("Score pages : read from cache",0);
@@ -1040,7 +1021,10 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	{
 		((wxFrame *)mParent)->SetStatusText("Score pages : computation by Lilypond in progress", 0);
 
-		lexec = wxExecute(command_xmltolily, wxEXEC_SYNC | wxEXEC_HIDE_CONSOLE);
+		wxExecuteEnv execenv;
+		execenv.cwd = getTmpDir();
+
+		lexec = wxExecute(command_xmltolily, wxEXEC_SYNC | wxEXEC_HIDE_CONSOLE  , NULL , &execenv);
 		if (lexec < 0)
 		{
 			wxMessageBox("Cannot translate XML to Lilypond", "build score", wxOK | wxICON_ERROR);
@@ -1105,7 +1089,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		}
 
 		// run the lilypond batch to build he pages and the positions
-		lexec = wxExecute(command_lilytopng , wxEXEC_SYNC | wxEXEC_HIDE_CONSOLE);
+		lexec = wxExecute(command_lilytopng , wxEXEC_SYNC | wxEXEC_HIDE_CONSOLE , NULL , & execenv );
 		if (lexec < 0)
 		{
 			wxMessageBox("Cannot convert Lilypond to PNG", "build score", wxOK | wxICON_ERROR);
@@ -1535,7 +1519,7 @@ bool musicxmlscore::readPos()
 	int nbint = 0;
 	char ch;
 	wxRect rect;
-	wxArrayInt measureTurnPage;
+	std::vector <int> measureTurnPage;
 	int nrpage = 0;
 	int nrmeasure = 0 ;
 	int nrnote = 0;
@@ -1575,7 +1559,7 @@ bool musicxmlscore::readPos()
 			nrnote++;	
 			if (nrpage != previous_nrpage)
 			{
-				measureTurnPage.Add(nrmeasure - 1);
+				measureTurnPage.push_back(nrmeasure - 1);
 			}
 			previous_nrpage = nrpage;
 			totalPages = nrpage + 1;
@@ -1586,10 +1570,8 @@ bool musicxmlscore::readPos()
 	close(fp);
 
 	xmlCompile->setMeasureTurnEvent(0,true);
-	int nbTurn = measureTurnPage.GetCount();
-	for (int nrTurn = 0; nrTurn < nbTurn; nrTurn++)
+	for (auto & nrMeasureTurn : measureTurnPage ) //int nrTurn = 0; nrTurn < nbTurn; nrTurn++)
 	{
-		int nrMeasureTurn = measureTurnPage[nrTurn];
 		xmlCompile->setMeasureTurnEvent(nrMeasureTurn);
 	}
 	return true;

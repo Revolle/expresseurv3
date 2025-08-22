@@ -10,6 +10,8 @@
 
 // For compilers that support precompilation, includes "wx/wx.h".
 #include "wx/wxprec.h"
+#include <vector>
+#include <algorithm>
 
 #ifdef __BORLANDC__
 #pragma hdrstop
@@ -71,7 +73,7 @@ EVT_BUTTON(IDM_MIDISHORTCUT_CLOSE, midishortcut::OnClose)
 wxEND_EVENT_TABLE()
 
 
-midishortcut::midishortcut(wxFrame *parent, wxWindowID id, const wxString &title,wxArrayString inameAction, wxArrayString lMidiin, wxArrayString lOpenedMidiin)
+midishortcut::midishortcut(wxFrame *parent, wxWindowID id, const wxString &title,std::vector <wxString> inameAction, std::vector <wxString> lMidiin, std::vector <wxString> lOpenedMidiin)
 : wxDialog(parent, id, title, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 {
 
@@ -91,10 +93,10 @@ midishortcut::midishortcut(wxFrame *parent, wxWindowID id, const wxString &title
 	sizerFlagMinimumPlace.Border(wxALL, 1);
 
 	nameDevice = lMidiin;
-	nameOpenDevice.Clear();
-	nameOpenDevice.Add(SALLMIDIIN);
-	for (unsigned int i = 0; i < lOpenedMidiin.GetCount(); i++)
-		nameOpenDevice.Add(lOpenedMidiin[i]);
+	nameOpenDevice.clear();
+	nameOpenDevice.push_back(SALLMIDIIN);
+	for (auto & n : lOpenedMidiin)
+		nameOpenDevice.push_back(n);
 
 	InitLists();
 
@@ -247,7 +249,7 @@ void midishortcut::saveShortcut()
 		action = listShortchut->GetItemText(nrItem, 7); 
 		param = listShortchut->GetItemText(nrItem, 8); 
 		stopOnMatch = listShortchut->GetItemText(nrItem, 9); 
-		long channel = nameChannel.Index(schannel); channel--; 
+		int channel = std::distance(nameChannel.begin() , std::find(nameChannel.begin(), nameChannel.end(), schannel)); channel--;
 		long min; smin.ToLong(&min); 
 		long max;
 		if (!smax.IsEmpty())
@@ -272,42 +274,43 @@ void midishortcut::InitLists()
 {
 	wxString s;
 
-	nameEvent.Clear();
-	nameEvent.Add(_("(none)"));
-	nameEvent.Add(snoteonoff);
-	nameEvent.Add(snoteononly);
-	nameEvent.Add(scontrol);
-	nameEvent.Add(sprogram);
+	nameEvent.clear();
+	nameEvent.push_back(SNONE);
+	nameEvent.push_back(snoteonoff);
+	nameEvent.push_back(snoteonoff);
+	nameEvent.push_back(snoteononly);
+	nameEvent.push_back(scontrol);
+	nameEvent.push_back(sprogram);
 
-	nameChannel.Clear();
-	nameChannel.Add(SALLCHANNEL);
+	nameChannel.clear();
+	nameChannel.push_back(SALLCHANNEL);
 	for (int i = 0; i < 16; i++)
 	{
 		s.Printf("%s#%d", "channel", i + 1);
-		nameChannel.Add(s);
+		nameChannel.push_back(s);
 	}
 
-	nameKey.Clear();
-	nameKey.Add("");
+	nameKey.clear();
+	nameKey.push_back("");
 	for (char i = 'A' ; i <= 'Z'; i++)
 	{
 		s.Printf("%c", i);
-		nameKey.Add(s);
+		nameKey.push_back(s);
 	}
 
-	nameValueMax.Clear();
-	nameValueMax.Add("");
+	nameValueMax.clear();
+	nameValueMax.push_back("");
 	for (int i = 0; i < 128; i++)
 	{
 		s.Printf("%d", i);
-		nameValueMin.Add(s);
-		nameValueMax.Add(s);
-		nameParam.Add(s);
+		nameValueMin.push_back(s);
+		nameValueMax.push_back(s);
+		nameParam.push_back(s);
 	}
 
-	nameStopOnMatch.Clear();
-	nameStopOnMatch.Add(SSTOP);
-	nameStopOnMatch.Add("continue");
+	nameStopOnMatch.clear();
+	nameStopOnMatch.push_back(SSTOP);
+	nameStopOnMatch.push_back(SCONTINUE);
 
 
 }
@@ -457,14 +460,14 @@ void midishortcut::scanMidi(int nr_device, int type_msg, int channel, int value1
 void midishortcut::reset()
 {
 	wxBusyCursor wait;
-	valueName.Clear();
-	valueAction.Clear();
-	valueParam.Clear();
-	valueKey.Clear();
-	valueDevice.Clear();
-	valueChannel.Clear();
-	valueMin.Clear();
-	valueEvent.Clear();
+	valueName.clear();
+	valueAction.clear();
+	valueParam.clear();
+	valueKey.clear();
+	valueDevice.clear();
+	valueChannel.clear();
+	valueMin.clear();
+	valueEvent.clear();
 	// reset the selectors
 	basslua_setSelector(0, -1, 'x', 0, 0, 0, NULL, 0, false , NULL);
 	// set the selectors
@@ -473,19 +476,19 @@ void midishortcut::reset()
 	wxString sdevice, sevent, smin, smax, sparam, schannel, stopOnMatch;
 	for (int nrSelector = 0; nrSelector < nbSelector; nrSelector++)
 	{
-		name = configGet(CONFIG_SHORTCUTNAME, "", false, wxString::Format("%d", nrSelector)); valueName.Add(name);
-		saction = configGet(CONFIG_SHORTCUTACTION, "", false, wxString::Format("%d", nrSelector)); valueAction.Add(saction);
-		key = configGet(CONFIG_SHORTCUTKEY, "", false, wxString::Format("%d", nrSelector)); valueKey.Add(key);
+		name = configGet(CONFIG_SHORTCUTNAME, "", false, wxString::Format("%d", nrSelector)); valueName.push_back(name);
+		saction = configGet(CONFIG_SHORTCUTACTION, "", false, wxString::Format("%d", nrSelector)); valueAction.push_back(saction);
+		key = configGet(CONFIG_SHORTCUTKEY, "", false, wxString::Format("%d", nrSelector)); valueKey.push_back(key);
 		sdevice = configGet(CONFIG_SHORTCUTDEVICENAME, SALLMIDIIN, false, wxString::Format("%d", nrSelector));
 		schannel = configGet(CONFIG_SHORTCUTCHANNEL, SALLCHANNEL, false, wxString::Format("%d", nrSelector));
-		sevent = configGet(CONFIG_SHORTCUTEVENT, "", false, wxString::Format("%d", nrSelector)); valueEvent.Add(sevent);
+		sevent = configGet(CONFIG_SHORTCUTEVENT, "", false, wxString::Format("%d", nrSelector)); valueEvent.push_back(sevent);
 		smin = configGet(CONFIG_SHORTCUTMIN, "", false, wxString::Format("%d", nrSelector));
 		smax = configGet(CONFIG_SHORTCUTMAX, "", false, wxString::Format("%d", nrSelector));
 		stopOnMatch = configGet(CONFIG_STOPONMATCH, SSTOP,  false, wxString::Format("%d", nrSelector));
-		sparam = configGet(CONFIG_SHORTCUTPARAM, "", false, wxString::Format("%d", nrSelector)); valueParam.Add(sparam);
-		long min; smin.ToLong(&min); valueMin.Add(min);
-		long nrAction = nameAction.Index(saction);
-		long nrChannel = nameChannel.Index(schannel) - 1 ; valueChannel.Add(nrChannel);
+		sparam = configGet(CONFIG_SHORTCUTPARAM, "", false, wxString::Format("%d", nrSelector)); valueParam.push_back(sparam);
+		long min; smin.ToLong(&min); valueMin.push_back(min);
+		int nrAction = std::distance(nameAction.begin() , std::find(nameAction.begin(), nameAction.end(), saction));
+		int nrChannel = std::distance(nameChannel.begin(), std::find(nameChannel.begin(), nameChannel.end(), schannel)) - 1; valueChannel.push_back(nrChannel);
 		long max;
 		if (!smax.IsEmpty())
 			smax.ToLong(&max);
@@ -500,16 +503,18 @@ void midishortcut::reset()
 			strcpy(bufevent, sevent.c_str());
 			char bufparam[MAXBUFCHAR];
 			strcpy(bufparam, sparam.c_str());
-			int nrDevice;
-			if (nameOpenDevice.Index(sdevice) == 0)
+			int nrDevice = std::distance(nameOpenDevice.begin() , std::find(nameOpenDevice.begin(), nameOpenDevice.end(), sdevice));
+			if (nrDevice == 0)
 				nrDevice = -1;
 			else
 			{
-				nrDevice = nameDevice.Index(sdevice);
-				if (nrDevice == wxNOT_FOUND)
+				auto i = std::find(nameDevice.begin(), nameDevice.end(), sdevice);;
+				if (i == nameDevice.end())
 					nrDevice = -2;
+				else
+					nrDevice = std::distance(nameDevice.begin(), i);
 			}
-			valueDevice.Add(nrDevice);
+			valueDevice.push_back(nrDevice);
 
 			//if (nrDevice != -2)
 				basslua_setSelector(nrSelector, nrAction, 'b', nrDevice , nrChannel, bufevent, tp, 2, stopOnMatch.Contains("stop"), bufparam);
@@ -554,11 +559,11 @@ void midishortcut::read(wxTextFile *lfile)
 		}
 	}
 }
-wxArrayString midishortcut::getShortcuts()
+std::vector<wxString> midishortcut::getShortcuts()
 {
-	shortcutNrSelector.Clear();
-	wxArrayString ls ;
-	for (unsigned int nrSelector = 0; nrSelector < valueAction.GetCount(); nrSelector++)
+	shortcutNrSelector.clear();
+	std::vector<wxString> ls ;
+	for (unsigned int nrSelector = 0; nrSelector < valueAction.size(); nrSelector++)
 	{
 		wxString cs = valueKey[nrSelector] ;
 		cs.MakeUpper() ;
@@ -569,8 +574,8 @@ wxArrayString midishortcut::getShortcuts()
 			{
 				wxString s;
 				s.Printf("%s\tALT+%c\n", valueName[nrSelector], c);
-				ls.Add(s);
-				shortcutNrSelector.Add(nrSelector);
+				ls.push_back(s);
+				shortcutNrSelector.push_back(nrSelector);
 			}
 		}
 	}
@@ -578,7 +583,7 @@ wxArrayString midishortcut::getShortcuts()
 }
 void midishortcut::onShortcut(int nrShortcut)
 {
-	if ((nrShortcut < 0 ) || ( nrShortcut >= (int)(shortcutNrSelector.GetCount())))
+	if ((nrShortcut < 0 ) || ( nrShortcut >= (int)(shortcutNrSelector.size())))
 		return ;
 	
 	if (prevShortcutNrSelector >= 0)

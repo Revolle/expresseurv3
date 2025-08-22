@@ -17,6 +17,8 @@
 #ifndef WX_PRECOMP
 #include "wx/wx.h"
 #endif
+#include <vector>
+#include <algorithm>
 
 
 #include "wx/dialog.h"
@@ -55,15 +57,15 @@ expression::expression(wxFrame *parent, wxWindowID id, const wxString &title)
 
 	char name[MAXBUFCHAR];
 	char help[MAXBUFCHAR] = "";
-	nameValue.Clear();
-	helpValue.Clear();
+	nameValue.clear();
+	helpValue.clear();
 	unsigned int nrValue = 0;
 	while (basslua_table(moduleGlobal, tableValues, nrValue, fieldName, name, NULL, tableGetKeyValue) == tableGetKeyValue)
 	{
-		nameValue.Add(name);
+		nameValue.push_back(name);
 		help[0] = '\0';
 		basslua_table(moduleGlobal, tableValues, nrValue, fieldHelp, help, NULL, tableGetKeyValue);
-		helpValue.Add(help);
+		helpValue.push_back(help);
 		nrValue++;
 	}
 
@@ -77,7 +79,7 @@ expression::expression(wxFrame *parent, wxWindowID id, const wxString &title)
 
 	int v;
 	wxString s  ;
-	for (nrValue = 0; nrValue < nameValue.GetCount(); nrValue++)
+	for (nrValue = 0; nrValue < nameValue.size(); nrValue++)
 	{
 		basslua_table(moduleGlobal, tableValues, nrValue, fielDefaultValue, NULL, &v, tableGetKeyValue);
 		s = nameValue[nrValue];
@@ -120,7 +122,7 @@ void expression::scanValue()
 	// scan the value which are currently in place, and update the GUI if necessary
 	// this scan is called periodically by a global recurrent timer on main thread
 	int v;
-	unsigned int nb = nameValue.GetCount();
+	unsigned int nb = nameValue.size();
 	for (unsigned int nrValue = 0; nrValue < nb ; nrValue++)
 	{
 		basslua_table(moduleGlobal, tableValues, -1, nameValue[nrValue], NULL, &v, tableGetKeyValue);
@@ -147,7 +149,7 @@ void expression::OnValue(wxEvent& event)
 void expression::reset()
 {
 	int v;
-	for (unsigned int nrValue = 0; nrValue < nameValue.GetCount(); nrValue++)
+	for (unsigned int nrValue = 0; nrValue < nameValue.size(); nrValue++)
 	{
 		basslua_table(moduleGlobal, tableValues, nrValue, fielDefaultValue, NULL, &v, tableGetKeyValue);
 		if (configExists(CONFIG_EXPRESSIONVALUE, false, nameValue[nrValue]))
@@ -158,7 +160,7 @@ void expression::reset()
 }
 void expression::write(wxTextFile *lfile)
 {
-	for (unsigned int nrValue = 0; nrValue < nameValue.GetCount(); nrValue++)
+	for (unsigned int nrValue = 0; nrValue < nameValue.size(); nrValue++)
 	{
 		int v;
 		basslua_table(moduleGlobal, tableValues, nrValue, fielDefaultValue, NULL, &v, tableGetKeyValue);
@@ -167,7 +169,7 @@ void expression::write(wxTextFile *lfile)
 }
 void expression::read(wxTextFile *lfile)
 {
-	for (unsigned int nrValue = 0; nrValue < nameValue.GetCount(); nrValue++)
+	for (unsigned int nrValue = 0; nrValue < nameValue.size(); nrValue++)
 	{
 		int v;
 		basslua_table(moduleGlobal, tableValues, nrValue, fielDefaultValue, NULL, &v, tableGetKeyValue);

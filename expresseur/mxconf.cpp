@@ -56,7 +56,7 @@ wxString resourceDir ;
 wxString mPrefix = "";
 wxConfig mConfig(APP_NAME);
 
-void setDir()
+static void setDir()
 {
 	if ( todoDir )
 	{
@@ -171,13 +171,13 @@ void configErase()
 {
 	mConfig.DeleteAll() ;
 }
-void configSetPrefix(wxArrayString nameOpenMidiOutDevices)
+void configSetPrefix(std::vector <wxString> nameOpenMidiOutDevices)
 {
 	// the prefix is a checksum of all valid midiout's name
 	wxString name;
 	wxString names;
 	wxString spipe;
-	int nbOut = nameOpenMidiOutDevices.GetCount();
+	int nbOut = nameOpenMidiOutDevices.size();
 	if (nbOut == 0)
 	{
 		names = "no midi-out valid device";
@@ -197,7 +197,7 @@ void configSetPrefix(wxArrayString nameOpenMidiOutDevices)
 	}
 	mPrefix.Printf("%s/%s/", CONFIG_HARDWARE, names);
 }
-wxString configPrefixKey(wxString key, bool prefix, wxString name)
+static wxString configPrefixKey(wxString key, bool prefix, wxString name)
 {
 	wxString s1;
 	if (name.IsEmpty())

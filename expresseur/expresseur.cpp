@@ -25,6 +25,9 @@
     #include "wx/wx.h"
 #endif
 
+#include <vector>
+#include <algorithm>
+
 #include "wx/toolbar.h"
 #include "wx/log.h"
 #include "wx/image.h"
@@ -469,9 +472,10 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 
 	listSettingMenu = new wxMenu;
 	readListSettings();
-	for(unsigned int i = 0 ; i < listSettings.GetCount(); i ++ )
+	int i = -1;
+	for(auto & s : listSettings )
 	{
-		wxString s = listSettings[i] ;
+		i++;
 		if ( s.Contains("|"))
 		{
 			wxString f = s.Left(s.Find('|'));
@@ -649,7 +653,7 @@ bool Expresseur::checkConfig()
 		ret = false;
 	}
 	msg += "\n";
-	int nbIn = nameValideMidiInDevices.GetCount();
+	int nbIn = nameValideMidiInDevices.size();
 	if (nbIn == 0)
 	{
 		msg += "No valid MIDI-in\n";
@@ -660,15 +664,15 @@ bool Expresseur::checkConfig()
 		sv.Printf("%d valid Midi-in\n", nbIn);
 		msg += sv;
 	}
-	for (int i = 0; i < nbIn; i++)
+	for (auto & s : nameValideMidiInDevices )
 	{
-		if (nameOpenMidiInDevices.Index(nameValideMidiInDevices[i]) == wxNOT_FOUND)
-			msg += "    - " + nameValideMidiInDevices[i] + " : NOT opened (cf. MIDI configuration)\n";
+		if (std::find(nameOpenMidiInDevices.begin() , nameOpenMidiInDevices.end(), s) == nameOpenMidiInDevices.end())
+			msg += "    - " + s + " : NOT opened (cf. MIDI configuration)\n";
 		else
-			msg += "    - " + nameValideMidiInDevices[i] + " : opened\n";
+			msg += "    - " + s + " : opened\n";
 	}
 	msg += "\n";
-	int nbOut = nameValideMidiOutDevices.GetCount();
+	int nbOut = nameValideMidiOutDevices.size();
 	if (nbOut == 0)
 	{
 		msg += "No valid MIDI-out\n";
@@ -679,12 +683,12 @@ bool Expresseur::checkConfig()
 		sv.Printf("%d valid Midi-out\n", nbOut);
 		msg += sv;
 	}
-	for (int i = 0; i < nbOut ; i++)
+	for (auto & s : nameValideMidiOutDevices )
 	{
-		if (nameOpenMidiOutDevices.Index(nameValideMidiOutDevices[i]) == wxNOT_FOUND)
-			msg += "    - " + nameValideMidiOutDevices[i] + " : NOT opened (cf. MIDI configuration)\n";
+		if (std::find(nameOpenMidiOutDevices.begin() , nameOpenMidiOutDevices.end(),  s ) == nameOpenMidiOutDevices.end() )
+			msg += "    - " + s + " : NOT opened (cf. MIDI configuration)\n";
 		else
-			msg += "    - " + nameValideMidiOutDevices[i] + " : opened\n";
+			msg += "    - " + s + " : opened\n";
 	}
 	msg += "\n";
 
@@ -699,12 +703,12 @@ bool Expresseur::checkConfig()
 		sv.Printf("%d valid Audio output\n", nbAudio);
 		msg += sv;
 	}
-	for (unsigned int i = 0; i < nameaudioDevices.GetCount(); i++)
+	for (auto & nameaudioDevice : nameaudioDevices ) 
 	{
-		if (nameDefaultaudioDevices == nameaudioDevices[i])
-			msg += "    - " + nameaudioDevices[i] + " : DEFAULT sound output\n";
+		if (nameDefaultaudioDevices == nameaudioDevice)
+			msg += "    - " + nameaudioDevice + " : DEFAULT sound output\n";
 		else
-			msg += "    - " + nameaudioDevices[i] + "\n";
+			msg += "    - " + nameaudioDevice + "\n";
 	}
 
 	msg += "\nConf=" + getConfPath() + "\n";
@@ -1145,12 +1149,12 @@ void Expresseur::getLuaAction(bool all, wxMenu *newActionMenu)
 	fb.SetExt("png");
 
 	wxString s;
-	nameAction.Clear();
+	nameAction.clear();
 	char name[512];
 	int nrAction = 0;
 	while (basslua_table(moduleGlobal, tableActions, nrAction, fieldName, name, NULL, tableGetKeyValue) == tableGetKeyValue)
 	{
-		nameAction.Add(name);
+		nameAction.push_back(name);
 		char shortcut[64] = "";
 		char help[512] = "";
 		basslua_table(moduleGlobal, tableActions, nrAction, fieldShortcut, shortcut, NULL, tableGetKeyValue);
@@ -1189,11 +1193,12 @@ void Expresseur::getShortcutAction(wxMenu *newActionMenu)
 		return;
 
 	// get the list of shortcuts : name+ALT+key
-	wxArrayString ls = mMidishortcut->getShortcuts();
-	for (unsigned int nrSelector = 0; nrSelector < ls.GetCount(); nrSelector++)
+	std::vector <wxString> ls = mMidishortcut->getShortcuts();
+	int i = -1;
+	for (auto & s : ls )
 	{
-		wxString s = ls[nrSelector];
-		newActionMenu->Append(ID_MAIN_KEY_SHORTCUT + nrSelector, s);
+		i++;
+		newActionMenu->Append(ID_MAIN_KEY_SHORTCUT + i, s);
 	}
 }
 void Expresseur::SetMenuAction(bool all)
@@ -1304,7 +1309,7 @@ void Expresseur::OnMenuShortcut(wxCommandEvent& event)
 void Expresseur::OnMenuSettings(wxCommandEvent& event)
 {
 	unsigned int nrSetting = event.GetId() - ID_MAIN_SETTINGS_FILE;
-	if ((nrSetting < 0 ) || (nrSetting >= listSettings.GetCount()))
+	if ((nrSetting < 0 ) || (nrSetting >= listSettings.size()))
 		return;
 	wxString s = listSettings[nrSetting] ;
 	if ( ! s.Contains("|"))
@@ -1534,7 +1539,7 @@ void Expresseur::ornamentAdd(bool absolute)
 	bool ret = ((musicxmlscore *)(mViewerscore))->getScorePosition(&absolute_measure_nr, &measure_nr, &repeatNr , &beat, &t);
 	if (ret)
 		return;
-	wxArrayString list_ornament = musicxmlcompile::getListOrnament();
+	std::vector<wxString> list_ornament = musicxmlcompile::getListOrnament();
 	editMode = true;
 	wxString ornament = wxGetSingleChoice("Select ornament", "Add ornament", list_ornament, this);
 	editMode = false;
@@ -1591,7 +1596,7 @@ void Expresseur::OnNextPage(wxCommandEvent& WXUNUSED(event))
 void Expresseur::readListSettings()
 {
 	// reads settings available in resources
-	listSettings.Clear() ;
+	listSettings.clear() ;
 	wxDir dirSettings(getResourceDir());
 	if ( dirSettings.IsOpened() )
 	{
@@ -1618,7 +1623,7 @@ void Expresseur::readListSettings()
 					{
 						wxString sf ;
 						sf = ffilename.GetName() + "|" + str.Mid(2) ;
-						listSettings.Add(sf);
+						listSettings.push_back(sf);
 					}
 				}
 				tfile.Close();
@@ -1639,9 +1644,9 @@ void Expresseur::ListUpdateMenu()
 {
 	ListClearMenu();
 	wxFileName f;
-	for (int i = listFiles.Count() - 1; i >= 0; i--)
+	for (int i = listFiles.size() - 1; i >= 0; i--)
 	{
-		f.Assign(listFiles.Item(i));
+		f.Assign(listFiles[i]);
 		wxMenuItem *mfilelist = listMenu->PrependCheckItem(ID_MAIN_LIST_FILE + i, f.GetFullName() , f.GetFullPath() );
 		mfilelist->Check(false);
 		wxString slabel ;
@@ -1670,9 +1675,9 @@ void Expresseur::ListSave()
 		return;
 	tfile.Clear();
 	tfile.AddLine(LIST_FILE);
-	for (unsigned int i = 0; i < listFiles.Count(); i++)
+	for (auto & fi : listFiles)
 	{
-		f.Assign(listFiles.Item(i));
+		f.Assign(fi);
 		f.MakeRelativeTo(listName.GetPath());
 		tfile.AddLine(f.GetFullPath());
 	}
@@ -1709,7 +1714,7 @@ void Expresseur::ListOpen()
 		{
 			f.Assign(str);
 			f.MakeAbsolute(listName.GetPath());
-			listFiles.Add(f.GetFullPath());
+			listFiles.push_back(f.GetFullPath());
 		}
 		str = tfile.GetNextLine();
 	}
@@ -1721,16 +1726,16 @@ void Expresseur::ListOpen()
 void Expresseur::ListNew()
 {
 	ListClearMenu();
-	listFiles.Clear();
+	listFiles.clear();
 	listName.Clear();
 
 }
 void Expresseur::ListCheck()
 {
 	wxFileName f;
-	for (int i = listFiles.Count() - 1; i >= 0; i--)
+	for (int i = listFiles.size() - 1; i >= 0; i--)
 	{
-		f.Assign(listFiles.Item(i));
+		f.Assign(listFiles[i]);
 		if (f.GetFullPath() == fileName.GetFullPath())
 		{
 			listMenu->Check(ID_MAIN_LIST_FILE + i, true);
@@ -1750,7 +1755,7 @@ void Expresseur::ListSelectNext(int df)
 		if (df > 0)
 			ListSelect(0);
 		else
-			ListSelect(listFiles.Count() - 1);
+			ListSelect(listFiles.size() - 1);
 		return;
 	}
 	ListSelect(listSelection + df);
@@ -1758,16 +1763,16 @@ void Expresseur::ListSelectNext(int df)
 void Expresseur::ListSelect(int id)
 {
 	int nrfile;
-	if ((int)(listFiles.Count()) == 0)
+	if ((int)(listFiles.size()) == 0)
 		return;
 	nrfile = id;
 	if (id < 0)
-		nrfile = (int)(listFiles.Count()) - 1;
-	if (id >= (int)(listFiles.Count()))
+		nrfile = (int)(listFiles.size()) - 1;
+	if (id >= (int)(listFiles.size()))
 		nrfile = 0;
-	Open(listFiles.Item(nrfile));
+	Open(listFiles[nrfile]);
 	listSelection = nrfile;
-	for (int i = listFiles.Count() - 1; i >= 0; i--)
+	for (int i = listFiles.size() - 1; i >= 0; i--)
 	{
 		listMenu->Check(ID_MAIN_LIST_FILE + i, (i == nrfile));
 	}
@@ -1790,7 +1795,7 @@ void Expresseur::OnListOpen(wxCommandEvent& WXUNUSED(event))
 	if (openFileDialog.ShowModal() == wxID_CANCEL)
 		return; // the user changed idea...
 
-	listFiles.Clear();
+	listFiles.clear();
 	listName.Assign(openFileDialog.GetPath());
 	ListOpen();
 }
@@ -1821,40 +1826,39 @@ void Expresseur::OnListAdd(wxCommandEvent& WXUNUSED(event))
 {
 	if (fileName.IsOk() == false)
 		return;
-	listFiles.Add(fileName.GetFullPath());
+	listFiles.push_back(fileName.GetFullPath());
 	ListUpdateMenu();
 	listChanged = true;
 	ListCheck();
 }
 void Expresseur::OnListRemove(wxCommandEvent& WXUNUSED(event)) 
 {
-	if (listFiles.Index(fileName.GetFullPath()) != wxNOT_FOUND)
+	auto di = std::find(listFiles.begin(), listFiles.end(), fileName.GetFullPath());
+	if ( di != listFiles.end())
 	{
-		listFiles.Remove(fileName.GetFullPath());
+		listFiles.erase(di);
 		ListUpdateMenu();
 		listChanged = true;
 	}
 }
 void Expresseur::OnListUp(wxCommandEvent& WXUNUSED(event)) 
 {
-	if ((listFiles.Index(fileName.GetFullPath()) != wxNOT_FOUND)
-		&& (listFiles.Index(fileName.GetFullPath()) != 0 ))
+	auto di = std::find(listFiles.begin(), listFiles.end(), fileName.GetFullPath());
+	if (( di != listFiles.end() ) 
+		&& (std::distance(listFiles.begin(), di) != 0))
 	{
-		int p = listFiles.Index(fileName.GetFullPath());
-		listFiles.Insert(fileName.GetFullPath(), p-1);
-		listFiles.RemoveAt(p+1);
+		std::swap(listFiles[std::distance(listFiles.begin(), di)], listFiles[std::distance(listFiles.begin(), std::prev(di))]);
 		ListUpdateMenu();
 		listChanged = true;
 	}
 }
 void Expresseur::OnListDown(wxCommandEvent& WXUNUSED(event)) 
 {
-	if ((listFiles.Index(fileName.GetFullPath()) != wxNOT_FOUND)
-		&& (listFiles.Index(fileName.GetFullPath()) != ((int)(listFiles.Count()) - 1 )))
+	auto di = std::find(listFiles.begin(), listFiles.end(), fileName.GetFullPath());
+	if ((di != listFiles.end())
+		&& (std::next(di) != listFiles.end() ))
 	{
-		int p = listFiles.Index(fileName.GetFullPath());
-		listFiles.Insert(fileName.GetFullPath(), p + 2);
-		listFiles.RemoveAt(p);
+		std::swap(listFiles[std::distance(listFiles.begin(),di)], listFiles[std::distance(listFiles.begin(), std::next(di))]);
 		ListUpdateMenu();
 		listChanged = true;
 	}
@@ -1865,7 +1869,7 @@ void Expresseur::OnListFile(wxCommandEvent& event)
 }
 void Expresseur::OnListPreviousFile(wxCommandEvent& WXUNUSED(event))
 {
-	ListSelectNext(-1);
+	ListSelectNext(-1) ;
 }
 void Expresseur::OnListNextFile(wxCommandEvent& WXUNUSED(event)) 
 {
@@ -1934,20 +1938,20 @@ void Expresseur::OnLuafile(wxCommandEvent& WXUNUSED(event))
 }
 void Expresseur::settingSave()
 {
-	wxArrayString lChoice;
-	lChoice.Add(_("Mixer    :  (tuning from menu edit/Mixer)"));
-	lChoice.Add(_("Expression   : (tuning from menu edit/Expression)"));
-	lChoice.Add(_("MIDI Shortcuts : (settings from menu settings/MIDI-keyborad configuration)"));
-	lChoice.Add(_("Lua Files :  (settings from menu setting/LUA files)"));
-	wxArrayInt listToSave ;
+	std::vector<wxString> lChoice = {
+		"Mixer    :  (tuning from menu edit/Mixer)" ,
+		"Expression   : (tuning from menu edit/Expression)" ,
+		"MIDI Shortcuts : (settings from menu settings / MIDI - keyborad configuration)",
+		"Lua Files :  (settings from menu setting/LUA files)" };
+	std::vector <int> listToSave ;
 	do 
 	{
 		wxMultiChoiceDialog mChoice(this, "Select the settings to save.", "Savec setting", lChoice, wxOK | wxCANCEL);
 		if (mChoice.ShowModal() != wxID_OK)
 			return;
-		listToSave.Clear() ;
+		listToSave.clear() ;
 		listToSave = mChoice.GetSelections() ;
-	} while (listToSave.GetCount() < 1) ;
+	} while (listToSave.size() < 1) ;
 
 	wxString str;
 	wxTextFile tfile;
@@ -1995,9 +1999,9 @@ void Expresseur::settingSave()
 		}
 	}
 
-	for (unsigned int i = 0; i < listToSave.GetCount(); i++)
+	for (auto & ls : listToSave )
 	{
-		switch (listToSave[i])
+		switch (ls)
 		{
 		case 0: mMixer->write(&tfile); break;
 		case 1: mExpression->write(&tfile); break;
@@ -2478,8 +2482,8 @@ void Expresseur::OnMidiSetting(wxCommandEvent& WXUNUSED(event))
 }
 int Expresseur::GetListMidiIn()
 {
-	nameValideMidiInDevices.Clear();
-	nameMidiInDevices.Clear();
+	nameValideMidiInDevices.clear();
+	nameMidiInDevices.clear();
 	int nrMidiInDevice = 0;
 	int nbMidiInDevice = 0;
 	char nameMidiInDevice[MAXBUFCHAR];
@@ -2489,12 +2493,12 @@ int Expresseur::GetListMidiIn()
 		basslua_call(moduleLuabass, sinGetMidiName, "i>s", nrMidiInDevice + 1, nameMidiInDevice);
 		if (*nameMidiInDevice == '\0')
 			break;
-		nameMidiInDevices.Add(nameMidiInDevice);
+		nameMidiInDevices.push_back(nameMidiInDevice);
 		bool valid = false;
 		basslua_call(moduleGlobal, sinMidiIsValid, "s>b", nameMidiInDevice, &valid);
 		if (valid)
 		{
-			nameValideMidiInDevices.Add(nameMidiInDevice);
+			nameValideMidiInDevices.push_back(nameMidiInDevice);
 			nbMidiInDevice++;
 		}
 		nrMidiInDevice++;
@@ -2513,15 +2517,15 @@ void Expresseur::openMidiIn()
 	int nrDevicesToOpen[MIDIIN_MAX];
 	int nbDevicesToOpen = 0;
 	GetListMidiIn();
-	nameOpenMidiInDevices.Clear();
+	nameOpenMidiInDevices.clear();
 	for (unsigned int i = 0; i < MIDIIN_MAX; i++)
 	{
 		wxString smididevice = configGet(CONFIG_MIDIIN, "", false, wxString::Format("%d", i));
-		int nrDevice = nameMidiInDevices.Index(smididevice);
-		if (nrDevice != wxNOT_FOUND)
+		auto id = std::find(nameMidiInDevices.begin() ,nameMidiInDevices.end() ,smididevice);
+		if (id != nameMidiInDevices.end() )
 		{
-			nameOpenMidiInDevices.Add(smididevice);
-			nrDevicesToOpen[nbDevicesToOpen] = nrDevice;
+			nameOpenMidiInDevices.push_back(smididevice);
+			nrDevicesToOpen[nbDevicesToOpen] = std::distance(nameMidiInDevices.begin(), id);
 			nbDevicesToOpen++;
 		}
 	}
@@ -2531,8 +2535,8 @@ void Expresseur::openMidiIn()
 
 int Expresseur::GetListMidiOut()
 {
-	nameValideMidiOutDevices.Clear();
-	nameMidiOutDevices.Clear();
+	nameValideMidiOutDevices.clear();
+	nameMidiOutDevices.clear();
 	int nrMidiOutDevice = 0;
 	int nbMidiOutDevice = 0;
 	char nameMidiOutDevice[MAXBUFCHAR];
@@ -2542,12 +2546,12 @@ int Expresseur::GetListMidiOut()
 		basslua_call(moduleLuabass, soutGetMidiName, "i>s", nrMidiOutDevice + 1, nameMidiOutDevice);
 		if (*nameMidiOutDevice == '\0')
 			break;
-		nameMidiOutDevices.Add(nameMidiOutDevice);
+		nameMidiOutDevices.push_back(nameMidiOutDevice);
 		bool valid = false;
 		basslua_call(moduleGlobal, soutMidiIsValid, "s>b", nameMidiOutDevice, &valid);
 		if (valid)
 		{
-			nameValideMidiOutDevices.Add(nameMidiOutDevice);
+			nameValideMidiOutDevices.push_back(nameMidiOutDevice);
 			nbMidiOutDevice++;
 		}
 		nrMidiOutDevice++;
@@ -2558,15 +2562,15 @@ void Expresseur::openMidiOut()
 {
 	// open the device in
 	GetListMidiOut();
-	nameOpenMidiOutDevices.Clear();
+	nameOpenMidiOutDevices.clear();
 	for (unsigned int i = 0; i < MIDIOUT_MAX; i++)
 	{
 		wxString smididevice = configGet(CONFIG_MIDIOUT, "", false, wxString::Format("%d", i));
-		int nrMidiOutDevice = nameMidiOutDevices.Index(smididevice);
-		if (nrMidiOutDevice != wxNOT_FOUND)
+		auto id = std::find(nameMidiOutDevices.begin(), nameMidiOutDevices.end(), smididevice);
+		if (id != nameMidiOutDevices.end())
 		{
-			nameOpenMidiOutDevices.Add(smididevice);
-			basslua_call(moduleLuabass, soutOpenMidi, "i", nrMidiOutDevice + 1);
+			nameOpenMidiOutDevices.push_back(smididevice);
+			basslua_call(moduleLuabass, soutOpenMidi, "i", std::distance(nameMidiOutDevices.begin(),id) + 1);
 		}
 	}
 }
@@ -2702,7 +2706,7 @@ VALIDATE THE GOOD QUALITY OF SOUND\n");
 	topsizer_audio->Add(new wxStaticText(pwizard_audio, wxID_ANY, saudio));
 	mlistAudio = new	wxListBox(pwizard_audio, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameaudioDevices, wxLB_SINGLE);
 	mlistAudio->Bind(wxEVT_LISTBOX, &Expresseur::OnAudioChoice, this);
-	if (( defaultNrDevice >= 0 ) && ( defaultNrDevice < (int)(nameaudioDevices.GetCount())))
+	if (( defaultNrDevice >= 0 ) && ( defaultNrDevice < (int)(nameaudioDevices.size())))
 		mlistAudio->SetSelection(defaultNrDevice);
 	topsizer_audio->Add(mlistAudio, sizerFlagMaximumPlace);
 
@@ -2846,7 +2850,7 @@ int Expresseur::getListAudio()
 		basslua_call(moduleLuabass, "getaudioname", "i>s", nraudiodevice + 1, nameaudiodevice);
 		if (*nameaudiodevice == '\0')
 			break;
-		nameaudioDevices.Add(nameaudiodevice);
+		nameaudioDevices.push_back(nameaudiodevice);
 		nraudiodevice++;
 	}
 	return nraudiodevice;
@@ -2948,18 +2952,23 @@ int Expresseur::setAudioDefault()
 	nameDefaultaudioDevices = configGet(CONFIG_DEFAULT_AUDIO,"");
 	basslua_call(moduleLuabass, "audioClose", "");
 	getListAudio();
-	int nrDevice = nameaudioDevices.Index(nameDefaultaudioDevices);
-	if (nrDevice == wxNOT_FOUND)
+	auto id = std::find(nameaudioDevices.begin(), nameaudioDevices.end(), nameDefaultaudioDevices);
+	int nrDevice = 0;
+	if (id == nameaudioDevices.end())
 	{
-		switch ( nameaudioDevices.GetCount() )
+		switch ( nameaudioDevices.size() )
 		{
 			case 0 : nrDevice = -1 ; break ;
 			case 1 : nrDevice = 0 ; break ;
 			default : nrDevice = 1 ; break ;
 		}
 	}
-	basslua_call(moduleLuabass, "audioDefaultDevice", "i", nrDevice + 1 );
-	for (unsigned int n = 0; n < nameaudioDevices.GetCount(); n++)
+	else
+	{
+		nrDevice = std::distance(nameaudioDevices.begin(), id);
+	}
+	basslua_call(moduleLuabass, "audioDefaultDevice", "i", nrDevice  + 1);
+	for (unsigned int n = 0; n < nameaudioDevices.size(); n++)
 	{
 		int vupdate = configGet(CONFIG_AUDIO_UPDATE, 25, false, nameaudioDevices[n]);
 		int vbuffer = configGet(CONFIG_AUDIO_BUFFER, 25, false, nameaudioDevices[n]);
