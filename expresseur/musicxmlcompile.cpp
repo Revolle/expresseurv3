@@ -3198,7 +3198,7 @@ void musicxmlcompile::addNote(std::vector<c_measure>::iterator measure, bool aft
 	                          bool *breath_mark, bool ternaire , bool cross, int *ituplet)
 {
 	// add symbols for one note [from_t,to_t], to_t <= divisions, inside one measure
-	return;
+
 	if (from_t == to_t)
 		return;
 

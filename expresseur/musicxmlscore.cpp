@@ -939,7 +939,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 			}
 			if (str.StartsWith("%%%%%%%%translate_ly_to_png:"))
 			{
-				command_lilytopng.Printf(str, lilyexe, FILE_LOG_LILY, FILE_OUT_SETLILY, FILE_SRC_LILY);
+				command_lilytopng.Printf(str, lilyexe, FILE_LOG_LILY, FILE_OUT_SETLILY, FILE_SRC_LILY );
 				fout.AddLine(command_lilytopng);
 				command_lilytopng.Replace("%%%%translate_ly_to_png:", "");
 				continue;
@@ -1009,9 +1009,6 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 			pp++;
 		}
 	}
-
-	////NOP
-	//return false;
 
 	if ( alreadyAvailable)
 	{ 
