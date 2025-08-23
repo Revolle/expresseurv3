@@ -47,8 +47,6 @@
 //WX_DEFINE_SORTED_ARRAY(ArrayOfMusicxmlevents);
 //WX_DEFINE_SORTED_ARRAY(musicxmlevent *, SortedArrayOfMusicxmlevents);
 
-int c_musicxmlevent::guid = 0 ; // generator uid
-
 enum ornamentType
 {
 	o_divisions = 0, // divisions per quarter note, used to count in a measure. For information to the end-user
@@ -272,6 +270,11 @@ static bool pedal_barCompare(const c_pedal_bar_toapply& a, const c_pedal_bar_toa
 }
 void musicxmlcompile::fillStartStopNext()
 {
+
+	// add a fake element at the end 
+
+
+
 	// lMusicxmlevents  : index nr sorted by the Start-time
 	std::sort(lMusicxmlevents.begin(), lMusicxmlevents.end(),musicXmlEventsCompareStart);
 	int nr_musicxmlevent = -1 ;
@@ -281,7 +284,17 @@ void musicxmlcompile::fillStartStopNext()
 		nb_measure = current_musicxmlevent.stop_measureNr;
 		current_musicxmlevent.nr = nr_musicxmlevent;
 	}
-		
+
+	c_musicxmlevent last_musicxmlevent;
+	last_musicxmlevent.visible = false;
+	last_musicxmlevent.played = false;
+	last_musicxmlevent.start_measureNr = nb_measure + 1;
+	last_musicxmlevent.stop_measureNr = nb_measure + 1;
+	last_musicxmlevent.start_t = 0;
+	last_musicxmlevent.stop_t = 0;
+	last_musicxmlevent.end_score = true;
+	lMusicxmlevents.push_back(last_musicxmlevent);
+
 	nbEvents = lMusicxmlevents.size() ;
 
 	// index Stop : indes sorted by the Stop-time
@@ -294,39 +307,43 @@ void musicxmlcompile::fillStartStopNext()
 
 	std::sort(lMusicxmlevents.begin(), lMusicxmlevents.end(), musicXmlEventsCompareStart);
 	int nrEvent = -1;
-	for (std::vector<c_musicxmlevent>::iterator current_musicxmlevent = lMusicxmlevents.begin() ; 
+	for (std::vector<c_musicxmlevent>::iterator current_musicxmlevent = lMusicxmlevents.begin()  ;
 		current_musicxmlevent != lMusicxmlevents.end(); 
-		current_musicxmlevent++)
+		current_musicxmlevent++ )
 	{
 		nrEvent++;
 		int nrEventNext = nrEvent;
-		for (std::vector<c_musicxmlevent>::iterator next_musicxmlevent = lMusicxmlevents.begin() + nrEvent + 1; 
+		for (std::vector<c_musicxmlevent>::iterator next_musicxmlevent = lMusicxmlevents.begin() + nrEvent + 1 ;
 			next_musicxmlevent != lMusicxmlevents.end() ; 
-			next_musicxmlevent ++ )
+			next_musicxmlevent ++)
 		{
 			nrEventNext++;
-			if (!next_musicxmlevent->played)	continue;
-			if (next_musicxmlevent->start_measureNr < current_musicxmlevent->stop_measureNr) continue;
-			if (next_musicxmlevent->start_measureNr > current_musicxmlevent->stop_measureNr) break;
-			if (next_musicxmlevent->start_t < current_musicxmlevent->stop_t) continue;
-			if (next_musicxmlevent->start_t > current_musicxmlevent->stop_t) break;
-			if (next_musicxmlevent->start_order < current_musicxmlevent->stop_order) continue;
-			if (next_musicxmlevent->start_order >= current_musicxmlevent->stop_order) break;
-		}
-		current_musicxmlevent->nextNr = nrEventNext;
+			if (!next_musicxmlevent->played)	
+				continue;
+			if (next_musicxmlevent->start_measureNr < current_musicxmlevent->stop_measureNr) 
+				continue;
+			if (next_musicxmlevent->start_measureNr > current_musicxmlevent->stop_measureNr)
+			{
+				current_musicxmlevent->nextNr = nrEventNext;
+				break;
+			}
+			if (next_musicxmlevent->start_t < current_musicxmlevent->stop_t) 
+				continue;
+			if (next_musicxmlevent->start_t > current_musicxmlevent->stop_t)
+			{
+				current_musicxmlevent->nextNr = nrEventNext;
+				break;
+			}
+			if (next_musicxmlevent->start_order < current_musicxmlevent->stop_order) 
+				continue;
+			if (next_musicxmlevent->start_order >= current_musicxmlevent->stop_order)
+			{
+				current_musicxmlevent->nextNr = nrEventNext;
+				break;
+			}
+		}	
 	}
 
-	// add a fake element at the end 
-	c_musicxmlevent last_musicxmlevent;
-	last_musicxmlevent.nr = nr_musicxmlevent + 1;
-	last_musicxmlevent.visible = false;
-	last_musicxmlevent.played = false;
-	last_musicxmlevent.start_measureNr = nb_measure + 1;
-	last_musicxmlevent.stop_measureNr = nb_measure + 1;
-	last_musicxmlevent.start_t = 0;
-	last_musicxmlevent.stop_t = 0;
-	last_musicxmlevent.end_score = true;
-	lMusicxmlevents.push_back(last_musicxmlevent);
 }
 void musicxmlcompile::dump_musicxmlevents()
 {
@@ -2607,7 +2624,7 @@ void musicxmlcompile::compileMusicxmlevents()
 			|| (lMusicxmlevents[current_i].stop_order != p_order)
 			|| (lMusicxmlevents[current_i].tenuto != p_tenuto))
 			previous_i = current_i;
-		if (previous_i)
+		if (previous_i >= 0)
 		{
 			lMusicxmlevents[previous_i].stops.push_back(lMusicxmlevents[current_i].nr);
 			if (previous_i != current_i)
@@ -2631,7 +2648,7 @@ void musicxmlcompile::compileMusicxmlevents()
 			|| (lMusicxmlevents[current_i].start_t != p_t) 
 			|| (lMusicxmlevents[current_i].start_order != p_order))
 			previous_i = current_i;
-		if (previous_i)
+		if (previous_i>= 0)
 			lMusicxmlevents[previous_i].starts.push_back(lMusicxmlevents[current_i].nr);
 
 		p_MeasureNr = lMusicxmlevents[current_i].start_measureNr;
@@ -2696,7 +2713,7 @@ void musicxmlcompile::compileMusicxmlevents()
 	int prev_start_measureNr = -1;
 	int nb_order_start_blind = 0;
 	std::vector <c_musicxmlevent> lmusicxmlevents_visible;
-	for (int current_i = 0; current_i < ( nbEvents + 1); current_i++)
+	for (int current_i = 0; current_i <  nbEvents; current_i++)
 	{
 		if ((lMusicxmlevents[current_i].start_t != prev_start_t) || (lMusicxmlevents[current_i].start_measureNr != prev_start_measureNr))
 		{
@@ -3078,7 +3095,7 @@ void musicxmlcompile::compileExpresseurPart()
 	bool staccato = false;
 	bool cross = false;
 	int currentT = 0;
-	int nrnote = 0;
+	int nrExpresseurNote = 0;
 	bool tie_back = false;
 	bool firstNote = true;
 	bool ternaire = false;
@@ -3097,10 +3114,12 @@ void musicxmlcompile::compileExpresseurPart()
 			breath_mark = true;
 		if (musicxmlevent_from->fermata)
 			fermata = true;
-		if ((musicxmlevent_from->visible == false) || (musicxmlevent_from->starts.empty()))
+		if (musicxmlevent_from->visible == false)
+			continue;
+		if (musicxmlevent_from->starts.empty())
 			continue;
 		wxASSERT(musicxmlevent_from->duration >= 0);
-		musicxmlevent_from->nrnote = nrnote; // to have a sequential marker for the list of Expresseur notes
+		musicxmlevent_from->nrExpresseurNote = nrExpresseurNote; // to have a sequential marker for the list of Expresseur notes
 		int from_start_measureNr = musicxmlevent_from->start_measureNr;
 		int from_stop_measureNr = musicxmlevent_from->stop_measureNr;
 		int from_startT = musicxmlevent_from->start_t;
@@ -3117,8 +3136,11 @@ void musicxmlcompile::compileExpresseurPart()
 		for (size_t musicxmlevent_to_i = musicxmlevent_from_i + 1; musicxmlevent_to_i < lMusicxmlevents.size(); musicxmlevent_to_i++)
 		{
 			auto musicxmlevent_to = lMusicxmlevents.begin() + musicxmlevent_to_i;
-			if (((musicxmlevent_to->visible == false) || (musicxmlevent_to->starts.empty()))
-				|| ((musicxmlevent_to->start_measureNr == from_start_measureNr) && ((musicxmlevent_to->start_t ) == from_startT)))
+			if (musicxmlevent_to->visible == false) 
+				continue ;
+			if (musicxmlevent_to->starts.empty())
+				continue ;
+			if ((musicxmlevent_to->start_measureNr == from_start_measureNr) && ((musicxmlevent_to->start_t ) == from_startT))
 				continue;;
 			to_start_measureNr = musicxmlevent_to->start_measureNr;
 			to_stop_measureNr = musicxmlevent_to->stop_measureNr;
@@ -3147,7 +3169,7 @@ void musicxmlcompile::compileExpresseurPart()
 		while (start_measureNr > currentMeasure->number)
 		{
 			// finish the current measure with rests
-			addNote(currentMeasure, false, currentT, currentMeasure->division_measure, true, false, false, &unused_first_note, &nrnote, 0, &text, &staccato, &fermata, &breath_mark, ternaire, false, &ituplet);
+			addNote(currentMeasure, false, currentT, currentMeasure->division_measure, true, false, false, &unused_first_note, &nrExpresseurNote, 0, &text, &staccato, &fermata, &breath_mark, ternaire, false, &ituplet);
 			// go to next measure
 			currentT = 0;
 			currentMeasure_i++;
@@ -3160,7 +3182,7 @@ void musicxmlcompile::compileExpresseurPart()
 		}
 
 		// add rests to fill the gap up to this note
-		addNote(currentMeasure, false , currentT, startT, true, false, false, &unused_first_note, &nrnote, 0, &text, &staccato, &fermata, &breath_mark, ternaire , false, &ituplet);
+		addNote(currentMeasure, false , currentT, startT, true, false, false, &unused_first_note, &nrExpresseurNote, 0, &text, &staccato, &fermata, &breath_mark, ternaire , false, &ituplet);
 
 		// calculate total_duration 
 		currentT = startT;
@@ -3170,7 +3192,7 @@ void musicxmlcompile::compileExpresseurPart()
 		// add the figure-note per measure
 		for (int n = start_measureNr; n < stop_measureNr; n++)
 		{
-			addNote(currentMeasure, (stopT > 0 ) , startT, currentMeasure->division_measure, false, tie_back, true, &firstNote, &nrnote , musicxmlevent_from->nb_ornaments, &text , &staccato, &fermata, &breath_mark, ternaire , cross , &ituplet);
+			addNote(currentMeasure, (stopT > 0 ) , startT, currentMeasure->division_measure, false, tie_back, true, &firstNote, &nrExpresseurNote, musicxmlevent_from->nb_ornaments, &text , &staccato, &fermata, &breath_mark, ternaire , cross , &ituplet);
 			firstNote = false;
 			currentMeasure_i++;
 			if (currentMeasure_i == part_expresseur->measures.size())
@@ -3184,15 +3206,15 @@ void musicxmlcompile::compileExpresseurPart()
 			startT = 0;
 			tie_back = true;
 		}
-		addNote(currentMeasure, (stopT > 0), currentT, stopT, false, tie_back, false, &firstNote, &nrnote, musicxmlevent_from->nb_ornaments, &text, &staccato, &fermata, &breath_mark, ternaire , cross , &ituplet);
+		addNote(currentMeasure, (stopT > 0), currentT, stopT, false, tie_back, false, &firstNote, &nrExpresseurNote, musicxmlevent_from->nb_ornaments, &text, &staccato, &fermata, &breath_mark, ternaire , cross , &ituplet);
 		firstNote = false;
 		currentT = stopT;
 	}
-	addNote(currentMeasure, false, currentT, currentMeasure->division_measure, true, false, false, &firstNote, &nrnote , 0, &text, &staccato, &fermata, &breath_mark, ternaire , cross , &ituplet);
+	addNote(currentMeasure, false, currentT, currentMeasure->division_measure, true, false, false, &firstNote, &nrExpresseurNote, 0, &text, &staccato, &fermata, &breath_mark, ternaire , cross , &ituplet);
 
 }
 void musicxmlcompile::addNote(std::vector<c_measure>::iterator measure, bool after_measure, int from_t, int to_t, bool rest, bool tie_back, bool tie_next,
-	                          bool *first_note, int *nrnote , int nbOrnaments, wxString *text , bool *staccato, bool *fermata, 
+	                          bool *first_note, int * nrExpresseurNote, int nbOrnaments, wxString *text , bool *staccato, bool *fermata,
 	                          bool *breath_mark, bool ternaire , bool cross, int *ituplet)
 {
 	// add symbols for one note [from_t,to_t], to_t <= divisions, inside one measure
@@ -3228,16 +3250,16 @@ void musicxmlcompile::addNote(std::vector<c_measure>::iterator measure, bool aft
 		t0 += measure->division_beat;
 		if (t0 < to_t)
 		{
-			addSymbolNote(measure, after_measure, t0 - from_t, rest, tie_back, true, first_note, nrnote , nbOrnaments, text, staccato, fermata, breath_mark, ternaire , cross , ituplet);
+			addSymbolNote(measure, after_measure, t0 - from_t, rest, tie_back, true, first_note, nrExpresseurNote, nbOrnaments, text, staccato, fermata, breath_mark, ternaire , cross , ituplet);
 			*first_note = false;
 			ttie_back = true;
 			ffrom_t = t0;
 		}
 	}
 	// insert figures starting on the beat
-	addSymbolNote(measure, after_measure, to_t - ffrom_t, rest, ttie_back, tie_next, first_note, nrnote , nbOrnaments, text, staccato, fermata, breath_mark, ternaire , cross, ituplet);
+	addSymbolNote(measure, after_measure, to_t - ffrom_t, rest, ttie_back, tie_next, first_note, nrExpresseurNote, nbOrnaments, text, staccato, fermata, breath_mark, ternaire , cross, ituplet);
 }
-void musicxmlcompile::addSymbolNote(std::vector<c_measure>::iterator measure, bool after_measure, int duration, bool rest, bool tie_back, bool tie_next, bool *first_note, int *nrnote , int nbOrnaments, wxString *text , bool *staccato, bool *fermata, bool *breath_mark, bool ternaire , bool cross, int *ituplet)
+void musicxmlcompile::addSymbolNote(std::vector<c_measure>::iterator measure, bool after_measure, int duration, bool rest, bool tie_back, bool tie_next, bool *first_note, int * nrExpresseurNote, int nbOrnaments, wxString *text , bool *staccato, bool *fermata, bool *breath_mark, bool ternaire , bool cross, int *ituplet)
 {
 
 	c_note *note = NULL ;
@@ -3310,7 +3332,7 @@ void musicxmlcompile::addSymbolNote(std::vector<c_measure>::iterator measure, bo
 			}
 			else
 			{
-				(*nrnote)++; // note suivante dans la partition (pour la coorelation avec lilypond )
+				(*nrExpresseurNote)++; // note suivante dans la partition (pour la coorelation avec lilypond )
 				c_pitch *pitch = new c_pitch();
 				//pitch->unpitched = true;
 				pitch->step = "F";
@@ -3772,14 +3794,14 @@ bool musicxmlcompile::getPosEvent(int nrEvent, int *pageNr, wxRect *rect , bool 
 	}
 	return (m->pageNr >= 0);
 }
-int musicxmlcompile::setPosEvent(int nrnote, int pageNr, wxRect rect)
+int musicxmlcompile::setPosEvent(int nrExpresseurNote, int pageNr, wxRect rect)
 {
 	int measure = -1;
 	int t = -1;
 
 	for (auto & musicxmlevent : lMusicxmlevents )
 	{
-		if (musicxmlevent.nrnote == nrnote)
+		if (musicxmlevent.nrExpresseurNote == nrExpresseurNote)
 		{
 			musicxmlevent.pageNr = pageNr;
 			musicxmlevent.rect = rect;
@@ -3903,7 +3925,6 @@ bool musicxmlcompile::getScorePosition(int nrEvent , int *absolute_measure_nr, i
 	*repeat = m->repeat ;
 	*beat = m->start_t / m->division_beat;
 	*t = m->start_t % m->division_beat  ;
-	*uid = m->uid;
 	if (m->end_score)
 		return true;
 	return false ;
