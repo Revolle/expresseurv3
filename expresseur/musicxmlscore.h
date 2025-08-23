@@ -70,8 +70,6 @@ private:
 
 	bool lily_def_xml = true ;
 
-	int newPaintPlaying = -1;
-	int newPaintPos = -1;
 	int prevPos = -1;
 	bool prevPlaying = true;
 
@@ -92,14 +90,15 @@ private:
 	bool currentTurnPage = true ;
 	wxString lilypos, expresseurpos , lilysrc;
 
-	void setCursor(wxDC& dc , int nrEvent,bool playing ,bool redraw);
 	bool readlilypos();
 	bool readlilypdf(uint32_t page , uint32_t xpng, uint32_t ypng);
 	bool readpngsize(uint32_t* xpng, uint32_t* ypng);
 	bool musicxmlscore::readlilypond();
 	bool readPos();
-	bool setPage(wxDC& dc, int pageNr, bool turnPage, bool redraw);
-	wxBitmap *scoreBitmap = NULL ;
+	bool setCursor(int nrEvent, bool playing, bool redraw);
+	bool setPage( int pageNr, bool turnPage, bool redraw);
+	bool drawPage( int pageNr, bool turnPage);
+	wxBitmap scoreBitmap ;
 	int prev_absolute_measure_nr = NULL_INT;
 
 	void crc_init();
