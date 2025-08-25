@@ -1,5 +1,3 @@
-// update : 15/11/2016 18:00
-
 #ifndef DEF_MUSICXMLSCORE
 
 #define DEF_MUSICXMLSCORE

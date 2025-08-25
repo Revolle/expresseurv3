@@ -44,6 +44,7 @@ public:
 	bool dacapo = false;
 	bool fine = false;
 	bool dalsegno = false;
+	int repeatNumber = 0;
 	bool toBeDeleted = false;
 };
 
@@ -309,11 +310,11 @@ private:
 	int getMarkNr(int measureNr);
 	int getMeasureNr(int measureNr);
 	void analyseList();
-	void analyseNoteOrnaments(c_note *note, int measureNumber, int t);
+	void analyseNoteOrnaments(const c_note & note, int measureNumber, int t);
 	void sortMeasureMarks();
 	int getDivision(int measure_nr, int *division_quarter, int *division_measure);
-	int compileNote(c_part *part,c_note *note, int measureNr, int originalMeasureNr, int t, int division_measure, int division_beat, int division_quarter, int repeat, int key_fifths);
-	void compileTie(c_part *part, c_note *note, int *measureNr, int *t, int nbDivision);
+	int compileNote(const c_part & part,const c_note & note, int measureNr, int originalMeasureNr, int t, int division_measure, int division_beat, int division_quarter, int repeat, int key_fifths);
+	void compileTie(const c_part & part, const c_note & note, int *measureNr, int *t, int nbDivision);
 	void compileMusicxmlevents();
 	void pushLuaMusicxmlevents();
 	void addOrnaments();
@@ -332,6 +333,7 @@ private:
 	void removeExpresseurPart();
 	void createListMeasures();
 	void buildMeasures();
+	void buildBars();
 	void compilePlayedScore();
 	void deleteBarLabel(c_measure *newMeasure);
 	void addExpresseurPart();

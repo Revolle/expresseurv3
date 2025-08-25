@@ -63,21 +63,6 @@
 #include "musicxmlcompile.h"
 #include "musicxmlscore.h"
 
-#define FILE_OUT_XML "expresseur_out.xml" // musicXml export of Expresseur score
-#define FILE_OUT_LILY "expresseur_translated.ly" // Lilypond translation of FILE_OUT_XML
-#define FILE_SRC_LILY "expresseur_out.ly" // Lilypond source file , adptated from FILE_OUT_LILY
-#define FILE_IN_PRESETLILY "expresseur_setting_template.ly" // template of Lilypond script to extract pos of Expreseur notes, and se the size of image
-#define FILE_OUT_SETLILY "expresseur_setting.ly" // Lilypond script, adapted from FILE_OUT_PRESETLILY
-#define FILE_LOG_LILY "expresseur_out" // Lilypond log during compilation of FILE_SRC_LILY
-#define FILE_SCORE_PDF "expresseur_out-%d.pdf" // PDF (one per page) , output of lilypond generation
-#define FILE_SCORE_PNG "expresseur_out-%d.png" // PNG (one per page) , output of lilypond generation
-#define FILE_POS_LILY "expresseur_out.lyp" // position of Lilypond Expresseur notes, output of lilypond generation
-#define FILE_POS_TXT "expresseur_out.pos" // position of Expresseur notes in FILE_SCORE_PNG
-#define FILE_IN_XML "expresseur_in.xml"
-
-#define PREFIX_CACHE "CACHE_EXPRESSEUR"
-#define WIDTH_SEPARATOR_PAGE 10
-
 uint32_t bswap32(uint32_t x) {
 	return ((x & 0x000000FF) << 24) |
 		((x & 0x0000FF00) << 8) |
