@@ -393,6 +393,7 @@ void c_staff_details::write(wxFFile *f)
 //--------------------------------------------
 c_attributes::c_attributes(wxXmlNode *xmlnode)
 {
+	used = true;
 	wxXmlNode *child = xmlnode->GetChildren();
 	while (child)
 	{
@@ -416,6 +417,7 @@ c_attributes::c_attributes(wxXmlNode *xmlnode)
 }
 c_attributes::c_attributes(const c_attributes & attributes, bool withContent)
 {
+	used = attributes.used;
 	divisions = attributes.divisions;
 	if (attributes.mtime.used)
 		mtime = attributes.mtime;
@@ -984,6 +986,7 @@ c_tied::c_tied(wxXmlNode *xmlnode)
 }
 void c_tied::complete(wxXmlNode *xmlnode)
 {
+	used = true;
 	wxString type = GetStringAttribute(xmlnode,"type");
 	if (type.IsSameAs("start", false))
 		start = true;
@@ -1834,10 +1837,10 @@ void c_measure_sequence::write(wxFFile *f)
 	direction.write(f);
 	attributes.write(f);
 }
-void c_measure_sequence::compile(int partNr , bool twelved)
+void c_measure_sequence::compile(int partNr , bool twelved ,c_measure *measure)
 {
 	if (note.used) note.compile(partNr, twelved);
-	if (attributes.used) note.compile(partNr, twelved);
+	if (attributes.used) attributes.compile(partNr,measure);
 	if (backup.used) backup.compile(twelved);
 	if (forward.used) forward.compile(twelved);
 }
@@ -1902,7 +1905,7 @@ c_measure::c_measure(wxXmlNode *xmlnode)
 }
 c_measure::c_measure(const c_measure &measure , bool withContent)
 {
-	used = measure.used;
+	used = true;
 	number = measure.number;
 	width = measure.width;
 	division_beat = measure.division_beat;
@@ -1955,7 +1958,7 @@ void c_measure::compile(c_measure *previous_measure , int partNr, bool twelved)
 	repeat = 0;
 	for (auto & current : measure_sequences )
 	{
-		current.compile(partNr , twelved);
+		current.compile(partNr , twelved , this );
 	}
 }
 void c_measure::divisionsAlign()
@@ -2188,6 +2191,7 @@ c_score_partwise::c_score_partwise(wxXmlNode *xmlnode)
 }
 c_score_partwise::c_score_partwise(const c_score_partwise &score_partwise, bool withMeasures)
 {
+	used = score_partwise.used;
 	if (score_partwise.work.used)
 		work = score_partwise.work;
 	if (score_partwise.part_list.used)

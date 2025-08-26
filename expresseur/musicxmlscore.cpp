@@ -1264,6 +1264,7 @@ bool musicxmlscore::readlilypdf(uint32_t page, uint32_t xpng, uint32_t ypng)
 	sposly mly;
 	mly.column = 0; mly.line = 0;
 	spdf.x1 = 0; spdf.y1 = 0; spdf.x2 = 0; spdf.y2 = 0;
+	pagepdf.x1 = 0; pagepdf.y1 = 0; pagepdf.x2 = 0; pagepdf.y2 = 0;
 
 	wxFileName fpdf;
 	fpdf.SetPath(getTmpDir());

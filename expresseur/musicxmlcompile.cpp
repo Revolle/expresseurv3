@@ -4022,12 +4022,11 @@ wxString musicxmlcompile::getTrackName(int nrTrack)
 	int nbTrack = getTracksCount();
 	if ((nrTrack >= 0) && (nrTrack < nbTrack))
 	{
-		c_score_part *mpart = &(compiled_score->part_list.score_parts[nrTrack]);
-		if (mpart->part_alias == NULL_STRING)
+		if (compiled_score->part_list.score_parts[nrTrack].part_alias == NULL_STRING)
 		{
 			return wxEmptyString;
 		}
-		return(mpart->part_alias);
+		return(compiled_score->part_list.score_parts[nrTrack].part_alias);
 	}
 	return wxEmptyString;
 }

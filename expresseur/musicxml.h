@@ -619,7 +619,7 @@ public:
 	c_measure_sequence(c_barline const& barline);
 	c_measure_sequence(c_direction const& direction);
 	c_measure_sequence(const c_measure_sequence & measure_sequence, bool withContent);
-	void compile(int partNr , bool twelved);
+	void compile(int partNr , bool twelved , c_measure *measure);
 	void divisionsAlign(int ratio);
 	void write(wxFFile *f);
 	c_attributes attributes;
