@@ -1840,7 +1840,7 @@ void c_measure_sequence::write(wxFFile *f)
 void c_measure_sequence::compile(int partNr , bool twelved ,c_measure *measure)
 {
 	if (note.used) note.compile(partNr, twelved);
-	if (attributes.used) attributes.compile(partNr,measure);
+	if (attributes.used) attributes.compile(twelved,measure);
 	if (backup.used) backup.compile(twelved);
 	if (forward.used) forward.compile(twelved);
 }

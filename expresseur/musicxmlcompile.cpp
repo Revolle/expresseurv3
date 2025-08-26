@@ -2996,8 +2996,6 @@ void musicxmlcompile::buildMeasures()
 				}
 			}
 
-			
-
 			c_measure newMeasure (measure);
 			(measure.repeat)++;
 
@@ -3244,14 +3242,16 @@ void musicxmlcompile::addNote(std::vector<c_measure>::iterator measure, bool aft
 		t0 += measure->division_beat;
 		if (t0 < to_t)
 		{
-			addSymbolNote(measure, after_measure, t0 - from_t, rest, tie_back, true, first_note, nrExpresseurNote, nbOrnaments, text, staccato, fermata, breath_mark, ternaire , cross , ituplet);
+			int duration = t0 - from_t;
+			addSymbolNote(measure, after_measure, duration, rest, tie_back, true, first_note, nrExpresseurNote, nbOrnaments, text, staccato, fermata, breath_mark, ternaire , cross , ituplet);
 			*first_note = false;
 			ttie_back = true;
 			ffrom_t = t0;
 		}
 	}
 	// insert figures starting on the beat
-	addSymbolNote(measure, after_measure, to_t - ffrom_t, rest, ttie_back, tie_next, first_note, nrExpresseurNote, nbOrnaments, text, staccato, fermata, breath_mark, ternaire , cross, ituplet);
+	int duration = to_t - ffrom_t;
+	addSymbolNote(measure, after_measure, duration, rest, ttie_back, tie_next, first_note, nrExpresseurNote, nbOrnaments, text, staccato, fermata, breath_mark, ternaire , cross, ituplet);
 }
 void musicxmlcompile::addSymbolNote(std::vector<c_measure>::iterator measure, bool after_measure, int duration, bool rest, bool tie_back, bool tie_next, bool *first_note, int * nrExpresseurNote, int nbOrnaments, wxString *text , bool *staccato, bool *fermata, bool *breath_mark, bool ternaire , bool cross, int *ituplet)
 {
