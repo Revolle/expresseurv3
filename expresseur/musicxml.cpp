@@ -135,6 +135,7 @@ wxString GetCleanStringContent(wxXmlNode *xmlnode)
 
 // default attribute of a MusicXML object
 //---------------------------------------
+/*
 c_default_xy::c_default_xy(wxXmlNode *xmlnode)
 {
 	usedxy = true;
@@ -143,7 +144,7 @@ c_default_xy::c_default_xy(wxXmlNode *xmlnode)
 	relative_x = GetIntAttribute(xmlnode, "relative-x");
 	relative_y = GetIntAttribute(xmlnode, "relative-y");
 }
-void c_default_xy::write_xy(wxFFile *f)
+void c_default_xy::// write_xy(wxFFile *f)
 {
 	if(!usedxy)
 		return;
@@ -156,6 +157,8 @@ void c_default_xy::write_xy(wxFFile *f)
 	if (relative_y != NULL_INT)
 		f->Write(wxString::Format(" relative-y=\"%d\" ", default_x));
 }
+*/
+
 // score-partwise/part-list/part
 //------------------------------
 c_score_part::c_score_part(wxXmlNode *xmlnode)
@@ -715,7 +718,7 @@ void c_time_modification::write(wxFFile *f)
 // score-partwise/list/part/measure/note/lyric
 //--------------------------------------------
 
-c_lyric::c_lyric(wxXmlNode *xmlnode) : c_default_xy(xmlnode)
+c_lyric::c_lyric(wxXmlNode *xmlnode) // : c_default_xy(xmlnode)
 {
 	used = true;
 	number = GetIntAttribute(xmlnode,"number");
@@ -738,7 +741,7 @@ void c_lyric::write(wxFFile *f)
 {
 	if (!used) return;
 	f->Write(wxString::Format("<lyric "));
-	write_xy(f);
+	// write_xy(f);
 	if (number != NULL_INT)
 		f->Write(wxString::Format(" number=\"%d\" ", number));
 	if (placement != NULL_STRING)
@@ -871,7 +874,7 @@ void c_ornaments::write(wxFFile *f)
 // score-partwise/list/part/measure/note/notations/dynamics
 // score - partwise / list / part / measure / direction / direction-type / dynamics
 //---------------------------------------------------------------------------------
-c_dynamics::c_dynamics(wxXmlNode *xmlnode) : c_default_xy(xmlnode)
+c_dynamics::c_dynamics(wxXmlNode *xmlnode) // : c_default_xy(xmlnode)
 {
 	used = true;
 	placement = GetStringAttribute(xmlnode,"placement");
@@ -886,7 +889,7 @@ void c_dynamics::write(wxFFile *f)
 {
 	if (!used) return;
 	f->Write(wxString::Format("<dynamics "));
-	write_xy(f);
+	// write_xy(f);
 	if (placement != NULL_STRING)
 		f->Write(wxString::Format("placement=\"%s\" ", placement));
 	f->Write(wxString::Format(" >\n"));
@@ -897,7 +900,7 @@ void c_dynamics::write(wxFFile *f)
 
 // score-partwise/list/part/measure/note/notations/fermata
 //---------------------------------------------------------
-c_fermata::c_fermata(wxXmlNode *xmlnode) : c_default_xy(xmlnode)
+c_fermata::c_fermata(wxXmlNode *xmlnode) // : c_default_xy(xmlnode)
 {
 	used = true;
 	placement = GetStringAttribute(xmlnode,"placement");
@@ -907,7 +910,7 @@ void c_fermata::write(wxFFile *f)
 {
 	if (!used) return;
 	f->Write(wxString::Format("<fermata "));
-	write_xy(f);
+	// write_xy(f);
 	if (type != NULL_STRING)
 		f->Write(wxString::Format("type=\"%s\" ", type));
 	if (placement != NULL_STRING)
@@ -916,7 +919,7 @@ void c_fermata::write(wxFFile *f)
 }
 // score-partwise/list/part/measure/note/notations/glissando
 //---------------------------------------------------------
-c_glissando::c_glissando(wxXmlNode *xmlnode) : c_default_xy(xmlnode)
+c_glissando::c_glissando(wxXmlNode *xmlnode) // : c_default_xy(xmlnode)
 {
 	used = true;
 	type = GetStringAttribute(xmlnode,"type");
@@ -926,7 +929,7 @@ void c_glissando::write(wxFFile *f)
 {
 	if (!used) return;
 	f->Write(wxString::Format("<glissando "));
-	write_xy(f);
+	// write_xy(f);
 	if (type != NULL_STRING)
 		f->Write(wxString::Format("type=\"%s\" ", type));
 	if (number != NULL_INT)
@@ -936,7 +939,7 @@ void c_glissando::write(wxFFile *f)
 
 // score-partwise/list/part/measure/note/notations/slide
 //---------------------------------------------------------
-c_slide::c_slide(wxXmlNode *xmlnode) : c_default_xy(xmlnode)
+c_slide::c_slide(wxXmlNode *xmlnode) // : c_default_xy(xmlnode)
 {
 	used = true;
 	type = GetStringAttribute(xmlnode,"type");
@@ -946,7 +949,7 @@ void c_slide::write(wxFFile *f)
 {
 	if (!used) return;
 	f->Write(wxString::Format("<slide "));
-	write_xy(f);
+	// write_xy(f);
 	if (type != NULL_STRING)
 		f->Write(wxString::Format("type=\"%s\" ", type));
 	if (number != NULL_INT)
@@ -956,7 +959,7 @@ void c_slide::write(wxFFile *f)
 
 // score-partwise/list/part/measure/note/notations/slur
 //---------------------------------------------------------
-c_slur::c_slur(wxXmlNode *xmlnode) : c_default_xy(xmlnode)
+c_slur::c_slur(wxXmlNode *xmlnode) // : c_default_xy(xmlnode)
 {
 	used = true;
 	placement = GetStringAttribute(xmlnode,"placement");
@@ -967,7 +970,7 @@ void c_slur::write(wxFFile *f)
 {
 	if (!used) return;
 	f->Write(wxString::Format("<slur "));
-	write_xy(f);
+	// write_xy(f);
 	if (placement != NULL_STRING)
 		f->Write(wxString::Format("placement=\"%s\" ", placement));
 	if (type != NULL_STRING)
@@ -1029,7 +1032,7 @@ void c_tie::write(wxFFile *f)
 // score-partwise/list/part/measure/note/notations/tuplet
 //---------------------------------------------------------
 
-c_tuplet::c_tuplet(wxXmlNode *xmlnode) : c_default_xy(xmlnode)
+c_tuplet::c_tuplet(wxXmlNode *xmlnode) // : c_default_xy(xmlnode)
 {
 	used = true;
 	placement = GetStringAttribute(xmlnode,"placement");
@@ -1040,7 +1043,7 @@ void c_tuplet::write(wxFFile *f)
 {
 	if (!used) return;
 	f->Write(wxString::Format("<tuplet "));
-	write_xy(f);
+	// write_xy(f);
 	if (placement != NULL_STRING)
 		f->Write(wxString::Format("placement=\"%s\" ", placement));
 	if (type != NULL_STRING)
@@ -1125,7 +1128,7 @@ void c_notations::write(wxFFile *f)
 
 // score-partwise/list/part/measure/note
 //--------------------------------------------
-c_note::c_note(wxXmlNode *xmlnode) : c_default_xy(xmlnode)
+c_note::c_note(wxXmlNode *xmlnode) // : c_default_xy(xmlnode)
 {
 	used = true;
 	wxXmlNode *child = xmlnode->GetChildren();
@@ -1190,7 +1193,7 @@ void c_note::write(wxFFile *f)
 		return;
 
 	f->Write(wxString::Format("<note"));
-	write_xy(f);
+	// write_xy(f);
 	f->Write(wxString::Format(">\n"));
 	if (grace)
 		f->Write(wxString::Format("<grace/>\n"));	
@@ -1340,7 +1343,7 @@ void c_repeat::write(wxFFile *f)
 
 // score-partwise/list/part/measure/barline/ending
 //------------------------------------------------
-c_ending::c_ending(wxXmlNode *xmlnode) : c_default_xy(xmlnode)
+c_ending::c_ending(wxXmlNode *xmlnode) // : c_default_xy(xmlnode)
 {
 	used = true;
 	end_length = GetIntAttribute(xmlnode, "end-length");
@@ -1352,7 +1355,7 @@ void c_ending::write(wxFFile *f)
 {
 	if (!used) return;
 	f->Write(wxString::Format("<ending"));
-	write_xy(f);
+	// write_xy(f);
 	if (end_length != NULL_INT)
 		f->Write(wxString::Format(" end_length=\"%d\"", end_length));
 	if (number != NULL_STRING)
@@ -1489,7 +1492,7 @@ void c_kind::write(wxFFile *f)
 
 // score-partwise/list/part/measure/harmony
 //------------------------------------------
-c_harmony::c_harmony(wxXmlNode *xmlnode) :c_default_xy(xmlnode)
+c_harmony::c_harmony(wxXmlNode *xmlnode) // : c_default_xy(xmlnode)
 {
 	used = true;
 	wxXmlNode *child = xmlnode->GetChildren();
@@ -1513,7 +1516,7 @@ void c_harmony::write(wxFFile *f)
 {
 	if (!used) return;
 	f->Write(wxString::Format("<harmony "));
-	write_xy(f);
+	// write_xy(f);
 	f->Write(wxString::Format(" >\n"));
 	if (function != NULL_STRING)
 		f->Write(wxString::Format("<function>%s</function>", function));
@@ -1526,7 +1529,7 @@ void c_harmony::write(wxFFile *f)
 }
 // score - partwise / list / part / measure / direction / direction-type / pedal
 //------------------------------------------------------------------------------
-c_pedal::c_pedal(wxXmlNode *xmlnode) :c_default_xy(xmlnode)
+c_pedal::c_pedal(wxXmlNode *xmlnode) // : c_default_xy(xmlnode)
 {
 	used = true;
 	type = GetStringAttribute(xmlnode,"type");
@@ -1537,7 +1540,7 @@ void c_pedal::write(wxFFile *f)
 {
 	if (used == false) return;
 	f->Write(wxString::Format("<pedal "));
-	write_xy(f);
+	// write_xy(f);
 	if (type != NULL_STRING)
 		f->Write(wxString::Format("type=\"%s\" ", type));
 	if (line != NULL_STRING)
@@ -1549,7 +1552,7 @@ void c_pedal::write(wxFFile *f)
 
 // score - partwise / list / part / measure / direction / direction-type / octave_shift
 //-------------------------------------------------------------------------------------
-c_octave_shift::c_octave_shift(wxXmlNode *xmlnode) :c_default_xy(xmlnode)
+c_octave_shift::c_octave_shift(wxXmlNode *xmlnode) // : c_default_xy(xmlnode)
 {
 	used = true;
 	type = GetStringAttribute(xmlnode,"type");
@@ -1560,7 +1563,7 @@ void c_octave_shift::write(wxFFile *f)
 {
 	if (used == false) return;
 	f->Write(wxString::Format("<octave-shift "));
-	write_xy(f);
+	// write_xy(f);
 	if (type != NULL_STRING)
 		f->Write(wxString::Format("type=\"%s\" ", type));
 	if (number != NULL_INT)
@@ -1572,7 +1575,7 @@ void c_octave_shift::write(wxFFile *f)
 
 // score - partwise / list / part / measure / direction / direction-type / rehearsal
 //----------------------------------------------------------------------------------
-c_rehearsal::c_rehearsal(wxXmlNode *xmlnode) : c_default_xy(xmlnode)
+c_rehearsal::c_rehearsal(wxXmlNode *xmlnode) // : c_default_xy(xmlnode)
 {
 	used = true;
 	value = xmlnode->GetNodeContent();
@@ -1583,14 +1586,14 @@ void c_rehearsal::write(wxFFile *f)
 	if (value.IsEmpty() == false)
 	{
 		f->Write(wxString::Format("<rehearsal"));
-		write_xy(f);
+		// write_xy(f);
 		f->Write(wxString::Format(">%s</rehearsal>\n", value));
 	}
 }
 
 // score - partwise / list / part / measure / direction / direction-type / words
 //----------------------------------------------------------------------------------
-c_words::c_words(wxXmlNode *xmlnode) : c_default_xy(xmlnode)
+c_words::c_words(wxXmlNode *xmlnode) // : c_default_xy(xmlnode)
 {
 	used = true;
 	value = xmlnode->GetNodeContent();
@@ -1601,14 +1604,14 @@ void c_words::write(wxFFile *f)
 	if (value.IsEmpty() == false)
 	{
 		f->Write(wxString::Format("<words"));
-		write_xy(f);
+		// write_xy(f);
 		f->Write(wxString::Format(">%s</words>\n", encodeXML(value)));
 	}
 }
 
 // score - partwise / list / part / measure / direction / direction-type / wedge
 //------------------------------------------------------------------------------
-c_wedge::c_wedge(wxXmlNode *xmlnode) : c_default_xy(xmlnode)
+c_wedge::c_wedge(wxXmlNode *xmlnode) // : c_default_xy(xmlnode)
 {
 	used = true;
 	type = GetStringAttribute(xmlnode,"type");
@@ -1618,7 +1621,7 @@ void c_wedge::write(wxFFile *f)
 {
 	if (used == false) return;
 	f->Write(wxString::Format("<wedge "));
-	write_xy(f);
+	// write_xy(f);
 	if (type != NULL_STRING)
 		f->Write(wxString::Format("type=\"%s\" ", type));
 	if (spread != NULL_INT)
@@ -1629,7 +1632,7 @@ void c_wedge::write(wxFFile *f)
 // score - partwise / list / part / measure / direction / direction-type / coda
 //------------------------------------------------------------------------------
 
-c_coda::c_coda(wxXmlNode* xmlnode) : c_default_xy(xmlnode)
+c_coda::c_coda(wxXmlNode* xmlnode) // : c_default_xy(xmlnode)
 {
 	used = true;
 }
@@ -1637,14 +1640,14 @@ void c_coda::write(wxFFile *f)
 {
 	if (used == false) return;
 	f->Write(wxString::Format("<coda "));
-	write_xy(f);
+	// write_xy(f);
 	f->Write(wxString::Format("/> \n"));
 }
 
 // score - partwise / list / part / measure / direction / direction-type / segno
 //------------------------------------------------------------------------------
 
-c_segno::c_segno(wxXmlNode *xmlnode) : c_default_xy(xmlnode)
+c_segno::c_segno(wxXmlNode *xmlnode) // : c_default_xy(xmlnode)
 {
 	used = true;
 }
@@ -1652,7 +1655,7 @@ void c_segno::write(wxFFile *f)
 {
 	if (used == false) return;
 	f->Write(wxString::Format("<segno "));
-	write_xy(f);
+	// write_xy(f);
 	f->Write(wxString::Format("/> \n"));
 }
 

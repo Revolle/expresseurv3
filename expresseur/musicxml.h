@@ -5,6 +5,7 @@
 
 #define MAX_SCORE_PART 64
 
+/*
 class c_default_xy
 {
 public:
@@ -18,6 +19,8 @@ public:
 	int relative_y = NULL_INT;
 	bool usedxy = false;
 };
+*/
+
 class c_score_part
 {
 public:
@@ -109,7 +112,7 @@ public:
 	wxString value = NULL_STRING;
 	bool used = false;
 };
-class c_harmony : c_default_xy
+class c_harmony // : c_default_xy
 {
 public:
 	c_harmony() = default;
@@ -159,7 +162,7 @@ public:
 	wxString times = NULL_STRING;
 	bool used = false;
 };
-class c_ending : c_default_xy
+class c_ending // : c_default_xy
 {
 public:
 	c_ending() = default;
@@ -172,7 +175,7 @@ public:
 	wxString value = NULL_STRING;
 	bool used = false;
 };
-class c_pedal :c_default_xy
+class c_pedal // : c_default_xy
 {
 public:
 	c_pedal() = default;
@@ -184,7 +187,7 @@ public:
 	wxString sign = NULL_STRING;
 	bool used = false;
 };
-class c_octave_shift :c_default_xy
+class c_octave_shift // : c_default_xy
 {
 public:
 	c_octave_shift() = default;
@@ -196,7 +199,7 @@ public:
 	int size = NULL_INT;
 	bool used = false;
 };
-class c_rehearsal :c_default_xy
+class c_rehearsal // : c_default_xy
 {
 public:
 	c_rehearsal() = default;
@@ -206,7 +209,7 @@ public:
 	wxString value;
 	bool used = false;
 };
-class c_words :c_default_xy
+class c_words // : c_default_xy
 {
 public:
 	c_words() = default ;
@@ -216,7 +219,7 @@ public:
 	wxString value;
 	bool used = false;
 };
-class c_wedge :c_default_xy
+class c_wedge // : c_default_xy
 {
 public:
 	c_wedge() = default ;
@@ -227,7 +230,7 @@ public:
 	int spread = NULL_INT ;
 	bool used = false;
 };
-class c_coda :c_default_xy
+class c_coda // : c_default_xy
 {
 public:
 	c_coda() = default ;
@@ -236,7 +239,7 @@ public:
 	void write(wxFFile *f);
 	bool used = false;
 };
-class c_segno :c_default_xy
+class c_segno // : c_default_xy
 {
 public:
 	c_segno() = default;
@@ -245,7 +248,7 @@ public:
 	void write(wxFFile *f);
 	bool used = false;
 };
-class c_dynamics : c_default_xy
+class c_dynamics // : c_default_xy
 {
 public:
 	c_dynamics() = default;
@@ -406,7 +409,7 @@ public:
 	int normal_notes = NULL_INT;
 	bool used = false;
 };
-class c_lyric : c_default_xy
+class c_lyric // : c_default_xy
 {
 public:
 	c_lyric() = default;
@@ -471,7 +474,7 @@ public:
 	wxString direction = NULL_STRING ;
 	bool used = false;
 };
-class c_fermata : c_default_xy
+class c_fermata // : c_default_xy
 {
 public:
 	c_fermata() = default;
@@ -482,7 +485,7 @@ public:
 	wxString placement = NULL_STRING;
 	bool used = false;
 };
-class c_glissando : c_default_xy
+class c_glissando // : c_default_xy
 {
 public:
 	c_glissando() = default;
@@ -493,7 +496,7 @@ public:
 	int number = NULL_INT;
 	bool used = false;
 };
-class c_slide : c_default_xy
+class c_slide // : c_default_xy
 {
 public:
 	c_slide() = default;
@@ -504,7 +507,7 @@ public:
 	int number = NULL_INT;
 	bool used = false;
 };
-class c_slur : c_default_xy
+class c_slur // : c_default_xy
 {
 public:
 	c_slur() = default;
@@ -542,7 +545,7 @@ public:
 	bool compiled = false;
 	bool used = false;
 };
-class c_tuplet : c_default_xy
+class c_tuplet // : c_default_xy
 {
 public:
 	c_tuplet() = default;
@@ -573,7 +576,7 @@ public:
 	c_tuplet tuplet ;
 	bool used = false;
 };
-class c_note : c_default_xy
+class c_note // : c_default_xy
 {
 public:
 	c_note() = default;
