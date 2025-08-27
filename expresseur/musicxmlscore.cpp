@@ -834,7 +834,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	wxBusyCursor waitcursor;
 
 	wxFileName fm;
-	wxString xmlout, lilyscore, pythonexe, pythonscript,lilyexe, lilysetting, lilylog;
+	wxString xmlout, lilyscore, pythonexe, pythonscript,lilyexe, lilysetting, lilylog , lilybar ;
 	wxString command_xmltolily , command_lilytopng;
 	wxString overridexpr;
 	long lexec;
@@ -857,23 +857,19 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	expresseurpos = fm.GetFullPath();
 	// file to translate xml to lilypond
 	fm.SetFullName(FILE_OUT_LILY);
-	if (fm.FileExists())
-		wxRemoveFile(fm.GetFullPath());
 	lilyscore = fm.GetFullPath();
 	// files to adapt lilypond xml translation
 	fm.SetFullName(FILE_SRC_LILY);
-	if (fm.FileExists())
-		wxRemoveFile(fm.GetFullPath());
 	lilysrc = fm.GetFullPath();
 	// log file 
 	fm.SetFullName(FILE_LOG_LILY);
-	if (fm.FileExists())
-		wxRemoveFile(fm.GetFullPath());
 	lilylog = fm.GetFullPath();
+	// barres de mesure
+	fm.SetFullName(FILE_BAR_LILY);
+	lilybar = fm.GetFullPath();
 	// settings for lilypond
 	fm.SetFullName(FILE_OUT_SETLILY);
-	if (fm.FileExists())
-		wxRemoveFile(fm.GetFullPath());
+
 	lilysetting = fm.GetFullPath();
 	// lily python
 	fm.SetPath(getAppDir());
@@ -899,7 +895,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	sizePage.SetHeight( sizeClient.GetY() );
 
 	// clena useless temp files
-	cleanTmp();
+	// cleanTmp();
 
 
 	// create the musicXml file to display
@@ -972,6 +968,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	crc_init();
 	crc_cumulate_file(xmlout);
 	crc_cumulate_file(lilysetting);
+	crc_cumulate_file(lilybar);
 	crc_cumulate_string(command_xmltolily);
 	crc_cumulate_string(command_lilytopng);
 	wxString prefix_cache ;
@@ -1026,17 +1023,42 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		fout.Create(lilysrc);
 		fout.Open(lilysrc);
 		bool expresseurstaff = false;
+		int score = 0;
 		bool firstf8 = true;
 		if (fin.IsOpened() && fout.IsOpened())
 		{
 			wxString str;
 			for (str = fin.GetFirstLine(); !fin.Eof(); str = fin.GetNextLine())
 			{
+				if (str.StartsWith("\\version"))
+				{
+					// rajout des barres de mesure
+					wxTextFile fbar;
+					fbar.Open(lilybar);
+					if (fbar.IsOpened())
+					{
+						wxString sbar;
+						for (sbar = fbar.GetFirstLine(); !fbar.Eof(); sbar = fbar.GetNextLine())
+						{
+							fout.AddLine(sbar);
+						}
+						fbar.Close();
+					}
+				}
+				if (str.Contains("PartExpresseurMusicXMLPartIdVoiceTwo"))
+				{
+					// fin de la partie expresseur
+					expresseurstaff = false;
+				}
 				if (str.StartsWith("\\pointAndClickOff"))
-					continue;
-				if (str.Contains("PartExpresseurMusicXMLPartIdVoiceOne"))
+						continue;
+				if (str.StartsWith("PartExpresseurMusicXMLPartIdVoiceOne"))
 				{
 					expresseurstaff = true;
+				}
+				if (str.StartsWith("\\score"))
+				{
+					expresseurstaff = false;
 				}
 				if (expresseurstaff)
 				{
@@ -1064,6 +1086,26 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 				{
 					str.Replace("\\stemUp", "");
 					str.Replace("\\stemDown", "");
+				}
+				switch (score)
+				{
+				case 0: 
+					if (str.StartsWith("\\score"))
+						score = 1;
+					break;
+				case 1:
+					if (str.Contains("\\PartExpresseurMusicXMLPartIdVoiceOne"))
+						score = 2;
+					break;
+				case 2:
+					if (str.Contains("}"))
+						score = 3;
+					break;
+				case 3:
+					fout.AddLine("\\context Voice = ""barmarks"" { \\barmarks }");
+					score = 4;
+					break;
+				default: break;
 				}
 				fout.AddLine(str);
 			}

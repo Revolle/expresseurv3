@@ -175,7 +175,7 @@ enum{ EMPTYVIEWER, BITMAPVIEWER, MUSICXMLVIEWER };
 #define FILE_SCORE_PDF "expresseur_out-%d.pdf" // PDF (one per page) , output of lilypond generation
 #define FILE_SCORE_PNG "expresseur_out-%d.png" // PNG (one per page) , output of lilypond generation
 #define FILE_POS_LILY "expresseur_out.lyp" // position of Lilypond Expresseur notes, output of lilypond generation
-#define FILE_BAR_LILY "expresseur_out.lyb" // position of Lilypond Expresseur bars and marks
+#define FILE_BAR_LILY "expresseur_out_bars.ly" // position of Lilypond Expresseur bars and marks
 #define FILE_POS_TXT "expresseur_out.pos" // position of Expresseur notes in FILE_SCORE_PNG
 #define FILE_IN_XML "expresseur_in.xml"
 

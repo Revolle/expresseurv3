@@ -2893,14 +2893,18 @@ void musicxmlcompile::buildBars()
 				s.Printf("\\bar \".\"");
 				f.AddLine(s);
 				char cb = mark.name[0];
-				char cf = mark.name[mark.name.Length() - 1];
-				if ((cb >= 'A') && (cb <= 'Z') && (cf < '0') && (cf > '9'))
+				char cf;
+				if (mark.name.length() > 1)
+					cf = mark.name[mark.name.Length() - 1];
+				else
+					cf = cb;
+				if ((cb >= 'A') && (cb <= 'Z') && ((cf < '0') || (cf > '9')))
 				{
 					// mark name starts with a musjscule et ne termine pas par un nombre
 					if (mark.repeatNumber == 0)
 						s.Printf("\\mark \"%s\"", mark.name);
 					else
-						s.Printf("\\mark \"%s%c%d\"", mark.name, '*', mark.repeatNumber);
+						s.Printf("\\mark \"%s%c%d\"", mark.name, '*', mark.repeatNumber + 1);
 					f.AddLine(s);
 
 				}
@@ -2922,10 +2926,8 @@ void musicxmlcompile::buildBars()
 		f.AddLine(rs);
 	}
 
-	s.Printf("\\bar \" |.\"");
-	f.AddLine(s);
-	s.Printf("\\sectionLabel \"Fine\"");
-	f.AddLine(s);
+	f.AddLine("\\set Score.finalFineTextVisibility = ##t");
+	f.AddLine("\\fine");
 	s.Printf("}");
 	f.AddLine(s);
 
