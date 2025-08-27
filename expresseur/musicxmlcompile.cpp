@@ -1689,7 +1689,9 @@ void musicxmlcompile::readMarks(bool full)
 		f.Write();
 	f.Close();
 }
-int musicxmlcompile::compileNote(const c_part & part, const c_note & note, int measureNr, int originalMeasureNr, int t, int division_measure, int division_beat, int division_quarter, int repeat, int key_fifths)
+int musicxmlcompile::compileNote(const c_part & part, const c_note & note, int measureNr, int originalMeasureNr, 
+								int t, int division_measure, int division_beat, int division_quarter, 
+								int repeat, int key_fifths)
 {
 
 	// compile a note in the lMusicxmlevents
@@ -3056,7 +3058,11 @@ void musicxmlcompile::compilePlayedScore()
 				if ( current_measure_sequence.note.used)
 				{
 					if (compiled_score->part_list.score_parts[nrPart].play)
-						current_t = compileNote(current_compiled_part, current_measure_sequence.note, current_measure.number, current_measure.original_number, current_t, current_measure.division_measure, current_measure.division_beat, current_measure.division_quarter, current_measure.repeat, key_fifths);
+						current_t = compileNote(current_compiled_part, current_measure_sequence.note, 
+												current_measure.number, current_measure.original_number, 
+												current_t, current_measure.division_measure, 
+												current_measure.division_beat, current_measure.division_quarter, 
+												current_measure.repeat, key_fifths);
 				}
 				if (current_measure_sequence.backup.used)
 				{
@@ -3073,7 +3079,6 @@ void musicxmlcompile::compilePlayedScore()
 void musicxmlcompile::compileExpresseurPart()
 {
 	// add the part for Expresseur, according to lMusicxmlevents
-
 	std::sort(lMusicxmlevents.begin() , lMusicxmlevents.end() , musicXmlEventsCompareStart);
 
 	auto part_expresseur = compiled_score->parts.end() - 1;	
@@ -3205,9 +3210,11 @@ void musicxmlcompile::compileExpresseurPart()
 	addNote(currentMeasure, false, currentT, currentMeasure->division_measure, true, false, false, &firstNote, &nrExpresseurNote, 0, &text, &staccato, &fermata, &breath_mark, ternaire , cross , &ituplet);
 
 }
-void musicxmlcompile::addNote(std::vector<c_measure>::iterator measure, bool after_measure, int from_t, int to_t, bool rest, bool tie_back, bool tie_next,
-	                          bool *first_note, int * nrExpresseurNote, int nbOrnaments, wxString *text , bool *staccato, bool *fermata,
-	                          bool *breath_mark, bool ternaire , bool cross, int *ituplet)
+void musicxmlcompile::addNote(std::vector<c_measure>::iterator measure, bool after_measure, 
+								int from_t, int to_t, bool rest, bool tie_back, bool tie_next,
+								bool *first_note, int * nrExpresseurNote, int nbOrnaments, wxString *text , 
+								bool *staccato, bool *fermata,
+								bool *breath_mark, bool ternaire , bool cross, int *ituplet)
 {
 	// add symbols for one note [from_t,to_t], to_t <= divisions, inside one measure
 
@@ -3253,10 +3260,15 @@ void musicxmlcompile::addNote(std::vector<c_measure>::iterator measure, bool aft
 	int duration = to_t - ffrom_t;
 	addSymbolNote(measure, after_measure, duration, rest, ttie_back, tie_next, first_note, nrExpresseurNote, nbOrnaments, text, staccato, fermata, breath_mark, ternaire , cross, ituplet);
 }
-void musicxmlcompile::addSymbolNote(std::vector<c_measure>::iterator measure, bool after_measure, int duration, bool rest, bool tie_back, bool tie_next, bool *first_note, int * nrExpresseurNote, int nbOrnaments, wxString *text , bool *staccato, bool *fermata, bool *breath_mark, bool ternaire , bool cross, int *ituplet)
+void musicxmlcompile::addSymbolNote(std::vector<c_measure>::iterator measure, bool after_measure, 
+								int duration, bool rest, bool tie_back, bool tie_next, 
+								bool *first_note, int * nrExpresseurNote, int nbOrnaments, wxString *text , 
+								bool *staccato, bool *fermata, 
+								bool *breath_mark, bool ternaire , bool cross, int *ituplet)
 {
+	c_measure_sequence measure_sequence;
+	measure_sequence.note.used = true;
 
-	c_note note ;
 	int duration_todo = duration;
 	int antiLoop = 0;
 	while (duration_todo > 0)
@@ -3272,20 +3284,18 @@ void musicxmlcompile::addSymbolNote(std::vector<c_measure>::iterator measure, bo
 		duration_todo -= duration_done;
 		if (typeNote.empty() == false)
 		{
-			c_measure_sequence measure_sequence;
-			measure_sequence.note.used = true;
 
-			note.duration = duration_done;
-			note.mtype = typeNote;
-			note.dots = dot;
+			measure_sequence.note.duration = duration_done;
+			measure_sequence.note.mtype = typeNote;
+			measure_sequence.note.dots = dot;
 			if (*ituplet > 0)
 			{
 				(*ituplet)--;
 				if (*ituplet == 1)
 				{
-					note.notations.used = true;
-					note.notations.tuplet.used = true;
-					note.notations.tuplet.type = "stop";
+					measure_sequence.note.notations.used = true;
+					measure_sequence.note.notations.tuplet.used = true;
+					measure_sequence.note.notations.tuplet.type = "stop";
 				}
 
 			}
@@ -3293,58 +3303,58 @@ void musicxmlcompile::addSymbolNote(std::vector<c_measure>::iterator measure, bo
 			{
 				if (*ituplet == 0)
 				{
-					note.notations.used = true;
-					note.notations.tuplet.used = true;
-					if (strcmp(note.notations.tuplet.type, "stop") != 0)
+					measure_sequence.note.notations.used = true;
+					measure_sequence.note.notations.tuplet.used = true;
+					if (strcmp(measure_sequence.note.notations.tuplet.type, "stop") != 0)
 					{
-						note.notations.tuplet.type = "start";
+						measure_sequence.note.notations.tuplet.type = "start";
 						*ituplet = tuplet;
 					}
 				}
-				note.time_modification.used = true;
+				measure_sequence.note.time_modification.used = true;
 				switch (tuplet)
 				{
 				case 5:
-					note.time_modification.actual_notes = 5;
-					note.time_modification.normal_notes = 4;
+					measure_sequence.note.time_modification.actual_notes = 5;
+					measure_sequence.note.time_modification.normal_notes = 4;
 					break;
 				case 3:
 				default:
-					note.time_modification.actual_notes = 3;
-					note.time_modification.normal_notes = 2;
+					measure_sequence.note.time_modification.actual_notes = 3;
+					measure_sequence.note.time_modification.normal_notes = 2;
 					break;
 				}
 			}
 
 			if (rest)
 			{
-				note.rest.used = true;
+				measure_sequence.note.rest.used = true;
 			}
 			else
 			{
 				(*nrExpresseurNote)++; // note suivante dans la partition (pour la coorelation avec lilypond )
-				note.pitch.used = true;
-				note.pitch.step = "F";
-				note.pitch.octave = 4;
-				note.stem = "up";
+				measure_sequence.note.pitch.used = true;
+				measure_sequence.note.pitch.step = "F";
+				measure_sequence.note.pitch.octave = 4;
+				measure_sequence.note.stem = "up";
 				if ((*first_note && tie_back) || (! *first_note))
 				{
-					note.notations.used = true;
-					note.notations.tied.used = true;
-					note.notations.tied.stop = true;
+					measure_sequence.note.notations.used = true;
+					measure_sequence.note.notations.tied.used = true;
+					measure_sequence.note.notations.tied.stop = true;
 					*first_note = false;
 				}
 				if (duration_todo > 0)
 				{
-					note.notations.used = true;
-					note.notations.tied.used = true;
-					note.notations.tied.start = true;
+					measure_sequence.note.notations.used = true;
+					measure_sequence.note.notations.tied.used = true;
+					measure_sequence.note.notations.tied.start = true;
 				}
 			}
 
 			if (cross)
 			{
-				note.notehead = "x";
+				measure_sequence.note.notehead = "x";
 			}
 			if (*first_note)
 			{
@@ -3353,7 +3363,7 @@ void musicxmlcompile::addSymbolNote(std::vector<c_measure>::iterator measure, bo
 					c_lyric lyric;
 					lyric.text = wxString::Format("*%d", nbOrnaments + 1);
 					//lyric->placement = "below";
-					note.lyrics.push_back(lyric);
+					measure_sequence.note.lyrics.push_back(lyric);
 
 				}
 				if (text->IsEmpty() == false)
@@ -3375,29 +3385,29 @@ void musicxmlcompile::addSymbolNote(std::vector<c_measure>::iterator measure, bo
 				}
 				if (*staccato)
 				{
-					note.notations.used = true;
-					note.notations.articulations.used = true;
-					note.notations.articulations.articulations.push_back("staccato");
-					note.notations.articulations.placements.push_back(NULL_STRING);
-					note.notations.articulations.default_xs.push_back(NULL_INT);
-					note.notations.articulations.default_ys.push_back(NULL_INT);
+					measure_sequence.note.notations.used = true;
+					measure_sequence.note.notations.articulations.used = true;
+					measure_sequence.note.notations.articulations.articulations.push_back("staccato");
+					measure_sequence.note.notations.articulations.placements.push_back(NULL_STRING);
+					measure_sequence.note.notations.articulations.default_xs.push_back(NULL_INT);
+					measure_sequence.note.notations.articulations.default_ys.push_back(NULL_INT);
 					*staccato = false;
 				}
 				if (*breath_mark)
 				{
-					note.notations.used = true ;
-					note.notations.articulations.used = true;
-					note.notations.articulations.articulations.push_back("breath-mark");
-					note.notations.articulations.placements.push_back(NULL_STRING);
-					note.notations.articulations.default_xs.push_back(NULL_INT);
-					note.notations.articulations.default_ys.push_back(NULL_INT);
+					measure_sequence.note.notations.used = true ;
+					measure_sequence.note.notations.articulations.used = true;
+					measure_sequence.note.notations.articulations.articulations.push_back("breath-mark");
+					measure_sequence.note.notations.articulations.placements.push_back(NULL_STRING);
+					measure_sequence.note.notations.articulations.default_xs.push_back(NULL_INT);
+					measure_sequence.note.notations.articulations.default_ys.push_back(NULL_INT);
 					*breath_mark = false;
 				}
 				if (*fermata)
 				{
-					note.notations.used = true ;
-					note.notations.fermata.used = true;
-					note.notations.fermata.type = "upright" ;
+					measure_sequence.note.notations.used = true ;
+					measure_sequence.note.notations.fermata.used = true;
+					measure_sequence.note.notations.fermata.type = "upright" ;
 					*fermata = false;
 				}
 			}
@@ -3406,15 +3416,17 @@ void musicxmlcompile::addSymbolNote(std::vector<c_measure>::iterator measure, bo
 		}
 	}
 
-	if ((! rest) && (tie_next) && ( note.used ) && (after_measure))
+	if ((! rest) && (tie_next) && ( measure_sequence.note.used ) && (after_measure))
 	{
 
-		note.notations.used = true;
-		note.notations.tied.used = true;
-		note.notations.tied.start = true;
+		measure_sequence.note.notations.used = true;
+		measure_sequence.note.notations.tied.used = true;
+		measure_sequence.note.notations.tied.start = true;
 	}
 }
-void musicxmlcompile::calculateDuration(int duration, int division_quarter, bool ternaire , int *durationDone, wxString *typeNote, int *dot, int *tuplet)
+void musicxmlcompile::calculateDuration(int duration, int division_quarter, bool ternaire , 
+								int *durationDone, wxString *typeNote, 
+								int *dot, int *tuplet)
 {
 
 	*dot = 0;

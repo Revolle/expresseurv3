@@ -1921,7 +1921,12 @@ c_measure::c_measure(const c_measure &measure , bool withContent)
 			if (current.attributes.used) 
 				measure_sequences.push_back(c_measure_sequence(current, withContent));
 			else
-				if (current.note.used) measure_sequences.push_back(c_measure_sequence(current));
+			{
+				if (withContent)
+				{
+					measure_sequences.push_back(c_measure_sequence(current, true));
+				}
+			}
 		}
 	}
 }
