@@ -124,7 +124,10 @@ public:
 
 	}
 	*/
-	c_musicxmlevent(int ipartNr, int istaffNr, int ivoice, int istart_measureNr, int ioriginal_measureNr, int istart_t, int istop_measureNr, int istop_t, int ipitch, int idivision_measure, int idivision_beat, int idivision_quarter, int irepeat, int iorder, int ififths)
+	c_musicxmlevent(int ipartNr, int istaffNr, int ivoice, 
+		int istart_measureNr, int ioriginal_measureNr, int istart_t, int istop_measureNr, int istop_t, 
+		int ipitch, int idivision_measure, int idivision_beat, int idivision_quarter, 
+		int irepeat, int iorder, int ififths)
 	{
 		partNr = ipartNr;
 		staffNr = istaffNr;

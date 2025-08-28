@@ -318,7 +318,7 @@ bool musicxmlscore::isOk()
 bool musicxmlscore::setFile(const wxFileName &lfilename)
 {
 	wxBusyCursor wait;
-
+	xmlName = lfilename;
 	if (xmlCompile != NULL)
 		delete xmlCompile;
 	xmlCompile = new musicxmlcompile();
@@ -377,7 +377,7 @@ bool musicxmlscore::xmlExtractXml(wxFileName f)
 	if (!in.IsOk())
 	{
 		wxString s;
-		s.Printf("Error opening stream file %s", xmlName.GetFullName());
+		s.Printf("Error opening stream file %s", f.GetFullName());
 		wxMessageBox(s);
 		return false;
 	}
@@ -386,7 +386,7 @@ bool musicxmlscore::xmlExtractXml(wxFileName f)
 	if (!zip.IsOk())
 	{
 		wxString s;
-		s.Printf("Error reading zip structure of %s", xmlName.GetFullName());
+		s.Printf("Error reading zip structure of %s", f.GetFullName());
 		wxMessageBox(s);
 		return false;
 	}
@@ -404,7 +404,7 @@ bool musicxmlscore::xmlExtractXml(wxFileName f)
 			if (!stream_out.IsOk())
 			{
 				wxString s;
-				s.Printf("Error reading zip entry %s of %s", name, xmlName.GetFullName());
+				s.Printf("Error reading zip entry %s of %s", name, f.GetFullName());
 				wxMessageBox(s);
 				return false;
 			}
@@ -412,7 +412,7 @@ bool musicxmlscore::xmlExtractXml(wxFileName f)
 			if (zip.LastRead() < 10)
 			{
 				wxString s;
-				s.Printf("Error content in zip entry %s of %s", name, xmlName.GetFullName());
+				s.Printf("Error content in zip entry %s of %s", name, f.GetFullName());
 				wxMessageBox(s);
 				return false;
 			}
@@ -827,12 +827,10 @@ std::uint64_t musicxmlscore::crc_cumulate_string(wxString s)
 }
 bool musicxmlscore::newLayout(wxSize sizeClient)
 {
-	//// NOP
-
 	if (!isOk())
 		return false;
 	wxBusyCursor waitcursor;
-
+	mlog_in("newLayout file %s" , (const char*)(xmlName.GetFullPath().c_str()));
 	wxFileName fm;
 	wxString xmlout, lilyscore, pythonexe, pythonscript,lilyexe, lilysetting, lilylog , lilybar ;
 	wxString command_xmltolily , command_lilytopng;
@@ -842,8 +840,13 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 
 
 	// window big enough ?
-	if ((sizeClient.GetWidth() < 200) || (sizeClient.GetHeight() < 100))
+	int xs = sizeClient.GetWidth();
+	int ys = sizeClient.GetHeight();
+	if ((xs < SIZECLIENTMINWIDTH) || (ys < SIZECLIENTMINHEIGHT))
+	{
+		wxMessageBox("Window too small for music display", "build score", wxOK | wxICON_ERROR);
 		return false;
+	}
 	
 	// XML score to display
 	fm.SetPath(getTmpDir());
@@ -852,25 +855,36 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	//  file to store lilypond position of notes
 	fm.SetFullName(FILE_POS_LILY);
 	lilypos = fm.GetFullPath();
+	if (fm.Exists())
+		wxRemoveFile(lilypos);
 	//  file to store position of notes
 	fm.SetFullName(FILE_POS_TXT);
 	expresseurpos = fm.GetFullPath();
+	if (fm.Exists())
+		wxRemoveFile(expresseurpos);
 	// file to translate xml to lilypond
 	fm.SetFullName(FILE_OUT_LILY);
 	lilyscore = fm.GetFullPath();
+	if (fm.Exists())
+		wxRemoveFile(lilyscore);
 	// files to adapt lilypond xml translation
 	fm.SetFullName(FILE_SRC_LILY);
 	lilysrc = fm.GetFullPath();
+	if (fm.Exists())
+		wxRemoveFile(lilysrc);
 	// log file 
 	fm.SetFullName(FILE_LOG_LILY);
 	lilylog = fm.GetFullPath();
+	if (fm.Exists())
+		wxRemoveFile(lilylog);
 	// barres de mesure
 	fm.SetFullName(FILE_BAR_LILY);
 	lilybar = fm.GetFullPath();
 	// settings for lilypond
 	fm.SetFullName(FILE_OUT_SETLILY);
-
 	lilysetting = fm.GetFullPath();
+	if (fm.Exists())
+		wxRemoveFile(lilysetting);
 	// lily python
 	fm.SetPath(getAppDir());
 	fm.AppendDir("lilypond");
@@ -900,7 +914,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 
 	// create the musicXml file to display
 	xmlCompile->music_xml_displayed_file = xmlout;
-	xmlCompile->compiled_score->write(xmlCompile->music_xml_displayed_file, true);
+	xmlCompile->compiled_score->write(xmlCompile->music_xml_displayed_file);
 
 	// adapt lilypond settings
 	fin.Open(FILE_IN_PRESETLILY);
@@ -1003,6 +1017,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 
 	if ( alreadyAvailable)
 	{ 
+		mlog_in("Score pages : read from cache");
 		((wxFrame *)mParent)->SetStatusText("Score pages : read from cache",0);
 	}
 	else
@@ -1011,14 +1026,28 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 
 		wxExecuteEnv execenv;
 		execenv.cwd = getTmpDir();
-
-		lexec = wxExecute(command_xmltolily, wxEXEC_SYNC | wxEXEC_HIDE_CONSOLE  , NULL , &execenv);
+		wxArrayString stdouput;
+		wxArrayString stderror;
+		mlog_in((const char*)(command_xmltolily.c_str()));
+		lexec = wxExecute(command_xmltolily, stdouput , stderror , wxEXEC_SYNC | wxEXEC_HIDE_CONSOLE  , &execenv);
 		if (lexec < 0)
 		{
 			wxMessageBox("Cannot translate XML to Lilypond", "build score", wxOK | wxICON_ERROR);
+			mlog_in("Cannot translate XML to Lilypond");
 			return false;
 		}
-
+		if ( stdouput.GetCount() > 0 )
+			mlog_in("stdout translate XML to Lilypond");
+		for (size_t i = 0; i < stdouput.GetCount(); ++i)
+		{
+			mlog_in("%s", (const char*)(stdouput[i].c_str()));
+		}
+		if ( stderror.GetCount() > 0 )
+			mlog_in("stderror translate XML to Lilypond");
+		for (size_t i = 0; i < stderror.GetCount(); ++i)
+		{
+			mlog_in("%s", (const char*)(stderror[i].c_str()));
+		}
 		fin.Open(lilyscore);
 		fout.Create(lilysrc);
 		fout.Open(lilysrc);
@@ -1122,16 +1151,30 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		}
 
 		// run the lilypond batch to build he pages and the positions
-		lexec = wxExecute(command_lilytopng , wxEXEC_SYNC | wxEXEC_HIDE_CONSOLE , NULL , & execenv );
+		mlog_in((const char*)(command_lilytopng.c_str()));
+		lexec = wxExecute(command_lilytopng, stdouput, stderror, wxEXEC_SYNC | wxEXEC_HIDE_CONSOLE, &execenv);
 		if (lexec < 0)
 		{
-			wxMessageBox("Cannot convert Lilypond to PNG", "build score", wxOK | wxICON_ERROR);
+			wxMessageBox("Cannot translate Lilypond to PNG", "build score", wxOK | wxICON_ERROR);
+			mlog_in("Cannot translate Lilypond to PNG : %s\n", (const char*)(command_lilytopng.c_str()));
 			return false;
+		}
+		if (stdouput.GetCount() > 0)
+			mlog_in("stdout translate Lilypond to PNG");
+		for (size_t i = 0; i < stdouput.GetCount(); ++i)
+		{
+			mlog_in("%s", (const char*)(stdouput[i].c_str()));
+		}
+		if (stderror.GetCount() > 0)
+			mlog_in("stderror translate Lilypond to PNG");
+		for (size_t i = 0; i < stderror.GetCount(); ++i)
+		{
+			mlog_in("%s", (const char*)(stderror[i].c_str()));
 		}
 		
 		readlilypond();
 
-		((wxFrame *)mParent)->SetStatusText("Score pages : storing in cache", 0 );
+		((wxFrame *)mParent)->SetStatusText("Score pages : stored in cache", 0 );
 
 		// cache this result for potential reuse
 		wxCopyFile(expresseurpos , poscache.GetFullPath());

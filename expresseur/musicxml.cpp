@@ -1631,8 +1631,8 @@ void c_wedge::write(wxFFile *f)
 
 // score - partwise / list / part / measure / direction / direction-type / coda
 //------------------------------------------------------------------------------
-
-c_coda::c_coda(wxXmlNode* xmlnode) // : c_default_xy(xmlnode)
+/*
+c_coda::c_coda(wxXmlNode* WXUNUSED (xmlnode)) // : c_default_xy(xmlnode)
 {
 	used = true;
 }
@@ -1643,11 +1643,11 @@ void c_coda::write(wxFFile *f)
 	// write_xy(f);
 	f->Write(wxString::Format("/> \n"));
 }
-
+*/
 // score - partwise / list / part / measure / direction / direction-type / segno
 //------------------------------------------------------------------------------
-
-c_segno::c_segno(wxXmlNode *xmlnode) // : c_default_xy(xmlnode)
+/*
+c_segno::c_segno(wxXmlNode* WXUNUSED (xmlnode)) // : c_default_xy(xmlnode)
 {
 	used = true;
 }
@@ -1658,7 +1658,7 @@ void c_segno::write(wxFFile *f)
 	// write_xy(f);
 	f->Write(wxString::Format("/> \n"));
 }
-
+*/
 // score - partwise / list / part / measure / direction / direction-type
 //----------------------------------------------------------------------
 c_direction_type::c_direction_type(wxXmlNode *xmlnode)
@@ -1686,7 +1686,7 @@ c_direction_type::c_direction_type(wxXmlNode *xmlnode)
 		}
 		else if (name == "coda")
 		{
-			coda = c_coda(child);
+			coda = true;
 		}
 		else if (name == "dynamics")
 		{
@@ -1694,7 +1694,7 @@ c_direction_type::c_direction_type(wxXmlNode *xmlnode)
 		}
 		else if (name == "segno")
 		{
-			segno = c_segno(child);
+			segno = true;
 		}
 		else if (name == "words")
 		{
@@ -1709,9 +1709,11 @@ void c_direction_type::write(wxFFile *f)
 	octave_shift.write(f);
 	rehearsal.write(f);
 	wedge.write(f);
-	coda.write(f);
+	if (segno)
+		f->Write(wxString::Format("<segno/>"));
+	if (coda)
+		f->Write(wxString::Format("<coda/>"));
 	dynamics.write(f);
-	segno.write(f);
 	words.write(f);
 }
 
@@ -1754,7 +1756,7 @@ c_direction::c_direction(wxXmlNode *xmlnode)
 void c_direction::write(wxFFile *f)
 {
 	if (!used) return;
-	if ((direction_types.size() == 0) && (sounds.size() == 0))
+	if (direction_types.size() == 0) // && (sounds.size() == 0))
 		return;
 	f->Write(wxString::Format("<direction"));
 	if (placement != NULL_STRING)
@@ -1771,6 +1773,7 @@ void c_direction::write(wxFFile *f)
 		}
 		f->Write(wxString::Format("</direction-type>\n"));
 	}
+	/*
 	if (sounds.size() > 0)
 	{
 		for (auto & current : sounds )
@@ -1778,6 +1781,7 @@ void c_direction::write(wxFFile *f)
 			current.write(f);
 		}
 	}
+	*/
 	f->Write(wxString::Format("</direction>\n"));
 }
 
@@ -1856,13 +1860,13 @@ void c_measure_sequence::divisionsAlign(int ratio)
 }
 // score-partwise/list/part/measure
 //---------------------------------
-c_measure::c_measure(int inumber , int iwidth = NULL_INT)
+c_measure::c_measure(int inumber)
 {
 	used = true;
 	number = inumber;
 	original_number = number;
 	repeat = 0;
-	width = iwidth;
+	//width = iwidth;
 }
 c_measure::c_measure(wxXmlNode *xmlnode)
 {
@@ -1870,7 +1874,7 @@ c_measure::c_measure(wxXmlNode *xmlnode)
 	number = GetIntAttribute(xmlnode,"number");
 	original_number = number;
 	repeat = 0;
-	width = GetIntAttribute(xmlnode, "width");
+	//width = GetIntAttribute(xmlnode, "width");
 	wxXmlNode *child = xmlnode->GetChildren();
 	while (child)
 	{
@@ -1910,7 +1914,7 @@ c_measure::c_measure(const c_measure &measure , bool withContent)
 {
 	used = true;
 	number = measure.number;
-	width = measure.width;
+	//width = measure.width;
 	division_beat = measure.division_beat;
 	division_measure = measure.division_measure;
 	division_quarter = measure.division_quarter;
@@ -1933,14 +1937,14 @@ c_measure::c_measure(const c_measure &measure , bool withContent)
 		}
 	}
 }
-void c_measure::write(wxFFile *f, bool layout = true)
+void c_measure::write(wxFFile *f)
 {
 	if (!used) return;
 	f->Write(wxString::Format("<measure"));
 	if (number != NULL_INT)
 		f->Write(wxString::Format(" number=\"%d\"", number));
-	if (layout && (width != NULL_INT))
-		f->Write(wxString::Format(" width=\"%d\"", width));
+	//if (layout && (width != NULL_INT))
+	//	f->Write(wxString::Format(" width=\"%d\"", width));
 	f->Write(wxString::Format(">\n"));
 	for (auto & current : measure_sequences )
 	{
@@ -2014,7 +2018,7 @@ c_part::c_part(const c_part &part, bool withMeasures)
 	if (withMeasures)
 		measures = part.measures;
 }
-void c_part::write(wxFFile *f, bool layout = true)
+void c_part::write(wxFFile *f)
 {
 	if (!used) return;
 	f->Write(wxString::Format("<part "));
@@ -2023,7 +2027,7 @@ void c_part::write(wxFFile *f, bool layout = true)
 	f->Write(wxString::Format(" >\n"));
 	for (auto & current : measures )
 	{
-		current.write(f, layout);
+		current.write(f);
 	}
 	f->Write(wxString::Format("</part>\n"));
 }
@@ -2069,7 +2073,7 @@ void c_work::write(wxFFile *f)
 	f->Write(wxString::Format("<work-title>%s</work-title>\n", encodeXML(work_title)));
 	f->Write(wxString::Format("</work>\n"));
 }
-
+/*
 // score-partwise/defaults/scaling
 //--------------------
 void c_scaling::read(wxXmlNode *xmlnode)
@@ -2178,7 +2182,7 @@ void c_defaults::write(wxFFile *f)
 	page_layout.write(f);
 	f->Write(wxString::Format("</defaults>\n"));
 }
-
+*/
 // score-partwise
 //---------------
 c_score_partwise::c_score_partwise(wxXmlNode *xmlnode)
@@ -2210,7 +2214,7 @@ c_score_partwise::c_score_partwise(const c_score_partwise &score_partwise, bool 
 	}
 	already_twelved = score_partwise.already_twelved;
 }
-void c_score_partwise::write(wxString filename , bool layout = true)
+void c_score_partwise::write(wxString filename)
 {
 	if (!used) return;
 	wxFFile xf(filename,"w");
@@ -2219,12 +2223,12 @@ void c_score_partwise::write(wxString filename , bool layout = true)
 	xf.Write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE score-partwise PUBLIC \"-//Recordare//DTD MusicXML 3.0 Partwise//EN\" \"http://www.musicxml.org/dtds/partwise.dts\" >\n");
 	xf.Write("<score-partwise>\n");
 	work.write(&xf);
-	defaults.write(&xf);
+	//defaults.write(&xf);
 	part_list.write(&xf);
 	for (size_t i = 0 ; i < parts.size(); i++ )
 	{
 		if (part_list.score_parts[i].view)
-			parts[i].write(&xf, layout);
+			parts[i].write(&xf);
 	}
 	xf.Write("</score-partwise>\n");
 	xf.Close();

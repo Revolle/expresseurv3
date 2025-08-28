@@ -5,14 +5,6 @@
 // Licence:    Expresseur licence
 /////////////////////////////////////////////////////////////////////////////
 
-// ============================================================================
-// declarations
-// ============================================================================
-
-// ----------------------------------------------------------------------------
-// headers
-// ----------------------------------------------------------------------------
-
 
 // For compilers that support precompilation, includes "wx/wx.h".
 #include "wx/wxprec.h"
@@ -582,8 +574,9 @@ Expresseur::~Expresseur()
 	else
 		configRemove(CONFIG_FILENAME);
 
-	configSet(CONFIG_MAINMAXIMIZED, IsMaximized());
-	if (!IsMaximized())
+	bool estmax = IsMaximized();
+	configSet(CONFIG_MAINMAXIMIZED, estmax);
+	if (! estmax)
 	{
 		wxSize msize = GetSize() ;
 		configSet(CONFIG_MAINWIDTH, msize.GetWidth());
@@ -763,23 +756,18 @@ void Expresseur::postInit()
 	preClose();
 	
 	// resize the main frame
-	bool tobeMaximized = configGet(CONFIG_MAINMAXIMIZED, false);
-	if (tobeMaximized)
-	{
+	sizeFrame.SetWidth(configGet(CONFIG_MAINWIDTH, SIZEAPPDEFAUTWIDTH));
+	sizeFrame.SetHeight(configGet(CONFIG_MAINHEIGHT, SIZEAPPDEFAUTHEIGHT));
+	if (sizeFrame.GetWidth() < SIZEAPPMINWIDTH)
+		sizeFrame.SetWidth(SIZEAPPMINWIDTH);
+	if (sizeFrame.GetHeight() < SIZEAPPMINHEIGHT)
+		sizeFrame.SetHeight(SIZEAPPMINHEIGHT);
+	if (configGet(CONFIG_MAINMAXIMIZED, false))
 		frame->Maximize(true);
-	}
 	else
 	{
-		sizeFrame.SetWidth(configGet(CONFIG_MAINWIDTH, 1010));
-		sizeFrame.SetHeight(configGet(CONFIG_MAINHEIGHT, 780));
-		if (sizeFrame.GetWidth() < 600)
-			sizeFrame.SetWidth(600);
-		if (sizeFrame.GetHeight() < 400)
-			sizeFrame.SetHeight(400);
-		wxRect sizeToSet;
-		sizeToSet.SetWidth(sizeFrame.GetWidth() - configGet(CONFIG_MAINDELTAWIDTH, 0));
-		sizeToSet.SetHeight(sizeFrame.GetHeight() - configGet(CONFIG_MAINDELTAHEIGHT, 0));
-		frame->SetSize(sizeToSet);
+		frame->Maximize(false);
+		frame->SetSize(sizeFrame);
 	}
 
 	frame->Show(true);
@@ -1075,6 +1063,7 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 
 		if (image_right != mViewerscore->GetClientSize())
 		{
+			/*
 			if ( image_right.GetWidth() == 0)
 			{
 				wxSize sizeResult = GetSize() ;
@@ -1085,6 +1074,7 @@ void Expresseur::OnIdle(wxIdleEvent& evt)
 					frame->SetSize(sizeFrame);
 				}
 			}
+			*/
 			Layout();
 			image_right = mViewerscore->GetClientSize();
 			mViewerscore->displayFile(image_right);

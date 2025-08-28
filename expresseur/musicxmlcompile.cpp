@@ -128,7 +128,7 @@ static bool musicXmlEventsCompareStart(const c_musicxmlevent& a, const c_musicxm
 
 	if (a.start_t < b.start_t)
 		return true;
-	if (a.start_t >b.start_t)
+	if (a.start_t > b.start_t)
 		return false;
 	if (a.start_order < b.start_order)
 		return true;
@@ -1696,6 +1696,7 @@ int musicxmlcompile::compileNote(const c_part & part, const c_note & note, int m
 
 	// compile a note in the lMusicxmlevents
 
+	wxASSERT(t >= 0);
 	// calcul du position dans le temps de la note
 	if ((note.grace)  || (note.rest.used) || (note.cue) || ((note.tie.used) && ((note.tie.stop) || (note.tie.compiled))))
 	{
@@ -1718,8 +1719,17 @@ int musicxmlcompile::compileNote(const c_part & part, const c_note & note, int m
 	stop_t = t;
 	compileTie(part, note, &stop_measureNr, &stop_t, division_measure);
 
-	c_musicxmlevent mmusicxmlevent (part.idNr,note.staff, note.voice, measureNr, originalMeasureNr, t, stop_measureNr, stop_t, pitch, division_measure, division_beat, division_quarter, repeat, 0, key_fifths);
-	mmusicxmlevent.chord_order = note.chord_order;
+	
+	//c_musicxmlevent(int ipartNr, int istaffNr, int ivoice,
+	//	int istart_measureNr, int ioriginal_measureNr, int istart_t, int istop_measureNr, int istop_t,
+	//	int ipitch, int idivision_measure, int idivision_beat, int idivision_quarter,
+	//	int irepeat, int iorder, int ififths)
+		c_musicxmlevent mmusicxmlevent (part.idNr,note.staff, note.voice, 
+		measureNr, originalMeasureNr, t, stop_measureNr, stop_t, 
+		pitch, division_measure, division_beat, division_quarter, 
+		repeat, 0, key_fifths);
+	
+		mmusicxmlevent.chord_order = note.chord_order;
 	if (note.notehead.IsSameAs("x",false))
 	{
 		mmusicxmlevent.velocity = 1;
@@ -1729,6 +1739,7 @@ int musicxmlcompile::compileNote(const c_part & part, const c_note & note, int m
 	lMusicxmlevents.push_back(mmusicxmlevent);
 
 	t += (note.duration == NULL_INT) ? 0 : note.duration;
+	wxASSERT(t >= 0);
 
 	return t;
 }
@@ -2791,8 +2802,8 @@ void musicxmlcompile::addExpresseurPart()
 			{
 				if (measure_sequence.attributes.used)
 				{
-					measure_sequence.attributes.key.used = false;
-					measure_sequence.attributes.staff_details.used = false;
+					measure_sequence.attributes.key.used = true;
+					measure_sequence.attributes.staff_details.used = true;
 					measure_sequence.attributes.staff_details.staff_lines = 2;
 					measure_sequence.attributes.clefs.clear();
 					measure_sequence.attributes.staves = 1;
@@ -2831,7 +2842,7 @@ void musicxmlcompile::deleteBarLabel(c_measure *mmeasure)
 			for (auto & direction_type : current_measure_sequence.direction.direction_types)
 			{
 				direction_type.tobedeleted = false;
-				if (direction_type.segno.used || direction_type.rehearsal.used)
+				if (direction_type.segno || direction_type.rehearsal.used)
 					direction_type.tobedeleted = true;
 				else if (direction_type.words.used)
 				{
@@ -2866,6 +2877,8 @@ void musicxmlcompile::buildBars()
 	fn.SetPath(getTmpDir());
 	fn.SetName(FILE_BAR_LILY);
 	wxString sf = fn.GetFullPath();
+	if ( fn.Exists() )
+		wxRemoveFile(sf);
 	if (!fn.FileExists())
 		f.Create(sf);
 	f.Open(sf);
@@ -2890,8 +2903,6 @@ void musicxmlcompile::buildBars()
 		{
 			if (mark.number == nrmeasure)
 			{
-				s.Printf("\\bar \".\"");
-				f.AddLine(s);
 				char cb = mark.name[0];
 				char cf;
 				if (mark.name.length() > 1)
@@ -2901,6 +2912,8 @@ void musicxmlcompile::buildBars()
 				if ((cb >= 'A') && (cb <= 'Z') && ((cf < '0') || (cf > '9')))
 				{
 					// mark name starts with a musjscule et ne termine pas par un nombre
+					s.Printf("\\bar \".\"");
+					f.AddLine(s);
 					if (mark.repeatNumber == 0)
 						s.Printf("\\mark \"%s\"", mark.name);
 					else
@@ -2928,6 +2941,7 @@ void musicxmlcompile::buildBars()
 
 	f.AddLine("\\set Score.finalFineTextVisibility = ##t");
 	f.AddLine("\\fine");
+	f.AddLine("\\bar \"|.\"");
 	s.Printf("}");
 	f.AddLine(s);
 
@@ -3056,6 +3070,7 @@ void musicxmlcompile::compilePlayedScore()
 				key_fifths = current_measure.key_fifths;
 			for (auto & current_measure_sequence : current_measure.measure_sequences )
 			{
+				wxASSERT(current_t >= 0);
 				// pour chacun des elements de la mesure
 				if ( current_measure_sequence.note.used)
 				{
@@ -3065,14 +3080,17 @@ void musicxmlcompile::compilePlayedScore()
 												current_t, current_measure.division_measure, 
 												current_measure.division_beat, current_measure.division_quarter, 
 												current_measure.repeat, key_fifths);
+					wxASSERT(current_t >= 0);
 				}
 				if (current_measure_sequence.backup.used)
 				{
 					current_t -= current_measure_sequence.backup.duration;
+					wxASSERT(current_t >= 0);
 				}
 				if (current_measure_sequence.forward.used)
 				{
-					current_t += current_measure_sequence.backup.duration;
+					current_t += current_measure_sequence.forward.duration;
+					wxASSERT(current_t >= 0);
 				}
 			}
 		}
@@ -3120,6 +3138,13 @@ void musicxmlcompile::compileExpresseurPart()
 		wxASSERT(musicxmlevent_from->duration >= 0);
 		musicxmlevent_from->nrExpresseurNote = nrExpresseurNote; // to have a sequential marker for the list of Expresseur notes
 		int from_start_measureNr = musicxmlevent_from->start_measureNr;
+
+		//// DEBUG
+		if (from_start_measureNr == 62)
+		{
+			int h;
+			h = 0;
+		}
 		int from_stop_measureNr = musicxmlevent_from->stop_measureNr;
 		int from_startT = musicxmlevent_from->start_t;
 		int from_stopT = musicxmlevent_from->stop_t;

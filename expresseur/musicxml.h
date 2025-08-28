@@ -230,6 +230,7 @@ public:
 	int spread = NULL_INT ;
 	bool used = false;
 };
+/*
 class c_coda // : c_default_xy
 {
 public:
@@ -239,15 +240,17 @@ public:
 	void write(wxFFile *f);
 	bool used = false;
 };
+*/
+/*
 class c_segno // : c_default_xy
 {
 public:
 	c_segno() = default;
 	c_segno(c_segno const &segno) = default ;
-	c_segno(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
 	bool used = false;
 };
+*/
 class c_dynamics // : c_default_xy
 {
 public:
@@ -271,14 +274,13 @@ public:
 	c_octave_shift octave_shift;
 	c_rehearsal rehearsal;
 	c_wedge wedge;
-	c_coda coda;
-	c_segno segno;
+	bool coda;
+	bool segno;
 	c_words words;
 	c_dynamics dynamics;
 	bool tobedeleted = false;
 	bool used = false;
 };
-
 class c_sound
 {
 public:
@@ -290,7 +292,6 @@ public:
 	wxString value;
 	bool used = false;
 };
-
 class c_direction
 {
 public:
@@ -641,10 +642,10 @@ class c_measure
 public:
 	c_measure() = default;
 	c_measure(const c_measure& measure) = default;
-	c_measure(int number, int width);
+	c_measure(int number);
 	c_measure(const c_measure &measure, bool withContent );
 	c_measure(wxXmlNode *xmlnode);
-	void write(wxFFile *f, bool layout);
+	void write(wxFFile *f);
 	void compile(c_measure *previous_measure,int partNr, bool twelved = false);
 	void divisionsAlign();
 	int divisions = NULL_INT;
@@ -655,7 +656,7 @@ public:
 	int beats = NULL_INT;
 	int key_fifths = NULL_INT;
 	int number = NULL_INT;
-	int width = NULL_INT;
+	// int width = NULL_INT;
 	int original_number; // original number of the measure
 	int repeat = 0; // internal sequence number of the repetition of this measure
 	std::vector<c_measure_sequence> measure_sequences;
@@ -672,7 +673,7 @@ public:
 	c_part(wxXmlNode *xmlnode);
 	void compile(int nr, bool twelved = false);
 	void divisionsAlign();
-	void write(wxFFile *f, bool layout);
+	void write(wxFFile *f);
 	wxString id = NULL_STRING;
 	int idNr = 0;
 	int partNr = 0;
@@ -700,6 +701,7 @@ public:
 	wxString work_title;
 	bool used = false;
 };
+/*
 class c_scaling
 {
 public:
@@ -711,6 +713,7 @@ public:
 	float tenths = 40.0;
 	bool used = false;
 };
+
 class c_page_layout
 {
 public:
@@ -723,6 +726,7 @@ public:
 	float margin = 5.0;
 	bool used = false;
 };
+
 class c_defaults
 {
 public:
@@ -730,10 +734,11 @@ public:
 	c_defaults(const c_defaults& defaults) = default;
 	c_defaults(wxXmlNode *xmlnode);
 	void write(wxFFile *f);
-	c_scaling scaling;
-	c_page_layout page_layout;
+	//c_scaling scaling;
+	//c_page_layout page_layout;
 	bool used = false;
 };
+*/
 class c_score_partwise
 {
 public:
@@ -741,9 +746,9 @@ public:
 	c_score_partwise(const c_score_partwise&) = default;
 	c_score_partwise(const c_score_partwise& score_partwise, bool withMeasures);
 	c_score_partwise(wxXmlNode *xmlnode);
-	void write(wxString filename, bool layout);
+	void write(wxString filename);
 	c_work work;
-	c_defaults defaults;
+	// c_defaults defaults;
 	c_part_list part_list;
 	std::vector<c_part> parts;
 	void compile( bool twelved = false);
