@@ -353,9 +353,6 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	mStatusBar->SetStatusWidths(3, proportionStatusBar);
 
 	getAppDir();
-
-	CreateExpresseurV3();
-
 	mode = modeNil;
 	listChanged = false;
 	listName.Clear();
