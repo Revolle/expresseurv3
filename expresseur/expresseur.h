@@ -104,6 +104,7 @@ public:
 	void OnIdle(wxIdleEvent& event);
 	void OnTimer(wxTimerEvent& event);
 	void OnSize(wxSizeEvent& event);
+	void OnMaximize(wxMaximizeEvent& event);
 	void postInit();
 	void preClose();
 	bool testModeMidi();
@@ -123,6 +124,8 @@ private:
 	int posScrollVertical = 50 ;
 	wxBoxSizer *sizer_text_viewer;
 	wxSizerItem *sizer_A, *sizer_B;
+	int maximized = 0;
+	wxSize sizeBeforeMaximize;
 
 	void setOrientation(int v, int h);
 
@@ -218,8 +221,6 @@ private:
 	bool logMidiMsg = false;
 	bool localoff = false;
 	wxToolBar *toolBar;
-	
-	wxSize sizeFrame ;
 	
 	bool playback = false;
 	bool recordPlayback = false ;

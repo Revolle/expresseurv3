@@ -274,8 +274,8 @@ public:
 	c_octave_shift octave_shift;
 	c_rehearsal rehearsal;
 	c_wedge wedge;
-	bool coda;
-	bool segno;
+	bool coda = false;
+	bool segno = false;
 	c_words words;
 	c_dynamics dynamics;
 	bool tobedeleted = false;

@@ -283,6 +283,7 @@ EVT_COMMAND_SCROLL_THUMBRELEASE(ID_MAIN_SCROLL_VERTICAL, Expresseur::OnVerticalS
 EVT_TIMER(ID_MAIN_TIMER, Expresseur::OnTimer)
 EVT_IDLE(Expresseur::OnIdle)
 EVT_SIZE(Expresseur::OnSize)
+EVT_MAXIMIZE(Expresseur::OnMaximize)
 
 wxEND_EVENT_TABLE()
 
@@ -753,18 +754,22 @@ void Expresseur::postInit()
 	preClose();
 	
 	// resize the main frame
-	sizeFrame.SetWidth(configGet(CONFIG_MAINWIDTH, SIZEAPPDEFAUTWIDTH));
-	sizeFrame.SetHeight(configGet(CONFIG_MAINHEIGHT, SIZEAPPDEFAUTHEIGHT));
-	if (sizeFrame.GetWidth() < SIZEAPPMINWIDTH)
-		sizeFrame.SetWidth(SIZEAPPMINWIDTH);
-	if (sizeFrame.GetHeight() < SIZEAPPMINHEIGHT)
-		sizeFrame.SetHeight(SIZEAPPMINHEIGHT);
+	sizeBeforeMaximize.SetWidth(configGet(CONFIG_MAINWIDTH, SIZEAPPDEFAUTWIDTH));
+	sizeBeforeMaximize.SetHeight(configGet(CONFIG_MAINHEIGHT, SIZEAPPDEFAUTHEIGHT));
+	if (sizeBeforeMaximize.GetWidth() < SIZEAPPMINWIDTH)
+		sizeBeforeMaximize.SetWidth(SIZEAPPMINWIDTH);
+	if (sizeBeforeMaximize.GetHeight() < SIZEAPPMINHEIGHT)
+		sizeBeforeMaximize.SetHeight(SIZEAPPMINHEIGHT);
 	if (configGet(CONFIG_MAINMAXIMIZED, false))
+	{
 		frame->Maximize(true);
+		maximized = 1;
+	}
 	else
 	{
+		maximized = 0;
 		frame->Maximize(false);
-		frame->SetSize(sizeFrame);
+		frame->SetSize(sizeBeforeMaximize);
 	}
 
 	frame->Show(true);
@@ -858,8 +863,28 @@ void Expresseur::OnVerticalScroll(wxScrollEvent& event)
 }
 void Expresseur::OnSize(wxSizeEvent& WXUNUSED(event))
 {
+	switch (maximized )
+	{
+	case 1 : // => maximized
+			maximized = 2;
+			break;
+	case 2: //  maximized =>  normal
+		maximized = 0;
+		this->SetSize(sizeBeforeMaximize);
+		break;
+	case 0: // normal
+		sizeBeforeMaximize = this->GetSize();
+		break;
+	default :
+		maximized = 0;
+		break;
+	}
 	waitToRefresh = periodRefresh / timerDt;
 	Layout();
+}
+void Expresseur::OnMaximize(wxMaximizeEvent& WXUNUSED(event))
+{
+	maximized = 1;
 }
 bool Expresseur::OnKeyDown(wxKeyEvent& event)
 {
@@ -2834,7 +2859,7 @@ int Expresseur::getListAudio()
 	*nameaudiodevice = '\0';
 	while (true)
 	{
-		basslua_call(moduleLuabass, "getaudioname", "i>s", nraudiodevice + 1, nameaudiodevice);
+		basslua_call(moduleLuabass, "getAudioName", "i>s", nraudiodevice + 1, nameaudiodevice);
 		if (*nameaudiodevice == '\0')
 			break;
 		nameaudioDevices.push_back(nameaudiodevice);

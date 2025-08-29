@@ -4,7 +4,6 @@
 // Author:      Franck REVOLLE
 // Modified by:
 // Created:     27/09/2015
-// update : 20/11/2016 19:00
 // Copyright:   (c) Franck REVOLLE Expresseur
 // Licence:    Expresseur licence
 /////////////////////////////////////////////////////////////////////////////
@@ -1836,13 +1835,13 @@ c_measure_sequence::c_measure_sequence(c_direction const& direction)
 
 void c_measure_sequence::write(wxFFile *f)
 {
-	note.write(f);
+	direction.write(f);
 	harmony.write(f);
+	attributes.write(f);
+	note.write(f);
 	backup.write(f);
 	forward.write(f);
 	barline.write(f);
-	direction.write(f);
-	attributes.write(f);
 }
 void c_measure_sequence::compile(int partNr , bool twelved ,c_measure *measure)
 {
