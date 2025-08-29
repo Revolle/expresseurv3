@@ -9,7 +9,7 @@ class midishortcut
 {
 
 public:
-	midishortcut(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf, wxArrayString inameAction, wxArrayString lMidiin, wxArrayString lOpenedMidiin);
+	midishortcut(wxFrame *parent, wxWindowID id, const wxString &title, std::vector <wxString> inameAction, std::vector <wxString> lMidiin, std::vector <wxString> lOpenedMidiin);
 	~midishortcut();
 
 	void reset();
@@ -34,14 +34,13 @@ public:
 	void OnVolume(wxEvent& event);
 	void savePos();
 
-	wxArrayString getShortcuts() ;
+	std::vector<wxString> getShortcuts() ;
 	void onShortcut(int nrShortcut);
 	//bool hitkey(wxChar c , bool on , wxFrame *parent);
 
 private:
 	wxFrame *mParent;
 	wxDialog *mThis;
-	mxconf *mConf;
 
 	editshortcut *medit;
 
@@ -51,28 +50,28 @@ private:
 
 	wxListView *listShortchut;
 
-	wxArrayString nameAction;
-	wxArrayString nameKey;
-	wxArrayString nameOpenDevice;
-	wxArrayString nameDevice;
-	wxArrayString nameChannel;
-	wxArrayString nameEvent;
-	wxArrayString nameValueMin;
-	wxArrayString nameValueMax;
-	wxArrayString nameStopOnMatch;
-	wxArrayString nameParam;
+	std::vector <wxString> nameAction;
+	std::vector <wxString> nameKey;
+	std::vector <wxString> nameOpenDevice;
+	std::vector <wxString> nameDevice;
+	std::vector <wxString> nameChannel;
+	std::vector <wxString> nameEvent;
+	std::vector <wxString> nameValueMin;
+	std::vector <wxString> nameValueMax;
+	std::vector <wxString> nameStopOnMatch;
+	std::vector <wxString> nameParam;
 
-	wxArrayString valueName;
-	wxArrayString valueAction;
-	wxArrayString valueParam;
-	wxArrayString valueKey;
-	wxArrayInt valueDevice;
-	wxArrayInt valueChannel;
-	wxArrayString valueEvent;
-	wxArrayInt valueMin;
-	wxArrayString valueStopOnMatch;
+	std::vector <wxString> valueName;
+	std::vector <wxString> valueAction;
+	std::vector <wxString> valueParam;
+	std::vector <wxString> valueKey;
+	std::vector <int> valueDevice;
+	std::vector <int> valueChannel;
+	std::vector <wxString> valueEvent;
+	std::vector <int> valueMin;
+	std::vector <wxString> valueStopOnMatch;
 
-	wxArrayInt shortcutNrSelector;
+	std::vector <int> shortcutNrSelector;
 
 	int prevShortcutNrSelector = -1 ;
 

@@ -194,6 +194,19 @@ function echo(d)
   myDelay =  tonumber(d or 0)
 end
 
+function opendmx(port , nbchannel)
+  luabass.dmxOpen(tonumber(port),tonumber(nbchannel))
+  print("opendmx COM=" .. tonumber(port) .. " channels=" .. tonumber(nbchannel))
+end
+function senddmx(channel , value)
+  luabass.dmxOut(tonumber(channel),tonumber(value))
+  print("senddmx ch=" .. tonumber(channel) .. " v=" .. tonumber(value))
+end
+function setdmx(tenuto , ramping)
+  luabass.dmxSet(tonumber(tenuto), tonumber(ramping))
+  print("setdmx tenuto=" .. tonumber(tenuto) .. " ramping=" .. tonumber(ramping))
+end
+
 function help()
   print("open a MIDI-in using openin. Open a MIDI-out using openout. MIDI-in is going to Midi-out.")
   print("openin <name or #>" )
@@ -209,6 +222,9 @@ function help()
   print("shortchord #" )
   print("transpose [-12..12]" )
   print("sound <file.wav>")
+  print("opendmx <com[1..16]> <nbchannel[1..255]>")
+  print("senddmx <channel[0..255]> <value[0..255]>")
+  print("setdmx <tenuto[0..255]> <ramping[0..255]>")
   print("exit")
   print("help")
 end

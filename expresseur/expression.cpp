@@ -17,6 +17,8 @@
 #ifndef WX_PRECOMP
 #include "wx/wx.h"
 #endif
+#include <vector>
+#include <algorithm>
 
 
 #include "wx/dialog.h"
@@ -39,7 +41,7 @@
 
 enum
 {
-	IDM_EXPRESSION_VALUE = ID_EXPRESSION
+	IDM_EXPRESSION_VALUE = ID_EXPRESSION 
 };
 
 
@@ -47,24 +49,23 @@ wxBEGIN_EVENT_TABLE(expression, wxDialog)
 EVT_SIZE(expression::OnSize)
 wxEND_EVENT_TABLE()
 
-expression::expression(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf)
+expression::expression(wxFrame *parent, wxWindowID id, const wxString &title)
 : wxDialog(parent, id, title, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 {
 	mParent = parent;
 	mThis = this;
-	mConf = lMxconf;
 
 	char name[MAXBUFCHAR];
 	char help[MAXBUFCHAR] = "";
-	nameValue.Clear();
-	helpValue.Clear();
+	nameValue.clear();
+	helpValue.clear();
 	unsigned int nrValue = 0;
 	while (basslua_table(moduleGlobal, tableValues, nrValue, fieldName, name, NULL, tableGetKeyValue) == tableGetKeyValue)
 	{
-		nameValue.Add(name);
+		nameValue.push_back(name);
 		help[0] = '\0';
 		basslua_table(moduleGlobal, tableValues, nrValue, fieldHelp, help, NULL, tableGetKeyValue);
-		helpValue.Add(help);
+		helpValue.push_back(help);
 		nrValue++;
 	}
 
@@ -78,16 +79,16 @@ expression::expression(wxFrame *parent, wxWindowID id, const wxString &title, mx
 
 	int v;
 	wxString s  ;
-	for (nrValue = 0; nrValue < nameValue.GetCount(); nrValue++)
+	for (nrValue = 0; nrValue < nameValue.size(); nrValue++)
 	{
 		basslua_table(moduleGlobal, tableValues, nrValue, fielDefaultValue, NULL, &v, tableGetKeyValue);
 		s = nameValue[nrValue];
-		if (mConf->exists(CONFIG_EXPRESSIONVALUE, false, nameValue[nrValue]))
-			v = mConf->get(CONFIG_EXPRESSIONVALUE, v, false, nameValue[nrValue]);
+		if (configExists(CONFIG_EXPRESSIONVALUE, false, nameValue[nrValue]))
+			v = configGet(CONFIG_EXPRESSIONVALUE, v, false, nameValue[nrValue]);
 		paramsizer->Add(new wxStaticText(this, wxID_ANY, s), sizerFlagMaximumPlace);
 		basslua_table(moduleGlobal, tableValues, -1, nameValue[nrValue], NULL, &v, tableSetKeyValue);
 		basslua_table(moduleGlobal, tableValues, nrValue, fieldCallFunction, NULL, &v, tableCallKeyFunction);
-		mConf->set(CONFIG_EXPRESSIONVALUE, v, false, nameValue[nrValue]);
+		configSet(CONFIG_EXPRESSIONVALUE, v, false, nameValue[nrValue]);
 		mValue[nrValue] = new wxSlider(this, IDM_EXPRESSION_VALUE + nrValue , v, 0, 127, wxDefaultPosition, wxDefaultSize, 4L);
 		mValue[nrValue]->Bind(wxEVT_SLIDER, &expression::OnValue, this);
 		mValue[nrValue]->SetToolTip(helpValue[nrValue]);
@@ -110,10 +111,10 @@ void expression::OnSize(wxSizeEvent& WXUNUSED(event))
 void expression::savePos()
 {
 	wxRect mrect = GetRect();
-	mConf->set(CONFIG_EXPRESSIONWIDTH, mrect.GetWidth());
-	mConf->set(CONFIG_EXPRESSIONHEIGHT, mrect.GetHeight());
-	mConf->set(CONFIG_EXPRESSIONX, mrect.GetX());
-	mConf->set(CONFIG_EXPRESSIONY, mrect.GetY());
+	configSet(CONFIG_EXPRESSIONWIDTH, mrect.GetWidth());
+	configSet(CONFIG_EXPRESSIONHEIGHT, mrect.GetHeight());
+	configSet(CONFIG_EXPRESSIONX, mrect.GetX());
+	configSet(CONFIG_EXPRESSIONY, mrect.GetY());
 
 }
 void expression::scanValue()
@@ -121,7 +122,7 @@ void expression::scanValue()
 	// scan the value which are currently in place, and update the GUI if necessary
 	// this scan is called periodically by a global recurrent timer on main thread
 	int v;
-	unsigned int nb = nameValue.GetCount();
+	unsigned int nb = nameValue.size();
 	for (unsigned int nrValue = 0; nrValue < nb ; nrValue++)
 	{
 		basslua_table(moduleGlobal, tableValues, -1, nameValue[nrValue], NULL, &v, tableGetKeyValue);
@@ -135,10 +136,10 @@ void expression::OnValue(wxEvent& event)
 
 	int v = mValue[nrValue]->GetValue();
 	wxString nameV = nameValue[nrValue];
-	mConf->set(CONFIG_EXPRESSIONVALUE, v, false, nameV);
+	configSet(CONFIG_EXPRESSIONVALUE, v, false, nameV);
 
 	basslua_table(moduleGlobal, tableValues, -1, nameV, NULL, &v, tableSetKeyValue);
-	basslua_table(moduleGlobal, tableValues, nrValue, fieldCallFunction, NULL, &v, tableCallKeyFunction);
+	basslua_table(moduleGlobal, tableValues, nrValue, fieldCallFunction, NULL, &v, tableCallKeyFunction); 
 
 	wxString s;
 	s.Printf("%s %d ", nameV, v);
@@ -148,30 +149,30 @@ void expression::OnValue(wxEvent& event)
 void expression::reset()
 {
 	int v;
-	for (unsigned int nrValue = 0; nrValue < nameValue.GetCount(); nrValue++)
+	for (unsigned int nrValue = 0; nrValue < nameValue.size(); nrValue++)
 	{
 		basslua_table(moduleGlobal, tableValues, nrValue, fielDefaultValue, NULL, &v, tableGetKeyValue);
-		if (mConf->exists(CONFIG_EXPRESSIONVALUE, false, nameValue[nrValue]))
-			v = mConf->get(CONFIG_EXPRESSIONVALUE, v, false, nameValue[nrValue]);
+		if (configExists(CONFIG_EXPRESSIONVALUE, false, nameValue[nrValue]))
+			v = configGet(CONFIG_EXPRESSIONVALUE, v, false, nameValue[nrValue]);
 		basslua_table(moduleGlobal, tableValues, -1, nameValue[nrValue], NULL, &v, tableSetKeyValue);
 		basslua_table(moduleGlobal, tableValues, nrValue, fieldCallFunction, NULL, &v, tableCallKeyFunction);
 	}
 }
 void expression::write(wxTextFile *lfile)
 {
-	for (unsigned int nrValue = 0; nrValue < nameValue.GetCount(); nrValue++)
+	for (unsigned int nrValue = 0; nrValue < nameValue.size(); nrValue++)
 	{
 		int v;
 		basslua_table(moduleGlobal, tableValues, nrValue, fielDefaultValue, NULL, &v, tableGetKeyValue);
-		mConf->writeFile(lfile, CONFIG_EXPRESSIONVALUE, v, false, nameValue[nrValue]);
+		configWriteFile(lfile, CONFIG_EXPRESSIONVALUE, v, false, nameValue[nrValue]);
 	}
 }
 void expression::read(wxTextFile *lfile)
 {
-	for (unsigned int nrValue = 0; nrValue < nameValue.GetCount(); nrValue++)
+	for (unsigned int nrValue = 0; nrValue < nameValue.size(); nrValue++)
 	{
 		int v;
 		basslua_table(moduleGlobal, tableValues, nrValue, fielDefaultValue, NULL, &v, tableGetKeyValue);
-		mConf->readFile(lfile, CONFIG_EXPRESSIONVALUE, v, false, nameValue[nrValue]);
+		configReadFile(lfile, CONFIG_EXPRESSIONVALUE, v, false, nameValue[nrValue]);
 	}
 }

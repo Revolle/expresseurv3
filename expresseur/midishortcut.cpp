@@ -10,6 +10,8 @@
 
 // For compilers that support precompilation, includes "wx/wx.h".
 #include "wx/wxprec.h"
+#include <vector>
+#include <algorithm>
 
 #ifdef __BORLANDC__
 #pragma hdrstop
@@ -71,14 +73,13 @@ EVT_BUTTON(IDM_MIDISHORTCUT_CLOSE, midishortcut::OnClose)
 wxEND_EVENT_TABLE()
 
 
-midishortcut::midishortcut(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf, wxArrayString inameAction, wxArrayString lMidiin, wxArrayString lOpenedMidiin)
+midishortcut::midishortcut(wxFrame *parent, wxWindowID id, const wxString &title,std::vector <wxString> inameAction, std::vector <wxString> lMidiin, std::vector <wxString> lOpenedMidiin)
 : wxDialog(parent, id, title, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 {
 
 	mParent = parent;
 	mThis = this;
 	medit = NULL;
-	mConf = lMxconf;
 	nameAction = inameAction;
 	changed = false;
 
@@ -92,10 +93,10 @@ midishortcut::midishortcut(wxFrame *parent, wxWindowID id, const wxString &title
 	sizerFlagMinimumPlace.Border(wxALL, 1);
 
 	nameDevice = lMidiin;
-	nameOpenDevice.Clear();
-	nameOpenDevice.Add(SALLMIDIIN);
-	for (unsigned int i = 0; i < lOpenedMidiin.GetCount(); i++)
-		nameOpenDevice.Add(lOpenedMidiin[i]);
+	nameOpenDevice.clear();
+	nameOpenDevice.push_back(SALLMIDIIN);
+	for (auto & n : lOpenedMidiin)
+		nameOpenDevice.push_back(n);
 
 	InitLists();
 
@@ -106,31 +107,31 @@ midishortcut::midishortcut(wxFrame *parent, wxWindowID id, const wxString &title
 	int widthColumn[MAX_COLUMN_SHORTCUT];
 	for (int i = 0; i < MAX_COLUMN_SHORTCUT; i++)
 	{
-		widthColumn[i] = mConf->get(CONFIG_SHORTCUTWIDTHLIST, -1, false, wxString::Format("%d", i));
+		widthColumn[i] = configGet(CONFIG_SHORTCUTWIDTHLIST, -1, false, wxString::Format("%d", i));
 		if (widthColumn[i] < 5)
 			widthColumn[i] = -1;
 	}
 	listShortchut = new wxListView(this, IDM_MIDISHORTCUT_LIST);
-	listShortchut->AppendColumn(_("name"), wxLIST_FORMAT_LEFT, widthColumn[0]);
+	listShortchut->AppendColumn("name", wxLIST_FORMAT_LEFT, widthColumn[0]);
 	listShortchut->AppendColumn(_("ALT+key"), wxLIST_FORMAT_LEFT, widthColumn[1]);
-	listShortchut->AppendColumn(_("device"), wxLIST_FORMAT_LEFT, widthColumn[2]);
-	listShortchut->AppendColumn(_("channel"), wxLIST_FORMAT_LEFT, widthColumn[3]);
-	listShortchut->AppendColumn(_("event"), wxLIST_FORMAT_LEFT, widthColumn[4]);
-	listShortchut->AppendColumn(_("min"), wxLIST_FORMAT_LEFT, widthColumn[5]);
-	listShortchut->AppendColumn(_("max"), wxLIST_FORMAT_LEFT, widthColumn[6]);
-	listShortchut->AppendColumn(_("action"), wxLIST_FORMAT_LEFT, widthColumn[7]);
-	listShortchut->AppendColumn(_("param"), wxLIST_FORMAT_LEFT, widthColumn[8]);
-	listShortchut->AppendColumn(_("on match"), wxLIST_FORMAT_LEFT, widthColumn[9]);
+	listShortchut->AppendColumn("device", wxLIST_FORMAT_LEFT, widthColumn[2]);
+	listShortchut->AppendColumn("channel", wxLIST_FORMAT_LEFT, widthColumn[3]);
+	listShortchut->AppendColumn("event", wxLIST_FORMAT_LEFT, widthColumn[4]);
+	listShortchut->AppendColumn("min", wxLIST_FORMAT_LEFT, widthColumn[5]);
+	listShortchut->AppendColumn("max", wxLIST_FORMAT_LEFT, widthColumn[6]);
+	listShortchut->AppendColumn("action", wxLIST_FORMAT_LEFT, widthColumn[7]);
+	listShortchut->AppendColumn("param", wxLIST_FORMAT_LEFT, widthColumn[8]);
+	listShortchut->AppendColumn("on match", wxLIST_FORMAT_LEFT, widthColumn[9]);
 
 	topsizer->Add(listShortchut, sizerFlagMaximumPlace);
 
 	wxBoxSizer *button_sizer = new wxBoxSizer(wxHORIZONTAL);
-	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_DELETE, _("Delete")), sizerFlagMinimumPlace.Border(wxALL, 10));
-	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_ADD, _("Add")), sizerFlagMinimumPlace.Border(wxALL, 10));
-	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_EDIT, _("Edit")), sizerFlagMinimumPlace.Border(wxALL, 10));
-	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_UP, _("Up")), sizerFlagMinimumPlace.Border(wxALL, 10));
-	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_DOWN, _("Down")), sizerFlagMinimumPlace.Border(wxALL, 10));
-	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_CLOSE, _("Close")), sizerFlagMinimumPlace.Border(wxALL, 10));
+	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_DELETE, "Delete"), sizerFlagMinimumPlace.Border(wxALL, 10));
+	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_ADD, "Add"), sizerFlagMinimumPlace.Border(wxALL, 10));
+	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_EDIT, "Edit"), sizerFlagMinimumPlace.Border(wxALL, 10));
+	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_UP, "Up"), sizerFlagMinimumPlace.Border(wxALL, 10));
+	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_DOWN, "Down"), sizerFlagMinimumPlace.Border(wxALL, 10));
+	button_sizer->Add(new wxButton(this, IDM_MIDISHORTCUT_CLOSE, "Close"), sizerFlagMinimumPlace.Border(wxALL, 10));
 	topsizer->Add(button_sizer, sizerFlagMaximumPlace);
 
 	loadShortcut();
@@ -145,12 +146,12 @@ midishortcut::~midishortcut()
 void midishortcut::savePos()
 {
 	wxRect mrect = GetRect();
-	mConf->set(CONFIG_SHORTCUTWIDTH, mrect.GetWidth());
-	mConf->set(CONFIG_SHORTCUTHEIGHT, mrect.GetHeight());
-	mConf->set(CONFIG_SHORTCUTX, mrect.GetX());
-	mConf->set(CONFIG_SHORTCUTY, mrect.GetY());
+	configSet(CONFIG_SHORTCUTWIDTH, mrect.GetWidth());
+	configSet(CONFIG_SHORTCUTHEIGHT, mrect.GetHeight());
+	configSet(CONFIG_SHORTCUTX, mrect.GetX());
+	configSet(CONFIG_SHORTCUTY, mrect.GetY());
 	for (int i = 0; i < MAX_COLUMN_SHORTCUT; i++)
-		mConf->set(CONFIG_SHORTCUTWIDTHLIST, listShortchut->GetColumnWidth(i), false, wxString::Format("%d", i));
+		configSet(CONFIG_SHORTCUTWIDTHLIST, listShortchut->GetColumnWidth(i), false, wxString::Format("%d", i));
 }
 void midishortcut::close()
 {
@@ -186,25 +187,25 @@ void midishortcut::loadShortcut()
 	wxString device, event, smin, smax, sstopOnMatch , param;
 	int nrShortcut = 0 ;
 	listShortchut->DeleteAllItems();
-	long nbSelector = mConf->get(CONFIG_SHORTCUTNB, 0, false);
+	long nbSelector = configGet(CONFIG_SHORTCUTNB, 0, false);
 	for (int nrSelector = 0; nrSelector < nbSelector; nrSelector++)
 	{
-		name = mConf->get(CONFIG_SHORTCUTNAME, "", false, wxString::Format("%d", nrSelector));
-		action = mConf->get(CONFIG_SHORTCUTACTION, "", false, wxString::Format("%d", nrSelector));
-		key = mConf->get(CONFIG_SHORTCUTKEY, "", false, wxString::Format("%d", nrSelector));
+		name = configGet(CONFIG_SHORTCUTNAME, "", false, wxString::Format("%d", nrSelector));
+		action = configGet(CONFIG_SHORTCUTACTION, "", false, wxString::Format("%d", nrSelector));
+		key = configGet(CONFIG_SHORTCUTKEY, "", false, wxString::Format("%d", nrSelector));
 		key = key.Left(1);
 		key.MakeUpper();
 		if ((key.Len() > 0) && ((key[0] < 'A') || (key[0] > 'Z')))
 		{
 			key.Empty();
 		}
-		device = mConf->get(CONFIG_SHORTCUTDEVICENAME, "", false, wxString::Format("%d", nrSelector));
-		channel = mConf->get(CONFIG_SHORTCUTCHANNEL, "", false, wxString::Format("%d", nrSelector));
-		event = mConf->get(CONFIG_SHORTCUTEVENT, "", false, wxString::Format("%d", nrSelector));
-		smin = mConf->get(CONFIG_SHORTCUTMIN, "", false, wxString::Format("%d", nrSelector));
-		smax = mConf->get(CONFIG_SHORTCUTMAX, "", false, wxString::Format("%d", nrSelector));
-		sstopOnMatch = mConf->get(CONFIG_STOPONMATCH, "", false, wxString::Format("%d", nrSelector));
-		param = mConf->get(CONFIG_SHORTCUTPARAM, "", false, wxString::Format("%d", nrSelector));
+		device = configGet(CONFIG_SHORTCUTDEVICENAME, "", false, wxString::Format("%d", nrSelector));
+		channel = configGet(CONFIG_SHORTCUTCHANNEL, "", false, wxString::Format("%d", nrSelector));
+		event = configGet(CONFIG_SHORTCUTEVENT, "", false, wxString::Format("%d", nrSelector));
+		smin = configGet(CONFIG_SHORTCUTMIN, "", false, wxString::Format("%d", nrSelector));
+		smax = configGet(CONFIG_SHORTCUTMAX, "", false, wxString::Format("%d", nrSelector));
+		sstopOnMatch = configGet(CONFIG_STOPONMATCH, "", false, wxString::Format("%d", nrSelector));
+		param = configGet(CONFIG_SHORTCUTPARAM, "", false, wxString::Format("%d", nrSelector));
 
 		int nrItem = listShortchut->InsertItem(nrShortcut, name);
 
@@ -228,7 +229,7 @@ void midishortcut::saveShortcut()
 	wxString s;
 	wxString name, action, key;
 	wxString sdevice, event, schannel, smin, smax, stopOnMatch , param;
-	mConf->set(CONFIG_SHORTCUTNB, listShortchut->GetItemCount(), false);
+	configSet(CONFIG_SHORTCUTNB, listShortchut->GetItemCount(), false);
 	//mlog_in("midishortcut / saveShortcut / listShortchut->GetItemCount() : %d",listShortchut->GetItemCount());
 	for (int nrItem = 0; nrItem < listShortchut->GetItemCount(); nrItem++)
 	{
@@ -248,7 +249,7 @@ void midishortcut::saveShortcut()
 		action = listShortchut->GetItemText(nrItem, 7); 
 		param = listShortchut->GetItemText(nrItem, 8); 
 		stopOnMatch = listShortchut->GetItemText(nrItem, 9); 
-		long channel = nameChannel.Index(schannel); channel--; 
+		int channel = std::distance(nameChannel.begin() , std::find(nameChannel.begin(), nameChannel.end(), schannel)); channel--;
 		long min; smin.ToLong(&min); 
 		long max;
 		if (!smax.IsEmpty())
@@ -257,58 +258,59 @@ void midishortcut::saveShortcut()
 			max = min;
 		
 
-		mConf->set(CONFIG_SHORTCUTNAME, name, false, wxString::Format("%d", nrItem));
-		mConf->set(CONFIG_SHORTCUTKEY, key, false, wxString::Format("%d", nrItem));
-		mConf->set(CONFIG_SHORTCUTDEVICENAME, sdevice, false, wxString::Format("%d", nrItem));
-		mConf->set(CONFIG_SHORTCUTCHANNEL, schannel, false, wxString::Format("%d", nrItem));
-		mConf->set(CONFIG_SHORTCUTEVENT, event, false, wxString::Format("%d", nrItem));
-		mConf->set(CONFIG_SHORTCUTMIN, smin, false, wxString::Format("%d", nrItem));
-		mConf->set(CONFIG_SHORTCUTMAX, smax, false, wxString::Format("%d", nrItem));
-		mConf->set(CONFIG_STOPONMATCH, stopOnMatch, false, wxString::Format("%d", nrItem));
-		mConf->set(CONFIG_SHORTCUTACTION, action, false, wxString::Format("%d", nrItem));
-		mConf->set(CONFIG_SHORTCUTPARAM, param, false, wxString::Format("%d", nrItem));
+		configSet(CONFIG_SHORTCUTNAME, name, false, wxString::Format("%d", nrItem));
+		configSet(CONFIG_SHORTCUTKEY, key, false, wxString::Format("%d", nrItem));
+		configSet(CONFIG_SHORTCUTDEVICENAME, sdevice, false, wxString::Format("%d", nrItem));
+		configSet(CONFIG_SHORTCUTCHANNEL, schannel, false, wxString::Format("%d", nrItem));
+		configSet(CONFIG_SHORTCUTEVENT, event, false, wxString::Format("%d", nrItem));
+		configSet(CONFIG_SHORTCUTMIN, smin, false, wxString::Format("%d", nrItem));
+		configSet(CONFIG_SHORTCUTMAX, smax, false, wxString::Format("%d", nrItem));
+		configSet(CONFIG_STOPONMATCH, stopOnMatch, false, wxString::Format("%d", nrItem));
+		configSet(CONFIG_SHORTCUTACTION, action, false, wxString::Format("%d", nrItem));
+		configSet(CONFIG_SHORTCUTPARAM, param, false, wxString::Format("%d", nrItem));
 	}
 }
 void midishortcut::InitLists()
 {
 	wxString s;
 
-	nameEvent.Clear();
-	nameEvent.Add(_("(none)"));
-	nameEvent.Add(snoteonoff);
-	nameEvent.Add(snoteononly);
-	nameEvent.Add(scontrol);
-	nameEvent.Add(sprogram);
+	nameEvent.clear();
+	nameEvent.push_back(SNONE);
+	nameEvent.push_back(snoteonoff);
+	nameEvent.push_back(snoteonoff);
+	nameEvent.push_back(snoteononly);
+	nameEvent.push_back(scontrol);
+	nameEvent.push_back(sprogram);
 
-	nameChannel.Clear();
-	nameChannel.Add(SALLCHANNEL);
+	nameChannel.clear();
+	nameChannel.push_back(SALLCHANNEL);
 	for (int i = 0; i < 16; i++)
 	{
-		s.Printf("%s#%d", _("channel"), i + 1);
-		nameChannel.Add(s);
+		s.Printf("%s#%d", "channel", i + 1);
+		nameChannel.push_back(s);
 	}
 
-	nameKey.Clear();
-	nameKey.Add("");
+	nameKey.clear();
+	nameKey.push_back("");
 	for (char i = 'A' ; i <= 'Z'; i++)
 	{
 		s.Printf("%c", i);
-		nameKey.Add(s);
+		nameKey.push_back(s);
 	}
 
-	nameValueMax.Clear();
-	nameValueMax.Add("");
+	nameValueMax.clear();
+	nameValueMax.push_back("");
 	for (int i = 0; i < 128; i++)
 	{
 		s.Printf("%d", i);
-		nameValueMin.Add(s);
-		nameValueMax.Add(s);
-		nameParam.Add(s);
+		nameValueMin.push_back(s);
+		nameValueMax.push_back(s);
+		nameParam.push_back(s);
 	}
 
-	nameStopOnMatch.Clear();
-	nameStopOnMatch.Add(SSTOP);
-	nameStopOnMatch.Add("continue");
+	nameStopOnMatch.clear();
+	nameStopOnMatch.push_back(SSTOP);
+	nameStopOnMatch.push_back(SCONTINUE);
 
 
 }
@@ -331,7 +333,7 @@ void midishortcut::OnAdd(wxCommandEvent& WXUNUSED(event))
 	if (i == -1)
 		i = listShortchut->GetItemCount();
 	wxString s;
-	s.Printf("%s#%d", _("trigger"), i);
+	s.Printf("%s#%d", "trigger", i);
 	i = listShortchut->InsertItem(i, s);
 	listShortchut->SetItem(i, 2, SALLMIDIIN);
 	listShortchut->SetItem(i, 3, SALLCHANNEL);
@@ -458,35 +460,35 @@ void midishortcut::scanMidi(int nr_device, int type_msg, int channel, int value1
 void midishortcut::reset()
 {
 	wxBusyCursor wait;
-	valueName.Clear();
-	valueAction.Clear();
-	valueParam.Clear();
-	valueKey.Clear();
-	valueDevice.Clear();
-	valueChannel.Clear();
-	valueMin.Clear();
-	valueEvent.Clear();
+	valueName.clear();
+	valueAction.clear();
+	valueParam.clear();
+	valueKey.clear();
+	valueDevice.clear();
+	valueChannel.clear();
+	valueMin.clear();
+	valueEvent.clear();
 	// reset the selectors
 	basslua_setSelector(0, -1, 'x', 0, 0, 0, NULL, 0, false , NULL);
 	// set the selectors
-	int nbSelector = mConf->get(CONFIG_SHORTCUTNB, 0);
+	int nbSelector = configGet(CONFIG_SHORTCUTNB, 0);
 	wxString name, saction, key;
 	wxString sdevice, sevent, smin, smax, sparam, schannel, stopOnMatch;
 	for (int nrSelector = 0; nrSelector < nbSelector; nrSelector++)
 	{
-		name = mConf->get(CONFIG_SHORTCUTNAME, "", false, wxString::Format("%d", nrSelector)); valueName.Add(name);
-		saction = mConf->get(CONFIG_SHORTCUTACTION, "", false, wxString::Format("%d", nrSelector)); valueAction.Add(saction);
-		key = mConf->get(CONFIG_SHORTCUTKEY, "", false, wxString::Format("%d", nrSelector)); valueKey.Add(key);
-		sdevice = mConf->get(CONFIG_SHORTCUTDEVICENAME, SALLMIDIIN, false, wxString::Format("%d", nrSelector));
-		schannel = mConf->get(CONFIG_SHORTCUTCHANNEL, SALLCHANNEL, false, wxString::Format("%d", nrSelector));
-		sevent = mConf->get(CONFIG_SHORTCUTEVENT, "", false, wxString::Format("%d", nrSelector)); valueEvent.Add(sevent);
-		smin = mConf->get(CONFIG_SHORTCUTMIN, "", false, wxString::Format("%d", nrSelector));
-		smax = mConf->get(CONFIG_SHORTCUTMAX, "", false, wxString::Format("%d", nrSelector));
-		stopOnMatch = mConf->get(CONFIG_STOPONMATCH, SSTOP,  false, wxString::Format("%d", nrSelector));
-		sparam = mConf->get(CONFIG_SHORTCUTPARAM, "", false, wxString::Format("%d", nrSelector)); valueParam.Add(sparam);
-		long min; smin.ToLong(&min); valueMin.Add(min);
-		long nrAction = nameAction.Index(saction);
-		long nrChannel = nameChannel.Index(schannel) - 1 ; valueChannel.Add(nrChannel);
+		name = configGet(CONFIG_SHORTCUTNAME, "", false, wxString::Format("%d", nrSelector)); valueName.push_back(name);
+		saction = configGet(CONFIG_SHORTCUTACTION, "", false, wxString::Format("%d", nrSelector)); valueAction.push_back(saction);
+		key = configGet(CONFIG_SHORTCUTKEY, "", false, wxString::Format("%d", nrSelector)); valueKey.push_back(key);
+		sdevice = configGet(CONFIG_SHORTCUTDEVICENAME, SALLMIDIIN, false, wxString::Format("%d", nrSelector));
+		schannel = configGet(CONFIG_SHORTCUTCHANNEL, SALLCHANNEL, false, wxString::Format("%d", nrSelector));
+		sevent = configGet(CONFIG_SHORTCUTEVENT, "", false, wxString::Format("%d", nrSelector)); valueEvent.push_back(sevent);
+		smin = configGet(CONFIG_SHORTCUTMIN, "", false, wxString::Format("%d", nrSelector));
+		smax = configGet(CONFIG_SHORTCUTMAX, "", false, wxString::Format("%d", nrSelector));
+		stopOnMatch = configGet(CONFIG_STOPONMATCH, SSTOP,  false, wxString::Format("%d", nrSelector));
+		sparam = configGet(CONFIG_SHORTCUTPARAM, "", false, wxString::Format("%d", nrSelector)); valueParam.push_back(sparam);
+		long min; smin.ToLong(&min); valueMin.push_back(min);
+		int nrAction = std::distance(nameAction.begin() , std::find(nameAction.begin(), nameAction.end(), saction));
+		int nrChannel = std::distance(nameChannel.begin(), std::find(nameChannel.begin(), nameChannel.end(), schannel)) - 1; valueChannel.push_back(nrChannel);
 		long max;
 		if (!smax.IsEmpty())
 			smax.ToLong(&max);
@@ -501,16 +503,18 @@ void midishortcut::reset()
 			strcpy(bufevent, sevent.c_str());
 			char bufparam[MAXBUFCHAR];
 			strcpy(bufparam, sparam.c_str());
-			int nrDevice;
-			if (nameOpenDevice.Index(sdevice) == 0)
+			int nrDevice = std::distance(nameOpenDevice.begin() , std::find(nameOpenDevice.begin(), nameOpenDevice.end(), sdevice));
+			if (nrDevice == 0)
 				nrDevice = -1;
 			else
 			{
-				nrDevice = nameDevice.Index(sdevice);
-				if (nrDevice == wxNOT_FOUND)
+				auto i = std::find(nameDevice.begin(), nameDevice.end(), sdevice);;
+				if (i == nameDevice.end())
 					nrDevice = -2;
+				else
+					nrDevice = std::distance(nameDevice.begin(), i);
 			}
-			valueDevice.Add(nrDevice);
+			valueDevice.push_back(nrDevice);
 
 			//if (nrDevice != -2)
 				basslua_setSelector(nrSelector, nrAction, 'b', nrDevice , nrChannel, bufevent, tp, 2, stopOnMatch.Contains("stop"), bufparam);
@@ -519,47 +523,47 @@ void midishortcut::reset()
 }
 void midishortcut::write(wxTextFile *lfile)
 {
-	mConf->writeFile(lfile, CONFIG_SHORTCUTNB, 0);
-	long nbSelector = mConf->get(CONFIG_SHORTCUTNB, 0, false);
+	configWriteFile(lfile, CONFIG_SHORTCUTNB, 0);
+	long nbSelector = configGet(CONFIG_SHORTCUTNB, 0, false);
 	for (int nrSelector = 0; nrSelector < nbSelector; nrSelector++)
 	{
-		mConf->writeFile(lfile, CONFIG_SHORTCUTNAME, "", false, wxString::Format("%d", nrSelector));
-		mConf->writeFile(lfile, CONFIG_SHORTCUTACTION, "", false, wxString::Format("%d", nrSelector));
-		mConf->writeFile(lfile, CONFIG_SHORTCUTKEY, "", false, wxString::Format("%d", nrSelector));
-		mConf->writeFile(lfile, CONFIG_SHORTCUTDEVICENAME, SALLMIDIIN, false, wxString::Format("%d", nrSelector));
-		mConf->writeFile(lfile, CONFIG_SHORTCUTCHANNEL, SALLCHANNEL, false, wxString::Format("%d", nrSelector));
-		mConf->writeFile(lfile, CONFIG_SHORTCUTEVENT, "", false, wxString::Format("%d", nrSelector));
-		mConf->writeFile(lfile, CONFIG_SHORTCUTMIN, "", false, wxString::Format("%d", nrSelector));
-		mConf->writeFile(lfile, CONFIG_SHORTCUTMAX, "", false, wxString::Format("%d", nrSelector));
-		mConf->writeFile(lfile, CONFIG_STOPONMATCH, SSTOP, false, wxString::Format("%d", nrSelector));
-		mConf->writeFile(lfile, CONFIG_SHORTCUTPARAM, "", false, wxString::Format("%d", nrSelector));
+		configWriteFile(lfile, CONFIG_SHORTCUTNAME, "", false, wxString::Format("%d", nrSelector));
+		configWriteFile(lfile, CONFIG_SHORTCUTACTION, "", false, wxString::Format("%d", nrSelector));
+		configWriteFile(lfile, CONFIG_SHORTCUTKEY, "", false, wxString::Format("%d", nrSelector));
+		configWriteFile(lfile, CONFIG_SHORTCUTDEVICENAME, SALLMIDIIN, false, wxString::Format("%d", nrSelector));
+		configWriteFile(lfile, CONFIG_SHORTCUTCHANNEL, SALLCHANNEL, false, wxString::Format("%d", nrSelector));
+		configWriteFile(lfile, CONFIG_SHORTCUTEVENT, "", false, wxString::Format("%d", nrSelector));
+		configWriteFile(lfile, CONFIG_SHORTCUTMIN, "", false, wxString::Format("%d", nrSelector));
+		configWriteFile(lfile, CONFIG_SHORTCUTMAX, "", false, wxString::Format("%d", nrSelector));
+		configWriteFile(lfile, CONFIG_STOPONMATCH, SSTOP, false, wxString::Format("%d", nrSelector));
+		configWriteFile(lfile, CONFIG_SHORTCUTPARAM, "", false, wxString::Format("%d", nrSelector));
 	}
 }
 void midishortcut::read(wxTextFile *lfile)
 {
-	if (mConf->readFile(lfile, CONFIG_SHORTCUTNB, 0))
+	if (configReadFile(lfile, CONFIG_SHORTCUTNB, 0))
 	{
-		long nbSelector = mConf->get(CONFIG_SHORTCUTNB, 0, false);
+		long nbSelector = configGet(CONFIG_SHORTCUTNB, 0, false);
 		for (int nrSelector = 0; nrSelector < nbSelector; nrSelector++)
 		{
-			mConf->readFile(lfile, CONFIG_SHORTCUTNAME, "", false, wxString::Format("%d", nrSelector));
-			mConf->readFile(lfile, CONFIG_SHORTCUTACTION, "", false, wxString::Format("%d", nrSelector));
-			mConf->readFile(lfile, CONFIG_SHORTCUTKEY, "", false, wxString::Format("%d", nrSelector));
-			mConf->readFile(lfile, CONFIG_SHORTCUTDEVICENAME, SALLMIDIIN, false, wxString::Format("%d", nrSelector));
-			mConf->readFile(lfile, CONFIG_SHORTCUTCHANNEL, SALLCHANNEL, false, wxString::Format("%d", nrSelector));
-			mConf->readFile(lfile, CONFIG_SHORTCUTEVENT, "", false, wxString::Format("%d", nrSelector));
-			mConf->readFile(lfile, CONFIG_SHORTCUTMIN, "", false, wxString::Format("%d", nrSelector));
-			mConf->readFile(lfile, CONFIG_SHORTCUTMAX, "", false, wxString::Format("%d", nrSelector));
-			mConf->readFile(lfile, CONFIG_STOPONMATCH, SSTOP, false, wxString::Format("%d", nrSelector));
-			mConf->readFile(lfile, CONFIG_SHORTCUTPARAM, "", false, wxString::Format("%d", nrSelector));
+			configReadFile(lfile, CONFIG_SHORTCUTNAME, "", false, wxString::Format("%d", nrSelector));
+			configReadFile(lfile, CONFIG_SHORTCUTACTION, "", false, wxString::Format("%d", nrSelector));
+			configReadFile(lfile, CONFIG_SHORTCUTKEY, "", false, wxString::Format("%d", nrSelector));
+			configReadFile(lfile, CONFIG_SHORTCUTDEVICENAME, SALLMIDIIN, false, wxString::Format("%d", nrSelector));
+			configReadFile(lfile, CONFIG_SHORTCUTCHANNEL, SALLCHANNEL, false, wxString::Format("%d", nrSelector));
+			configReadFile(lfile, CONFIG_SHORTCUTEVENT, "", false, wxString::Format("%d", nrSelector));
+			configReadFile(lfile, CONFIG_SHORTCUTMIN, "", false, wxString::Format("%d", nrSelector));
+			configReadFile(lfile, CONFIG_SHORTCUTMAX, "", false, wxString::Format("%d", nrSelector));
+			configReadFile(lfile, CONFIG_STOPONMATCH, SSTOP, false, wxString::Format("%d", nrSelector));
+			configReadFile(lfile, CONFIG_SHORTCUTPARAM, "", false, wxString::Format("%d", nrSelector));
 		}
 	}
 }
-wxArrayString midishortcut::getShortcuts()
+std::vector<wxString> midishortcut::getShortcuts()
 {
-	shortcutNrSelector.Clear();
-	wxArrayString ls ;
-	for (unsigned int nrSelector = 0; nrSelector < valueAction.GetCount(); nrSelector++)
+	shortcutNrSelector.clear();
+	std::vector<wxString> ls ;
+	for (unsigned int nrSelector = 0; nrSelector < valueAction.size(); nrSelector++)
 	{
 		wxString cs = valueKey[nrSelector] ;
 		cs.MakeUpper() ;
@@ -570,8 +574,8 @@ wxArrayString midishortcut::getShortcuts()
 			{
 				wxString s;
 				s.Printf("%s\tALT+%c\n", valueName[nrSelector], c);
-				ls.Add(s);
-				shortcutNrSelector.Add(nrSelector);
+				ls.push_back(s);
+				shortcutNrSelector.push_back(nrSelector);
 			}
 		}
 	}
@@ -579,7 +583,7 @@ wxArrayString midishortcut::getShortcuts()
 }
 void midishortcut::onShortcut(int nrShortcut)
 {
-	if ((nrShortcut < 0 ) || ( nrShortcut >= (int)(shortcutNrSelector.GetCount())))
+	if ((nrShortcut < 0 ) || ( nrShortcut >= (int)(shortcutNrSelector.size())))
 		return ;
 	
 	if (prevShortcutNrSelector >= 0)

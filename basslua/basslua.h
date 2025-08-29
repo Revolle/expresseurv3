@@ -90,6 +90,7 @@
 #define scontrol    "control"
 #define sprogram    "program"
 
+
 // start and initialize the LUA thread, using the LUA script fname 
 typedef void(*voidcallback) (double time , int nr_device , int type_msg , int channel , int value1 , int value2 , bool isProcessed );
 bool basslua_open(const char* fluaname, const char* luaparam, bool reset, long datefluaname, voidcallback fcallback , const char *logpath, const char *luapath, bool external_timer , int timerDt);

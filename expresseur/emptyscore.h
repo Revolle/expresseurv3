@@ -9,7 +9,7 @@ class emptyscore
 {
 
 public:
-	emptyscore(wxWindow *parent, wxWindowID id, mxconf* lMxconf);
+	emptyscore(wxWindow *parent, wxWindowID id);
 	~emptyscore();
 	void onPaint(wxPaintEvent& event);
 	void OnSize(wxSizeEvent& event);
@@ -26,7 +26,6 @@ public:
 
 private:
 	wxWindow *mParent;
-	mxconf *mConf;
 	void newLayout();
 
 

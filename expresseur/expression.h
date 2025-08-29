@@ -8,7 +8,7 @@ class expression
 {
 
 public:
-	expression(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf);
+	expression(wxFrame *parent, wxWindowID id, const wxString &title);
 	~expression();
 
 	void OnSize(wxSizeEvent& event);
@@ -26,9 +26,8 @@ public:
 private:
 	wxFrame *mParent;
 	wxDialog *mThis;
-	mxconf* mConf;
-	wxArrayString nameValue;
-	wxArrayString helpValue;
+	std::vector <wxString> nameValue;
+	std::vector <wxString> helpValue;
 	wxStaticText *txtValue;
 
 	wxSizerFlags sizerFlagMinimumPlace;

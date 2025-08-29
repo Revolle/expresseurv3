@@ -1,8 +1,19 @@
-// update : 15/11/2016 18:00
-
 #ifndef DEF_MUSICXMLSCORE
 
 #define DEF_MUSICXMLSCORE
+
+struct spos { unsigned int x1, y1, x2, y2; };
+struct sfpos { float x1, y1, x2, y2; };
+struct sposly { unsigned int line, column; };
+class cposnote
+{
+public:
+	bool empty;
+	sposly ply;
+	spos png;
+	sfpos pdf;
+	unsigned int page;
+};
 
 
 class musicxmlscore
@@ -10,7 +21,7 @@ class musicxmlscore
 {
 
 public:
-	musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* config );
+	musicxmlscore(wxWindow *parent, wxWindowID id );
 	~musicxmlscore();
 
 	void onPaint(wxPaintEvent& event);
@@ -40,34 +51,23 @@ public:
 	virtual int getTrackCount();
 	virtual wxString getTrackName(int trackNr);
 	virtual void setPosition(int pos, bool playing);
-	virtual void zoom(int zoom);
+	virtual void zoom(int) {} ;
 	virtual void gotoPosition(wxString gotovalue);
 	virtual void gotoNextPage(bool forward);
 
 private:
 	wxWindow *mParent;
-	mxconf *mConf;
 	wxFileName xmlName;
 	musicxmlcompile *xmlCompile = NULL;
 	bool xmlExtractXml(wxFileName f);
 	bool newLayout(wxSize sizeClient);
-	wxString getNamePage(wxFileName fp , int pageNr);
-	wxString musescoreexe ; 
-	bool musescorev3 = true ;
-	wxString musescorescript , musescorepng , musescorepos;
+	wxString getNamePage(int pageNr);
 
 	bool docOK = false ;
 	int nrChord;
 
-	float fzoom = 1.0;
-	float resolution_dpi = 100.0;
-	float tenths = 40.0;
-	float millimeters = 7.0;
-	float inch = 25.4;
-	bool musescore_def_xml = true ;
+	bool lily_def_xml = true ;
 
-	int newPaintPlaying = -1;
-	int newPaintPos = -1;
 	int prevPos = -1;
 	bool prevPlaying = true;
 
@@ -86,16 +86,24 @@ private:
 	int currentPageNr = 0 ;
 	int currentPageNrPartial = -1 ;
 	bool currentTurnPage = true ;
+	wxString lilypos, expresseurpos , lilysrc;
 
-	void setCursor(wxDC& dc , int nrEvent,bool playing);
+	bool readlilypos();
+	bool readlilypdf(uint32_t page , uint32_t xpng, uint32_t ypng);
+	bool readpngsize(uint32_t* xpng, uint32_t* ypng);
+	bool musicxmlscore::readlilypond();
 	bool readPos();
-	bool setPage(wxDC& dc, int pos, wxRect *rectPos , bool playing ); //, wxBitmap **bitmapCursor);
-
+	bool setCursor(int nrEvent, bool playing, bool redraw);
+	bool setPage( int pageNr, bool turnPage, bool redraw);
+	bool drawPage( int pageNr, bool turnPage);
+	wxBitmap scoreBitmap ;
 	int prev_absolute_measure_nr = NULL_INT;
 
 	void crc_init();
-	wxULongLong crc_cumulate_file(wxString fname);
-	wxULongLong crc_cumulate_string(wxString buf);
+	std::uint64_t crc_cumulate_file(wxString fname);
+	std::uint64_t crc_cumulate_string(wxString buf);
+
+	std::vector <cposnote> lposnotes;
 
 	wxDECLARE_EVENT_TABLE();
 

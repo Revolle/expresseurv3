@@ -72,6 +72,7 @@
 #include <ctgmath>
 #include <windows.h>   /* required before including mmsystem.h */
 #include <mmsystem.h>  /* multimedia functions (such as MIDI) for Windows */
+#include <winbase.h>
 #endif
 #include <assert.h>
 
@@ -154,7 +155,7 @@ typedef union t_midimsg
 	BYTE bData[4]; /*!< The data, byte per byte. */
 } T_midimsg;
 
-#define MAX_VSTI_PENDING_MIDIMSG 256
+#define MAX_VSTI_PENDING_MIDIMSG DMX_V_MAX
 
 /**
 * \struct T_vi_opened
@@ -291,6 +292,7 @@ typedef struct t_queue_msg
 #define LUAFunctionSysex "onSysex" // LUA funtion to call on midi msg sysex
 #define LUAFunctionActive "onActive" // LUA funtion to call on midi msg active sense
 #define LUAFunctionClock "onClock" // LUA funtion to call when midiin clock
+#define LUAFunctionTimer "onTimer" // LUA funtion to call when cascaded timer is triggered
 
 #define onTimer "onTimer" // LUA funtion to call when timer is triggered 
 #define onSelector "onSelector" // LUA functions called with noteon noteoff event,a dn add info 
@@ -369,17 +371,33 @@ static bool g_mutex_out_ok = false ;
 static HANDLE g_timer_out = NULL;
 // mutex to protect the output ( from LUA and timer, to outputs )
 static HANDLE g_mutex_out = NULL;
+
+// dmx management
+static HANDLE g_dmx_port = NULL;	// dmx comport handle
+static int g_portdmx_nr = -1; // numbr of dmx port com
+static DCB g_dmxdcb; // dmx comport configuration
+#define DMX_CH_MAX 256
+#define DMX_V_MAX 256
+float g_dmx_float_value[DMX_CH_MAX]; // // dmx values actual
+float g_dmx_float_target[DMX_CH_MAX]; // // dmx values target
+byte g_dmx_byte_value[DMX_CH_MAX]; // // dmx values to send
+unsigned int g_dmx_byte_nb = 0; // number of dmx values to send
+float g_dmx_ramping = 1.0; // attack value in the time (0..256). 256==direct attack 0==slow ramping, default 256
+float g_dmx_tenuto = 1.0; // tenuto value in the time (0..256). 256==no decrease 0==quick decrease, default 256
+
 #endif
 #ifdef V_MAC
 // mutex to protect the access od the midiout queud messages
 static pthread_mutex_t g_mutex_out ;
 static pthread_t g_loop_out_run_thread ;
+static int g_dmx_port = NULL;
 #endif
 #ifdef V_LINUX
 static pthread_t g_loop_out_run_thread ;
 static timer_t g_timer_out_id;
 #define MTIMERSIGNALOUT (SIGRTMIN+0)
 static pthread_mutex_t g_mutex_out;
+static int g_dmx_port = NULL;
 #endif
 
 static T_queue_msg g_queue_msg[OUT_QUEUE_MAX_MSG];
@@ -390,7 +408,7 @@ static 	lua_State *g_LUAoutState = 0 ; // LUA state for the process of midiout m
 static bool g_process_NoteOn, g_process_NoteOff;
 static bool g_process_Control, g_process_Program;
 static bool g_process_PitchBend, g_process_KeyPressure, g_process_ChannelPressure;
-static bool g_process_SystemCommon, g_process_Clock;
+static bool g_process_SystemCommon, g_process_Clock , g_process_Timer ;
 
 static char g_path_out_error_txt[MAXBUFCHAR];
 
@@ -512,6 +530,232 @@ static void unlock_mutex_out()
 #ifdef V_LINUX
 	pthread_mutex_unlock(&g_mutex_out);
 #endif
+}
+
+
+void dmxClose()
+{
+#ifdef V_PC
+	if (g_dmx_port)
+		CloseHandle(g_dmx_port);
+	g_dmx_port = NULL;
+	g_portdmx_nr = -1; // comport closed
+#endif
+}
+bool dmxOpen(int comport)
+{
+#ifdef V_PC
+	if ((comport == g_portdmx_nr) && g_dmx_port)
+	{
+		// comport already opened
+		return true;
+	}
+
+	if (g_dmx_port)
+		dmxClose();
+
+	// open comport
+	g_dmx_port = OpenCommPort(comport, GENERIC_WRITE, 0x0);
+	if (! g_dmx_port)
+		return false;
+	//  Initialize the DCB structure.
+	SecureZeroMemory(&g_dmxdcb, sizeof(DCB));
+	g_dmxdcb.DCBlength = sizeof(DCB);
+
+	//  Build on the current configuration by first retrieving all current
+	//  settings.
+	if (!GetCommState(g_dmx_port, &g_dmxdcb))
+		return false;
+	g_dmxdcb.BaudRate = CBR_256000;     //  baud rate
+	g_dmxdcb.ByteSize = 8;             //  data size, xmit and rcv
+	g_dmxdcb.Parity = NOPARITY;      //  parity bit
+	g_dmxdcb.StopBits = TWOSTOPBITS;    //  stop bit
+
+	if (!SetCommState(g_dmx_port, &g_dmxdcb))
+		return false;
+
+	g_portdmx_nr = comport;
+	return true;
+#else
+	return false;
+#endif
+}
+void dmxStart()
+{
+#ifdef V_PC
+	g_dmxdcb.BaudRate = CBR_115200;     //  baud rate
+	SetCommState(g_dmx_port, &g_dmxdcb);
+	SetCommBreak(g_dmx_port);
+	g_dmxdcb.BaudRate = CBR_256000;     //  baud rate
+	SetCommState(g_dmx_port, &g_dmxdcb);
+	byte hDmx = (byte)(255);
+	DWORD n;
+	WriteFile(g_dmx_port, &hDmx, (DWORD)1, &n, NULL);
+#endif
+}
+void dmxSend()
+{
+#ifdef V_PC
+	DWORD n;
+	// write dmx byte
+	WriteFile(g_dmx_port, g_dmx_byte_value, (DWORD)g_dmx_byte_nb, &n, NULL);
+#endif
+}
+void dmx_init()
+{
+	// initialize dmx values
+	for (unsigned int i = 0; i < DMX_CH_MAX; i++)
+	{
+		g_dmx_float_value[i] = 0.0;
+		g_dmx_float_target[i] = 0.0;
+		g_dmx_byte_value[i] = 0;
+	}
+	g_dmx_byte_nb = 0;
+	g_dmx_ramping = 1.0;
+	g_dmx_tenuto = 1.0;
+	g_portdmx_nr = -1; // comport closed
+}
+void dmxRefresh()
+{
+	if (g_dmx_port)
+	{
+		dmxStart();
+		dmxSend();
+		if (g_dmx_ramping != 1.0)
+		{
+			// ramping dmx values
+			for (unsigned int i = 0; i < g_dmx_byte_nb; i++)
+			{
+				g_dmx_float_value[i] += (g_dmx_float_target[i] - g_dmx_float_value[i]) * g_dmx_ramping;
+				g_dmx_byte_value[i] = (byte)(cap((int)(g_dmx_float_value[i] * (float)(DMX_V_MAX)), 0, DMX_V_MAX, 0));
+			}
+		}
+		if (g_dmx_tenuto != 0.0)
+		{
+			// decrease dmx values
+			for (unsigned int i = 0; i < g_dmx_byte_nb; i++)
+			{
+				if (abs(g_dmx_float_value[i] - g_dmx_float_target[i]) < 0.01)
+				{
+					g_dmx_float_value[i] += (0.0 - g_dmx_float_value[i]) * g_dmx_tenuto;
+					g_dmx_float_target[i] = g_dmx_float_value[i];
+					g_dmx_byte_value[i] = (byte)(cap((int)(g_dmx_float_value[i] * (float)(DMX_V_MAX)), 0, DMX_V_MAX, 0));
+				}
+			}
+		}
+	}
+}
+static int LdmxOpen(lua_State* L)
+{
+	// open dmx com port
+	// param 1 : comport ( 0..DMX_V_MAX )
+	// param 2 : nb channel ( 1..DMX_CH_MAX )
+	// retun true if open, else return false
+
+	if (lua_gettop(L) < 2)
+	{
+		lua_pushboolean(L, false);
+		return 1;
+	}
+	lock_mutex_out();
+
+	int comport = cap((int)lua_tointeger(L, 1), 1, 128, 0);
+	g_dmx_byte_nb = cap((int)lua_tointeger(L, 2), 1, DMX_CH_MAX, 0);
+	if (!dmxOpen(comport))
+		lua_pushboolean(L, false);
+
+	lua_pushboolean(L, true);
+
+	unlock_mutex_out();
+	return 1;
+}
+static int LdmxSet(lua_State* L)
+{
+	// set dmx values
+	// optional param 1 : tenuto value in the time (0..256). 256==direct 0,  0==no decrease, default 256
+	// optional param 2 : ramping value in the time (0..256). 256==direct value,  0==slow ramping, default 256
+
+	lock_mutex_out();
+	int tenuto = luaL_optinteger(L, 1, DMX_V_MAX);
+	int ramping = luaL_optinteger(L, 2, DMX_V_MAX);
+	if (tenuto <= 1)
+	{
+		// tenuto
+		g_dmx_tenuto = 0.0;
+	}
+	else
+	{
+		g_dmx_tenuto = 0.2 * (float)(cap(tenuto, 1, DMX_V_MAX, 0)) / ((float)DMX_V_MAX);
+	}
+	if (ramping >= 255)
+	{
+		// no ramping
+		g_dmx_ramping = 1.0;
+	}
+	else
+	{
+		g_dmx_ramping = 0.2* (float)(cap(ramping, 1, DMX_V_MAX, 0)) / ((float)DMX_V_MAX);
+	}
+
+	unlock_mutex_out();
+
+	return 0;
+}
+static int LdmxOutAll(lua_State* L)
+{
+	// send dmx values
+	// param 1..512 : dmx values (0..255)
+
+	lock_mutex_out();
+
+	int nbArg = cap(lua_gettop(L),0,DMX_CH_MAX,0);
+	float* ptDmx = g_dmx_float_target;
+	float* pvDmx = g_dmx_float_value;
+	byte* pDmxByte = g_dmx_byte_value;
+	int v; 
+	for (unsigned int nrArg = 1 ; nrArg <= nbArg; nrArg ++)
+	{
+		v = (byte)(cap(lua_tointeger(L, nrArg), 0, DMX_V_MAX, 0));
+		*ptDmx = (float)(*pDmxByte) / (float)(DMX_V_MAX);
+		if (g_dmx_ramping == 1.0)
+		{
+			// no ramping , direct assignment
+			*pvDmx = *ptDmx;
+			*pDmxByte = v;
+		}
+		nrArg++;
+		pDmxByte++;
+		ptDmx++;
+		pvDmx++;
+	}
+
+	unlock_mutex_out();
+	return 0;
+}
+static int LdmxOut(lua_State* L)
+{
+	// send dmx value
+	// param 1 : channel (0..255)
+	// param 2 : dmx value (0..255)
+	if (lua_gettop(L) < 2)
+	{
+		return 0;
+	}
+
+	lock_mutex_out();
+
+	int c = cap((int)luaL_optinteger(L, 1, 1), 0, DMX_CH_MAX, 0);
+	int v = cap((int)luaL_optinteger(L, 2, 1), 0, DMX_V_MAX, 0);
+	g_dmx_float_target[c] = ((float)(v))/((float)DMX_V_MAX);
+	if (g_dmx_ramping == 1.0)
+	{
+		// no ramping , direct assignment
+		g_dmx_float_value[c] = g_dmx_float_target[c];
+		g_dmx_byte_value[c] = (byte)v;
+	}
+
+	unlock_mutex_out();
+	return 0;
 }
 
 static int apply_volume(int nrTrack, int v)
@@ -1869,67 +2113,126 @@ static bool processPostMidiOut(T_midioutmsg midioutmsg)
 	else
 	{
 		int dtIdMidioutPost = 10000;
-		// pop midi-msgs from the returned values, to send it imediatly 
-		while (lua_gettop(g_LUAoutState) >= 4)
+		// pop midi-msgs from the returned values, to send it imediatly
+		// syntax of retrunerd values :
+		// list of MIDI : track 1..MAXTRACK , integer byte 1 ( e.g. pitch ), integer byte 2 ( e.g. velocity ), string type msg ( Noteon, Noteoff, Control, Program, Pressure, Keypressuer, Pichbend )
+		// DMX values : "1/2/3/4/5/6/7/8" DMXall
+		// DMX value : channel value DMX
+
+		while (lua_gettop(g_LUAoutState) >= 1)
 		{
-			// param 1 : integer track 1..MAXTRACK
-			// param 2 : string type msg ( L_MIDI_NOTEON, L_MIDI_NOTEOFF, L_MIDI_CONTROL, L_MIDI_PROGRAM, L_MIDI_CHANNELPRESSURE, L_MIDI_KEYPRESSURE, L_MIDI_PITCHBEND )
-			// param 3 : integer byte 1 ( e.g. pitch )
-			// param 4 : integer byte 2 ( e.g. velocity )
-			T_midioutmsg midioutpostmsg;
-			midioutpostmsg.id = midioutmsg.id + (dtIdMidioutPost++);
-			midioutpostmsg.dt = 0;
-			midioutpostmsg.track = cap(lua_tonumber(g_LUAoutState, -4), 0, MAXTRACK, 1);
-			const char *stype = lua_tostring(g_LUAoutState, -3);
+			const char* stype = lua_tostring(g_LUAoutState, -1);
+			lua_pop(g_LUAoutState, 1);
+			byte data0 = 0;
+			byte nbbyte = 3;
 			int min = 0;
-			bool typeOk = true;
-			midioutpostmsg.nbbyte = 3;
-			midioutpostmsg.midimsg.bData[1] = cap(lua_tonumber(g_LUAoutState, -2), 0, 128, 0);
-			midioutpostmsg.midimsg.bData[2] = cap(lua_tonumber(g_LUAoutState, -1), min, 128, 0);
-			switch (stype[0])
+			bool midiok = false;
+			switch (*stype)
 			{
-			case 'P':
-			case 'p':
-				if (strlen(stype) > 7)
-					midioutpostmsg.midimsg.bData[0] = (L_MIDI_PITCHBEND << 4);
+			case 'D': // DMX or DMXall
+			case 'd':
+				if (strlen(stype) < 4)
+				{
+					if (lua_gettop(g_LUAoutState) >= 2)
+					{
+						// set oneDMX channel
+						int v = cap(lua_tonumber(g_LUAoutState, -1),0,DMX_V_MAX,0);
+						lua_pop(g_LUAoutState, 1);
+						int c = cap(lua_tonumber(g_LUAoutState, -1),0,DMX_CH_MAX,0);
+						lua_pop(g_LUAoutState, 1);
+						g_dmx_float_target[c] = ((float)(v)) / ((float)DMX_V_MAX);
+						if (g_dmx_ramping == 1.0)
+						{
+							// no ramping
+							g_dmx_byte_value[c] = v;
+							g_dmx_float_value[c] = g_dmx_float_target[c];
+						}
+					}
+				}
 				else
 				{
-					midioutpostmsg.midimsg.bData[0] = (L_MIDI_PROGRAM << 4);
-					midioutpostmsg.nbbyte = 2;
+					// reload all DMX values
+					if (lua_gettop(g_LUAoutState) >= 1)
+					{
+						const char* dmxstr = lua_tostring(g_LUAoutState, -1);
+						lua_pop(g_LUAoutState, 1);
+						int dmx_byte_nb = 0;
+						int v;
+						char* pch = strtok((char*)dmxstr, "/");
+						while (pch != NULL)
+						{
+							if (dmx_byte_nb < DMX_CH_MAX)
+							{
+								v = cap(atoi(pch), 0, DMX_V_MAX, 0);
+								g_dmx_float_target[dmx_byte_nb] = (float)(v) / ((float)DMX_V_MAX);
+								if (g_dmx_ramping == 1.0)
+								{
+									// no ramping
+									g_dmx_byte_value[dmx_byte_nb] = v;
+									g_dmx_float_value[dmx_byte_nb] = g_dmx_float_target[dmx_byte_nb];
+								}
+								dmx_byte_nb++;
+							}
+							pch = strtok(NULL, "/");
+						}
+					}
 				}
 				break;
-			case 'N':
+			case 'P': // Program or Pitchbend
+			case 'p':
+				if (strlen(stype) > 7)
+					data0 = (L_MIDI_PITCHBEND << 4);
+				else
+				{
+					data0 = (L_MIDI_PROGRAM << 4);
+					nbbyte = 2;
+				}
+				midiok = (lua_gettop(g_LUAoutState) >= 3);
+				break;
+			case 'N': // NoteOn or NoteOff
 			case 'n':
 				if (strlen(stype) > 6)
 				{
-					midioutpostmsg.midimsg.bData[0] = (L_MIDI_NOTEOFF << 4);
+					data0 = (L_MIDI_NOTEOFF << 4);
 				}
 				else
 				{
-					midioutpostmsg.midimsg.bData[0] = (L_MIDI_NOTEON << 4);
+					data0 = (L_MIDI_NOTEON << 4);
 					min = 1;
 				}
+				midiok = (lua_gettop(g_LUAoutState) >= 3);
 				break;
-			case 'C':
+			case 'C': // Control or ChannelPressure
 			case 'c':
 				if (strlen(stype) > 7)
 				{
-					midioutpostmsg.midimsg.bData[0] = (L_MIDI_CHANNELPRESSURE << 4);
+					data0 = (L_MIDI_CHANNELPRESSURE << 4);
 				}
 				else
-					midioutpostmsg.midimsg.bData[0] = (L_MIDI_CONTROL << 4);
+					data0 = (L_MIDI_CONTROL << 4);
+				midiok = (lua_gettop(g_LUAoutState) >= 3);
 				break;
-			case 'K':
+			case 'K': // keyPressure
 			case 'k':
-				midioutpostmsg.midimsg.bData[0] = (L_MIDI_KEYPRESSURE << 4);
+				data0 = (L_MIDI_KEYPRESSURE << 4);
+				midiok = (lua_gettop(g_LUAoutState) >= 3);
 				break;
 			default:
-				typeOk = false;
 				break;
 			}
-			if (typeOk)
+			if (midiok)
+			{
+				T_midioutmsg midioutpostmsg;
+				midioutpostmsg.id = midioutmsg.id + (dtIdMidioutPost++);
+				midioutpostmsg.dt = 0;
+				midioutpostmsg.midimsg.bData[0] = data0;
+				midioutpostmsg.nbbyte = nbbyte;
+				midioutpostmsg.track = cap(lua_tonumber(g_LUAoutState, -3), 0, MAXTRACK, 1);
+				midioutpostmsg.midimsg.bData[1] = cap(lua_tonumber(g_LUAoutState, -2), 0, 128, 0);
+				midioutpostmsg.midimsg.bData[2] = cap(lua_tonumber(g_LUAoutState, -1), min, 128, 0);
+				lua_pop(g_LUAoutState, 3);
 				sendmidimsg(midioutpostmsg, false);
-			lua_pop(g_LUAoutState, 4);
+			}
 		}
 		lua_pop(g_LUAoutState, lua_gettop(g_LUAoutState));
 	}
@@ -2535,6 +2838,11 @@ static void all_note_off(const char *soption, int nrTrack)
 		default: break;
 		}
 	}
+	for (int i = 0; i < DMX_CH_MAX; i++)
+	{
+		g_dmx_byte_value[i] = 0;
+		g_dmx_float_value[i] = 0.0 ;
+	}
 }
 static void onMidiOut_filter_set()
 {
@@ -2546,6 +2854,10 @@ static void onMidiOut_filter_set()
 	//g_process_Activesensing = (lua_getglobal(g_LUAoutState, LUAFunctionActive) == LUA_TFUNCTION);
 	//lua_pop(g_LUAoutState, 1);
 	//if (g_process_Activesensing) mlog_out("Information : onMidiOut function %s registered", LUAFunctionActive);
+
+	g_process_Timer = (lua_getglobal(g_LUAoutState, LUAFunctionTimer) == LUA_TFUNCTION);
+	lua_pop(g_LUAoutState, 1);
+	if (g_process_Timer) mlog_out("Information : onMidiOut function %s registered", LUAFunctionTimer);
 
 	g_process_Clock = (lua_getglobal(g_LUAoutState, LUAFunctionClock) == LUA_TFUNCTION);
 	lua_pop(g_LUAoutState, 1);
@@ -2863,7 +3175,19 @@ static void process_timer_out()
 {
 	T_midioutmsg msg;
 	msg.midimsg.dwData = 0;
+	// flush des messages en attente de sortie ( pour un dt , .. )
 	unqueue(OUT_QUEUE_FLUSH, msg);
+	// appel du onTimer du module LUA de pst-traitement de midi-out
+	if ( g_process_Timer )
+	{
+		lua_getglobal(g_LUAoutState, LUAFunctionTimer);
+		if (lua_pcall(g_LUAoutState, 0, 0, 0) != LUA_OK)
+		{
+			mlog_out("erreur onTimer calling LUA , err: %s", lua_tostring(g_LUAoutState, -1));
+			lua_pop(g_LUAoutState, 1);
+		}
+	}
+	dmxRefresh();
 }
 #ifdef V_PC
 VOID CALLBACK timer_out_callback(PVOID lpParam, BOOLEAN TimerOrWaitFired)
@@ -3017,6 +3341,7 @@ static void init_out(const char *fname, bool externalTimer , int timerDt)
 	channel_extended_init();
 	track_init();
 	curve_init();
+	dmx_init();
 	//if (!externalTimer) // external process protects conflicts with its own mutex
 	mutex_out_init();
 	timer_out_init(externalTimer, timerDt);
@@ -3030,6 +3355,7 @@ static void free()
 	vi_free();
 	midi_out_free();
 	mixer_free();
+	dmxClose();
 	if (g_LUAoutState)
 	{
 		lua_close(g_LUAoutState);
@@ -3833,7 +4159,7 @@ static int LoutSystem(lua_State *L)
 	lock_mutex_out();
 	
 	T_midioutmsg u;
-	u.midimsg.bData[0] = cap((int)lua_tointeger(L, 1), 0, 256, 0);
+	u.midimsg.bData[0] = cap((int)lua_tointeger(L, 1), 0, DMX_V_MAX, 0);
 	u.midimsg.bData[1] = cap((int)lua_tointeger(L, 2), 0, 128, 0);
 	u.midimsg.bData[2] = cap((int)lua_tointeger(L, 3), 0, 128, 0);
 	u.nbbyte = 3;
@@ -4340,6 +4666,7 @@ static int Llogmidimsg(lua_State *L)
 	return(2);
 }
 
+
 // publication of functions visible from LUA script
 //////////////////////////////////////////////////
 
@@ -4359,6 +4686,11 @@ static const struct luaL_Reg luabass[] =
 	{ "logmidimsg", Llogmidimsg }, // log midi_msg in mlog_out txt file
 	{ soutGetLog, LoutGetLog }, // get log
 
+	////// Dmx //////
+	{ "dmxOpen" , LdmxOpen },
+	{ "dmxSet" , LdmxSet },
+	{ "dmxOut" , LdmxOut },
+	{ "dmxOutall" , LdmxOutAll },
 
 	////// in ///////
 

@@ -1,13 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        textscore.cpp
 // Purpose:     display a text of the score /  expresseur V3
-// Author:      Franck REVOLLE
-// Modified by:
-// Created:     27/07/2015
-// update : 31 / 10 / 2016 10 : 00
-// Copyright:   (c) Franck REVOLLE Expresseur
-// Licence:    Expresseur licence
-/////////////////////////////////////////////////////////////////////////////
+
 
 // For compilers that support precompilation, includes "wx/wx.h".
 #include "wx/wxprec.h"
@@ -74,11 +68,10 @@ wxBEGIN_EVENT_TABLE(textscore, wxPanel)
 EVT_SIZE(textscore::OnSize)
 END_EVENT_TABLE()
 
-textscore::textscore(wxWindow *parent, wxWindowID id, mxconf* lMxconf)
+textscore::textscore(wxWindow *parent, wxWindowID id)
 : wxTextCtrl(parent, id, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxSUNKEN_BORDER | wxTE_RICH | wxTE_DONTWRAP)
 {
 	mParent = parent;
-	mConf = lMxconf;
 	
 	textAttrRecognized.SetFontFamily(wxFONTFAMILY_TELETYPE);
 	textAttrNormal.SetFontFamily(wxFONTFAMILY_TELETYPE);
@@ -135,6 +128,7 @@ void textscore::compileText()
 }
 int textscore::scanPosition()
 {
+
 	int chordStart, chordEnd, nrChord;
 	bool userModification = this->IsModified();
 	basslua_call(moduleChord, functionChordGetPosition, ">iii", &chordStart, &chordEnd, &nrChord);
@@ -209,6 +203,7 @@ void textscore::saveFile(const wxFileName &filename)
 }
 bool textscore::needToSave()
 {
+
 	return this->IsModified();
 }
 void textscore::noNeedToSave()

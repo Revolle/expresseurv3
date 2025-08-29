@@ -3,44 +3,30 @@
 
 #define DEF_MXCONF
 
-class mxconf 
-{
-public:
-	mxconf();
-	~mxconf();
+void configSetPrefix(std::vector <wxString> nameOpenMidiOutDevices);
+wxConfig *configGet();
+void configErase();
 
-	void setPrefix(wxArrayString nameOpenMidiOutDevices);
-	wxConfig *getConfig();
-	void deleteConf();
+wxString configWriteFile(wxTextFile *lfile, wxString key, wxString default_value, bool prefix = false, wxString name = "");
+long configWriteFile(wxTextFile *lfile, wxString key, long default_value, bool prefix = false, wxString name = "");
 
-	wxString writeFile(wxTextFile *lfile, wxString key, wxString default_value, bool prefix = false, wxString name = "");
-	long writeFile(wxTextFile *lfile, wxString key, long default_value, bool prefix = false, wxString name = "");
-
-	bool readFile(wxTextFile *lfile, wxString key, wxString default_value, bool prefix = false, wxString name = "");
-	bool readFile(wxTextFile *lfile, wxString key, long default_value, bool prefix = false, wxString name = "");
+bool configReadFile(wxTextFile *lfile, wxString key, wxString default_value, bool prefix = false, wxString name = "");
+bool configReadFile(wxTextFile *lfile, wxString key, long default_value, bool prefix = false, wxString name = "");
 	
-	wxString get(wxString key, wxString default_value, bool prefix = false, wxString name = "");
-	long get(wxString key, long default_value, bool prefix = false, wxString name = "");
+wxString configGet(wxString key, wxString default_value, bool prefix = false, wxString name = "");
+long configGet(wxString key, long default_value, bool prefix = false, wxString name = "");
 
-	void set(wxString key, wxString s, bool prefix = false, wxString name = "");
-	void set(wxString key, long l, bool prefix = false , wxString name = "");
+void configSet(wxString key, wxString s, bool prefix = false, wxString name = "");
+void configSet(wxString key, long l, bool prefix = false , wxString name = "");
 
-	void remove(wxString key, bool prefix = false , wxString name = "");
-	bool exists(wxString key, bool prefix = false, wxString name = "");
+void configRemove(wxString key, bool prefix = false , wxString name = "");
+bool configExists(wxString key, bool prefix = false, wxString name = "");
 	
-	static wxString getAppDir();
-	static wxString getCwdDir();
-	static wxString getTmpDir();
-	static wxString getResourceDir();
-	static wxString getUserDir();
-	static wxString getConfPath();
-	
-private:
-	static void setDir() ;
-	wxRegConfig* mConfig;
-	wxString mPrefix;
-	wxString readFileLines(wxTextFile *lfile, wxString key);
-	wxString prefixKey(wxString key, bool prefix, wxString name = "");
-};
+wxString getAppDir();
+wxString getCwdDir();
+wxString getTmpDir();
+wxString getResourceDir();
+wxString getUserDir();
+wxString getConfPath();
 
 #endif

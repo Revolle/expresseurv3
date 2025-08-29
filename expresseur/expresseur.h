@@ -104,6 +104,7 @@ public:
 	void OnIdle(wxIdleEvent& event);
 	void OnTimer(wxTimerEvent& event);
 	void OnSize(wxSizeEvent& event);
+	void OnMaximize(wxMaximizeEvent& event);
 	void postInit();
 	void preClose();
 	bool testModeMidi();
@@ -111,7 +112,7 @@ public:
 	mixer *mMixer = NULL;
 	midishortcut *mMidishortcut = NULL;
 	expression *mExpression = NULL;
-	logerror *mLog;
+	logerror *mLog = NULL;
 	wxTimer *mtimer;
 
 private:
@@ -119,9 +120,12 @@ private:
 	textscore *mTextscore;
 	wxScrollBar *mScrollHorizontal;
 	wxScrollBar *mScrollVertical;
-	int posScrollHorizontal, posScrollVertical;
+	int posScrollHorizontal = 20;
+	int posScrollVertical = 50 ;
 	wxBoxSizer *sizer_text_viewer;
 	wxSizerItem *sizer_A, *sizer_B;
+	int maximized = 0;
+	wxSize sizeBeforeMaximize;
 
 	void setOrientation(int v, int h);
 
@@ -130,7 +134,6 @@ private:
 	int waitToCompile = 1; 
 	int timerDt = 20 ;
 
-	mxconf *mConf;
 	wxMenuBar *mMenuBar;
 
 	void setRightDisplay(bool right);
@@ -155,17 +158,17 @@ private:
 	void ListSelect(int id);
 	bool listChanged;
 	wxMenu *listMenu;
-	wxArrayString listFiles;
+	std::vector <wxString> listFiles;
 	wxFileName listName;
 	int listSelection;
 
 	wxMenu *listSettingMenu;
 	void readListSettings();
-	wxArrayString listSettings ; 
+	std::vector <wxString> listSettings ; 
 
-	wxArrayString nameAction;
-	wxArrayString nameValue;
-	wxArrayString helpValue;
+	std::vector <wxString> nameAction;
+	std::vector <wxString> nameValue;
+	std::vector <wxString> helpValue;
 
 	wxFileName settingName;
 	void settingOpen();
@@ -196,14 +199,14 @@ private:
 	wxListBox *mlistMidiout;
 	wxListBox *mlistMidiin;
 	wxListBox *mlistAudio;
-	wxArrayString nameaudioDevices;
+	std::vector <wxString> nameaudioDevices;
 	wxString nameDefaultaudioDevices;
-	wxArrayString nameMidiOutDevices;
-	wxArrayString nameMidiInDevices;
-	wxArrayString nameValideMidiOutDevices;
-	wxArrayString nameValideMidiInDevices;
-	wxArrayString nameOpenMidiOutDevices;
-	wxArrayString nameOpenMidiInDevices;
+	std::vector <wxString> nameMidiOutDevices;
+	std::vector <wxString> nameMidiInDevices;
+	std::vector <wxString> nameValideMidiOutDevices;
+	std::vector <wxString> nameValideMidiInDevices;
+	std::vector <wxString> nameOpenMidiOutDevices;
+	std::vector <wxString> nameOpenMidiInDevices;
 	int getListAudio();
 	void setAudioChoice(int nrDevice);
 
@@ -213,13 +216,11 @@ private:
 
 	int typeViewer;
 
-	int mode = modeChord ;
+	int mode = 0 ;
 	bool editMode = true;
-	bool logMidiMsg;
-	bool localoff;
+	bool logMidiMsg = false;
+	bool localoff = false;
 	wxToolBar *toolBar;
-	
-	wxSize sizeFrame ;
 	
 	bool playback = false;
 	bool recordPlayback = false ;

@@ -103,13 +103,49 @@ The script should contains ones of these functions :
     onProgram(integer trackNr 1.. , integer programNr 0..127)
     onChannelPressure(integer trackNr 1.. , integer value 0..127)
     onPitchBend(integer trackNr 1.. , integer LSB 0..127, integer MSB 0..127)
-These functions must return a list of zero or many MIDI messages, to send on midi-out. One message is 4 values :
-  integer trackNr 1.., 
-  string typeMessage ( NoteOn, noteOff, keyPressure, Control, Program, channelPressure, pitchBend )
-  integer value1 0..127 ( pitch for note, programNr, controlNr, LSB for pitchbend )
-  integer value2 0.127 ( velcoity for note, 0 fro program, cnotrolValue, MSB for pitchben )
+These functions return a list of zero or many MIDI/DMX messages :
+  - One MIDI message is a list of 4 values :
+      integer trackNr 1..16
+      integer value1 0..127 ( pitch for note, programNr, controlNr, LSB for pitchbend )
+      integer value2 0.127 ( velcoity for note, controlValue, MSB for pitchbend , 0 for program, )
+      "NoteOn",  "noteOff", "keyPressure", "Control", "Program", "channelPressure",  "pitchBend"
+  - One DMX message to set all channels is a list of2 values :
+      string of DMX values separated with "/", using table.concat'(mydmxv,"/"); e.g.: "1/2/3/4/5/6/7/8"
+      "DMXall"
+  - One DMX message to set one channel is a list of 3 values :
+      integer channel 0..255
+	  integer value 0..255
+	  "DMX"
 
 --]]
+
+
+-- list of values, for the GUI ( throug basslua )
+values = {
+  -- callFunction is used by GUI, through basslua. E.G to change MIDI parameters
+  -- basslua, will add fields values[valueName]=value
+  { name = "score_delay" , defaultValue=0 , help="Score play : delay between notes, in ms" },
+  { name = "score_nuance" , defaultValue=0 , help="Score play : dynamic of nuances written in the score" },
+  { name = "chord_delay" , defaultValue=10 , help="Chord improvisation : delay between notes, in ms" },
+  { name = "chord_decay" , defaultValue=40 , help="Chord improvisation : decay beween notes, 64 = no decay" },
+  { name = "scale_delay" , defaultValue=0 , help="Scale improvisation : delay beween notes of the chord, in ms" },
+  { name = "scale_decay" , defaultValue=0 , help="Scale improvisation : decay beween notes of the chord, 64 = no decay" },
+  { name = "mixer_forte" , defaultValue=100 , help="volume of forte, for the mixer with onekey shortcut (64..124)" },
+  { name = "mixer_meso" , defaultValue=64 , help="volume of mesoforte, for the mixer with onekey shortcut (30..100)" },
+  { name = "mixer_piano" , defaultValue=20 , help="volume of piano, for the mixer with onekey shortcut (5..64)" },
+  { name = "mixer_tacet" , defaultValue=0 , help="volume of tacet, for the mixer with onekey shortcut (0=not-played..30)" },
+}
+
+-- list of the tracks, for the GUI
+tracks = { 
+  -- callFunction is used by GUI, through basslua. e.g. to set the trackNr in the midiout-processor
+  callFunction = function (nameTrack, nrTrack) luabass.setVarMidiOut(nameTrack,nrtrack) end  ,
+  -- the GUI, through basslua, will add fields tracks[trackName]=TrackNr
+  { name = "chord-bass" , help = "bass for improvisation"  } , 
+  { name = "chord-background" , help = "background chords for improvisation"  } , 
+  { name = "chord-chord" , help = "chords for improvisation"  } ,
+  { name = "chord-scale" , help = "scale for improvisation"  } ,
+}
 
 --========================  Validity of a Midi-Out device, for the GUI  ( used by the GUI and the initialization)
 -- list of (non) valid midi-out and midi-in
@@ -153,6 +189,8 @@ function midiInIsValid(midiin_name)
   return true ;
 end
 
+
+
 --===================== initialization
 function onStart(param)
 	-- change keyboard for shortcuts,using -k option
@@ -173,6 +211,13 @@ function onStart(param)
 		end
 	end
 	
+	-- open DMX for light control (cf. postluabass.lua to control lights with MIDI-out )
+	luabass.dmxOpen(3,16) -- open DMXport on COM-4 with 8 channels
+	luabass.dmxSet(20, 200) -- set tenuto/ramping of lights ( can set by a MIDI controler using onControl)
+	--luabass.dmxOut(2,100) -- exemple to change DMX-channel 2 to the value 100
+	
+	-- load the hook on midiout , to manage DMX according to midi-out
+	luabass.onMidiOut("dmx.lua")
 end
 
 --===================== stop
@@ -180,35 +225,6 @@ function onStop()
 	-- before stop of the LUA bass module
 end
 
-
---==================== Expresseur GUI
-
--- list of values, for the GUI ( throug basslua )
-values = {
-  -- callFunction is used by GUI, through basslua. E.G to change MIDI parameters
-  -- basslua, will add fields values[valueName]=value
-  { name = "score_delay" , defaultValue=0 , help="Score play : delay between notes, in ms" },
-  { name = "score_nuance" , defaultValue=0 , help="Score play : dynamic of nuances written in the score" },
-  { name = "chord_delay" , defaultValue=10 , help="Chord improvisation : delay between notes, in ms" },
-  { name = "chord_decay" , defaultValue=40 , help="Chord improvisation : decay beween notes, 64 = no decay" },
-  { name = "scale_delay" , defaultValue=0 , help="Scale improvisation : delay beween notes of the chord, in ms" },
-  { name = "scale_decay" , defaultValue=0 , help="Scale improvisation : decay beween notes of the chord, 64 = no decay" },
-  { name = "mixer_forte" , defaultValue=100 , help="volume of forte, for the mixer with onekey shortcut (64..124)" },
-  { name = "mixer_meso" , defaultValue=64 , help="volume of mesoforte, for the mixer with onekey shortcut (30..100)" },
-  { name = "mixer_piano" , defaultValue=20 , help="volume of piano, for the mixer with onekey shortcut (5..64)" },
-  { name = "mixer_tacet" , defaultValue=0 , help="volume of tacet, for the mixer with onekey shortcut (0=not-played..30)" },
-}
-
--- list of the tracks, for the GUI
-tracks = { 
-  -- callFunction is used by GUI, through basslua. e.g. to set the trackNr in the midiout-processor
-  callFunction = function (nameTrack, nrTrack) luabass.setVarMidiOut(nameTrack,nrtrack) end  ,
-  -- the GUI, through basslua, will add fields tracks[trackName]=TrackNr
-  { name = "chord-bass" , help = "bass for improvisation"  } , 
-  { name = "chord-background" , help = "background chords for improvisation"  } , 
-  { name = "chord-chord" , help = "chords for improvisation"  } ,
-  { name = "chord-scale" , help = "scale for improvisation"  } ,
-}
 
 function playNote( t, bid, ch, typemsg, d1, d2 , paramString)
 --===========================================================
@@ -235,21 +251,20 @@ function setLuaValue( t, bid, ch, typemsg, pitch, velo , paramString )
 		else
 			values[luaparam] = 0
 		end
-		return
-	end
-	luaparam  = string.match(paramString or "" , "(%g+)")
-	if typemsg == 12 then 
-		-- Program
-		if luaparam and pitch then
-			values[luaparam]=pitch
-			return
-		end
 	else
-		if luaparam and velo then
-			values[luaparam]=velo
-			return
+		luaparam  = string.match(paramString or "" , "(%g+)")
+		if typemsg == 12 then 
+			-- Program
+			if luaparam and pitch then
+				values[luaparam]=pitch
+			end
+		else
+			if luaparam and velo then
+				values[luaparam]=velo
+				return
+			end
 		end
-	end 
+	end
 end
 
 function mainVolume( t, bid, ch, typemsg, pitch, velo , paramString )

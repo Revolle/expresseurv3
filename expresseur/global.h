@@ -95,8 +95,7 @@
 
 #define CONFIG_LUA_USER_SCRIPT "/script/luascript"
 #define CONFIG_LUA_PARAMETER "/script/luaparameter"
-#define CONFIG_MUSESCORE "/script/musescore"
-#define CONFIG_MUSESCOREV3 "/script/musescorev3"
+
 
 #define MIDIOUT_MAX 16
 #define MIDIIN_MAX 16
@@ -126,12 +125,13 @@
 #define SUFFIXE_MUSICMXL "mxl"
 #define SUFFIXE_BITMAPCHORD "png"
 #define SUFFIXE_TEXT "txt"
-#define SUFFIXE_PRECONFIG "dua"
 
 #define SLINEAR "linear"
 #define SALLMIDIIN "all Midi-In"
 #define SALLCHANNEL "All channels"
 #define SSTOP "stop"
+#define SCONTINUE "continue"
+#define SNONE 	 "(none)"
 #define SMIDI "MIDI"
 #define SVI "VI"
 #define NSF2 "SF2"
@@ -165,6 +165,29 @@
 #define DEFAULTKEYBOARDDISPOSAL "49|50|51|52|53|54|55|56|57|48|81|87|69|82|84|89|85|73|79|80|65|83|68|70|71|72|74|75|76|59|90|88|67|86|66|78|77|44|46|47|"
 
 enum{ EMPTYVIEWER, BITMAPVIEWER, MUSICXMLVIEWER };
+
+#define FILE_OUT_XML "expresseur_out.xml" // musicXml export of Expresseur score
+#define FILE_OUT_LILY "expresseur_translated.ly" // Lilypond translation of FILE_OUT_XML
+#define FILE_SRC_LILY "expresseur_out.ly" // Lilypond source file , adptated from FILE_OUT_LILY
+#define FILE_IN_PRESETLILY "expresseur_setting_template.ly" // template of Lilypond script to extract pos of Expreseur notes, and se the size of image
+#define FILE_OUT_SETLILY "expresseur_setting.ly" // Lilypond script, adapted from FILE_OUT_PRESETLILY
+#define FILE_LOG_LILY "expresseur_out" // Lilypond log during compilation of FILE_SRC_LILY
+#define FILE_SCORE_PDF "expresseur_out-%d.pdf" // PDF (one per page) , output of lilypond generation
+#define FILE_SCORE_PNG "expresseur_out-%d.png" // PNG (one per page) , output of lilypond generation
+#define FILE_POS_LILY "expresseur_out.lyp" // position of Lilypond Expresseur notes, output of lilypond generation
+#define FILE_BAR_LILY "expresseur_out_bars.ly" // position of Lilypond Expresseur bars and marks
+#define FILE_POS_TXT "expresseur_out.pos" // position of Expresseur notes in FILE_SCORE_PNG
+#define FILE_IN_XML "expresseur_in.xml"
+
+#define PREFIX_CACHE "CACHE_EXPRESSEUR"
+#define WIDTH_SEPARATOR_PAGE 10
+
+#define SIZECLIENTMINWIDTH 500
+#define SIZECLIENTMINHEIGHT 400
+#define SIZEAPPMINWIDTH (SIZECLIENTMINWIDTH + 80)
+#define SIZEAPPMINHEIGHT (SIZECLIENTMINHEIGHT + 80)
+#define SIZEAPPDEFAUTWIDTH (800)
+#define SIZEAPPDEFAUTHEIGHT (600)
 
 #if defined(_WIN32) || defined(WIN32)
     #define RUN_WIN 1

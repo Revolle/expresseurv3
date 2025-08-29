@@ -1760,6 +1760,13 @@ bool basslua_open(const char* fluaname, const char* luaparam, bool reset, long d
 
 
 	// require the "luabass" module for Midi-out
+#ifdef V_PC
+	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+	if (!SUCCEEDED(hr))
+	{
+		mlog_in("Error : CoInitializeEx fails");
+	}
+#endif
 	lua_getglobal(g_LUAstate, "require");
 	lua_pushstring(g_LUAstate, moduleLuabass);
 	if ( lua_pcall(g_LUAstate, 1, 1,0) != LUA_OK )
@@ -1858,6 +1865,10 @@ bool basslua_open(const char* fluaname, const char* luaparam, bool reset, long d
 **/
 void basslua_close()
 {
+#ifdef V_PC
+	CoUninitialize();
+#endif
+
 	if (g_LUAstate)
 	{
 		//mlog_in("debug basslua_close");

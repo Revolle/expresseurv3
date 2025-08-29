@@ -10,6 +10,8 @@
 
 // For compilers that support precompilation, includes "wx/wx.h".
 #include "wx/wxprec.h"
+#include <vector>
+#include <algorithm>
 
 #ifdef __BORLANDC__
 #pragma hdrstop
@@ -22,8 +24,9 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <stdint.h>
 
-
+#include "wx/frame.h"
 #include "wx/dialog.h"
 #include "wx/filename.h"
 #include "wx/sizer.h"
@@ -46,7 +49,8 @@
 #include "wx/datetime.h"
 #include "wx/time.h"
 #include "wx/longlong.h"
-#include "wx/datetime.h"
+#include "wx/bitmap.h"
+
 
 #include "global.h"
 #include "basslua.h"
@@ -59,30 +63,12 @@
 #include "musicxmlcompile.h"
 #include "musicxmlscore.h"
 
-// Specify if the size of the MuseScore page is in the XML or in the muse-script, depending the platform
-#ifdef RUN_WIN
-#define MUSE_SCORE_DEF_XML true
-#define DEF_INCH 25400
-#endif
-#ifdef RUN_MAC
-#define MUSE_SCORE_DEF_XML false
-#define DEF_INCH 25600
-#endif
-#ifdef RUN_LINUX
-#define MUSE_SCORE_DEF_XML false
-#define DEF_INCH 25578
-#endif
-
-#define FILE_SCORE_PNG "expresseur_score.png"
-#define FILE_POS_TXT "expresseur_pos.txt"
-#define FILE_OUT_XML "expresseur_out.xml"
-#define FILE_IN_XML "expresseur_in.xml"
-#define FILE_SCAN_QML "expresseur_scan.qml"
-#define FILE_SCAN_POSITION_QML "scan_position.qml"
-#define FILE_SCAN_POSITION_QML_V3 "scan_position_v3.qml"
-
-#define PREFIX_CACHE "CACHE_EXPRESSEUR"
-#define WIDTH_SEPARATOR_PAGE 10
+uint32_t bswap32(uint32_t x) {
+	return ((x & 0x000000FF) << 24) |
+		((x & 0x0000FF00) << 8) |
+		((x & 0x00FF0000) >> 8) |
+		((x & 0xFF000000) >> 24);
+}
 
 // CRC tool to optimize calcualtion of MuseScore pages
 
@@ -102,7 +88,7 @@
 // ||
 // |+---------------------------------------------------------------- x^1
 // +----------------------------------------------------------------- x^0 (1)
-wxULongLong crc_poly = 0xC96C5795D7870F42;
+std::uint64_t crc_poly = 0xC96C5795D7870F42;
 
 // input is dividend: as 0000000000000000000000000000000000000000000000000000000000000000<8-bit byte>
 // where the lsb of the 8-bit byte is the coefficient of the highest degree term (x^71) of the dividend
@@ -114,18 +100,18 @@ wxULongLong crc_poly = 0xC96C5795D7870F42;
 
 // when done, table[XX] (where XX is a byte) is equal to the CRC of 00 00 00 00 00 00 00 00 XX
 //
-wxULongLong crc_table[256];
+std::uint64_t crc_table[256];
 
 void crc_generate_table()
 {
     for(unsigned int i=0; i<256; ++i)
     {
-    	wxULongLong crc = i;
+    	std::uint64_t crc = i;
 
     	for(unsigned int j=0; j<8; ++j)
     	{
             // is current coefficient set?
-			wxULongLong alreadySet = crc & 1;
+			std::uint64_t alreadySet = crc & 1;
     		if(alreadySet != 0)
             {
                 // yes, then assume it gets zero'd (by implied x^64 coefficient of dividend)
@@ -205,16 +191,20 @@ void crc_generate_table()
 //    44 27 7F 18 41 7C 45 A5
 //
 //
-wxULongLong crc_value = 0 ;
+std::uint64_t crc_value = 0 ;
 void crc_cumulate(char *stream, unsigned int n)
 {
 	// cumulate CRC of stream (lenght=n)
     for(unsigned int i=0; i<n; ++i)
     {
-    	wxULongLong mc = wxULongLong(stream[i]);
-        wxULongLong index = mc ^ crc_value;
-		unsigned long ii = index.GetLo() % 256;
-        wxULongLong lookup = crc_table[ii];
+    	std::uint64_t mc = std::uint64_t(stream[i]);
+        std::uint64_t index = mc ^ crc_value;
+		std::uint64_t ff = 0xFFFF;
+		std::uint64_t ii = (index & ff);
+		std::uint64_t i256 = 256;
+		ii = ii % i256;
+		int si = ii;
+        std::uint64_t lookup = crc_table[si];
 
         crc_value >>= 8;
         crc_value ^= lookup;
@@ -231,14 +221,13 @@ EVT_LEFT_DOWN(musicxmlscore::OnLeftDown)
 EVT_PAINT(musicxmlscore::onPaint)
 wxEND_EVENT_TABLE()
 
-musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
+musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id )
 : viewerscore(parent, id)
 {
 	crc_generate_table();
 
 
 	mParent = parent;
-	mConf = lconf;
 	nrChord = -1;
 	xmlName.Clear();
 	prevRectPos.SetWidth(0);
@@ -247,199 +236,48 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id, mxconf* lconf )
 	
 	basslua_call(moduleScore, functionScoreInitScore, "" );
 
-	inch = (float)(DEF_INCH) * ((float)(mConf->get(CONFIG_CORRECTINCH, 1000))/1000.0) / 1000.0;
-	musescore_def_xml = (bool)(MUSE_SCORE_DEF_XML) ;
-
 	docOK = false;
 	xmlCompile = NULL;
 
-	// locate the musescore exe for the rendering of the musical score
-	musescorev3 =  true;
-	musescoreexe = mConf->get(CONFIG_MUSESCOREV3, "");
-	if ( musescoreexe.IsEmpty())
-	{
-		musescoreexe = mConf->get(CONFIG_MUSESCORE, "");
-		musescorev3 =  false;
-	}
-	if (musescoreexe.IsEmpty() == false)
-	{
-		wxFileName fm(musescoreexe);
-		if (fm.IsFileExecutable() == false)
-			musescoreexe.Empty();
-	}
-	if (musescoreexe.IsEmpty())
-	{
-#ifdef RUN_WIN
-		wxString x64folder = wxGetenv("programfiles");
-		wxFileName fm3(x64folder + "\\)" );
-		fm3.AppendDir("MuseScore 3");
-		fm3.AppendDir("bin");
-		fm3.SetFullName("MuseScore3.exe");
-		if (fm3.IsFileExecutable())
-		{
-			musescoreexe = fm3.GetFullPath();
-			musescorev3 =  true;
-		}
-		else
-		{
-			wxString x86folder = wxGetenv("ProgramFiles(x86)");
-			wxFileName fm(x86folder + "\\" );
-			fm.AppendDir("MuseScore 2");
-			fm.AppendDir("bin");
-			fm.SetFullName("MuseScore.exe");
-			if (fm.IsFileExecutable())
-			{
-				musescoreexe = fm.GetFullPath();
-				musescorev3 =  false;
-			}
-		}
-#endif
-#ifdef RUN_MAC
-		wxFileName fm3;
-		fm3.Assign(mxconf::getAppDir()) ;
-		fm3.AppendDir("MuseScore 3.app");
-		fm3.AppendDir("Contents");
-		fm3.AppendDir("MacOS");
-		fm3.SetName("mscore");
-		//wxMessageBox(fm.GetFullPath(),"musescore ?");
-		if (fm3.IsFileExecutable())
-		{
-			musescorev3 = true ;
-			musescoreexe = fm3.GetFullPath();
-		}
-		else
-		{
-			wxFileName fm;
-			fm.Assign(mxconf::getAppDir()) ;
-			fm.AppendDir("MuseScore 2.app");
-			fm.AppendDir("Contents");
-			fm.AppendDir("MacOS");
-			fm.SetName("mscore");
-			//wxMessageBox(fm.GetFullPath(),"musescore ?");
-			if (fm.IsFileExecutable())
-			{
-				musescorev3 = false ;
-				musescoreexe = fm.GetFullPath();
-			}
-		}
-#endif
-#ifdef RUN_LINUX
-		/*
-		wxString mpath = wxGetenv("PATH");
-		wxArrayString mpaths = wxStringTokenize ( mpath, ":" );
-		unsigned int nbpath = mpaths.GetCount();
-		for(unsigned int nrpath = 0 ; nrpath < nbpath; nrpath ++ )
-		{
-			wxFileName fm(mpaths[nrpath] + "/" );
-			fm.SetFullName("musescore");
-			if (fm.IsFileExecutable())
-			{
-				musescoreexe = fm.GetFullPath();
-				break ;
-			}
-		} 
-		*/
-#endif
-	}
-	if (musescoreexe.IsEmpty())
-	{
-		wxMessageBox("MuseScore cannot be found in your workstation.\nPlease select the path of MuseScore in your system.\nInfo: MuseScore is used for the graphical rendering of the score.");
-		wxFileDialog
-			openFileDialog(this, _("select MuseScore app"), "", "",
-#ifdef RUN_WIN
-				"exe files (*.exe)|*.exe", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-#endif
-#ifdef RUN_MAC
-		"app files (*.app)|*.app", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-#endif
-#ifdef RUN_LINUX
-		"app files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-#endif
-		if (openFileDialog.ShowModal() == wxID_OK)
-		{
-			wxFileName fm(openFileDialog.GetPath());
-#ifdef RUN_MAC
-			fm.AppendDir(fm.GetFullName());
-			fm.AppendDir("Contents");
-			fm.AppendDir("MacOS");
-			fm.SetName("mscore");
-			fm.SetExt("");
-#endif
-			if (fm.IsFileExecutable())
-			{
-				musescoreexe = fm.GetFullPath();;
-				wxArrayString v ;
-				v.Add("Version 2");
-				v.Add("Version 3");
-				wxString sv = wxGetSingleChoice (_("MuseScore version ? "),_("MuseScore exe locator"),v,this);
-				if ( sv != "Version 2")
-					musescorev3 = true ;
-			}
-			else
-				wxMessageBox(fm.GetFullPath(),"MuseScore : not recognized as an exe");
-		}
-	}
-	if ( musescorev3 )
-		mConf->set(CONFIG_MUSESCOREV3, musescoreexe);
-	else
-		mConf->set(CONFIG_MUSESCORE, musescoreexe);
-
-	/*
-	char buflog[512];
-	strcpy(buflog, musescoreexe.c_str());
-	mlog_in("musicxmlscore / creator / musescore.exe=%s", buflog);
-	*/ 
-
 	cleanTmp();
-	zoom(mConf->get(CONFIG_ZOOM_MUSICXML, 0));
 }
 musicxmlscore::~musicxmlscore()
 {
 	//basslua_call(moduleScore, functionScoreInitScore, "" );
 	if (xmlCompile != NULL)
 		delete xmlCompile;
+	scoreBitmap.FreeResource();
 	xmlCompile = NULL;
-	cleanTmp();
 }
 void musicxmlscore::cleanTmp()
 {
-	wxDir dir(mxconf::getTmpDir());
+	wxFileName ft;
+	ft.SetPath(getTmpDir());
+	wxString filename;
+	std::vector<wxString> masqs = { "ex*.png" , "ex*.pdf", "ex*.ly*" , "ex*.pos" , "ex*.xml" , "ex*.log"};
+	std::vector<wxString> fileToBeDeleted;
+	wxDir dir(getTmpDir());
 	if (dir.IsOpened())
 	{
-		wxString filename;
-		wxFileName ft;
-		ft.SetPath(mxconf::getTmpDir());
-		wxArrayString fileToBeDeleted ;
-		bool cont = dir.GetFirst(&filename, "expresseur*.png", wxDIR_FILES);
-		while (cont)
+		for (auto & masq : masqs)
 		{
-			ft.SetFullName(filename);
-			fileToBeDeleted.Add(ft.GetFullPath());
-			cont = dir.GetNext(&filename);
+			bool cont = dir.GetFirst(&filename, masq, wxDIR_FILES);
+			while (cont)
+			{
+				ft.SetFullName(filename);
+				fileToBeDeleted.push_back(ft.GetFullPath());
+				cont = dir.GetNext(&filename);
+			}
 		}
-		for(unsigned int i = 0 ; i < fileToBeDeleted.GetCount() ; i ++ )
+		for (auto f : fileToBeDeleted)
 		{
-			wxRemoveFile(fileToBeDeleted[i]);
+			wxRemoveFile(f);
 		}
 	}
-	wxFileName fp;
-	fp.SetPath(mxconf::getTmpDir());
-	fp.SetFullName(FILE_POS_TXT);
-	if (fp.FileExists())
-		wxRemoveFile(fp.GetFullPath());
-	fp.SetFullName(FILE_OUT_XML);
-	if (fp.FileExists())
-		wxRemoveFile(fp.GetFullPath());
-	fp.SetFullName(FILE_SCAN_QML);
-	if (fp.FileExists())
-		wxRemoveFile(fp.GetFullPath());
-	fp.SetFullName(FILE_IN_XML);
-	if (fp.FileExists())
-		wxRemoveFile(fp.GetFullPath());
 }
 void musicxmlscore::cleanCache(int nbDayCache)
 {
-	wxDir dir(mxconf::getTmpDir());
+	wxDir dir(getTmpDir());
 	if (dir.IsOpened())
 	{
 		wxDateTime mlimitdate = wxDateTime::Now();
@@ -449,10 +287,10 @@ void musicxmlscore::cleanCache(int nbDayCache)
 		}
 		wxString filename;
 		wxFileName ft;
-		ft.SetPath(mxconf::getTmpDir());
+		ft.SetPath(getTmpDir());
 		wxString sn;
 		sn.Printf("%s*.*", PREFIX_CACHE);
-		wxArrayString fileToBeDeleted ;
+		std::vector<wxString> fileToBeDeleted;
 		bool cont = dir.GetFirst(&filename, sn , wxDIR_FILES);
 		while (cont)
 		{
@@ -461,38 +299,32 @@ void musicxmlscore::cleanCache(int nbDayCache)
 			//wxMessageBox(mlimitdate.FormatDate() + ">?" + dateFile.FormatDate()  + " " + ft.GetName(),"Date expiration cache");
 			if ((nbDayCache == -1 ) || ( dateFile.IsEarlierThan(mlimitdate)))
 			{
-				fileToBeDeleted.Add(ft.GetFullPath());
+				fileToBeDeleted.push_back(ft.GetFullPath());
 			}
 			cont = dir.GetNext(&filename);
 		}
-		for(unsigned int i = 0 ; i < fileToBeDeleted.GetCount() ; i ++ )
+		for(auto f : fileToBeDeleted)
 		{
-			wxRemoveFile(fileToBeDeleted[i]);
+			wxRemoveFile(f);
 		}
 	}
 }
 bool musicxmlscore::isOk()
 {
-	if ((xmlCompile == NULL) || (musescoreexe.IsEmpty()))
+	if (xmlCompile == NULL)
 		return false;
 	return (xmlCompile->isOk());
 }
 bool musicxmlscore::setFile(const wxFileName &lfilename)
 {
 	wxBusyCursor wait;
-
-	/*
-	char buflog[512];
-	strcpy(buflog, lfilename.GetFullPath().c_str());
-	mlog_in("musicxmlscore / setFile / lfilename=%s", buflog );
-	*/
-
+	xmlName = lfilename;
 	if (xmlCompile != NULL)
 		delete xmlCompile;
 	xmlCompile = new musicxmlcompile();
 
 	wxFileName fm;
-	fm.SetPath(mxconf::getTmpDir());
+	fm.SetPath(getTmpDir());
 	fm.SetFullName(FILE_IN_XML);
 	xmlCompile->music_xml_complete_file = fm.GetFullPath();
 
@@ -545,7 +377,7 @@ bool musicxmlscore::xmlExtractXml(wxFileName f)
 	if (!in.IsOk())
 	{
 		wxString s;
-		s.Printf("Error opening stream file %s", xmlName.GetFullName());
+		s.Printf("Error opening stream file %s", f.GetFullName());
 		wxMessageBox(s);
 		return false;
 	}
@@ -554,7 +386,7 @@ bool musicxmlscore::xmlExtractXml(wxFileName f)
 	if (!zip.IsOk())
 	{
 		wxString s;
-		s.Printf("Error reading zip structure of %s", xmlName.GetFullName());
+		s.Printf("Error reading zip structure of %s", f.GetFullName());
 		wxMessageBox(s);
 		return false;
 	}
@@ -572,7 +404,7 @@ bool musicxmlscore::xmlExtractXml(wxFileName f)
 			if (!stream_out.IsOk())
 			{
 				wxString s;
-				s.Printf("Error reading zip entry %s of %s", name, xmlName.GetFullName());
+				s.Printf("Error reading zip entry %s of %s", name, f.GetFullName());
 				wxMessageBox(s);
 				return false;
 			}
@@ -580,7 +412,7 @@ bool musicxmlscore::xmlExtractXml(wxFileName f)
 			if (zip.LastRead() < 10)
 			{
 				wxString s;
-				s.Printf("Error content in zip entry %s of %s", name, xmlName.GetFullName());
+				s.Printf("Error content in zip entry %s of %s", name, f.GetFullName());
 				wxMessageBox(s);
 				return false;
 			}
@@ -591,20 +423,6 @@ bool musicxmlscore::xmlExtractXml(wxFileName f)
 		zipEntry = zip.GetNextEntry();
 	}
 	return false;
-}
-void musicxmlscore::zoom(int zoom)
-{
-	switch (zoom)
-	{
-	case -3: fzoom = 0.6;  break;
-	case -2: fzoom = 0.75;  break;
-	case -1: fzoom = 0.87;  break;
-	case 0: fzoom = 1.0;  break;
-	case 1: fzoom = 1.25;  break;
-	case 2: fzoom = 1.5;  break;
-	case 3: fzoom = 2.0;  break;
-	default: fzoom = 1.0;  break;
-	}
 }
 bool musicxmlscore::displayFile(wxSize sizeClient)
 {
@@ -631,31 +449,20 @@ wxString musicxmlscore::getTrackName(int trackNr)
 
 	return (name);
 }
-wxString musicxmlscore::getNamePage(wxFileName fp , int pageNr)
+wxString musicxmlscore::getNamePage(int pageNr)
 {
 	// set the image file name according to the page-number
-	wxString prefixe = fp.GetName();
 	wxString fn;
-	fn.Printf("%s-%d", prefixe, pageNr);
+	fn.Printf(FILE_SCORE_PNG, pageNr + 1);
+	wxFileName fp;
+	fp.SetPath(getTmpDir());
 	fp.SetName(fn);
 
 	if (!fp.IsFileReadable())
 	{
-		fn.Printf("%s-0%d", prefixe, pageNr);
-		fp.SetName(fn);
-
-		if (!fp.IsFileReadable())
-		{
-			fn.Printf("%s-00%d", prefixe, pageNr);
-			fp.SetName(fn);
-
-			if (!fp.IsFileReadable())
-			{
-				// page does not exist ????
-				mlog_in("error isFileReadable drawpage %s\n",(const char*)(fp.GetFullPath().c_str()));
-				return wxEmptyString;
-			}
-		}
+		// page does not exist ????
+		mlog_in("error isFileReadable drawpage %s\n", (const char*)(fp.GetFullPath().c_str()));
+		return wxEmptyString;
 	}
 	fn = fp.GetFullPath();
 	return fn ;
@@ -667,129 +474,152 @@ bool musicxmlscore::getScorePosition(int *absolute_measure_nr, int *measure_nr, 
 		return xmlCompile->getScorePosition(currentPos , absolute_measure_nr, measure_nr, repeat , beat, t, &uid );
 	return true;
 }
-bool musicxmlscore::setPage(wxDC& dc, int pos , wxRect *rectPos, bool playing )
+bool musicxmlscore::drawPage(int pageNr, bool turnPage)
 {
-	if (!isOk() || !docOK || (pos < 0))	return false;
-
-	// get the pagenr adn misc info
-	int pageNr = 0 ;
-	bool turnPage = false;
-	int nr_ornament = 0;
-	bool retPosEvent = xmlCompile->getPosEvent(pos, &pageNr, rectPos, &turnPage, &nr_ornament);
-	if (!retPosEvent)
-	{
-		((wxFrame *)mParent)->SetStatusText(wxEmptyString, 2);
-	}
-
-	if ((pageNr < 1) || (pageNr > totalPages))
-	{
-		pageNr = totalPages;
-		((wxFrame *)mParent)->SetStatusText(wxEmptyString, 2);
-	}
-
-	if (nr_ornament != -1)
-	{
-		prevNrOrnament = true;
-		wxString sn;
-		sn.Printf("*%d", nr_ornament + (playing?0:1));
-		((wxFrame *)mParent)->SetStatusText(sn, 2);
-	}
-	else
-	{
-		if (prevNrOrnament)
-		{
-			((wxFrame *)mParent)->SetStatusText(wxEmptyString, 2);
-			prevNrOrnament = false;
-		}
-	}
-	// already the right page(s)
-	if ((currentPageNr == pageNr) && (currentTurnPage == turnPage))	return retPosEvent;
-
-	prevRectPos.SetWidth(0);
-
+	//mlog_in("drawPage %d sec/ pageNr=%d / turnPage=%d", wxGetLocalTimeMillis().GetValue() ,  pageNr, turnPage);
+	//prevRectPos.SetWidth(0);
+	scoreBitmap.Create(sizePage.GetWidth(), sizePage.GetHeight());
 	// recreate the page
-	currentPageNr = pageNr ;
-	currentTurnPage = turnPage ;
+	wxMemoryDC memDC(scoreBitmap);
+	//mlog_in("setPage start bitmap(%s) memDC(%s)", (scoreBitmap.IsOk()) ? "OK" : "!!KO!!" , (memDC.IsOk()) ? "OK" : "!!KO!!");
 
-	wxFileName fp(musescorepng);
-	wxString fn = getNamePage(fp, pageNr);
+	currentPageNr = pageNr;
+	currentTurnPage = turnPage;
+
+	wxFileName fp;
+	fp.SetPath(getTmpDir());
+	wxString fn = getNamePage(pageNr);
 	if (fn.IsEmpty()) return false;
 	wxBitmap fnbitmap(fn, wxBITMAP_TYPE_PNG);
+	//mlog_in("setPage bitmap=%s (%s)", (const char*)(fn.c_str()), (fnbitmap.IsOk()) ? "OK" : "!!KO!!" );
 
-
-	currentPageNrPartial = -1 ;
+	currentPageNrPartial = -1;
 
 	if (turnPage)
 	{
 		{
 			// half page on right
-			wxDCClipper clipTurnPage(dc, wxRect(sizePage.GetWidth() / 2 + sizePage.GetWidth() / WIDTH_SEPARATOR_PAGE, 0, sizePage.GetWidth() / 2 - sizePage.GetWidth() / WIDTH_SEPARATOR_PAGE, sizePage.GetHeight()));
-			dc.SetBackground(this->GetBackgroundColour());
-			dc.Clear();
-			dc.DrawBitmap(fnbitmap, 0, 0);
+			wxDCClipper clipTurnPage(memDC, wxRect(sizePage.GetWidth() / 2 + sizePage.GetWidth() / WIDTH_SEPARATOR_PAGE, 0, sizePage.GetWidth() / 2 - sizePage.GetWidth() / WIDTH_SEPARATOR_PAGE, sizePage.GetHeight()));
+			memDC.SetBackground(this->GetBackgroundColour());
+			memDC.Clear();
+			memDC.DrawBitmap(fnbitmap, 0, 0);
 		}
 		{
 			// anticipate half of the next page
 			{
-				wxDCClipper clipTurnPage(dc, wxRect(0, 0, sizePage.GetWidth() / 2 , sizePage.GetHeight()));
-				wxString fnturn = getNamePage(fp, pageNr + 1);
+				wxDCClipper clipTurnPage(memDC, wxRect(0, 0, sizePage.GetWidth() / 2, sizePage.GetHeight()));
+				wxString fnturn = getNamePage(pageNr + 1);
 				if (!fnturn.IsEmpty())
 				{
 					wxBitmap fnturnbitmap(fnturn, wxBITMAP_TYPE_PNG);
-					dc.SetBackground(this->GetBackgroundColour());
-					dc.Clear();
-					dc.DrawBitmap(fnturnbitmap, 0, 0);
+					memDC.SetBackground(this->GetBackgroundColour());
+					memDC.Clear();
+					memDC.DrawBitmap(fnturnbitmap, 0, 0);
 					currentPageNrPartial = pageNr + 1;
 				}
 			}
 			{
-				wxDCClipper clipTurnPage(dc, wxRect(sizePage.GetWidth() / 2, 0,  sizePage.GetWidth() / WIDTH_SEPARATOR_PAGE, sizePage.GetHeight()));
-				dc.SetBackground(this->GetBackgroundColour());
-				dc.Clear();
+				wxDCClipper clipTurnPage(memDC, wxRect(sizePage.GetWidth() / 2, 0, sizePage.GetWidth() / WIDTH_SEPARATOR_PAGE, sizePage.GetHeight()));
+				memDC.SetBackground(this->GetBackgroundColour());
+				memDC.Clear();
 			}
 		}
 	}
 	else
 	{
 		// full page
-		dc.SetBackground(this->GetBackgroundColour());
-		dc.Clear();
-		dc.DrawBitmap(fnbitmap, 0, 0);
+		memDC.SetBackground(this->GetBackgroundColour());
+		memDC.Clear();
+		memDC.DrawBitmap(fnbitmap, 0, 0);
+		//mlog_in("setPage DrawBitmap");
 	}
 
 	if (totalPages > 0)
 	{
 		// write the page indexes on the bottom
-		wxSize sizePageNr = dc.GetTextExtent("0");
+		wxSize sizePageNr = memDC.GetTextExtent("0");
 		buttonPage.SetHeight(sizePageNr.GetHeight());
 		buttonPage.SetY(sizePage.GetHeight() - sizePageNr.GetHeight());
 		buttonPage.SetX(0);
 		buttonPage.SetWidth(sizePage.GetWidth());
 		int widthNrPage = sizePage.GetWidth() / totalPages;
-		wxDCClipper clipPageNr(dc, buttonPage);
-		dc.SetBackground(this->GetBackgroundColour());
-		dc.Clear();
-		dc.SetTextForeground(*wxBLACK);
-		//dc.SetTextBackground(*wxWHITE);
+		wxDCClipper clipPageNr(memDC, buttonPage);
+		memDC.SetBackground(this->GetBackgroundColour());
+		memDC.Clear();
+		memDC.SetTextForeground(*wxBLACK);
+		//memDC.SetTextBackground(*wxWHITE);
 		for (int nrPage = 0; nrPage < totalPages; nrPage++)
 		{
 			wxString spage;
-			if (nrPage == (pageNr -1))
+			if (nrPage == pageNr)
 				spage.Printf("[%d]", nrPage + 1);
 			else
 				spage.Printf("%d", nrPage + 1);
-			wxSize sizeNrPage = dc.GetTextExtent(spage);
+			wxSize sizeNrPage = memDC.GetTextExtent(spage);
 			int xsPage = widthNrPage * nrPage + widthNrPage / 2 - sizeNrPage.GetWidth() / 2;
-			dc.DrawText(spage, xsPage, buttonPage.y);
+			memDC.DrawText(spage, xsPage, buttonPage.y);
+			//mlog_in("setPage DrawText=%s", (const char*)(spage.c_str()));
+
 		}
 	}
-	return retPosEvent;
+	memDC.SelectObject(wxNullBitmap);
+	//mlog_in("setPage end (%s) ",(scoreBitmap.IsOk()) ? "OK" : "!!KO!!");
+	return true;
 }
-void musicxmlscore::setCursor(wxDC& dc , int pos,bool playing )
+bool musicxmlscore::setPage(int pageNr, bool turnPage, bool redraw)
+{
+	if (!isOk() || !docOK )	return false;
+
+	// mlog_in("setPage pageNr=%d (%d) / turnPage=%d (%d) / %d\n", pageNr , currentPageNr , turnPage, currentTurnPage , redraw);
+	if ((pageNr == -1) || ((currentPageNr == pageNr) && (currentTurnPage == turnPage)))
+	{
+		if ( redraw )
+		{
+			// redraw the page
+			return drawPage( pageNr,  turnPage);
+		}
+	}
+	else
+	{ 
+		return drawPage( pageNr,  turnPage);
+	}
+	return false;
+}
+bool musicxmlscore::setCursor(int pos,bool playing, bool redraw )
 {
 	wxRect rectPos ;
+	int nr_ornament = 0;
 
-	bool cont = setPage(dc, pos, &rectPos , playing );
+	// get the pagenr adn misc info
+	int pageNr = 0;
+	bool turnPage = false;
+	bool retPosEvent = xmlCompile->getPosEvent(pos, &pageNr, &rectPos, &turnPage, &nr_ornament);
+	if (!retPosEvent)
+	{
+		((wxFrame*)mParent)->SetStatusText(wxEmptyString, 2);
+	}
+
+	if ((pageNr < 0) || (pageNr >= totalPages))
+	{
+		((wxFrame*)mParent)->SetStatusText(wxEmptyString, 2);
+	}
+	if (nr_ornament != -1)
+	{
+		prevNrOrnament = true;
+		wxString sn;
+		sn.Printf("*%d", nr_ornament + (playing ? 0 : 1));
+		((wxFrame*)mParent)->SetStatusText(sn, 2);
+	}
+	else
+	{
+		if (prevNrOrnament)
+		{
+			((wxFrame*)mParent)->SetStatusText(wxEmptyString, 2);
+			prevNrOrnament = false;
+		}
+	}
+
+	setPage( pageNr , turnPage , redraw );
 	
 	// nbSetPosition ++ ;
 	int absolute_measure_nr, measure_nr, repeat, beat, t , uid;
@@ -799,7 +629,7 @@ void musicxmlscore::setCursor(wxDC& dc , int pos,bool playing )
 		prev_absolute_measure_nr = absolute_measure_nr;
 		wxString spos;
 		if (end_score)
-			spos = _("end");
+			spos = "end";
 		else
 		{
 			switch (repeat)
@@ -821,72 +651,69 @@ void musicxmlscore::setCursor(wxDC& dc , int pos,bool playing )
 				break;
 			}
 		}
-		((wxFrame *)mParent)->SetStatusText(spos, 0);
+		((wxFrame*)mParent)->SetStatusText(spos, 0);
 	}
+	wxMemoryDC memDC(scoreBitmap);
 
 	// redraw the previous picture behind the cursor)
 	if (prevRectPos.GetWidth() > 0)
 	{
-		wxDCClipper cursorclip(dc, prevRectPos);
-		dc.SetBackground(this->GetBackgroundColour());
-		dc.Clear();
-	}
-	if (!cont)
-	{
-		return;
+		wxDCClipper cursorclip(memDC, prevRectPos);
+		memDC.SetBackground(this->GetBackgroundColour());
+		memDC.Clear();
 	}
 
 	// draw the cursor
-	wxDCClipper cursorclip(dc, rectPos);
+	wxDCClipper cursorclip(memDC, rectPos);
 	if (playing)
-		dc.SetBackground(*wxRED_BRUSH);
+		memDC.SetBackground(*wxRED_BRUSH);
 	else
-		dc.SetBackground(*wxGREEN_BRUSH);
-	dc.Clear();
+		memDC.SetBackground(*wxGREEN_BRUSH);
+	memDC.Clear();
+	memDC.SelectObject(wxNullBitmap);
 
 	prevRectPos = rectPos;
+	return true;
 }
-void musicxmlscore::setPosition(int pos, bool playing )
+void musicxmlscore::setPosition(int pos, bool playing)
 {
-	if (!isOk() || !docOK || (pos < 0))	return ;
+	if (!isOk() || !docOK || (pos < 0))	return;
 
 	// onIdle : set the current pos
-	newPaintPos = pos ;
-	newPaintPlaying = playing ;
 	if ((pos != prevPos) || (playing != prevPlaying))
 	{
-#ifdef RUN_MAC
-		Refresh(false);
-		Update();
-#else
-		//wxString sl ;
-		//sl.Printf("setPosition pos=%d prevPos = %d newPaintPos=%d",pos,prevPos,newPaintPos);
-		//mlog_in(sl);
-		
-		wxClientDC dc(this);
-		setCursor(dc, pos, playing);
-		currentPos = pos;
-#endif
 		prevPos = pos;
 		prevPlaying = playing;
+		Refresh();
 	}
 }
+
 void musicxmlscore::onPaint(wxPaintEvent& WXUNUSED(event))
 {
 	// onPaint
 	wxPaintDC dc(this);
-	if (!isOk() || !docOK  || (newPaintPos < 0))	return;
-		
-	currentPageNr = -1 ;
-	prevRectPos.SetWidth(0);
-	
-	//wxString sl ;
-	//sl.Printf("onpaint prevPos = %d newPaintPos=%d",prevPos,newPaintPos);
-	//mlog_in(sl);
-	
-	setCursor(dc, newPaintPos, newPaintPlaying);
-	currentPos = newPaintPos;
-	// nbPaint ++ ;
+	if (!isOk() || !docOK  || (prevPos < 0))	return;
+	wxRegionIterator upd(GetUpdateRegion()); // get the update rect list
+	//int vX, vY, vW, vH;
+	bool redraw = false;
+	while (upd)
+	{
+		redraw = true;
+		break;
+		/*
+		vX = upd.GetX();
+		vY = upd.GetY();
+		vW = upd.GetW();
+		vH = upd.GetH();
+		wxString sl ;
+		sl.Printf("onpaint v %d %d %d %d",vX,vY,vW,vH);
+		mlog_in(sl);
+		// Repaint this rectangle
+		upd++;
+		*/
+	}
+	setCursor(prevPos, prevPlaying, redraw);
+	dc.DrawBitmap(scoreBitmap, 0, 0, false);
 }
 int musicxmlscore::getNbPaint()
 {
@@ -904,11 +731,14 @@ void musicxmlscore::gotoNextPage(bool forward)
 {
 	int pageNr = currentPageNr;
 	pageNr += (forward) ? 1 : -1;
-	if ((pageNr < 1) || (pageNr > totalPages))
+	if ((pageNr < 0) || (pageNr >= totalPages))
 		return;
 	int nrEvent = xmlCompile->pageToEventNr(pageNr);
 	if (nrEvent != -1)
+	{
+		// currentPageNr = pageNr;	
 		basslua_call(moduleScore, functionScoreGotoNrEvent, "i", nrEvent + 1);
+	}
 }
 void musicxmlscore::OnLeftDown(wxMouseEvent& event)
 {
@@ -918,13 +748,16 @@ void musicxmlscore::OnLeftDown(wxMouseEvent& event)
 	wxPoint mPoint = event.GetLogicalPosition(dc);
 	if (buttonPage.Contains(mPoint) && ( totalPages > 0 ))
 	{
-		int nrPage = mPoint.x / (sizePage.GetWidth()  / totalPages ) + 1 ;
+		int nrPage = mPoint.x / (sizePage.GetWidth()  / totalPages )  ;
+		if ((nrPage < 0) || (nrPage >= totalPages))
+			return;
 		int nrEvent;
 		nrEvent = xmlCompile->pageToEventNr(nrPage);
 		if (nrEvent == -1)
 			return;
 		prevPos = -1;
 		prevPlaying = true;
+		//currentPageNr = nrPage;	
 		basslua_call(moduleScore, functionScoreGotoNrEvent, "i", nrEvent + 1);
 		return;
 	}
@@ -963,7 +796,7 @@ void musicxmlscore::crc_init()
 {
 	crc_value = 0 ;
 }
-wxULongLong musicxmlscore::crc_cumulate_file(wxString fname)
+std::uint64_t musicxmlscore::crc_cumulate_file(wxString fname)
 {
 	// cumulate the 64bits CRC of the file
     FILE *fp;
@@ -986,7 +819,7 @@ wxULongLong musicxmlscore::crc_cumulate_file(wxString fname)
 	free(buf);
 	return crc_value ;
 }
-wxULongLong musicxmlscore::crc_cumulate_string(wxString s)
+std::uint64_t musicxmlscore::crc_cumulate_string(wxString s)
 {
 	// cumulate the 64bits CRC of the string
 	crc_cumulate(s.char_str(),s.Len());
@@ -997,12 +830,77 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	if (!isOk())
 		return false;
 	wxBusyCursor waitcursor;
-
+	mlog_in("newLayout file %s" , (const char*)(xmlName.GetFullPath().c_str()));
 	wxFileName fm;
+	wxString xmlout, lilyscore, pythonexe, pythonscript,lilyexe, lilysetting, lilylog , lilybar ;
+	wxString command_xmltolily , command_lilytopng;
+	wxString overridexpr;
+	long lexec;
+	wxTextFile fin, fout;
+
 
 	// window big enough ?
-	if ((sizeClient.GetWidth() < 200) || (sizeClient.GetHeight() < 100))
+	int xs = sizeClient.GetWidth();
+	int ys = sizeClient.GetHeight();
+	if ((xs < SIZECLIENTMINWIDTH) || (ys < SIZECLIENTMINHEIGHT))
+	{
+		wxMessageBox("Window too small for music display", "build score", wxOK | wxICON_ERROR);
 		return false;
+	}
+	
+	// XML score to display
+	fm.SetPath(getTmpDir());
+	fm.SetFullName(FILE_OUT_XML);
+	xmlout = fm.GetFullPath();
+	//  file to store lilypond position of notes
+	fm.SetFullName(FILE_POS_LILY);
+	lilypos = fm.GetFullPath();
+	if (fm.Exists())
+		wxRemoveFile(lilypos);
+	//  file to store position of notes
+	fm.SetFullName(FILE_POS_TXT);
+	expresseurpos = fm.GetFullPath();
+	if (fm.Exists())
+		wxRemoveFile(expresseurpos);
+	// file to translate xml to lilypond
+	fm.SetFullName(FILE_OUT_LILY);
+	lilyscore = fm.GetFullPath();
+	if (fm.Exists())
+		wxRemoveFile(lilyscore);
+	// files to adapt lilypond xml translation
+	fm.SetFullName(FILE_SRC_LILY);
+	lilysrc = fm.GetFullPath();
+	if (fm.Exists())
+		wxRemoveFile(lilysrc);
+	// log file 
+	fm.SetFullName(FILE_LOG_LILY);
+	lilylog = fm.GetFullPath();
+	if (fm.Exists())
+		wxRemoveFile(lilylog);
+	// barres de mesure
+	fm.SetFullName(FILE_BAR_LILY);
+	lilybar = fm.GetFullPath();
+	// settings for lilypond
+	fm.SetFullName(FILE_OUT_SETLILY);
+	lilysetting = fm.GetFullPath();
+	if (fm.Exists())
+		wxRemoveFile(lilysetting);
+	// lily python
+	fm.SetPath(getAppDir());
+	fm.AppendDir("lilypond");
+	// debug mode :
+#ifdef _DEBUG
+	fm.SetPath("C:\\Users\\franc\\Documents\\lilypond\\lilypond-2.25.26");
+#endif
+	fm.AppendDir("bin");
+	fm.SetFullName("python.exe");
+	pythonexe = fm.GetFullPath();
+	// liliy translator 
+	fm.SetFullName("musicxml2ly.py");
+	pythonscript = fm.GetFullPath();
+	// lilypond bin
+	fm.SetFullName("lilypond.exe");
+	lilyexe = fm.GetFullPath();
 
 	// calculation for the page layout
 	xmlCompile->isModified = false ;
@@ -1010,392 +908,750 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	sizePage.SetWidth( sizeClient.GetX() );
 	sizePage.SetHeight( sizeClient.GetY() );
 
-	resolution_dpi = 100.0;
-	tenths = 40.0;
-	millimeters = 7.055 ;
-
-
-	if ( ! musescore_def_xml )
-	{
-		// specifies the size in the MuseScore script 
-		resolution_dpi *= fzoom ;
-	}
-
-	float width_inch = sizePage.GetWidth()  / resolution_dpi  ;
-	float margin_inch = 10.0 / resolution_dpi  ;
-	float pwidth_inch = width_inch - 2.0 * margin_inch ;
-	float height_inch = sizePage.GetHeight() / resolution_dpi  ;
-
-	if ( musescore_def_xml )
-	{
-		// specifies the size in the MusicXML
-		millimeters *= fzoom;
-		float sizeX_tenths = ((sizePage.GetWidth() * inch) / resolution_dpi) * (tenths / millimeters);
-		float sizeY_tenths = ((sizePage.GetHeight() * inch) / resolution_dpi) * (tenths / millimeters);
-		xmlCompile->compiled_score->defaults.scaling.tenths = tenths;
-		xmlCompile->compiled_score->defaults.scaling.millimeters = millimeters;
-		xmlCompile->compiled_score->defaults.page_layout.page_width = sizeX_tenths;
-		xmlCompile->compiled_score->defaults.page_layout.page_height = sizeY_tenths;
-		xmlCompile->compiled_score->defaults.page_layout.margin = 10.0 ;
-	}
-
 	// clena useless temp files
-	cleanTmp();
+	// cleanTmp();
 
-	fm.SetPath(mxconf::getTmpDir());
 
-	// prepare the musicXml file to display
-	fm.SetFullName(FILE_OUT_XML);
-	xmlCompile->music_xml_displayed_file = fm.GetFullPath();
-	xmlCompile->compiled_score->write(xmlCompile->music_xml_displayed_file, true);
+	// create the musicXml file to display
+	xmlCompile->music_xml_displayed_file = xmlout;
+	xmlCompile->compiled_score->write(xmlCompile->music_xml_displayed_file);
 
-	// the file to store position of notes
-	fm.SetFullName(FILE_POS_TXT);
-	musescorepos = fm.GetFullPath();
-
-	// the file to store position of notes
-	fm.SetFullName(FILE_SCORE_PNG);
-	musescorepng = fm.GetFullPath();
-
-	// prepare the script for MuseScore
-	fm.SetFullName(FILE_SCAN_QML);
-	musescorescript = fm.GetFullPath();
-	wxTextFile fin, fout;
-	wxFileName fm2;
-	fm2.Assign(mxconf::getCwdDir());
-	if ( musescorev3 )
-		fm2.SetFullName("scan_position_v3.qml");
-	else
-		fm2.SetFullName("scan_position.qml");
-	fin.Open(fm2.GetFullPath());
-	if (fm.FileExists())
-		wxRemoveFile(musescorescript);
-	fout.Create(musescorescript);
-	fout.Open(musescorescript);
+	// adapt lilypond settings
+	fin.Open(FILE_IN_PRESETLILY);
+	fout.Create(lilysetting);
+	fout.Open(lilysetting);
 	if (fin.IsOpened() && fout.IsOpened())
 	{
-		wxString line;
-		wxString fposition(musescorepos);
-		wxString fpng(musescorepng);
-		wxString fwidth;
-		wxString fheight;
-		wxString fpwidth;
-		wxString fmargin ;
-		fwidth.Printf("%f",width_inch);
-		fheight.Printf("%f",height_inch);
-		fpwidth.Printf("%f",pwidth_inch);
-		fmargin.Printf("%f",margin_inch);
-		fposition.Replace("\\", "\\\\", true);
-		fpng.Replace("\\", "\\\\", true);
-		int line_nb = fin.GetLineCount();
-		int nbReplaceSizing;
-		for (int line_nr = 0; line_nr < line_nb; line_nr++)
+		wxString str;
+		int mzoom;
+		mzoom = configGet(CONFIG_ZOOM_MUSICXML, 0);
+		if (mzoom < -3) mzoom = -3;
+		if (mzoom > 3 ) mzoom = 3;
+		int nrzoom = -3;
+		for (str = fin.GetFirstLine(); !fin.Eof(); str = fin.GetNextLine())
 		{
-			line = fin.GetLine(line_nr);
-			line.Replace("__expresseur_pos.txt__", fposition);
-			line.Replace("__expresseur_out.png__", fpng);
-			nbReplaceSizing = 0;
-			nbReplaceSizing += line.Replace("__width__", fwidth);
-			nbReplaceSizing += line.Replace("__height__", fheight);
-			nbReplaceSizing += line.Replace("__pwidth__", fpwidth);
-			nbReplaceSizing += line.Replace("__margin__", fmargin);
-			if ( nbReplaceSizing == 0 )
-				fout.AddLine(line);
-			else
+			if (str.StartsWith("%%%%%%%%override Expresseur:"))
 			{
-				if ( ! musescore_def_xml )
-					fout.AddLine(line);
+				overridexpr = str.Mid(strlen("%%%%%%%%override Expresseur:"));
 			}
+			if (str.StartsWith("%%%%%%%%translate_xml_to_ly:"))
+			{
+				command_xmltolily.Printf(str, pythonexe, pythonscript, FILE_OUT_LILY , FILE_OUT_XML);
+				fout.AddLine(command_xmltolily);
+				command_xmltolily.Replace("%%%%translate_xml_to_ly:", "");
+				continue;
+			}
+			if (str.StartsWith("%%%%%%%%translate_ly_to_png:"))
+			{
+				command_lilytopng.Printf(str, lilyexe, FILE_LOG_LILY, FILE_OUT_SETLILY, FILE_SRC_LILY );
+				fout.AddLine(command_lilytopng);
+				command_lilytopng.Replace("%%%%translate_ly_to_png:", "");
+				continue;
+			}
+			if (str.StartsWith("#(set-global-staff-size"))
+			{
+				if (nrzoom == mzoom)
+					fout.AddLine(str);
+				nrzoom++;
+				continue;
+			}
+			if (str.StartsWith("#(set! paper-alist"))
+			{
+				wxString s1;
+				s1.Printf(str, sizePage.GetWidth() , sizePage.GetHeight());
+				fout.AddLine(s1);
+				continue;
+			}
+			fout.AddLine(str);
 		}
 		fin.Close();
 		fout.Write();
 		fout.Close();
 	}
-
-	// prepare the command line to run MuseScore
-	wxString command;
-	//"C:\Program Files (x86)\MuseScore 2\bin/MuseScore.exe" - s -r <resolution> -m <user_temp>\musicxml.xml - p <user_temp>\scan_position.qml - o <user_temp>\expresseur_out.png
-	command.Printf("\"%s\" -s -r %d -m %s -p %s", musescoreexe, (int)resolution_dpi, xmlCompile->music_xml_displayed_file, musescorescript);
+	else
+	{
+		wxString serr;
+		serr.Printf("Cannot adapt Lilypond settings from %s", FILE_IN_PRESETLILY);
+		wxMessageBox(serr, "build score", wxOK | wxICON_ERROR);
+		return false;
+	}
 
 	bool alreadyAvailable = false;
+
 	// calculate the CRC of this display
 	crc_init();
-	crc_cumulate_file(xmlCompile->music_xml_displayed_file);
-	crc_cumulate_file(musescorescript);
-	wxString ssize ; ssize.Printf("%d %d %f", sizeClient.GetX() , sizeClient.GetY(), fzoom ); 
-	crc_cumulate_string(ssize);
-	wxULongLong crc_this = crc_cumulate_string(command);
+	crc_cumulate_file(xmlout);
+	crc_cumulate_file(lilysetting);
+	crc_cumulate_file(lilybar);
+	crc_cumulate_string(command_xmltolily);
+	crc_cumulate_string(command_lilytopng);
 	wxString prefix_cache ;
-	prefix_cache.Printf("%s_%s_",PREFIX_CACHE , crc_this.ToString());
+	prefix_cache.Printf("%s_%llu_", PREFIX_CACHE, crc_value);
 
-	wxFileName cacheMusescorepos(musescorepos);
-	cacheMusescorepos.SetName( prefix_cache + cacheMusescorepos.GetName() );
-	if ( cacheMusescorepos.FileExists())
+	wxFileName poscache;
+	poscache.SetPath(getTmpDir());
+	poscache.SetFullName( prefix_cache + FILE_POS_TXT);
+	if (poscache.FileExists())
 	{
-		// MuseScore result already available in cache. Let's reuse it
+		// Lilypond result already available in cache. Let's reuse it
 		alreadyAvailable = true ;
-		if ( ! wxCopyFile(cacheMusescorepos.GetFullPath(), musescorepos) ) alreadyAvailable = false ;
+		if ( ! wxCopyFile(poscache.GetFullPath(), expresseurpos) ) alreadyAvailable = false ;
 		// copy pages
-		wxFileName fmodele(musescorepng);
-		wxFileName fsource(musescorepng);
-		wxFileName fdest(musescorepng);
+		wxFileName fsource;
+		fsource.SetPath(getTmpDir());
+		wxFileName fdest;
+		fdest.SetPath(getTmpDir());
 		wxString ffn;
 		int pp = 1;
 		while (true)
 		{
-			ffn.Printf("%s-%d", fmodele.GetName(), pp);
-			fsource.SetName( prefix_cache + ffn );
-			if (fsource.IsFileReadable())
-			{
-				fdest.SetName(ffn);
-				if ( ! wxCopyFile(fsource.GetFullPath(),fdest.GetFullPath()) ) alreadyAvailable = false ;
-			}
-			else
-			{
-				ffn.Printf("%s-0%d", fmodele.GetName(), pp);
-				fsource.SetName( prefix_cache + ffn );
-				if (fsource.IsFileReadable())
-				{
-					fdest.SetName(ffn);
-					if ( ! wxCopyFile(fsource.GetFullPath(),fdest.GetFullPath()) ) alreadyAvailable = false ;
-				}
-				else
-				{
-					ffn.Printf("%s-00%d", fmodele.GetName(), pp);
-					fsource.SetName( prefix_cache + ffn );
-					if (fsource.IsFileReadable())
-					{
-						fdest.SetName(ffn);
-						if ( ! wxCopyFile(fsource.GetFullPath(),fdest.GetFullPath()) ) alreadyAvailable = false ;
-					}
-					else
-					{
-						break ;
-					}
-				}
-			}
+			ffn.Printf(FILE_SCORE_PNG, pp);
+			fsource.SetFullName( prefix_cache + ffn );
+			if (!fsource.IsFileReadable())
+				break;
+			fdest.SetFullName(ffn);
+			if ( ! wxCopyFile(fsource.GetFullPath(),fdest.GetFullPath()) ) alreadyAvailable = false ;
 			pp++;
 		}
-		readPos();
 	}
+
 	if ( alreadyAvailable)
 	{ 
+		mlog_in("Score pages : read from cache");
 		((wxFrame *)mParent)->SetStatusText("Score pages : read from cache",0);
 	}
 	else
 	{
-		((wxFrame *)mParent)->SetStatusText("Score pages : computation by MuseScore in progress", 0);
-		// run the MuseScore batch to build he pages and the positions
-		char bufMuseScoreBatch[1024];
-		strcpy(bufMuseScoreBatch,command.c_str());
-		mlog_in("musicxmlscore newLayout musescore-batch : %s",bufMuseScoreBatch);
-		wxFileName::SetCwd(mxconf::getTmpDir());
-		long lexec = wxExecute(command, wxEXEC_SYNC | wxEXEC_HIDE_CONSOLE);
+		((wxFrame *)mParent)->SetStatusText("Score pages : computation by Lilypond in progress", 0);
+
+		wxExecuteEnv execenv;
+		execenv.cwd = getTmpDir();
+		wxArrayString stdouput;
+		wxArrayString stderror;
+		mlog_in((const char*)(command_xmltolily.c_str()));
+		lexec = wxExecute(command_xmltolily, stdouput , stderror , wxEXEC_SYNC | wxEXEC_HIDE_CONSOLE  , &execenv);
 		if (lexec < 0)
 		{
+			wxMessageBox("Cannot translate XML to Lilypond", "build score", wxOK | wxICON_ERROR);
+			mlog_in("Cannot translate XML to Lilypond");
 			return false;
 		}
-		
-		// wait for the position file, which should dclare the end of the MuseScore batch
-		for(int nbTry=0; nbTry < 10 ; nbTry ++ )
+		if ( stdouput.GetCount() > 0 )
+			mlog_in("stdout translate XML to Lilypond");
+		for (size_t i = 0; i < stdouput.GetCount(); ++i)
 		{
-			if ( readPos() )
-				break ;
-			wxSleep(1);
+			mlog_in("%s", (const char*)(stdouput[i].c_str()));
 		}
+		if ( stderror.GetCount() > 0 )
+			mlog_in("stderror translate XML to Lilypond");
+		for (size_t i = 0; i < stderror.GetCount(); ++i)
+		{
+			mlog_in("%s", (const char*)(stderror[i].c_str()));
+		}
+		fin.Open(lilyscore);
+		fout.Create(lilysrc);
+		fout.Open(lilysrc);
+		bool expresseurstaff = false;
+		int score = 0;
+		bool firstf8 = true;
+		if (fin.IsOpened() && fout.IsOpened())
+		{
+			wxString str;
+			for (str = fin.GetFirstLine(); !fin.Eof(); str = fin.GetNextLine())
+			{
+				if (str.StartsWith("\\version"))
+				{
+					// rajout des barres de mesure
+					wxTextFile fbar;
+					fbar.Open(lilybar);
+					if (fbar.IsOpened())
+					{
+						wxString sbar;
+						for (sbar = fbar.GetFirstLine(); !fbar.Eof(); sbar = fbar.GetNextLine())
+						{
+							fout.AddLine(sbar);
+						}
+						fbar.Close();
+					}
+				}
+				if (str.Contains("PartExpresseurMusicXMLPartIdVoiceTwo"))
+				{
+					// fin de la partie expresseur
+					expresseurstaff = false;
+				}
+				if (str.StartsWith("\\pointAndClickOff"))
+						continue;
+				if (str.StartsWith("PartExpresseurMusicXMLPartIdVoiceOne"))
+				{
+					expresseurstaff = true;
+				}
+				if (str.StartsWith("\\score"))
+				{
+					expresseurstaff = false;
+				}
+				if (expresseurstaff)
+				{
+					if (str.Contains("staffLines \"treble\" 2"))
+					{
+						str.Replace("staffLines \"treble\" 2", "staffLines \"percussion\" 2");
+					}
+					if (firstf8)
+					{
+						if (str.Contains("\\once \\stemUp f"))
+						{
+							str.Replace("\\once \\stemUp f", overridexpr + " f", false);
+							firstf8 = false;
+						}
+					}
+					if (str.Contains("\\once \\stemUp f"))
+					{
+						str.Replace("\\once \\stemUp f", "f", true);
+						firstf8 = false;
+					}
+					fout.AddLine(str);
+					continue;
+				}
+				else
+				{
+					str.Replace("\\stemUp", "");
+					str.Replace("\\stemDown", "");
+				}
+				switch (score)
+				{
+				case 0: 
+					if (str.StartsWith("\\score"))
+						score = 1;
+					break;
+				case 1:
+					if (str.Contains("\\PartExpresseurMusicXMLPartIdVoiceOne"))
+						score = 2;
+					break;
+				case 2:
+					if (str.Contains("}"))
+						score = 3;
+					break;
+				case 3:
+					fout.AddLine("\\context Voice = ""barmarks"" { \\barmarks }");
+					score = 4;
+					break;
+				default: break;
+				}
+				fout.AddLine(str);
+			}
+			fin.Close();
+			fout.Write();
+			fout.Close();
+		}
+		else
+		{
+			wxString serr;
+			serr.Printf("Cannot adapt Lilypond score from %s", lilyscore);
+			wxMessageBox(serr, "build score", wxOK | wxICON_ERROR);
+			return false;
+		}
+
+		// run the lilypond batch to build he pages and the positions
+		mlog_in((const char*)(command_lilytopng.c_str()));
+		lexec = wxExecute(command_lilytopng, stdouput, stderror, wxEXEC_SYNC | wxEXEC_HIDE_CONSOLE, &execenv);
+		if (lexec < 0)
+		{
+			wxMessageBox("Cannot translate Lilypond to PNG", "build score", wxOK | wxICON_ERROR);
+			mlog_in("Cannot translate Lilypond to PNG : %s\n", (const char*)(command_lilytopng.c_str()));
+			return false;
+		}
+		if (stdouput.GetCount() > 0)
+			mlog_in("stdout translate Lilypond to PNG");
+		for (size_t i = 0; i < stdouput.GetCount(); ++i)
+		{
+			mlog_in("%s", (const char*)(stdouput[i].c_str()));
+		}
+		if (stderror.GetCount() > 0)
+			mlog_in("stderror translate Lilypond to PNG");
+		for (size_t i = 0; i < stderror.GetCount(); ++i)
+		{
+			mlog_in("%s", (const char*)(stderror[i].c_str()));
+		}
+		
+		readlilypond();
 
 		((wxFrame *)mParent)->SetStatusText("Score pages : stored in cache", 0 );
 
 		// cache this result for potential reuse
-		wxCopyFile(musescorepos,cacheMusescorepos.GetFullPath())  ;
+		wxCopyFile(expresseurpos , poscache.GetFullPath());
 
-		wxFileName fdest(musescorepng);
-		wxFileName fsource(musescorepng);
-		wxFileName fmodele(musescorepng);
+		// copy pages in CACHE
+		wxFileName fsource;
+		fsource.SetPath(getTmpDir());
+		wxFileName fdest;
+		fdest.SetPath(getTmpDir());
 		wxString ffn;
 		int pp = 1;
 		while (true)
 		{
-			ffn.Printf("%s-%d", fmodele.GetName(), pp);
-			fsource.SetName(ffn);
-			if (fsource.IsFileReadable())
-			{
-				fdest.SetName( prefix_cache + ffn );
-				wxCopyFile(fsource.GetFullPath(),fdest.GetFullPath())  ;
-			}
-			else
-			{
-				ffn.Printf("%s-0%d", fmodele.GetName(), pp);
-				fsource.SetName(ffn);
-				if (fsource.IsFileReadable())
-				{
-					fdest.SetName( prefix_cache + ffn );
-					wxCopyFile(fsource.GetFullPath(),fdest.GetFullPath()) ;
-				}
-				else
-				{
-					ffn.Printf("%s-00%d", fmodele.GetName(), pp);
-					fsource.SetName(ffn);
-					if (fsource.IsFileReadable())
-					{
-						fdest.SetName( prefix_cache + ffn );
-						wxCopyFile(fsource.GetFullPath(),fdest.GetFullPath()) ;
-					}
-					else
-					{
-						break;
-					}
-				}
-			}
+			ffn.Printf(FILE_SCORE_PNG, pp);
+			fsource.SetFullName(ffn);
+			if (!fsource.IsFileReadable())
+				break;
+			fdest.SetFullName(prefix_cache + ffn);
+			wxCopyFile(fsource.GetFullPath(), fdest.GetFullPath());
 			pp++;
 		}
 	}
 		
+	readPos();
 	currentPageNr = -1;
 	currentPageNrPartial = -1;
 	prevPos = -1 ;
 	prevPlaying = true ;
 	return true ;
 }
+bool musicxmlscore::readlilypos()
+{
+	// detect line column of tokens \once in expressur_out.ly 
+	// each token is added in lposnotes array
+	char ch;
+	char chexpr[] = "PartExpresseurMusicXMLPartIdVoiceOne = \\relative ";
+	uint32_t etat = 0;
+	uint32_t nrline = 0; // line number in the file
+	uint32_t nrcolumn = 0; // column number in the file
+	uint32_t memnrline = 0; // line number in the file
+	uint32_t memnrcolumn = 0; // column number in the file
+
+	int nbwaitf8 = 0;
+	cposnote mposnote;
+	mposnote.ply.line = 0; // column
+
+	int fp = open(lilysrc, O_RDONLY);
+	if (fp == -1)
+	{
+		wxMessageBox("Cannot open Lilypond source file expresseur_out.ly", "build score", wxOK | wxICON_ERROR);
+		return false;
+	}
+	etat = 0;
+	while ((read(fp, &ch, 1)) > 0)
+	{
+		switch (ch) 
+		{
+		case '\n' : 
+			nrline++;
+			nrcolumn = 0;
+			continue;
+		case '\r':
+			// ignore \r
+			continue;
+		default:
+			// normal character
+			nrcolumn++;
+			break;
+		}
+
+
+		switch (etat)
+		{
+		default: 
+			if (ch == chexpr[etat])
+			{
+				if (etat == (strlen(chexpr) - 1))
+					etat = 1000;
+				else
+					etat++;
+			}
+			  else
+				etat = 0 ;
+			break;
+		case 1000: 
+			if (ch == 'f')
+			{
+				memnrline = nrline+1;
+				memnrcolumn = nrcolumn - 1; // -1 because of the f
+				etat++;
+				break;
+			}
+			if (ch == '\\')
+			{
+				memnrline = nrline+1;
+				memnrcolumn = nrcolumn - 1; // -1 because of the f
+				etat = 2000;
+				break;
+			}
+			etat = 1000;	
+			break;
+		case 1001: 
+			if ((ch >= '0') && (ch <= '9'))
+			{
+				mposnote.ply.line = memnrline;
+				mposnote.ply.column = memnrcolumn;
+				lposnotes.push_back(cposnote(mposnote));
+			}
+			etat = 1000; 
+			break;
+		case 2000: if (ch == 't') etat++; else etat = 1000; break;
+		case 2001: if (ch == 'w') etat++; else etat = 1000; break;
+		case 2002: if (ch == 'e') etat++; else etat = 1000; break;
+		case 2003: if (ch == 'a') etat++; else etat = 1000; break;
+		case 2004: 
+			if (ch == 'k')
+			{
+				nbwaitf8 = 0;
+				etat++;
+			}
+			else 
+				etat = 1000; 
+			break;
+		case 2005: 
+			if (ch == ' ')
+			{
+				etat ++;
+				break;
+			}
+			if (nbwaitf8++ > 50)
+			{
+				// too many wait for f8. Reset the state
+				nbwaitf8 = 0;
+				etat = 1000;
+				break;
+			}
+			break;
+		case 2006:
+			if (ch == 'f')
+			{
+				etat++;
+				break;
+			}
+			etat = 2005;
+			break;
+		case 2007:
+			if ((ch >= '0') && (ch <= '9'))
+			{
+				mposnote.ply.line = memnrline;
+				mposnote.ply.column = memnrcolumn;
+				lposnotes.push_back(cposnote(mposnote));
+				etat = 1000;
+				break;
+			}
+			etat = 2005;
+			break;
+		}
+	}
+	close(fp);
+	return true;
+}
+bool musicxmlscore::readlilypdf(uint32_t page, uint32_t xpng, uint32_t ypng)
+{
+	// detect structure "Rect [402.632 226.067 410.763 232.778]*.ly:128:5:6)" for the notes
+	// and structure "MediaBox [0 0 798 598]" for the size of the page
+	char ch;
+	uint32_t etat = 0;
+	uint32_t nbint = 0 ;
+	sfpos spdf, pagepdf;
+	float fletat = 0.1 ;
+	float nbfloat = 0.0 ;
+	sposly mly;
+	mly.column = 0; mly.line = 0;
+	spdf.x1 = 0; spdf.y1 = 0; spdf.x2 = 0; spdf.y2 = 0;
+	pagepdf.x1 = 0; pagepdf.y1 = 0; pagepdf.x2 = 0; pagepdf.y2 = 0;
+
+	wxFileName fpdf;
+	fpdf.SetPath(getTmpDir());
+	wxString s;
+	s.Printf(FILE_SCORE_PDF, page + 1);
+	//s.Printf(FILE_SCORE_PDF, 0);
+	fpdf.SetFullName(s);
+#ifdef RUN_WIN
+	int fp = _open(fpdf.GetFullPath(), _O_RDONLY | _O_BINARY);
+#else
+	int fp = open(fpdf.GetFullPath(), O_RDONLY);
+#endif
+	if (fp == -1)
+	{
+		return false;
+	}
+	etat = 0;
+#ifdef RUN_WIN
+	while ((_read(fp, &ch, 1)) > 0)
+#else
+	while ((read(fp, &ch, 1)) > 0)
+#endif
+	{
+		switch (etat)
+		{
+		case 0: 
+			if (ch == 'R') 
+				etat++; 
+			else 
+			{ 
+				if (ch == 'M') 
+					etat = 101; 
+				else etat = 0; 
+			}
+			break;
+		// seach for a small PDF rectangle sie. Pattern is "Rect [x1 y1 x2 y2]" 
+		case 1: if (ch == 'e') etat++; else etat = 0; break;
+		case 2: if (ch == 'c') etat++; else etat = 0; break;
+		case 3: if (ch == 't') etat++; else etat = 0; break;
+		case 4: if (ch == ' ') etat++; else etat = 0; break;
+		case 5: if (ch == '[') { etat++; nbfloat = 0.0; }
+			  else etat = 0; break;
+			// x1_
+		case 6: if ((ch >= '0') && (ch <= '9')) { nbfloat = nbfloat * 10.0 + (float)(ch - '0'); break; }
+			  if (ch == '.') { fletat = 0.1; etat++; break; }
+			  if (ch == ' ') { etat += 2; spdf.x1 = nbfloat; nbfloat = 0.0; break; }
+			  etat = 0; break;
+		case 7: if ((ch >= '0') && (ch <= '9')) { nbfloat += (float)(ch - '0') * fletat; fletat *= 0.1; break; }
+			  if (ch == ' ') { etat++; spdf.x1 = nbfloat; nbfloat = 0.0; break; }
+			  etat = 0; break;
+			  // y1_
+		case 8: if ((ch >= '0') && (ch <= '9')) { nbfloat = nbfloat * 10.0 + (float)(ch - '0'); break; }
+			  if (ch == '.') { fletat = 0.1; etat++; break; }
+			  if (ch == ' ') { etat += 2; spdf.y1 = nbfloat; nbfloat = 0.0; break; }
+			  etat = 0; break;
+		case 9: if ((ch >= '0') && (ch <= '9')) { nbfloat += (ch - '0') * fletat; fletat *= 0.1; break; }
+			  if (ch == ' ') { etat++; spdf.y1 = nbfloat; nbfloat = 0.0; break; }
+			  etat = 0; break;
+			  // x2_
+		case 10: if ((ch >= '0') && (ch <= '9')) { nbfloat = nbfloat * 10.0 + (float)(ch - '0'); break; }
+			   if (ch == '.') { fletat = 0.1; etat++; break; }
+			   if (ch == ' ') { etat += 2; spdf.x2 = nbfloat; nbfloat = 0.0; break; }
+			   etat = 0; break;
+		case 11: if ((ch >= '0') && (ch <= '9')) { nbfloat += (ch - '0') * fletat; fletat *= 0.1; break; }
+			   if (ch == ' ') { etat++; spdf.x2 = nbfloat; nbfloat = 0.0; break; }
+			   etat = 0; break;
+			   // y2]
+		case 12: if ((ch >= '0') && (ch <= '9')) { nbfloat = nbfloat * 10.0 + (float)(ch - '0'); break; }
+			   if (ch == '.') { fletat = 0.1; etat++; break; }
+			   if (ch == ']') { etat += 2; spdf.y2 = nbfloat; nbfloat = 0.0; break; }
+			   etat = 0; break;
+		case 13: if ((ch >= '0') && (ch <= '9')) { nbfloat += (ch - '0') * fletat; fletat *= 0.1; break; }
+			   if (ch == ']') { etat++; spdf.y2 = nbfloat; nbfloat = 0.0; break; }
+			   etat = 0; break;
+			   // search for the lilipond point-and-click reference in teh PDF. Pattern "*.ly:line:column:width]"
+		case 14:  if (ch == '.') { etat++; }
+			   else { if (ch == '>' ) etat = 0; } break;
+		case 15:  if (ch == 'l') { etat++; }
+			   else { if (ch == '>') etat = 0; else etat = 14; } break;
+		case 16:  if (ch == 'y') { etat++; }
+			   else { if (ch == '>') etat = 0; else etat = 14; } break;
+		case 17:  if (ch == ':') { etat++; nbint = 0; }
+			   else { if (ch == '>') etat = 0; else etat = 14; } break;
+			// posx:posy:l)
+		case 18: if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
+			   if (ch == ':') { etat++; mly.line = nbint; nbint = 0; break; }
+			   etat = 0; break;
+		case 19: if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
+			   if (ch == ':') { etat++; mly.column = nbint; nbint = 0; break; }
+			   etat = 0; break;
+		case 20: if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
+			   if (ch == ')') { etat++; nbint = 0; break; }
+			   etat = 0; break;
+			   // end Rect [402.632 226.067 410.763 232.778]....ly:128:5:6)
+		case 21:
+			etat = 0;
+			// search this PDF object rectangle in the posnotes generated by liypond script
+			for (auto & current_posnotes : lposnotes )
+			{
+				if ((current_posnotes.empty) && (mly.line == current_posnotes.ply.line) && (mly.column == current_posnotes.ply.column))
+				{
+					current_posnotes.empty = false;
+					current_posnotes.page = page;
+					current_posnotes.pdf.x1 = spdf.x1 ;
+					current_posnotes.pdf.y1 = spdf.y1;
+					current_posnotes.pdf.x2 = spdf.x2;
+					current_posnotes.pdf.y2 = spdf.y2;
+				}
+			}
+			break;
+	    // size of the image-page in the pdf, pattern "MediaBox [0 0 798 598]"
+		case 101: if (ch == 'e') etat++; else etat = 0; break;
+		case 102: if (ch == 'd') etat++; else etat = 0; break;
+		case 103: if (ch == 'i') etat++; else etat = 0; break;
+		case 104: if (ch == 'a') etat++; else etat = 0; break;
+		case 105: if (ch == 'B') etat++; else etat = 0; break;
+		case 106: if (ch == 'o') etat++; else etat = 0; break;
+		case 107: if (ch == 'x') etat++; else etat = 0; break;
+		case 108: if (ch == ' ') etat++; else etat = 0; break;
+		case 109: if (ch == '[') { etat++; nbint = 0; }
+				else etat = 0; break;
+		case 110: if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
+				if (ch == ' ') { etat++; pagepdf.x1 = nbint; nbint = 0; break; }
+				etat = 0; break;
+		case 111: if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
+				if (ch == ' ') { etat++; pagepdf.y1 = nbint; break; }
+				etat = 0; break;
+		case 112: if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
+				if (ch == ' ') { etat++; pagepdf.x2 = nbint; nbint = 0; break; }
+				etat = 0; break;
+		case 113: if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
+				if (ch == ']') { etat = 0; pagepdf.y2 = nbint  ; break; }
+				etat = 0; break;
+		default: etat = 0; break;
+		}
+	}
+#ifdef RUN_WIN
+	_close(fp);
+#else
+	close(fp);
+#endif
+	if (pagepdf.x2 == 0)
+	{
+		wxMessageBox("Cannot read size Lilypond pdf", "build score", wxOK | wxICON_ERROR);
+		return false;
+	}
+	float fxpng_pdf = (float)(xpng) / (float)(pagepdf.x2 - pagepdf.x1);
+	float fypng_pdf = (float)(ypng) / (float)(pagepdf.y2 - pagepdf.y1);
+	// readjust teh size of pdf rectangle in the page to png rectangle 
+	for (auto & current_posnotes : lposnotes )
+	{
+		if ((! current_posnotes.empty) && (page == current_posnotes.page))
+		{
+			current_posnotes.png.x1 = (int)(fxpng_pdf *current_posnotes.pdf.x1);
+			current_posnotes.png.x2 = (int)(fxpng_pdf *current_posnotes.pdf.x2);
+			current_posnotes.png.y1 = pagepdf.y2 - pagepdf.y1 - (int)(fypng_pdf *current_posnotes.pdf.y2);
+			current_posnotes.png.y2 = (pagepdf.y2 - pagepdf.y1) - (int)(fypng_pdf * current_posnotes.pdf.y1);
+		}
+	}
+
+	return true;
+}
+bool musicxmlscore::readpngsize(uint32_t* xpng, uint32_t* ypng)
+{
+	// read size png
+	*xpng = 0; *ypng = 0;
+	wxFileName fpng;
+	fpng.SetPath(getTmpDir());
+	wxString s;
+	s.Printf(FILE_SCORE_PNG, (0+1));
+	fpng.SetFullName(s);
+	FILE* fp = fopen(fpng.GetFullPath(), "rb");
+	if (fp == NULL)
+	{
+		wxMessageBox("Cannot open Lilypond png", "build score", wxOK | wxICON_ERROR);
+		return false;
+	}
+	fseek(fp, 16, SEEK_SET);  // Move to the IHDR chunk's location
+	fread(xpng, sizeof(uint32_t), 1, fp);
+	fread(ypng, sizeof(uint32_t), 1, fp);
+
+	// Convert from big-endian to host-endian
+	*xpng = bswap32(*xpng);
+	*ypng = bswap32(*ypng);
+
+	fclose(fp);
+	return true;
+}
+bool musicxmlscore::readlilypond()
+{
+	uint32_t xpng, ypng;
+	if (!readpngsize(&xpng, &ypng))
+	{
+		// no png score
+		wxMessageBox("no Lilypond png", "build score", wxOK | wxICON_ERROR); 
+		return false;
+	}
+
+	lposnotes.clear();
+	if (!readlilypos())
+	{
+		// no pos file
+		wxMessageBox("no Lilypond pos", "build score", wxOK | wxICON_ERROR);
+		return false;
+	}
+
+	uint32_t pagenr = 0;
+	while (true)
+	{
+
+		if (!readlilypdf(pagenr,  xpng,  ypng))
+		{
+			// no more pdf page
+			break;
+		}
+		pagenr++;
+	}
+
+	wxTextFile fout;
+	fout.Create(expresseurpos);
+	for (auto & current_posnotes : lposnotes )
+	{
+		wxString s;
+		s.Printf("%c:%u:%u:%u:%u:%u:", current_posnotes.empty?'?':'p' , current_posnotes.page, current_posnotes.png.x1, current_posnotes.png.y1, current_posnotes.png.x2, current_posnotes.png.y2);
+		fout.AddLine(s);
+	}
+	fout.Write();
+	fout.Close();
+
+	return true;
+}
+
+
 bool musicxmlscore::readPos()
 {
-	int previous_page_nr = -1;
-	bool returnCode = false ;
-	wxFileName fp(musescorepos);
-	if (! fp.IsFileReadable())
-		return false;
-	wxTextFile f;
-	f.Open(fp.GetFullPath());
-	if (f.IsOpened() == false)
-		return false;
-	wxArrayInt measureTurnPage;
-	wxString line;
-	int line_nb = f.GetLineCount();
-	for (int line_nr = 0; line_nr < line_nb; line_nr++)
-	{
-		line = f.GetLine(line_nr);
-		char bufline[10000];
-		strcpy(bufline,line.c_str());
-		if ( line == "eof" )
-		{
-			returnCode = true ;
-			break ;
-		}
-		wxArrayString msplit = wxSplit(line, ' ');
-		long l;
-		if (msplit[0].ToLong(&l) == false)
-		{
-			char buferr[1024];
-			strcpy(buferr,msplit[0].c_str());
-			mlog_in("musicxmlscore / readpos / err [0] tolong(%s)",buferr);
-			break;
-		}
-		int nr_measure = l;
-		if (msplit[1].ToLong(&l) == false)
-		{
-			char buferr[1024];
-			strcpy(buferr,msplit[1].c_str());
-			mlog_in("musicxmlscore / readpos / err [1] tolong(%s)",buferr);
-			break;
-		}
-		int t_480 = l;
-		if (msplit[2].ToLong(&l) == false)
-		{
-			char buferr[1024];
-			strcpy(buferr,msplit[2].c_str());
-			mlog_in("musicxmlscore / readpos / err [2] tolong(%s)",buferr);
-			break;
-		}
-		int page_nr = l;
-		if (page_nr != previous_page_nr)
-		{
-			measureTurnPage.Add(nr_measure - 1);
-		}
-		previous_page_nr = page_nr;
-		totalPages = page_nr;
-		double d;
-		if (msplit[3].ToDouble(&d) == false)
-		{
-			msplit[3].Replace(".",",");
-			if (msplit[3].ToDouble(&d) == false)
-			{
-				char buferr[1024];
-				strcpy(buferr,msplit[3].c_str());
-				mlog_in("musicxmlscore / readpos / err [3] tolong(%s)",buferr);
-				break;
-			}
-		}
-		float x_tenth = d * 10.0;
-		if (msplit[4].ToDouble(&d) == false)
-		{
-			msplit[4].Replace(".",",");
-			if (msplit[4].ToDouble(&d) == false)
-			{
-				char buferr[1024];
-				strcpy(buferr,msplit[4].c_str());
-				mlog_in("musicxmlscore / readpos / err [4] tolong(%s)",buferr);
-				break;
-			}
-		}
-		float y_tenth = d * 10.0;
-		if (msplit[5].ToDouble(&d) == false)
-		{
-			msplit[5].Replace(".",",");
-			if (msplit[5].ToDouble(&d) == false)
-			{
-				char buferr[1024];
-				strcpy(buferr,msplit[5].c_str());
-				mlog_in("musicxmlscore / readpos / err [5] tolong(%s)",buferr);
-				break;
-			}
-		}
-		float width_tenth = d * 10.0;
-		if (msplit[6].ToDouble(&d) == false)
-		{
-			msplit[6].Replace(".",",");
-			if (msplit[6].ToDouble(&d) == false)
-			{
-				char buferr[1024];
-				strcpy(buferr,msplit[6].c_str());
-				mlog_in("musicxmlscore / readpos / err [6] tolong(%s)",buferr);
-				break;
-			}
-		}
-		float height_tenth = d * 10.0;
 
-		wxRect rect_pixel;
-		if ( musescore_def_xml )
-		{
-			rect_pixel.width = (int)(((width_tenth * millimeters) / tenths) * (resolution_dpi / inch)) ;
-			rect_pixel.height = (int)(((height_tenth * millimeters) / tenths) * (resolution_dpi / inch)) ;
-			rect_pixel.x = (int)(((x_tenth * millimeters) / tenths) * (resolution_dpi / inch)) ;
-			rect_pixel.y = (int)(((y_tenth * millimeters) / tenths) * (resolution_dpi / inch)) - rect_pixel.height / 2 ;
-			rect_pixel.width += 2 ;
-			rect_pixel.height += 2 ;
-		}
-		else
-		{
-			rect_pixel.width = (int)(((width_tenth * millimeters) / tenths) * (resolution_dpi / inch)) ;
-			rect_pixel.height = (int)(((height_tenth * millimeters) / tenths) * (resolution_dpi / inch)) ;
-			rect_pixel.x = (int)(((x_tenth * millimeters) / tenths) * (resolution_dpi / inch)) ;
-			rect_pixel.y = (int)(((y_tenth * millimeters) / tenths) * (resolution_dpi / inch)) - rect_pixel.height / 2 ;
-			rect_pixel.width += 2 ;
-			rect_pixel.height += 2 ;
-		}
-		rect_pixel.y += rect_pixel.height + 1;
-		rect_pixel.height /= 3;
-		if (rect_pixel.height < 3)
-			rect_pixel.height = 3;
-		xmlCompile->setPosEvent(nr_measure, t_480, page_nr, rect_pixel); // , mbitmap);
-	}
-	xmlCompile->setMeasureTurnEvent(0,true);
-	int nbTurn = measureTurnPage.GetCount();
-	for (int nrTurn = 0; nrTurn < nbTurn; nrTurn++)
+	int fp = open(expresseurpos, O_RDONLY);
+	if (fp == -1)
 	{
-		int nrMeasureTurn = measureTurnPage[nrTurn];
+		wxMessageBox("Cannot open expresseur pos", "build score", wxOK | wxICON_ERROR);
+		return false;
+	}
+	int etat = 0;
+	int nbint = 0;
+	char ch;
+	wxRect rect;
+	std::vector <int> measureTurnPage;
+	int nrpage = 0;
+	int nrmeasure = 0 ;
+	int nrnote = 0;
+	int previous_nrpage = -1;
+	while ((read(fp, &ch, 1)) > 0)
+	{
+		switch (etat)
+		{
+		// p:
+		case 0: 
+			if (ch == 'p') { etat++; break; }
+			break;
+		case 1: 
+			if (ch == ':') {etat++; nbint = 0; break;}
+			etat = 0; 	break;
+			// nrpage:x1:y1:x2:y2:
+		case 2: 
+			  if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
+			  if (ch == ':') { etat++; nrpage = nbint; nbint = 0; break; }
+			  etat = 0; break;
+		case 3: if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
+			  if (ch == ':') { etat++; rect.x = nbint; nbint = 0; break; }
+			  etat = 0; break;
+		case 4: if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
+			  if (ch == ':') { etat++; rect.y = nbint; nbint = 0; break; }
+			  etat = 0; break;
+		case 5: if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
+			  if (ch == ':') { etat++; rect.width = nbint - rect.x ; nbint = 0; break; }
+			  etat = 0; break;
+		case 6: if ((ch >= '0') && (ch <= '9')) { nbint = nbint * 10 + (int)(ch - '0'); break; }
+			  if (ch == ':') { etat ++; rect.height = nbint - rect.y ; nbint = 0; break; }
+			  etat = 0; break;
+		case 7:
+			rect.y += 1.2 * rect.height;
+			rect.height /= 2;
+			nrmeasure = xmlCompile->setPosEvent(nrnote , nrpage , rect);
+			nrnote++;	
+			if (nrpage != previous_nrpage)
+			{
+				measureTurnPage.push_back(nrmeasure - 1);
+			}
+			previous_nrpage = nrpage;
+			totalPages = nrpage + 1;
+			etat = 0; break;
+		default: etat = 0; break;
+		}
+	}
+	close(fp);
+
+	xmlCompile->setMeasureTurnEvent(0,true);
+	for (auto & nrMeasureTurn : measureTurnPage ) //int nrTurn = 0; nrTurn < nbTurn; nrTurn++)
+	{
 		xmlCompile->setMeasureTurnEvent(nrMeasureTurn);
 	}
-	return returnCode;
+	return true;
 }
 void musicxmlscore::initRecordPlayback()
 {

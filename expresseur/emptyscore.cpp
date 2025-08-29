@@ -53,11 +53,10 @@ EVT_PAINT(emptyscore::onPaint)
 EVT_SIZE(emptyscore::OnSize)
 wxEND_EVENT_TABLE()
 
-emptyscore::emptyscore(wxWindow *parent, wxWindowID id, mxconf* lMxconf)
+emptyscore::emptyscore(wxWindow *parent, wxWindowID id)
 : viewerscore(parent, id)
 {
 	mParent = parent;
-	mConf = lMxconf;
 }
 emptyscore::~emptyscore()
 {
@@ -70,15 +69,15 @@ bool emptyscore::setFile(const wxFileName & WXUNUSED(lfilename))
 {
 	wxClientDC dc(this);
 	dc.Clear();
-	dc.DrawText(_("No image score"), 20, 20);
-	if (mConf->get(CONFIG_EMPTYSCOREWARNING, 1) == 1)
+	dc.DrawText("No image score", 20, 20);
+	if (configGet(CONFIG_EMPTYSCOREWARNING, 1) == 1)
 	{
-		wxMessageDialog *mDialog = new wxMessageDialog(this, _("No score available"), _("Score viewer"), wxYES | wxNO | wxHELP | wxICON_INFORMATION | wxCENTRE);
-		mDialog->SetYesNoLabels(_("OK"), _("Don't show again this message"));
+		wxMessageDialog *mDialog = new wxMessageDialog(this, "No score available", "Score viewer", wxYES | wxNO | wxHELP | wxICON_INFORMATION | wxCENTRE);
+		mDialog->SetYesNoLabels("OK", _("Don't show again this message"));
 		switch (mDialog->ShowModal())
 		{
 		case wxID_NO:
-			mConf->set(CONFIG_EMPTYSCOREWARNING, 0);
+			configSet(CONFIG_EMPTYSCOREWARNING, 0);
 			break;
 		case wxID_HELP:
 			wxLaunchDefaultBrowser("http://www.expresseur.com/help/imagechord.html");
@@ -111,7 +110,7 @@ void emptyscore::onPaint(wxPaintEvent& WXUNUSED(event))
 	wxPaintDC dc(this);
 
 	dc.Clear();
-	dc.DrawText(_("No image score"), 20, 20);
+	dc.DrawText("No image score", 20, 20);
 }
 void emptyscore::setPosition(int WXUNUSED(pos), bool WXUNUSED(playing))
 {
@@ -123,7 +122,7 @@ void emptyscore::zoom(int WXUNUSED(dzoom))
 {
 
 }
-void emptyscore::gotoPosition(wxString gotovalue)
+void emptyscore::gotoPosition(wxString WXUNUSED(gotovalue))
 {
 
 }

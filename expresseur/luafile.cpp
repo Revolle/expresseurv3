@@ -42,9 +42,7 @@
 #define DEFAULT_LUA_USER_FILE "expresseur.lua"
 #define DEFAULT_LUA_PARAMETER ""
 
-#include <wx/listimpl.cpp>
-WX_DEFINE_LIST(l_eventMidi);
-l_eventMidi g_lEventMidis;
+std::vector <c_eventMidi> g_lEventMidis;
 wxCriticalSection g_CriticalSection ;
 
 bool c_eventMidi::OneIsProcessed = false ;
@@ -67,12 +65,11 @@ EVT_CHOICE(IDM_LUAFILE_LUA_USER_SCRIPT, luafile::OnLuaUserFile)
 EVT_TEXT(IDM_LUAFILE_LUA_PARAMETER, luafile::OnLuaParameter)
 wxEND_EVENT_TABLE()
 
-luafile::luafile(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* lMxconf)
+luafile::luafile(wxFrame *parent, wxWindowID id, const wxString &title)
 : wxDialog(parent, id, title, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 {
 	mParent = parent;
 	mThis = this;
-	mConf = lMxconf;
 	// c_eventMidi::OneIsProcessed = false ;
 	// some sizerFlags commonly used
 	sizerFlagMaximumPlace.Proportion(1);
@@ -88,33 +85,33 @@ luafile::luafile(wxFrame *parent, wxWindowID id, const wxString &title, mxconf* 
 
 	wxArrayString lUserScript, lfUserScript;
 	wxFileName fUser;
-	fUser.Assign(mxconf::getCwdDir());
+	fUser.Assign(getCwdDir());
 	wxDir::GetAllFiles(fUser.GetPath(), &lUserScript, "*.lua", wxDIR_FILES);
 	for (unsigned int i = 0; i < lUserScript.GetCount(); i++)
 	{
 		wxFileName fsUser(lUserScript[i]);
 		lfUserScript.Add(fsUser.GetFullName());
 	}
-	fUser.Assign(mxconf::getResourceDir());
+	fUser.Assign(getResourceDir());
 	wxDir::GetAllFiles(fUser.GetPath(), &lUserScript, "*.lua", wxDIR_FILES);
 	for (unsigned int i = 0; i < lUserScript.GetCount(); i++)
 	{
 		wxFileName fsUser(lUserScript[i]);
 		lfUserScript.Add(fsUser.GetFullName());
 	}
-	paramsizer->Add(new wxStaticText(this, wxID_ANY, _("LUA Script")), sizerFlagMaximumPlace);
-	wxString luauserscriptfile = mConf->get(CONFIG_LUA_USER_SCRIPT, DEFAULT_LUA_USER_FILE);
+	paramsizer->Add(new wxStaticText(this, wxID_ANY, "LUA Script"), sizerFlagMaximumPlace);
+	wxString luauserscriptfile = configGet(CONFIG_LUA_USER_SCRIPT, DEFAULT_LUA_USER_FILE);
 	wxChoice *cLuaUserScript = new wxChoice(this, IDM_LUAFILE_LUA_USER_SCRIPT, wxDefaultPosition, wxDefaultSize, lfUserScript);
 	if (lfUserScript.Index(luauserscriptfile) != wxNOT_FOUND)
 		cLuaUserScript->SetSelection(lfUserScript.Index(luauserscriptfile));
 	cLuaUserScript->SetToolTip(_("LUA script which manages user's features, in program and user's ressource dir"));
 	paramsizer->Add(cLuaUserScript, sizerFlagMaximumPlace);
 
-	wxString luascriptparameter = mConf->get(CONFIG_LUA_PARAMETER, DEFAULT_LUA_PARAMETER);
+	wxString luascriptparameter = configGet(CONFIG_LUA_PARAMETER, DEFAULT_LUA_PARAMETER);
 
-	paramsizer->Add(new wxStaticText(this, wxID_ANY, _("LUA start parameter")), sizerFlagMaximumPlace);
+	paramsizer->Add(new wxStaticText(this, wxID_ANY, "LUA start parameter"), sizerFlagMaximumPlace);
 	wxTextCtrl *mLuaParameter = new wxTextCtrl(this, IDM_LUAFILE_LUA_PARAMETER, luascriptparameter);
-	mLuaParameter->SetToolTip(_("parameter for the LUA script."));
+	mLuaParameter->SetToolTip("parameter for the LUA script.");
 	paramsizer->Add(mLuaParameter, sizerFlagMaximumPlace);
 
 	topsizer->Add(paramsizer, sizerFlagMaximumPlace);
@@ -134,34 +131,34 @@ void luafile::OnSize(wxSizeEvent& WXUNUSED(event))
 void luafile::OnLuaUserFile(wxCommandEvent& event)
 {
 	wxString f = event.GetString();
-	mConf->set(CONFIG_LUA_USER_SCRIPT, f);
+	configSet(CONFIG_LUA_USER_SCRIPT, f);
 
 	SetReturnCode(1);
 }
 void luafile::OnLuaParameter(wxCommandEvent&  event)
 {
 	wxString p = event.GetString();
-	mConf->set(CONFIG_LUA_PARAMETER, p);
+	configSet(CONFIG_LUA_PARAMETER, p);
 
 	SetReturnCode(1);
 }
-void luafile::reset(mxconf* mConf, bool all, int timerDt)
+void luafile::reset(bool all, int timerDt)
 {
 	wxBusyCursor wait;
 
-	wxString luauserscriptfile = mConf->get(CONFIG_LUA_USER_SCRIPT, DEFAULT_LUA_USER_FILE);
-	wxString luascriptparameter = mConf->get(CONFIG_LUA_PARAMETER, DEFAULT_LUA_PARAMETER);
-	wxString luakeyboarconfig = mConf->get(CONFIG_KEYBOARDCONFIG, DEFAULTKEYBOARDDISPOSAL);
+	wxString luauserscriptfile = configGet(CONFIG_LUA_USER_SCRIPT, DEFAULT_LUA_USER_FILE);
+	wxString luascriptparameter = configGet(CONFIG_LUA_PARAMETER, DEFAULT_LUA_PARAMETER);
+	wxString luakeyboarconfig = configGet(CONFIG_KEYBOARDCONFIG, DEFAULTKEYBOARDDISPOSAL);
 
 	luascriptparameter = luascriptparameter + " -k " + luakeyboarconfig ;
 
 	wxFileName fuser;
 	
-	fuser.AssignDir(mxconf::getResourceDir());
+	fuser.AssignDir(getResourceDir());
 	fuser.SetName(luauserscriptfile);
 	if (! fuser.IsFileReadable())
 	{
-		fuser.AssignDir(mxconf::getCwdDir());
+		fuser.AssignDir(getCwdDir());
 		fuser.SetName(luauserscriptfile);
 		if (! fuser.IsFileReadable())
 		{
@@ -176,45 +173,43 @@ void luafile::reset(mxconf* mConf, bool all, int timerDt)
 	dduser = d.GetTicks();
 	luauserscriptfile = fuser.GetFullPath();
 
-	wxFileName dtmp(mxconf::getTmpDir());
+	wxFileName dtmp(getTmpDir());
 	dtmp.SetName("expresseur_log");
 	wxString slog = dtmp.GetFullPath();
 
-	wxFileName dressource(mxconf::getResourceDir());
+	wxFileName dressource(getResourceDir());
 	wxString spathlua ;
-	spathlua.Printf("%s?.lua;%s?.lua" , mxconf::getResourceDir() , mxconf::getCwdDir()) ;
+	spathlua.Printf("%s?.lua;%s?.lua" , getResourceDir() , getCwdDir()) ;
 
-	wxFileName::SetCwd(mxconf::getCwdDir()) ;
+	wxFileName::SetCwd(getCwdDir()) ;
 
 	basslua_open(luauserscriptfile.c_str() , luascriptparameter.c_str(), all, dduser, functioncallback, slog.c_str(), spathlua.c_str(),true, timerDt);
 }
-void luafile::write(mxconf* mConf, wxTextFile *lfile)
+void luafile::write(wxTextFile *lfile)
 {
-	mConf->writeFile(lfile, CONFIG_LUA_USER_SCRIPT, DEFAULT_LUA_USER_FILE);
-	mConf->writeFile(lfile, CONFIG_LUA_PARAMETER, DEFAULT_LUA_PARAMETER);
-	mConf->writeFile(lfile, CONFIG_KEYBOARDCONFIG, DEFAULTKEYBOARDDISPOSAL);
+	configWriteFile(lfile, CONFIG_LUA_USER_SCRIPT, DEFAULT_LUA_USER_FILE);
+	configWriteFile(lfile, CONFIG_LUA_PARAMETER, DEFAULT_LUA_PARAMETER);
+	configWriteFile(lfile, CONFIG_KEYBOARDCONFIG, DEFAULTKEYBOARDDISPOSAL);
 }
-void luafile::read(mxconf* mConf , wxTextFile *lfile)
+void luafile::read(wxTextFile *lfile)
 {
-	mConf->readFile(lfile, CONFIG_LUA_USER_SCRIPT, DEFAULT_LUA_USER_FILE);
-	mConf->readFile(lfile, CONFIG_LUA_PARAMETER, DEFAULT_LUA_PARAMETER);
-	mConf->readFile(lfile, CONFIG_KEYBOARDCONFIG, DEFAULTKEYBOARDDISPOSAL);
+	configReadFile(lfile, CONFIG_LUA_USER_SCRIPT, DEFAULT_LUA_USER_FILE);
+	configReadFile(lfile, CONFIG_LUA_PARAMETER, DEFAULT_LUA_PARAMETER);
+	configReadFile(lfile, CONFIG_KEYBOARDCONFIG, DEFAULTKEYBOARDDISPOSAL);
 }
 void luafile::functioncallback(double time , int nr_device , int type_msg , int channel , int value1 , int value2 , bool isProcessed )
 {
 	if (time == NULL_INT)
 		return;
 	wxCriticalSectionLocker locker(g_CriticalSection);
-	g_lEventMidis.Append(new c_eventMidi((wxLongLong)(time*1000.0) ,  nr_device ,  type_msg ,  channel ,  value1 ,  value2 ,  isProcessed));
+	g_lEventMidis.push_back(c_eventMidi((wxLongLong)(time*1000.0) ,  nr_device ,  type_msg ,  channel ,  value1 ,  value2 ,  isProcessed));
 }
 bool luafile::isCalledback(wxLongLong *time , int *nr_device , int *type_msg , int *channel , int *value1 , int *value2 , bool *isProcessed , bool *oneIsProcessed )
 {
 	wxCriticalSectionLocker locker(g_CriticalSection);
-	if (g_lEventMidis.IsEmpty())
+	if (g_lEventMidis.empty())
 		return false;
-	l_eventMidi::iterator iter_eventMidi;
-	iter_eventMidi = g_lEventMidis.begin();
-	c_eventMidi *m_eventMidi = *iter_eventMidi ;
+	c_eventMidi *m_eventMidi = & (g_lEventMidis.front() );
 	*time = m_eventMidi->time ;
 	*nr_device = m_eventMidi->nr_device ;
 	*type_msg = m_eventMidi->type_msg ;
@@ -223,9 +218,8 @@ bool luafile::isCalledback(wxLongLong *time , int *nr_device , int *type_msg , i
 	*value2 = m_eventMidi->value2 ;
 	*isProcessed = m_eventMidi->isProcessed;
 	*oneIsProcessed = c_eventMidi::OneIsProcessed;
-	g_lEventMidis.DeleteContents(true) 	;
-	g_lEventMidis.pop_front();
-	if (g_lEventMidis.IsEmpty())
+	g_lEventMidis.erase(g_lEventMidis.begin());
+	if (g_lEventMidis.empty())
 		c_eventMidi::OneIsProcessed = false ;
 	return true;
 }

@@ -53,12 +53,11 @@ EVT_LEFT_UP(bitmapscore::OnLeftUp)
 EVT_MOUSE_EVENTS(bitmapscore::OnMouse)
 wxEND_EVENT_TABLE()
 
-bitmapscore::bitmapscore(wxWindow *parent, wxWindowID id, mxconf* lMxconf)
+bitmapscore::bitmapscore(wxWindow *parent, wxWindowID id)
 : viewerscore(parent, id)
 {
 	mParent = parent;
-	mConf = lMxconf;
-	currentDC = NULL;
+	scoreBitmap = NULL;
 	mPointStart = wxDefaultPosition;
 	alertSetRect = true;
 	selectedRect.SetWidth(0);
@@ -78,8 +77,11 @@ bitmapscore::bitmapscore(wxWindow *parent, wxWindowID id, mxconf* lMxconf)
 }
 bitmapscore::~bitmapscore()
 {
-	if (currentDC)
-		delete currentDC;
+	if (scoreBitmap != NULL)
+	{
+		delete scoreBitmap;
+		scoreBitmap = NULL;
+	}
 }
 bool bitmapscore::isOk()
 {
@@ -129,89 +131,56 @@ bool bitmapscore::newLayout(wxSize sizeClient)
 	return true;
 
 }
-bool bitmapscore::setPage()
+bool bitmapscore::setPage(wxDC& gdc , bool redraw)
 {
+	
+
 	if (fileInDC == filename)
+	{
+		if ( redraw)
+			gdc.DrawBitmap(*scoreBitmap, 0, 0);
 		return true;
+	}
 
 	prevRectPos.SetWidth(0);
-
 	sizePage = this->GetSize();
-
-	if ((sizePage.GetHeight() < 100) || (sizePage.GetWidth() < 100))
-		return false;
-
-	wxImage mImage(filename.GetFullPath(), wxBITMAP_TYPE_PNG);
-	if (!mImage.IsOk()) return false;
-
-	wxSize sizeDisplay;
-	wxSize wxSizeImage = mImage.GetSize();
+	wxSize sizeDisplay  ;
+	wxImage lbitmap (filename.GetFullPath(), wxBITMAP_TYPE_PNG);
+	wxSize wxSizeImage = lbitmap.GetSize();
 
 	sizeDisplay.SetWidth(sizePage.GetWidth());
-	sizeDisplay.SetHeight((wxSizeImage.GetHeight()*sizePage.GetWidth()) / wxSizeImage.GetWidth());
+	sizeDisplay.SetHeight((wxSizeImage.GetHeight() * sizePage.GetWidth()) / wxSizeImage.GetWidth());
 	if (sizeDisplay.GetHeight() > sizePage.GetHeight())
 	{
 		sizeDisplay.SetHeight(sizePage.GetHeight());
-		sizeDisplay.SetWidth((wxSizeImage.GetWidth()*sizePage.GetHeight()) / wxSizeImage.GetHeight());
+		sizeDisplay.SetWidth((wxSizeImage.GetWidth() * sizePage.GetHeight()) / wxSizeImage.GetHeight());
 	}
 	xScale = (double)(sizeDisplay.GetWidth()) / (double)(wxSizeImage.GetWidth());
 	yScale = (double)(sizeDisplay.GetHeight()) / (double)(wxSizeImage.GetHeight());
+	wxImage rimage = lbitmap.Scale(sizeDisplay.GetWidth(), sizeDisplay.GetHeight(), wxIMAGE_QUALITY_HIGH);
 
-	wxBitmap emptyBitmap(sizePage);
-	if (currentDC)
-		delete currentDC;
-	currentDC = new wxMemoryDC(emptyBitmap);
-	if (!currentDC->IsOk())
-	{
-		delete currentDC;
-		return false;
-	}
-	currentDC->SetBackground(this->GetBackgroundColour());
-	currentDC->Clear();
-
-	wxImage rimage = mImage.Scale(sizeDisplay.GetWidth(), sizeDisplay.GetHeight() , wxIMAGE_QUALITY_HIGH);
-	wxBitmap mBitmap(rimage);
-	if (! mBitmap.IsOk()) return false;
-
-	currentDC->DrawBitmap(mBitmap,0,0);
-	if ( ! currentDC->IsOk() )
-	{
-		delete currentDC;
-		return false;
-	}
-
+	if (scoreBitmap) delete scoreBitmap;
+	scoreBitmap = new wxBitmap(rimage);
+	gdc.DrawBitmap(*scoreBitmap, 0, 0);
 	fileInDC = filename;
 	prevNrChord = -1;
 	prevPaintNrChord = -1;
 
 	return true;
 }
-bool bitmapscore::setCursor(wxDC& dc, int pos)
+bool bitmapscore::setCursor(wxDC& dc, int pos, bool redraw)
 {
-	sizePage = this->GetSize();
-	
-	if ( ! setPage()) return false ;
+	if ( ! setPage(dc , redraw)) return false ;
 
 	if (prevRectPos.GetWidth() > 0)
 	{
 		wxDCClipper cursorclip(dc, prevRectPos);
-		// redraw the page(s)
+		dc.SetBackground(this->GetBackgroundColour());
 		dc.Clear();
-		if (! dc.Blit(0, 0, sizePage.GetWidth(), sizePage.GetHeight(), currentDC, 0, 0))
-			return false;
 	}
-	else
-	{
-		// redraw the page(s)
-		dc.Clear();
-		if (! dc.Blit(0, 0, sizePage.GetWidth(), sizePage.GetHeight(), currentDC, 0, 0))
-			return false;
-	}
-
-	// draw the cursor
 	if (!rectChord[pos].IsEmpty())
 	{
-		wxRect mrect , nrect;
+		wxRect mrect, nrect;
 		nrect = rectChord[pos];
 		// scale the rectangle
 		mrect.SetX(nrect.GetX() * xScale);
@@ -227,34 +196,51 @@ bool bitmapscore::setCursor(wxDC& dc, int pos)
 		dc.Clear();
 		prevRectPos = mrect;
 	}
+
+	prevNrChord = nrChord;
 	return true;
 }
 void bitmapscore::setPosition(int pos, bool WXUNUSED( playing))
 {
-	if (!isOk()) return;
+	if (!isOk() )	return;
 
-	nrChord = pos - 1 ;
+	// onIdle : set the current pos
+	nrChord = pos - 1;
 
 	// onIdle : set the current pos
 	newPaintNrChord = nrChord;
 	if (nrChord != prevNrChord)
 	{
-		wxClientDC dc(this);
-		if ( setCursor(dc, nrChord) )
-			prevNrChord = nrChord;
-		// nbSetPosition ++ ;
+		Refresh();
 	}
+			
 }
 void bitmapscore::onPaint(wxPaintEvent& WXUNUSED(event))
 {
 	// onPaint
 	wxPaintDC dc(this);
 	if (!isOk()) return;
+	wxRegionIterator upd(GetUpdateRegion()); // get the update rect list
+	// int vX, vY, vW, vH;
+	bool redraw = false;
+	while (upd)
+	{
+		redraw = true;
+		break;
+		/*
+		vX = upd.GetX();
+		vY = upd.GetY();
+		vW = upd.GetW();
+		vH = upd.GetH();
+		wxString sl ;
+		sl.Printf("onpaint v %d %d %d %d",vX,vY,vW,vH);
+		mlog_in(sl);
+		// Repaint this rectangle
+		upd++;
+		*/
+	}
 
-	prevRectPos.SetWidth(0);
-	if ( setCursor(dc, newPaintNrChord) )
-		prevPaintNrChord = newPaintNrChord;
-		// nbPaint ++ ;
+	setCursor(dc, newPaintNrChord, redraw);
 }
 int bitmapscore::getNbPaint()
 {
@@ -320,8 +306,8 @@ void bitmapscore::OnLeftUp(wxMouseEvent& event)
 	{
 		if (alertSetRect)
 		{
-			wxMessageDialog *mDialog = new wxMessageDialog(this, _("link this rectangle to the current chord ?"), _("Score link"), wxYES | wxNO | wxCANCEL | wxICON_QUESTION | wxCENTRE);
-			mDialog->SetYesNoCancelLabels(_("Always link"), _("Link now"), _("Cancel"));
+			wxMessageDialog *mDialog = new wxMessageDialog(this, _("link this rectangle to the current chord ?"), "Score link", wxYES | wxNO | wxCANCEL | wxICON_QUESTION | wxCENTRE);
+			mDialog->SetYesNoCancelLabels("Always link", "Link now", "Cancel");
 			switch (mDialog->ShowModal())
 			{
 			case wxID_YES:	alertSetRect = false; break;
@@ -431,14 +417,14 @@ void bitmapscore::readRectChord()
 
 	if (nbRectChord == 0 )
 	{
-		if (mConf->get(CONFIG_BITMAPSCOREWARNINGTAGIMAGE, 1) == 1)
+		if (configGet(CONFIG_BITMAPSCOREWARNINGTAGIMAGE, 1) == 1)
 		{
-			wxMessageDialog *mDialog = new wxMessageDialog(this, _("No chord tagged in the image"), _("Score image"), wxYES | wxNO | wxHELP | wxICON_INFORMATION | wxCENTRE);
-			mDialog->SetYesNoLabels(_("OK"), _("Don't show again this message"));
+			wxMessageDialog *mDialog = new wxMessageDialog(this, "No chord tagged in the image", "Score image", wxYES | wxNO | wxHELP | wxICON_INFORMATION | wxCENTRE);
+			mDialog->SetYesNoLabels("OK", _("Don't show again this message"));
 			switch (mDialog->ShowModal())
 			{
 			case wxID_NO:
-				mConf->set(CONFIG_BITMAPSCOREWARNINGTAGIMAGE, 0);
+				configSet(CONFIG_BITMAPSCOREWARNINGTAGIMAGE, 0);
 				break;
 			case wxID_HELP:
 				wxLaunchDefaultBrowser("http://www.expresseur.com/help/imagechord.html");
@@ -477,7 +463,7 @@ void bitmapscore::gotoNextPage(bool WXUNUSED(forward))
 {
 
 }
-void bitmapscore::gotoPosition(wxString gotovalue)
+void bitmapscore::gotoPosition(wxString WXUNUSED(gotovalue))
 {
 
 }

@@ -19,6 +19,8 @@
 #ifndef WX_PRECOMP
 #include "wx/wx.h"
 #endif
+#include <vector>
+#include <algorithm>
 
 
 #include "wx/dialog.h"
@@ -51,15 +53,15 @@ wxEND_EVENT_TABLE()
 
 editshortcut::editshortcut(wxWindow *parent, wxWindowID id, const wxString &title,
 wxString *lname,
-wxString *laction, wxArrayString nameAction,
-wxString *lkey, wxArrayString nameKey,
-wxString *ldevice, wxArrayString lnameDevice, wxArrayString lnameOpenDevice,
-wxString *lchannel, wxArrayString nameChannel,
-wxString *levent, wxArrayString nameEvent,
-wxString *lmin, wxArrayString nameValueMin,
-wxString *lmax, wxArrayString nameValueMax,
+wxString *laction, std::vector <wxString> nameAction,
+wxString *lkey, std::vector <wxString> nameKey,
+wxString *ldevice, std::vector <wxString> lnameDevice, std::vector <wxString> lnameOpenDevice,
+wxString *lchannel, std::vector <wxString> nameChannel,
+wxString *levent, std::vector <wxString> nameEvent,
+wxString *lmin, std::vector <wxString> nameValueMin,
+wxString *lmax, std::vector <wxString> nameValueMax,
 wxString *lparam ,
-wxString *lstopOnMatch, wxArrayString nameStopOnMatch
+wxString *lstopOnMatch, std::vector <wxString> nameStopOnMatch
 )
 : wxDialog(parent, id, title, wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 {
@@ -78,9 +80,9 @@ wxString *lstopOnMatch, wxArrayString nameStopOnMatch
 
 	wxFlexGridSizer *fieldsizer = new wxFlexGridSizer(2, wxSize(5, 5));
 
-	fieldsizer->Add(new wxStaticText(this, wxID_ANY, _("Name")), sizerFlagMinimumPlace);
+	fieldsizer->Add(new wxStaticText(this, wxID_ANY, "Name"), sizerFlagMinimumPlace);
 	wxTextCtrl *fName = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, 0, wxTextValidator(wxFILTER_EMPTY, lname));
-	fName->SetToolTip(_("Any name. Free text"));
+	fName->SetToolTip("Any name. Free text");
 	fieldsizer->Add(fName, sizerFlagMaximumPlace);
 
 	fieldsizer->Add(new wxStaticText(this, wxID_ANY, _("ALT+Keyboard-shortcut")), sizerFlagMinimumPlace);
@@ -90,54 +92,54 @@ wxString *lstopOnMatch, wxArrayString nameStopOnMatch
 
 	nameOpenDevice = lnameOpenDevice;
 	nameDevice = lnameDevice;
-	fieldsizer->Add(new wxStaticText(this, wxID_ANY, _("Device")), sizerFlagMinimumPlace);
+	fieldsizer->Add(new wxStaticText(this, wxID_ANY, "Device"), sizerFlagMinimumPlace);
 	fTdevice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameOpenDevice, 0, wxGenericValidator(ldevice));
-	fTdevice->SetToolTip(_("Midiin device trigger"));
+	fTdevice->SetToolTip("Midiin device trigger");
 	fieldsizer->Add(fTdevice, sizerFlagMaximumPlace);
 
-	fieldsizer->Add(new wxStaticText(this, wxID_ANY, _("Channel")), sizerFlagMinimumPlace);
+	fieldsizer->Add(new wxStaticText(this, wxID_ANY, "Channel"), sizerFlagMinimumPlace);
 	fTchannel = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameChannel, 0, wxGenericValidator(lchannel));
-	fTchannel->SetToolTip(_("Midiin channel trigger"));
+	fTchannel->SetToolTip("Midiin channel trigger");
 	fieldsizer->Add(fTchannel, sizerFlagMaximumPlace);
 
-	fieldsizer->Add(new wxStaticText(this, wxID_ANY, _("Event")), sizerFlagMinimumPlace);
+	fieldsizer->Add(new wxStaticText(this, wxID_ANY, "Event"), sizerFlagMinimumPlace);
 	fEvent = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameEvent, 0, wxGenericValidator(levent));
-	fEvent->SetToolTip(_("Midiin event trigger"));
+	fEvent->SetToolTip("Midiin event trigger");
 	fieldsizer->Add(fEvent, sizerFlagMaximumPlace);
 
-	fieldsizer->Add(new wxStaticText(this, wxID_ANY, _("Min Value")), sizerFlagMinimumPlace);
+	fieldsizer->Add(new wxStaticText(this, wxID_ANY, "Min Value"), sizerFlagMinimumPlace);
 	fMin = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameValueMin, 0, wxGenericValidator(lmin));
 	fMin->SetToolTip(_("Data1 of the midi-message.\nPitch of the note, control number, or program number"));
 	fieldsizer->Add(fMin, sizerFlagMaximumPlace);
 
-	fieldsizer->Add(new wxStaticText(this, wxID_ANY, _("Max Value")), sizerFlagMinimumPlace);
+	fieldsizer->Add(new wxStaticText(this, wxID_ANY, "Max Value"), sizerFlagMinimumPlace);
 	wxChoice *fMax = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameValueMax, 0, wxGenericValidator(lmax));
 	fMax->SetToolTip(_("Maximum value (included ) for the pitch of the note, control number, or program number"));
 	fieldsizer->Add(fMax, sizerFlagMaximumPlace);
 
-	fieldsizer->Add(new wxStaticText(this, wxID_ANY, _("Action")), sizerFlagMinimumPlace);
+	fieldsizer->Add(new wxStaticText(this, wxID_ANY, "Action"), sizerFlagMinimumPlace);
 	wxChoice *fAction = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameAction, 0, wxGenericValidator(laction));
-	fAction->SetToolTip(_("Action triggered"));
+	fAction->SetToolTip("Action triggered");
 	fieldsizer->Add(fAction, sizerFlagMaximumPlace);
 
-	fieldsizer->Add(new wxStaticText(this, wxID_ANY, _("On match")), sizerFlagMinimumPlace);
+	fieldsizer->Add(new wxStaticText(this, wxID_ANY, "On match"), sizerFlagMinimumPlace);
 	wxChoice *fStopOnMatch = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameStopOnMatch, 0, wxGenericValidator(lstopOnMatch));
 	fStopOnMatch->SetToolTip(_("On match, continue or stop the analysis of next selectors"));
 	fieldsizer->Add(fStopOnMatch, sizerFlagMaximumPlace);
 
-	fieldsizer->Add(new wxStaticText(this, wxID_ANY, _("Parameter")), sizerFlagMinimumPlace);
+	fieldsizer->Add(new wxStaticText(this, wxID_ANY, "Parameter"), sizerFlagMinimumPlace);
 	wxTextCtrl *fParameter = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, 0, wxTextValidator(wxFILTER_NONE, lparam));
-	fParameter->SetToolTip(_("Action parameter"));
+	fParameter->SetToolTip("Action parameter");
 	fieldsizer->Add(fParameter, sizerFlagMaximumPlace);
 
 	wxBoxSizer *thirdsizer = new wxBoxSizer(wxVERTICAL);
-	thirdsizer->Add(new wxStaticText(this, wxID_ANY, _("MIDI event detected")), sizerFlagMinimumPlace);
+	thirdsizer->Add(new wxStaticText(this, wxID_ANY, "MIDI event detected"), sizerFlagMinimumPlace);
 	listMidi = new wxListBox(this, IDM_EDITSHORTCUT_LISTMIDI);
-	listMidi->SetToolTip(_("Double-click to copy"));
+	listMidi->SetToolTip("Double-click to copy");
 	listMidi->SetFont(wxFont(8, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));
 	listMidi->Clear();
-	listMidi->Append(_("Valid Midi-In ports are opened."));
-	listMidi->Append(_("MIDI events are displayed. Double-click to fill automatically the form."));
+	listMidi->Append("Valid Midi-In ports are opened.");
+	listMidi->Append("MIDI events are displayed. Double-click to fill automatically the form.");
 
 	thirdsizer->Add(listMidi, sizerFlagMaximumPlace);
 
@@ -204,9 +206,10 @@ void editshortcut::OnMidi(wxCommandEvent& event)
 		token = tokenizer.GetNextToken();
 		long d; token.ToLong(&d);
 		wxString ndev = nameDevice[d - 1];
-		int ps = nameOpenDevice.Index(ndev);
-		if (ps == wxNOT_FOUND)
-			ps = 0;
+		int ps = 0;
+		auto id = std::find(nameOpenDevice.begin(), nameOpenDevice.end(), ndev);
+		if ( id != nameOpenDevice.end())
+			ps = std::distance(nameOpenDevice.begin(),id);
 		fTdevice->SetSelection(ps);
 
 		//channel

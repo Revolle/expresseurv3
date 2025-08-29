@@ -8,7 +8,7 @@ class textscore
 {
 
 public:
-	textscore(wxWindow *parent, wxWindowID id, mxconf* lMxconf);
+	textscore(wxWindow *parent, wxWindowID id);
 	~textscore();
 
 	void OnSize(wxSizeEvent& event);
@@ -28,7 +28,6 @@ public:
 
 private:
 	wxWindow *mParent;
-	mxconf *mConf;
 	bool editMode = false ;
 	void setFontSize(int t);
 	int sizeFont;
