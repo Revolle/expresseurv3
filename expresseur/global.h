@@ -189,7 +189,7 @@ enum{ EMPTYVIEWER, BITMAPVIEWER, MUSICXMLVIEWER };
 #define SIZEAPPDEFAUTWIDTH (800)
 #define SIZEAPPDEFAUTHEIGHT (600)
 
-#if defined(_WIN32) || defined(WIN32)
+#if defined(_WIN32) || defined(WIN32) || defined(WIN64) || defined(_WIN64) || defined(__WINDOWS__) || defined(__WIN32__) || defined(__WIN64__) || defined(_MSC_VER)
     #define RUN_WIN 1
     #define __WINDOWS_MM__ 1
 #elif defined(__APPLE__)

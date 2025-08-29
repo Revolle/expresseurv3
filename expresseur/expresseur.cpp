@@ -487,7 +487,7 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	settingMenu->Append(ID_MAIN_KEYDOWNCONFIG, "One-key config...", "Configuration of the computer keyboard to use one-key shortcuts coded in LUA");
 	settingMenu->Append(ID_MAIN_LUAFILE, "LUA Files...");
 	settingMenu->Append(ID_MAIN_RESET, _("Reset audio/midi"), _("Reset the audio/midi configuration"));
-	//settingMenu->Append(ID_MAIN_DELETE_CACHE, "Delete cache", _("Delete the MuseScore pages, kept in cache to save computing"));
+	//settingMenu->Append(ID_MAIN_DELETE_CACHE, "Delete cache", _("Delete the score pages, kept in cache to save computing"));
 	settingMenu->Append(ID_MAIN_FIRSTUSE, "Reset configuration", "Restart the initialization wizard");
 	// settingMenu->AppendCheckItem(ID_MAIN_MIDILOG, "Log MIDI", "log output MIDI messages in log file");
 	settingMenu->Append(ID_MAIN_CHECK_CONFIG, "Check config", _("Check the configuration (files, .. )"));
@@ -2349,7 +2349,15 @@ void Expresseur::OnSettingSaveas(wxCommandEvent& WXUNUSED(event))
 void Expresseur::OnAbout(wxCommandEvent& WXUNUSED(event)) 
 {	
 	wxString s;
-	s.Printf("Expresseur 3.%d\n(C) 2019 REVOLLE Franck <frevolle@gmail.com>", VERSION_EXPRESSEUR);
+	s.Printf("Expresseur 3.%d\n"
+		"(C) REVOLLE Franck <frevolle@gmail.com>\n"
+		"Acknowldgment to :\n"
+		"- wxWidgets.org : Cross-Platform GUI\n"
+		"- lua.org : scripting language\n"
+		"- lilypond.org : music engraver\n"
+		"- un4seen.com : audio stack\n"
+		"- rtmidi : MIDI stack"
+		, VERSION_EXPRESSEUR);
  	wxMessageBox(s,"about");
 }
 void Expresseur::OnHelp(wxCommandEvent& WXUNUSED(event)) 
