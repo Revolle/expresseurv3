@@ -48,11 +48,12 @@ www.expresseur.com
 5. mac
 
    build wxwidgets 64 bits ( used by expresseur GUI ) : 
-   * cd ~/wxwidgets/
+   * cd Documents
    * git clone --recurse-submodules https://github.com/wxWidgets/wxWidgets.git
+   * cd wxWidgets
    * mkdir build64
-   * cd ~/wxwidgets/build64
-   * ~/wxwidgets/configure --with-macosx-version-min=10.9 --disable-shared --disable-sys-libs  --prefix="$(pwd)"
+   * cd build64
+   * ../configure --with-macosx-version-min=10.9 --disable-shared --disable-sys-libs  --prefix="$(pwd)"
    * make
    
    build lua5.3.3 64 bits ( used by basslua & luabass )
