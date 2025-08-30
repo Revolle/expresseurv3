@@ -526,6 +526,7 @@ void musicxmlcompile::compileScore(bool useMarkFile)
 
 	//  add lOrnaments in the notes to play in lMusicxmlevents
 	addOrnaments();
+
 	// lMusicxmlevents contains the notes to play. Compile lMusicxmlevents
 	compileMusicxmlevents();
 
@@ -3422,17 +3423,11 @@ void musicxmlcompile::addSymbolNote(std::vector<c_measure>::iterator measure, bo
 				if (text->IsEmpty() == false)
 				{
 					measure_sequence.direction.used = true;
-					measure->measure_sequences.push_back(measure_sequence);
-
-					c_direction direction;
-					direction.placement = "above";
-					measure->measure_sequences.back().direction.used = true;
-					measure->measure_sequences.back().direction.placement = "above";
-
+					measure_sequence.direction.placement = "above";
 					c_direction_type direction_type;
 					direction_type.words.used = true;
 					direction_type.words.value = *text;
-					measure->measure_sequences.back().direction.direction_types.push_back(direction_type);
+					measure_sequence.direction.direction_types.push_back(direction_type);
 
 					text->Empty();
 				}

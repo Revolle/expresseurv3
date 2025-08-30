@@ -14,8 +14,8 @@ ifeq ($(PLATFORM),Darwin)
 	  
     WX_CONFIG =../wxWidgets/build64/wx-config
 
-    CXXFLAGS := $(CXXFLAGS) -mmacosx-version-min=10.9 -D__MACOSX_CORE__
-    LDFLAGS := $(LDFLAGS) -mmacosx-version-min=10.9
+    CXXFLAGS := $(CXXFLAGS) -mmacosx-version-min=10.15 -D__MACOSX_CORE__
+    LDFLAGS := $(LDFLAGS) -mmacosx-version-min=10.15
 
     # dynamic library for basslua ( called by GUI expresseur )
     DYNLIB_EXT := dylib

@@ -21,7 +21,7 @@ class musicxmlscore
 {
 
 public:
-	musicxmlscore(wxWindow *parent, wxWindowID id );
+	musicxmlscore(wxWindow *parent, wxWindowID id , bool log = false ) ;
 	~musicxmlscore();
 
 	void onPaint(wxPaintEvent& event);
@@ -104,6 +104,8 @@ private:
 	std::uint64_t crc_cumulate_string(wxString buf);
 
 	std::vector <cposnote> lposnotes;
+
+	bool  logLilypond = false;
 
 	wxDECLARE_EVENT_TABLE();
 

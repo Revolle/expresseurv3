@@ -714,6 +714,7 @@ bool Expresseur::checkConfig()
 void Expresseur::OnCheckConfig(wxCommandEvent& WXUNUSED(event))
 {
 	checkConfig();
+	log = true;
 }
 void Expresseur::OnHelpluashortcut(wxCommandEvent& WXUNUSED(event))
 {
@@ -2155,7 +2156,7 @@ bool Expresseur::settingReset(bool all)
 		wxString ext = fileName.GetExt();
 		if ((ext == SUFFIXE_MUSICXML) || (ext == SUFFIXE_MUSICMXL))
 		{
-			newViewerscore = new musicxmlscore(this, wxID_ANY);
+			newViewerscore = new musicxmlscore(this, wxID_ANY , log);
 			if (newViewerscore->setFile(fileName))
 			{
 				typeViewer = MUSICXMLVIEWER;
@@ -2185,7 +2186,7 @@ bool Expresseur::settingReset(bool all)
 		}
 		if (ext == SUFFIXE_TEXT)
 		{
-			newViewerscore = new musicxmlscore(this, wxID_ANY);
+			newViewerscore = new musicxmlscore(this, wxID_ANY , log);
 			if (newViewerscore->setFile(fileName))
 			{
 				typeViewer = MUSICXMLVIEWER;

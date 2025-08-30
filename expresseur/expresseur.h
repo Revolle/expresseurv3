@@ -230,6 +230,8 @@ private:
 
 	wxSize image_right =  wxSize(0,0);
 
+	bool log = false;
+
 	wxDECLARE_EVENT_TABLE();
 };
 #endif
