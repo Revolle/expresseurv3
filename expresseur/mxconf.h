@@ -5,6 +5,8 @@
 
 void configSetPrefix(std::vector <wxString> nameOpenMidiOutDevices);
 wxConfig *configGet();
+void setConfig();
+void delConfig();
 void configErase();
 
 wxString configWriteFile(wxTextFile *lfile, wxString key, wxString default_value, bool prefix = false, wxString name = "");

@@ -54,125 +54,147 @@ wxString userDir;
 wxString confPath;
 wxString resourceDir ;
 wxString mPrefix = "";
-wxConfig mConfig(APP_NAME);
-
-static void setDir()
-{
-	if ( todoDir )
-	{
-		todoDir = false ;
-		// Mac : stored in Library/Preferences/Expresseur... 
-		mConfig.Write("creation", 1);
-		if (!mConfig.Flush())
-			wxMessageBox("error flush mxconf", "mxconf");
 #ifdef RUN_WIN
-		confPath = "regedit.exe HKEY_CURRENT_USER\\Software\\ExpresseurV3";
+wxRegConfig *mConfig = NULL;
 #else
-		confPath = ((wxFileConfig*)mConfig)->GetPath();
+wxFileConfig* mConfig = NULL;
 #endif
-		wxFileName fd(wxStandardPaths::Get().GetExecutablePath());
-		fd.SetName("");
-		fd.SetExt("");
-		cwdDir = fd.GetFullPath();
-#ifdef RUN_MAC
-		fd.RemoveLastDir();
-		fd.RemoveLastDir();
-		fd.RemoveLastDir();
-#endif
-		appDir = fd.GetFullPath();
 
-		wxStandardPaths mpath = wxStandardPaths::Get();
-
-
-		wxString s;
-
-		wxFileName fuserDir;
-		fuserDir.AssignDir(mpath.GetAppDocumentsDir());
-		if (fuserDir.GetFullPath().Contains(APP_NAME) == false)
-			fuserDir.AppendDir(APP_NAME);
-		userDir = fuserDir.GetFullPath();
-		if (!fuserDir.DirExists())
-			wxFileName::Mkdir(userDir);
-		if (!fuserDir.DirExists())
-			wxMessageBox(userDir, "Directory user error");
-		if (mConfig.Exists(CONFIG_USERDIRECTORY))
-		{
-			mConfig.Read(CONFIG_USERDIRECTORY, &s, userDir);
-			if (s.length() > 3)
-			{
-				userDir = s;
-			}
-		}
-		else
-		{
-			mConfig.Write(CONFIG_USERDIRECTORY, userDir);
-		}
-
-		wxFileName fresourcesDir;
-		fresourcesDir.AssignDir(userDir);
-		fresourcesDir.AppendDir(DIR_RESOURCES);
-		resourceDir = fresourcesDir.GetFullPath() ;
-		if ( ! fresourcesDir.DirExists() )
-			wxFileName::Mkdir(resourceDir) ;
-		if ( ! fresourcesDir.DirExists() )
-			wxMessageBox(resourceDir , "Directory ressource error");	
-
-		//wxFileName dtmp;
-		//wxString stmp = wxFileName::GetTempDir() ;
-		//dtmp.AssignDir(stmp);
-		//dtmp.AppendDir(APP_NAME);
-		wxFileName ftmpDir;
-		ftmpDir.AssignDir(resourceDir);
-		ftmpDir.AppendDir("tmp");
-		tmpDir = ftmpDir.GetFullPath() ;
-		if ( ! ftmpDir.DirExists() )
-			wxFileName::Mkdir(tmpDir) ;
-		if ( ! ftmpDir.DirExists() )
-			wxMessageBox(tmpDir , "Directory tmp error");	
-
+void delConfig()
+{
+	if (mConfig != NULL)
+	{
+		delete mConfig;
+		mConfig = NULL;
+		todoDir = true;
 	}
+}
+void setConfig()
+{
+	if (!todoDir)
+		return;
+	todoDir = false ;
+	if (mConfig == NULL)
+	{
+#ifdef RUN_WIN
+		mConfig = new wxRegConfig(APP_NAME);
+#else
+		mConfig = new wxFileConfig(APP_NAME);
+#endif
+	}
+	// Mac : stored in Library/Preferences/Expresseur... 
+	mConfig->Write("creation", 1);
+	if (!mConfig->Flush())
+		wxMessageBox("error flush mxconf", "mxconf");
+#ifdef RUN_WIN
+	confPath = "regedit.exe HKEY_CURRENT_USER\\Software\\ExpresseurV3";
+#else
+	confPath = ((wxFileConfig*)mConfig)->GetPath();
+#endif
+	wxFileName fd(wxStandardPaths::Get().GetExecutablePath());
+	fd.SetName("");
+	fd.SetExt("");
+	cwdDir = fd.GetFullPath();
+#ifdef RUN_MAC
+	fd.RemoveLastDir();
+	fd.RemoveLastDir();
+	fd.RemoveLastDir();
+#endif
+	appDir = fd.GetFullPath();
+
+	wxStandardPaths mpath = wxStandardPaths::Get();
+
+
+	wxString s;
+
+	wxFileName fuserDir;
+	fuserDir.AssignDir(mpath.GetAppDocumentsDir());
+	if (fuserDir.GetFullPath().Contains(APP_NAME) == false)
+		fuserDir.AppendDir(APP_NAME);
+	userDir = fuserDir.GetFullPath();
+	if (!fuserDir.DirExists())
+		wxFileName::Mkdir(userDir);
+	if (!fuserDir.DirExists())
+		wxMessageBox(userDir, "Directory user error");
+	if (mConfig->Exists(CONFIG_USERDIRECTORY))
+	{
+		mConfig->Read(CONFIG_USERDIRECTORY, &s, userDir);
+		if (s.length() > 3)
+		{
+			userDir = s;
+		}
+	}
+	else
+	{
+		mConfig->Write(CONFIG_USERDIRECTORY, userDir);
+	}
+
+	wxFileName fresourcesDir;
+	fresourcesDir.AssignDir(userDir);
+	fresourcesDir.AppendDir(DIR_RESOURCES);
+	resourceDir = fresourcesDir.GetFullPath() ;
+	if ( ! fresourcesDir.DirExists() )
+		wxFileName::Mkdir(resourceDir) ;
+	if ( ! fresourcesDir.DirExists() )
+		wxMessageBox(resourceDir , "Directory ressource error");	
+
+	//wxFileName dtmp;
+	//wxString stmp = wxFileName::GetTempDir() ;
+	//dtmp.AssignDir(stmp);
+	//dtmp.AppendDir(APP_NAME);
+	wxFileName ftmpDir;
+	ftmpDir.AssignDir(resourceDir);
+	ftmpDir.AppendDir("tmp");
+	tmpDir = ftmpDir.GetFullPath() ;
+	if ( ! ftmpDir.DirExists() )
+		wxFileName::Mkdir(tmpDir) ;
+	if ( ! ftmpDir.DirExists() )
+		wxMessageBox(tmpDir , "Directory tmp error");	
 }
 wxString getAppDir()
 {
-	setDir() ;
+	setConfig() ;
 	return appDir ;
 }
 wxString getCwdDir()
 {
-	setDir();
+	setConfig();
 	return cwdDir ;
 }
 wxString getTmpDir()
 {
-	setDir();
+	setConfig();
 	return tmpDir ;
 }
 wxString getUserDir()
 {
-	setDir();
+	setConfig();
 	return userDir;
 }
 wxString getConfPath()
 {
-	setDir();
+	setConfig();
 	return confPath;
 }
 wxString getResourceDir()
 {
-	setDir();
+	setConfig();
 	return resourceDir ;
 }
 
 wxConfig *configGet()
 {
-	return &mConfig;
+	setConfig();
+	return mConfig;
 }
 void configErase()
 {
-	mConfig.DeleteAll() ;
+	setConfig();
+	mConfig->DeleteAll() ;
 }
 void configSetPrefix(std::vector <wxString> nameOpenMidiOutDevices)
 {
+	setConfig();
 	// the prefix is a checksum of all valid midiout's name
 	wxString name;
 	wxString names;
@@ -199,6 +221,7 @@ void configSetPrefix(std::vector <wxString> nameOpenMidiOutDevices)
 }
 static wxString configPrefixKey(wxString key, bool prefix, wxString name)
 {
+	setConfig();
 	wxString s1;
 	if (name.IsEmpty())
 		s1.Printf("%s%s", prefix ? mPrefix : "", key);
@@ -208,35 +231,41 @@ static wxString configPrefixKey(wxString key, bool prefix, wxString name)
 }
 wxString configGet(wxString key, wxString defaultvalue, bool prefix, wxString name)
 {
+	setConfig();
 	wxString s;
-	mConfig.Read(configPrefixKey(key, prefix, name), &s, defaultvalue);
-	mConfig.Write(configPrefixKey(key, prefix, name), s);
+	mConfig->Read(configPrefixKey(key, prefix, name), &s, defaultvalue);
+	mConfig->Write(configPrefixKey(key, prefix, name), s);
 	return s;
 }
 long configGet(wxString key, long defaultvalue, bool prefix, wxString name)
 {
+	setConfig();
 	long l;
-	mConfig.Read(configPrefixKey(key, prefix, name), &l, defaultvalue);
-	mConfig.Write(configPrefixKey(key, prefix, name), l);
+	mConfig->Read(configPrefixKey(key, prefix, name), &l, defaultvalue);
+	mConfig->Write(configPrefixKey(key, prefix, name), l);
 	return(l);
 }
 
 void configSet(wxString key, wxString s, bool prefix, wxString name)
 {
-	mConfig.Write(configPrefixKey(key, prefix, name), s);
+	setConfig();
+	mConfig->Write(configPrefixKey(key, prefix, name), s);
 }
 void configSet(wxString key, long l, bool prefix, wxString name)
 {
-	mConfig.Write(configPrefixKey(key, prefix, name), l);
+	setConfig();
+	mConfig->Write(configPrefixKey(key, prefix, name), l);
 }
 
 void configRemove(wxString key, bool prefix, wxString name)
 {
-	mConfig.DeleteEntry(configPrefixKey(key, prefix = false, name));
+	setConfig();
+	mConfig->DeleteEntry(configPrefixKey(key, prefix = false, name));
 }
 
 long configWriteFile(wxTextFile *lfile, wxString key, long defaultvalue, bool prefix, wxString name)
 {
+	setConfig();
 	wxString s, v;
 	long l = configGet(key, defaultvalue, prefix, name);
 	s.Printf("%s=%ld", configPrefixKey( key , false, name), l);
@@ -245,6 +274,7 @@ long configWriteFile(wxTextFile *lfile, wxString key, long defaultvalue, bool pr
 }
 wxString configWriteFile(wxTextFile *lfile, wxString key, wxString defaultvalue, bool prefix , wxString name)
 {
+	setConfig();
 	wxString s;
 	wxString l = configGet(key, defaultvalue, prefix, name);
 	s.Printf("%s=%s", configPrefixKey(key, false, name), l);
@@ -253,6 +283,7 @@ wxString configWriteFile(wxTextFile *lfile, wxString key, wxString defaultvalue,
 }
 wxString configReadFileLines(wxTextFile *lfile, wxString key)
 {
+	setConfig();
 	wxString str;
 	for (str = lfile->GetFirstLine(); !lfile->Eof(); str = lfile->GetNextLine())
 	{
@@ -263,6 +294,7 @@ wxString configReadFileLines(wxTextFile *lfile, wxString key)
 }
 bool configReadFile(wxTextFile *lfile, wxString key, wxString defaultvalue, bool prefix, wxString name)
 {
+	setConfig();
 	wxString s, s2;
 	s = configReadFileLines(lfile, configPrefixKey(key, false, name));
 	if (s.IsEmpty())
@@ -276,6 +308,7 @@ bool configReadFile(wxTextFile *lfile, wxString key, wxString defaultvalue, bool
 }
 bool configReadFile(wxTextFile *lfile, wxString key, long defaultvalue, bool prefix, wxString name)
 {
+	setConfig();
 	wxString s, s2;
 	long l;
 	s = configReadFileLines(lfile, configPrefixKey(key, false, name));
@@ -293,6 +326,7 @@ bool configReadFile(wxTextFile *lfile, wxString key, long defaultvalue, bool pre
 }
 bool configExists(wxString key, bool prefix, wxString name)
 {
-	return (mConfig.Exists(configPrefixKey(key, prefix, name)));
+	setConfig();
+	return (mConfig->Exists(configPrefixKey(key, prefix, name)));
 }
 

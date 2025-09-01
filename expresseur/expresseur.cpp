@@ -353,6 +353,7 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	int proportionStatusBar[3] = { -10,-10,-1 };
 	mStatusBar->SetStatusWidths(3, proportionStatusBar);
 
+	setConfig();
 	getAppDir();
 	mode = modeNil;
 	listChanged = false;
@@ -599,6 +600,8 @@ Expresseur::~Expresseur()
 	delete fileHistory;
 
 	basslua_close();
+
+	delConfig();
 }
 wxString Expresseur::checkFile(wxString dir, wxString fullName)
 {
