@@ -91,7 +91,7 @@ private:
 	bool readlilypos();
 	bool readlilypdf(uint32_t page , uint32_t xpng, uint32_t ypng);
 	bool readpngsize(uint32_t* xpng, uint32_t* ypng);
-	bool musicxmlscore::readlilypond();
+	bool readlilypond();
 	bool readPos();
 	bool setCursor(int nrEvent, bool playing, bool redraw);
 	bool setPage( int pageNr, bool turnPage, bool redraw);

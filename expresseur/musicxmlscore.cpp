@@ -248,7 +248,6 @@ musicxmlscore::~musicxmlscore()
 	//basslua_call(moduleScore, functionScoreInitScore, "" );
 	if (xmlCompile != NULL)
 		delete xmlCompile;
-	scoreBitmap.FreeResource();
 	xmlCompile = NULL;
 }
 void musicxmlscore::cleanTmp()

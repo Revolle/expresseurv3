@@ -43,14 +43,8 @@
 // POSIX
 #endif
 
-/*
-#if defined(V_PC)
-#define V_VST 1
-#endif
-*/
-
 #ifdef V_PC
-#define V_ASIO 1
+define V_DMX 1
 #endif
 
 
@@ -372,32 +366,34 @@ static HANDLE g_timer_out = NULL;
 // mutex to protect the output ( from LUA and timer, to outputs )
 static HANDLE g_mutex_out = NULL;
 
+#define DMX_CH_MAX 256
+#define DMX_V_MAX 256
+#ifdef V_DMX
 // dmx management
 static HANDLE g_dmx_port = NULL;	// dmx comport handle
 static int g_portdmx_nr = -1; // numbr of dmx port com
 static DCB g_dmxdcb; // dmx comport configuration
-#define DMX_CH_MAX 256
-#define DMX_V_MAX 256
 float g_dmx_float_value[DMX_CH_MAX]; // // dmx values actual
 float g_dmx_float_target[DMX_CH_MAX]; // // dmx values target
 byte g_dmx_byte_value[DMX_CH_MAX]; // // dmx values to send
 unsigned int g_dmx_byte_nb = 0; // number of dmx values to send
 float g_dmx_ramping = 1.0; // attack value in the time (0..256). 256==direct attack 0==slow ramping, default 256
 float g_dmx_tenuto = 1.0; // tenuto value in the time (0..256). 256==no decrease 0==quick decrease, default 256
+#endif
 
 #endif
 #ifdef V_MAC
 // mutex to protect the access od the midiout queud messages
 static pthread_mutex_t g_mutex_out ;
 static pthread_t g_loop_out_run_thread ;
-static int g_dmx_port = NULL;
+static int g_dmx_port = 0;
 #endif
 #ifdef V_LINUX
 static pthread_t g_loop_out_run_thread ;
 static timer_t g_timer_out_id;
 #define MTIMERSIGNALOUT (SIGRTMIN+0)
 static pthread_mutex_t g_mutex_out;
-static int g_dmx_port = NULL;
+static int g_dmx_port = 0;
 #endif
 
 static T_queue_msg g_queue_msg[OUT_QUEUE_MAX_MSG];
@@ -532,19 +528,16 @@ static void unlock_mutex_out()
 #endif
 }
 
-
+#ifdef V_DMX
 void dmxClose()
 {
-#ifdef V_PC
 	if (g_dmx_port)
 		CloseHandle(g_dmx_port);
 	g_dmx_port = NULL;
 	g_portdmx_nr = -1; // comport closed
-#endif
 }
 bool dmxOpen(int comport)
 {
-#ifdef V_PC
 	if ((comport == g_portdmx_nr) && g_dmx_port)
 	{
 		// comport already opened
@@ -576,13 +569,9 @@ bool dmxOpen(int comport)
 
 	g_portdmx_nr = comport;
 	return true;
-#else
-	return false;
-#endif
 }
 void dmxStart()
 {
-#ifdef V_PC
 	g_dmxdcb.BaudRate = CBR_115200;     //  baud rate
 	SetCommState(g_dmx_port, &g_dmxdcb);
 	SetCommBreak(g_dmx_port);
@@ -591,15 +580,12 @@ void dmxStart()
 	byte hDmx = (byte)(255);
 	DWORD n;
 	WriteFile(g_dmx_port, &hDmx, (DWORD)1, &n, NULL);
-#endif
 }
 void dmxSend()
 {
-#ifdef V_PC
 	DWORD n;
 	// write dmx byte
 	WriteFile(g_dmx_port, g_dmx_byte_value, (DWORD)g_dmx_byte_nb, &n, NULL);
-#endif
 }
 void dmx_init()
 {
@@ -757,6 +743,7 @@ static int LdmxOut(lua_State* L)
 	unlock_mutex_out();
 	return 0;
 }
+#endif // V_DMX
 
 static int apply_volume(int nrTrack, int v)
 {
@@ -2123,12 +2110,13 @@ static bool processPostMidiOut(T_midioutmsg midioutmsg)
 		{
 			const char* stype = lua_tostring(g_LUAoutState, -1);
 			lua_pop(g_LUAoutState, 1);
-			byte data0 = 0;
-			byte nbbyte = 3;
+			Byte data0 = 0;
+			Byte nbbyte = 3;
 			int min = 0;
 			bool midiok = false;
 			switch (*stype)
 			{
+#ifdef V_DMX
 			case 'D': // DMX or DMXall
 			case 'd':
 				if (strlen(stype) < 4)
@@ -2178,6 +2166,7 @@ static bool processPostMidiOut(T_midioutmsg midioutmsg)
 					}
 				}
 				break;
+#endif // V_DMX
 			case 'P': // Program or Pitchbend
 			case 'p':
 				if (strlen(stype) > 7)
@@ -2838,11 +2827,13 @@ static void all_note_off(const char *soption, int nrTrack)
 		default: break;
 		}
 	}
+#ifdef V_DMX
 	for (int i = 0; i < DMX_CH_MAX; i++)
 	{
 		g_dmx_byte_value[i] = 0;
 		g_dmx_float_value[i] = 0.0 ;
 	}
+#endif
 }
 static void onMidiOut_filter_set()
 {
@@ -3187,7 +3178,9 @@ static void process_timer_out()
 			lua_pop(g_LUAoutState, 1);
 		}
 	}
+#ifdef V_DMX
 	dmxRefresh();
+#endif
 }
 #ifdef V_PC
 VOID CALLBACK timer_out_callback(PVOID lpParam, BOOLEAN TimerOrWaitFired)
@@ -3341,7 +3334,9 @@ static void init_out(const char *fname, bool externalTimer , int timerDt)
 	channel_extended_init();
 	track_init();
 	curve_init();
+#ifdef V_DMX
 	dmx_init();
+#endif
 	//if (!externalTimer) // external process protects conflicts with its own mutex
 	mutex_out_init();
 	timer_out_init(externalTimer, timerDt);
@@ -3355,7 +3350,9 @@ static void free()
 	vi_free();
 	midi_out_free();
 	mixer_free();
+#ifdef V_DMX
 	dmxClose();
+#endif
 	if (g_LUAoutState)
 	{
 		lua_close(g_LUAoutState);
@@ -4159,7 +4156,7 @@ static int LoutSystem(lua_State *L)
 	lock_mutex_out();
 	
 	T_midioutmsg u;
-	u.midimsg.bData[0] = cap((int)lua_tointeger(L, 1), 0, DMX_V_MAX, 0);
+	u.midimsg.bData[0] = cap((int)lua_tointeger(L, 1), 0, 128, 0);
 	u.midimsg.bData[1] = cap((int)lua_tointeger(L, 2), 0, 128, 0);
 	u.midimsg.bData[2] = cap((int)lua_tointeger(L, 3), 0, 128, 0);
 	u.nbbyte = 3;
@@ -4686,11 +4683,13 @@ static const struct luaL_Reg luabass[] =
 	{ "logmidimsg", Llogmidimsg }, // log midi_msg in mlog_out txt file
 	{ soutGetLog, LoutGetLog }, // get log
 
+#ifdef V_DMX
 	////// Dmx //////
 	{ "dmxOpen" , LdmxOpen },
 	{ "dmxSet" , LdmxSet },
 	{ "dmxOut" , LdmxOut },
 	{ "dmxOutall" , LdmxOutAll },
+#endif
 
 	////// in ///////
 

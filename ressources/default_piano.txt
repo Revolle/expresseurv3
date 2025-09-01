@@ -1,6 +1,0 @@
-Grand Piano(P0/0)
-Brilliant(P0/1)
-Soft(P0/2)
-Agressive(P0/3)
-Honky Tonky(P0/4)
-E-piano(P0/5)

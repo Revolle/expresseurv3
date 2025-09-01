@@ -1221,12 +1221,12 @@ void Expresseur::SetMenuAction(bool all)
 {
 	// create the actionMenu and the associated icones in the toolbar, according to actions known in the LUA script
 	mTextscore->setEditMode(editMode);
-	wxString s;
 	wxMenu *newActionMenu = new wxMenu;
 	wxBitmap b;
 	wxFileName fb;
 	fb.Assign(getCwdDir());
 	fb.SetExt("png");
+	wxString s ;
 
 	if (all)
 	{
@@ -1680,7 +1680,6 @@ void Expresseur::ListUpdateMenu()
 }
 void Expresseur::ListSave()
 {
-	wxString s;
 	wxFileName f;
 	wxTextFile tfile;
 	if (listName.IsFileWritable() == false)
@@ -2374,14 +2373,13 @@ void Expresseur::CreateExpresseurV3()
 	wxFileName fname;
 	fname.AssignDir(getResourceDir());
 	fname.Mkdir(wxS_DIR_DEFAULT, wxPATH_MKDIR_FULL);
-
+	bool firstExample = true ;
 	// copy examples from example-folder in documents/expresseurV3-folder
 	wxFileName fdirExample;
 	fdirExample.Assign(getCwdDir());
 	fdirExample.AppendDir(DIR_EXAMPLE);
 	wxString sExample = fdirExample.GetFullPath();
 	//wxMessageBox(sExample,"example dir");
-	bool firstExample = true ;
 	wxDir dirExample(sExample);
 	if (dirExample.IsOpened())
 	{

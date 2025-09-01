@@ -26,14 +26,13 @@ ifeq ($(PLATFORM),Darwin)
     SHAREDLIB_LDFLAGS := $(LDFLAGS) -undefined dynamic_lookup 
 
 		DIRPLATFORM := osx
-		LUADIR := $(DIRPLATFORM)/lua-5.3.3/src
+		LUADIR := $(DIRPLATFORM)/lua/src
 		RTMIDIDIR := ../rtmidi
-		MLOGDIR := mlog
 		BASSDIR := $(DIRPLATFORM)/bass
-		VSTDIR := $(DIRPLATFORM)/vst2.x
 
 		LUABASS_LIBS :=  -L$(BASSDIR) -lbass -lbassmidi -lbassmix -framework CoreFoundation -framework CoreAudio -framework CoreMIDI
-		BASSLUA_LIBS := $(LUABASS_LIBS) -L$(LUADIR) -lluafr 
+		BASSLUA_LIBS := $(LUABASS_LIBS) -L$(LUADIR) -llua 
+		LILYPOND := ../lilypond-2.24.4
 		WXWIDGESTLIB = $(shell $(WX_CONFIG) --libs base,net,core,adv,xml)
 		EXPRESSCMD_LIBS := 
 		EXPRESSEUR_LIBS := $(WXWIDGESTLIB) $(EXPRESSCMD_LIBS) 
@@ -56,11 +55,10 @@ ifeq ($(PLATFORM),Linux)
     SHAREDLIB_LDFLAGS := $(LDFLAGS) -O -shared -fpic 
 
 		DIRPLATFORM := linux
-		LUADIR := $(DIRPLATFORM)/lua-5.3.4/src
+		LUADIR := $(DIRPLATFORM)/lua/src
 		RTMIDIDIR := $(DIRPLATFORM)/rtmidi
 		BASSDIR := $(DIRPLATFORM)/bass
-		MLOGDIR := mlog
-		VSTDIR := ../vst2.x
+		LILYPOND := ../lilypond-2.24.4
 
 		MORIGIN := $$ORIGIN
 		EXPRESS_LIBPATH := -Wl,-rpath=$(BASSDIR),-rpath=../$(BASSDIR),-rpath=basslua,-rpath=luabass
@@ -96,14 +94,13 @@ EXPRESSCMD_OBJECTS := $(patsubst %.cpp,%.o,$(wildcard expresscmd/*.cpp))
 LIBBASSLUA := basslua/libbasslua.$(DYNLIB_EXT)
 LIBBASSLUA_OBJECTS := $(patsubst %.cpp,%.o,$(wildcard basslua/*.cpp))
 RTMIDI_OBJECTS := $(patsubst %.cpp,%.o,$(wildcard $(RTMIDIDIR)/*.cpp))
-MLOG_OBJECTS := $(patsubst %.cpp,%.o,$(wildcard $(MLOGDIR)/*.cpp))
 
 LUA_OBJECTS := lua/*.*
 
 LIBLUABASS := luabass/luabass.$(SHAREDLIB_EXT)
 LIBLUABASS_OBJECTS := $(patsubst %.cpp,%.o,$(wildcard luabass/*.cpp))
 
-CPPFLAGS += -Ibasslua -Iluabass -Iexpresseur -I$(BASSDIR) -I$(VSTDIR) -I$(LUADIR) -I$(RTMIDIDIR) -I$(MLOGDIR)
+CPPFLAGS += -Ibasslua -Iluabass -Iexpresseur -I$(BASSDIR) -I$(LUADIR) -I$(RTMIDIDIR)
 
 print-%  : ; @echo $* = $($*)
 
@@ -118,7 +115,8 @@ $(EXPRESSEURAPP): $(EXPRESSEUR) $(LUA_OBJECTS) expresseur/Info.plist
 	-mkdir -p $(EXPRESSEURCONTENT)/ressources
 	cp expresseur/AppIcon.icns $(EXPRESSEURRESOURCES)
 	cp expresseur/Info.plist $@/Contents
-	cp $(EXPRESSEUR) $(LIBLUABASS) $(LIBBASSLUA) $(BASSDIR)/*.dylib $(LUADIR)/libluafr.a $(LUA_OBJECTS) $(EXPRESSEURCONTENT)
+	cp $(EXPRESSEUR) $(LIBLUABASS) $(LIBBASSLUA) $(BASSDIR)/*.dylib $(LUADIR)/liblua.a $(LUA_OBJECTS) $(EXPRESSEURCONTENT)
+	cp -R $(LILYPOND) $(EXPRESSEURCONTENT)/lilypond
 	cp ressources/*.* $(EXPRESSEURCONTENT)/ressources
 	cp example/*.* $(EXPRESSEURCONTENT)/example
 	for f in expresseur libbasslua.dylib ; do \
@@ -131,7 +129,7 @@ $(EXPRESSEURAPP): $(EXPRESSEUR) $(LUA_OBJECTS) expresseur/Info.plist
 	
 $(EXPRESSCMDEXE) : $(EXPRESSCMD)
 	-mkdir -p $(EXPRESSEURCONTENT)
-	cp $(EXPRESSCMD) $(LIBLUABASS) $(LIBBASSLUA) $(BASSDIR)/*.dylib $(LUADIR)/libluafr.a $(LUA_OBJECTS) $(EXPRESSEURCONTENT)
+	cp $(EXPRESSCMD) $(LIBLUABASS) $(LIBBASSLUA) $(BASSDIR)/*.dylib $(LUADIR)/liblua.a $(LUA_OBJECTS) $(EXPRESSEURCONTENT)
 	for f in expresscmd libbasslua.dylib ; do \
 	    install_name_tool \
 		-change basslua/libbasslua.dylib @loader_path/libbasslua.dylib \
@@ -152,6 +150,7 @@ $(EXPRESSEURAPP): $(EXPRESSEUR) $(LUA_OBJECTS)
 	cp $(BASSDIR)/lib*.so $(EXPRESSEURCONTENT)/$(BASSDIR)
 	cp $(EXPRESSEUR) $(LIBLUABASS) $(LUA_OBJECTS) $(EXPRESSEURCONTENT)
 	cp $(LIBBASSLUA) $(EXPRESSEURCONTENT)/basslua
+	cp -R $(LILYPOND) $(EXPRESSEURCONTENT)/lilypond
 	cp ressources/*.* $(EXPRESSEURCONTENT)/ressources
 	cp example/*.* $(EXPRESSEURCONTENT)/example
 	cp lua/*.* $(EXPRESSEURCONTENT)
@@ -173,10 +172,10 @@ $(EXPRESSEUR):  $(EXPRESSEUR_OBJECTS) $(LIBBASSLUA)
 $(EXPRESSCMD): $(EXPRESSCMD_OBJECTS)  $(LIBBASSLUA) 
 	$(CXX) $(LDFLAGS) -o $@ $^ $(EXPRESSCMD_LIBS)
 
-$(LIBBASSLUA): $(LIBBASSLUA_OBJECTS) $(MLOG_OBJECTS)
+$(LIBBASSLUA): $(LIBBASSLUA_OBJECTS)
 	$(CXX) $(DYNLIB_LDFLAGS) -o $@ $^ $(BASSLUA_LIBS)
 
-$(LIBLUABASS): $(LIBLUABASS_OBJECTS) $(RTMIDI_OBJECTS) $(MLOG_OBJECTS)
+$(LIBLUABASS): $(LIBLUABASS_OBJECTS) $(RTMIDI_OBJECTS)
 	$(CXX) $(CXXFLAGS) $(SHAREDLIB_LDFLAGS) -o $@ $^ $(LUABASS_LIBS)
 
 $(TEST): $(TEST_OBJECTS)  

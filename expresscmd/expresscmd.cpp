@@ -48,8 +48,9 @@
 #include <errno.h>
 #include <time.h>
 
-#include <conio.h>
+#ifdef V_PC
 #include <direct.h>
+#endif
 
 #include "basslua.h"
 
@@ -68,17 +69,20 @@ int main(int argc, char* argv[])
 		strcpy_s(fname, argv[1]);
 	if (argc > 2)
 		strcpy_s(param, argv[2]);
+#ifdef V_PC
 	if (argc > 3)
 		_chdir(argv[3]);
+#endif
 
-	// debug :
 #ifdef _DEBUG
 	_chdir("C:\\Users\\franc\\Documents\\GitHub\\expresseurV3_VC\\basslua\\x64\\Debug");
 #endif
 
-	char full[_MAX_PATH];
+#ifdef V_PC
+	char full[_MAX_PATH] = "";
 	if (_fullpath(full, ".\\", _MAX_PATH) == NULL)
 		fprintf(stderr, "cannot calculate working directory\n");
+#endif
 
 	// starts the basslua module with the lua-scipt
 	// this command loads :
@@ -89,7 +93,11 @@ int main(int argc, char* argv[])
 	//          - luascore ( to play a score )
 	//          - luachord ( to play chords )
 	//        The lua-scriptstarts the lua-function onStart(parameters) :
+#ifdef V_PC
 	fprintf(stderr,"basslua_open argv[1].scriptlua=<%s> argv[2].param=<%s> (in argv[3].working_directory=%s)\n",fname, param , full);
+#else
+	fprintf(stderr,"basslua_open argv[1].scriptlua=<%s> argv[2].param=<%s>\n",fname, param);
+#endif
 	bool retCode = basslua_open(fname, param, true, 0, NULL ,"expresscmd_log","./?.lua", false/*external timer*/,20);
 	fprintf(stderr,"Return code basslua_open =%s\n", retCode?"OK":"Error");
 
