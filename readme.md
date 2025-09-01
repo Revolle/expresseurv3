@@ -48,11 +48,12 @@ www.expresseur.com
 5. mac
 
    build wxwidgets 64 bits ( used by expresseur GUI ) : 
-   * cd ~/wxwidgets/
+   * cd Documents
    * git clone --recurse-submodules https://github.com/wxWidgets/wxWidgets.git
+   * cd wxWidgets
    * mkdir build64
-   * cd ~/wxwidgets/build64
-   * ~/wxwidgets/configure --with-macosx-version-min=10.9 --disable-shared --disable-sys-libs  --prefix="$(pwd)"
+   * cd build64
+   * ../configure --with-macosx-version-min=10.15 --disable-shared --disable-sys-libs  --prefix="$(pwd)"
    * make
    
    build lua5.3.3 64 bits ( used by basslua & luabass )
@@ -61,7 +62,7 @@ www.expresseur.com
    * tar xf lua-5.3.3.tar.gz
    * rm lua-5.3.3.tar.gz
    * modification de src/Makefile : ligne macosx:
-   * $(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_MACOSX -mmacosx-version-min=10.9 " SYSLIBS="-lreadline" CC=cc
+   * $(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_MACOSX -mmacosx-version-min=10.15 " SYSLIBS="-lreadline" CC=cc
    * make macosx
    
    rtmidi :
