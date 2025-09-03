@@ -44,7 +44,7 @@
 #endif
 
 #ifdef V_PC
-define V_DMX 1
+#define V_DMX 1
 #endif
 
 
@@ -67,6 +67,7 @@ define V_DMX 1
 #include <windows.h>   /* required before including mmsystem.h */
 #include <mmsystem.h>  /* multimedia functions (such as MIDI) for Windows */
 #include <winbase.h>
+#define V_ASIO 1
 #endif
 #include <assert.h>
 
@@ -2110,8 +2111,16 @@ static bool processPostMidiOut(T_midioutmsg midioutmsg)
 		{
 			const char* stype = lua_tostring(g_LUAoutState, -1);
 			lua_pop(g_LUAoutState, 1);
-			Byte data0 = 0;
-			Byte nbbyte = 3;
+#ifdef V_MAC
+			Byte data0;
+			Byte nbbyte;
+#else
+			byte data0;
+			byte nbbyte;
+#endif
+			data0 = 0;
+			nbbyte = 3;
+
 			int min = 0;
 			bool midiok = false;
 			switch (*stype)

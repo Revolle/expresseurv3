@@ -907,12 +907,12 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	lilyexe = fm.GetFullPath();
 #else
 #ifdef _DEBUG
-	fm.SetPath("C:\\Users\\franc\\Documents\\lilypond\\lilypond-2.25.26");
+	fm.SetPath("C:\\Users\\franc\\Documents\\lilypond\\lilypond-2.25.28");
 #else
 	fm.SetPath(getCwdDir());
 	fm.AppendDir("lilypond");
-	fm.AppendDir("bin");
 #endif
+	fm.AppendDir("bin");
 	fm.SetFullName("python.exe");
 	pythonexe = fm.GetFullPath();
 	// liliy translator 
