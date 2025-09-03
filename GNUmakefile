@@ -32,7 +32,8 @@ ifeq ($(PLATFORM),Darwin)
 
 		LUABASS_LIBS :=  -L$(BASSDIR) -lbass -lbassmidi -lbassmix -framework CoreFoundation -framework CoreAudio -framework CoreMIDI
 		BASSLUA_LIBS := $(LUABASS_LIBS) -L$(LUADIR) -llua 
-		LILYPOND := ../lilypond-2.24.4
+		LILYPOND_X86_TAR := ../lilypond-2.25.28-darwin-x86_64.tar
+		LILYPOND_ARM_TAR := ../lilypond-2.25.28-darwin-arm64.tar
 		WXWIDGESTLIB = $(shell $(WX_CONFIG) --libs base,net,core,adv,xml)
 		EXPRESSCMD_LIBS := 
 		EXPRESSEUR_LIBS := $(WXWIDGESTLIB) $(EXPRESSCMD_LIBS) 
@@ -58,11 +59,10 @@ ifeq ($(PLATFORM),Linux)
 		LUADIR := $(DIRPLATFORM)/lua/src
 		RTMIDIDIR := $(DIRPLATFORM)/rtmidi
 		BASSDIR := $(DIRPLATFORM)/bass
-		LILYPOND := ../lilypond-2.24.4
-
+		LILYPOND_X86_TAR := ../lilypond-2.25.28-darwin-x86_64.tar
+		LILYPOND_ARM_TAR := ../lilypond-2.25.28-darwin-arm64.tar
 		MORIGIN := $$ORIGIN
 		EXPRESS_LIBPATH := -Wl,-rpath=$(BASSDIR),-rpath=../$(BASSDIR),-rpath=basslua,-rpath=luabass
-
 		LUABASS_LIBS := -L$(BASSDIR) -lbass -lbassmidi -lbassmix -lrt -lm -ldl -lasound -lpthread $(EXPRESS_LIBPATH)
 		BASSLUA_LIBS := $(LUABASS_LIBS)  -L$(LUADIR) -llua $(EXPRESS_LIBPATH)
 		WXWIDGESTLIB = $(shell $(WX_CONFIG) --libs base,net,core,adv,xml)
@@ -116,25 +116,24 @@ $(EXPRESSEURAPP): $(EXPRESSEUR) $(LUA_OBJECTS) expresseur/Info.plist
 	cp expresseur/AppIcon.icns $(EXPRESSEURRESOURCES)
 	cp expresseur/Info.plist $@/Contents
 	cp $(EXPRESSEUR) $(LIBLUABASS) $(LIBBASSLUA) $(BASSDIR)/*.dylib $(LUADIR)/liblua.a $(LUA_OBJECTS) $(EXPRESSEURCONTENT)
-	cp -R $(LILYPOND) $(EXPRESSEURCONTENT)/lilypond
+	cp $(LILYPOND_X86_TAR) $(EXPRESSEURCONTENT)/
+	cp $(LILYPOND_ARM_TAR) $(EXPRESSEURCONTENT)/
 	cp ressources/*.* $(EXPRESSEURCONTENT)/ressources
 	cp example/*.* $(EXPRESSEURCONTENT)/example
-	for f in expresseur libbasslua.dylib ; do \
-	    install_name_tool \
-		-change basslua/libbasslua.dylib @loader_path/libbasslua.dylib \
-		$(EXPRESSEURCONTENT)/$$f; \
-	done
+	install_name_tool -change @rpath/libbass.dylib @loader_path/libbass.dylib $(EXPRESSEURCONTENT)/luabass.so
+	install_name_tool -change @rpath/libbassmidi.dylib @loader_path/libbassmidi.dylib $(EXPRESSEURCONTENT)/luabass.so
+	install_name_tool -change @rpath/libbassmix.dylib @loader_path/libbassmix.dylib $(EXPRESSEURCONTENT)/luabass.so
+	install_name_tool -change @rpath/libbass.dylib @loader_path/libbass.dylib $(EXPRESSEURCONTENT)/libbasslua.dylib
+	install_name_tool -change @rpath/libbassmidi.dylib @loader_path/libbassmidi.dylib $(EXPRESSEURCONTENT)/libbasslua.dylib
+	install_name_tool -change @rpath/libbassmix.dylib @loader_path/libbassmix.dylib $(EXPRESSEURCONTENT)/libbasslua.dylib
+	install_name_tool -change basslua/libbasslua.dylib @loader_path/libbasslua.dylib $(EXPRESSEURCONTENT)/expresseur
 	cp lua/*.* $(EXPRESSEURCONTENT)
 	rm -f ~/Documents/ExpresseurV3/ressources/*.txt
 	
 $(EXPRESSCMDEXE) : $(EXPRESSCMD)
 	-mkdir -p $(EXPRESSEURCONTENT)
 	cp $(EXPRESSCMD) $(LIBLUABASS) $(LIBBASSLUA) $(BASSDIR)/*.dylib $(LUADIR)/liblua.a $(LUA_OBJECTS) $(EXPRESSEURCONTENT)
-	for f in expresscmd libbasslua.dylib ; do \
-	    install_name_tool \
-		-change basslua/libbasslua.dylib @loader_path/libbasslua.dylib \
-		$(EXPRESSEURCONTENT)/$$f; \
-	done
+	install_name_tool -change basslua/libbasslua.dylib @loader_path/libbasslua.dylib $(EXPRESSEURCONTENT)/expresscmd
 	cp lua/*.* $(EXPRESSEURCONTENT)
 endif
 
@@ -150,7 +149,8 @@ $(EXPRESSEURAPP): $(EXPRESSEUR) $(LUA_OBJECTS)
 	cp $(BASSDIR)/lib*.so $(EXPRESSEURCONTENT)/$(BASSDIR)
 	cp $(EXPRESSEUR) $(LIBLUABASS) $(LUA_OBJECTS) $(EXPRESSEURCONTENT)
 	cp $(LIBBASSLUA) $(EXPRESSEURCONTENT)/basslua
-	cp -R $(LILYPOND) $(EXPRESSEURCONTENT)/lilypond
+	cp $(LILYPOND_X86_TAR) $(EXPRESSEURCONTENT)/
+	cp $(LILYPOND_ARM_TAR) $(EXPRESSEURCONTENT)/
 	cp ressources/*.* $(EXPRESSEURCONTENT)/ressources
 	cp example/*.* $(EXPRESSEURCONTENT)/example
 	cp lua/*.* $(EXPRESSEURCONTENT)

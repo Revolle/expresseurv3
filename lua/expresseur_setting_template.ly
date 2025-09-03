@@ -3,7 +3,7 @@
 %%%% Lilypond commands
 %%%% Template from expresseur_setting_temlate.ly
 
-%%%%%%%%translate_xml_to_ly:"%s" "%s" --npl --no-beaming --output %s %s
+%%%%%%%%translate_xml_to_ly:"%s" --npl --no-beaming --output %s %s
 %%%%%%%%translate_ly_to_png:"%s" -dlog-file=%s -dinclude-settings=%s -dresolution=72 -dseparate-page-formats=pdf,png  %s
 
 %%%%%%%%override Expresseur:\override NoteHead.color = grey \override Beam.color = grey \override Flag.color = grey \override Stem.color = grey \stemUp

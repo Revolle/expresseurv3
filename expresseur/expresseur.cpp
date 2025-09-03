@@ -618,7 +618,7 @@ bool Expresseur::checkConfig()
 {
 	wxString merrors ;
 	merrors += checkFile(getCwdDir(), "test.wav");
-	merrors += checkFile(getCwdDir(), "scan_position.qml");
+	merrors += checkFile(getCwdDir(), "expresseur_setting_template.ly");
 	merrors += checkFile(getCwdDir(), "wizard_audio.jpg");
 	merrors += checkFile(getCwdDir(), "all_note_off.png");
 	merrors += checkFile(getCwdDir(), "expresscmd.lua");
@@ -774,6 +774,7 @@ void Expresseur::postInit()
 		maximized = 0;
 		frame->Maximize(false);
 		frame->SetSize(sizeBeforeMaximize);
+		frame->Centre();
 	}
 
 	frame->Show(true);

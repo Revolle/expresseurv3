@@ -657,21 +657,23 @@ bool musicxmlscore::setCursor(int pos,bool playing, bool redraw )
 	wxMemoryDC memDC(scoreBitmap);
 
 	// redraw the previous picture behind the cursor)
-	if (prevRectPos.GetWidth() > 0)
+	if (! prevRectPos.IsEmpty() )
 	{
 		wxDCClipper cursorclip(memDC, prevRectPos);
 		memDC.SetBackground(this->GetBackgroundColour());
 		memDC.Clear();
 	}
 
-	// draw the cursor
-	wxDCClipper cursorclip(memDC, rectPos);
-	if (playing)
-		memDC.SetBackground(*wxRED_BRUSH);
-	else
-		memDC.SetBackground(*wxGREEN_BRUSH);
-	memDC.Clear();
-	memDC.SelectObject(wxNullBitmap);
+	if ( ! rectPos.IsEmpty() )
+	{
+		// draw the cursor
+		wxDCClipper cursorclip(memDC, rectPos);
+		if (playing)
+			memDC.SetBackground(*wxRED_BRUSH);
+		else
+			memDC.SetBackground(*wxGREEN_BRUSH);		
+		memDC.Clear();
+	}
 
 	prevRectPos = rectPos;
 	return true;
@@ -833,7 +835,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	wxBusyCursor waitcursor;
 	mlog_in("newLayout file %s" , (const char*)(xmlName.GetFullPath().c_str()));
 	wxFileName fm;
-	wxString xmlout, lilyscore, pythonexe, pythonscript,lilyexe, lilysetting, lilylog , lilybar ;
+	wxString xmlout, lilyscore, pythonexe, pythonscript,lilyexe, lilysetting, lilypresetting , lilylog , lilybar ;
 	wxString command_xmltolily , command_lilytopng;
 	wxString overridexpr;
 	long lexec;
@@ -886,22 +888,40 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	lilysetting = fm.GetFullPath();
 	if (fm.Exists())
 		wxRemoveFile(lilysetting);
-	// lily python
-	fm.SetPath(getAppDir());
-	fm.AppendDir("lilypond");
-	// debug mode :
+	fm.SetPath(getCwdDir());
+	// presettings for lilypond
+	fm.SetFullName(FILE_IN_PRESETLILY);
+	lilypresetting = fm.GetFullPath();
+#ifdef RUN_MAC
+	// liliy translator 
+	fm.SetPath(getCwdDir());
+	fm.AppendDir("lilypond-2.25.28");
+	fm.AppendDir("libexec");
+	fm.SetFullName("musicxml2ly");
+	pythonscript = fm.GetFullPath();
+	// lilypond bin
+	fm.SetPath(getCwdDir());
+	fm.AppendDir("lilypond-2.25.28");
+	fm.AppendDir("bin");
+	fm.SetFullName("lilypond");
+	lilyexe = fm.GetFullPath();
+#else
 #ifdef _DEBUG
 	fm.SetPath("C:\\Users\\franc\\Documents\\lilypond\\lilypond-2.25.26");
-#endif
+#else
+	fm.SetPath(getCwdDir());
+	fm.AppendDir("lilypond");
 	fm.AppendDir("bin");
+#endif
 	fm.SetFullName("python.exe");
 	pythonexe = fm.GetFullPath();
 	// liliy translator 
 	fm.SetFullName("musicxml2ly.py");
-	pythonscript = fm.GetFullPath();
+	pythonscript = pythonexe + "\" \"" + fm.GetFullPath();
 	// lilypond bin
 	fm.SetFullName("lilypond.exe");
 	lilyexe = fm.GetFullPath();
+#endif
 
 	// calculation for the page layout
 	xmlCompile->isModified = false ;
@@ -909,7 +929,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	sizePage.SetWidth( sizeClient.GetX() );
 	sizePage.SetHeight( sizeClient.GetY() );
 
-	// clena useless temp files
+	// clean useless temp files
 	// cleanTmp();
 
 
@@ -918,7 +938,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	xmlCompile->compiled_score->write(xmlCompile->music_xml_displayed_file);
 
 	// adapt lilypond settings
-	fin.Open(FILE_IN_PRESETLILY);
+	fin.Open(lilypresetting);
 	fout.Create(lilysetting);
 	fout.Open(lilysetting);
 	if (fin.IsOpened() && fout.IsOpened())
@@ -937,7 +957,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 			}
 			if (str.StartsWith("%%%%%%%%translate_xml_to_ly:"))
 			{
-				command_xmltolily.Printf(str, pythonexe, pythonscript, FILE_OUT_LILY , FILE_OUT_XML);
+				command_xmltolily.Printf(str, pythonscript, FILE_OUT_LILY , FILE_OUT_XML);
 				fout.AddLine(command_xmltolily);
 				command_xmltolily.Replace("%%%%translate_xml_to_ly:", "");
 				continue;
