@@ -4,7 +4,6 @@
 // Author:      Franck REVOLLE
 // Modified by:
 // Created:     08/06/2015
-// update : 23/11/2016 18:00
 // Copyright:   (c) Franck REVOLLE Expresseur
 // Licence:    Expresseur licence
 /////////////////////////////////////////////////////////////////////////////

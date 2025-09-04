@@ -120,6 +120,7 @@
 #define ID_MUSICXML 7000
 #define ID_LOGERROR 8000
 #define ID_AUDIO 9000
+#define ID_DMX 9500
 
 #define SUFFIXE_MUSICXML "xml"
 #define SUFFIXE_MUSICMXL "mxl"

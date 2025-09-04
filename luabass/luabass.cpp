@@ -104,6 +104,8 @@
 
 // RTMidi library to manage midi-out
 #include "RtMidi.h"
+// libserialport library to manage serial DMX
+#include "libserialport.h"
 
 // VST libraries
 #ifdef V_VST
@@ -371,14 +373,17 @@ static HANDLE g_mutex_out = NULL;
 #define DMX_V_MAX 256
 #ifdef V_DMX
 // dmx management
-static HANDLE g_dmx_port = NULL;	// dmx comport handle
-static int g_portdmx_nr = -1; // numbr of dmx port com
-static DCB g_dmxdcb; // dmx comport configuration
+struct sp_port** g_dmx_port_list;
+struct sp_port *g_dmx_port = NULL;	// dmx comport handle
+int g_portdmx_nr = -1; // dmx comport number
 float g_dmx_float_value[DMX_CH_MAX]; // // dmx values actual
 float g_dmx_float_target[DMX_CH_MAX]; // // dmx values target
 byte g_dmx_byte_value[DMX_CH_MAX]; // // dmx values to send
 unsigned int g_dmx_byte_nb = 0; // number of dmx values to send
 float g_dmx_ramping = 1.0; // attack value in the time (0..256). 256==direct attack 0==slow ramping, default 256
+int g_dmx_track = -1; // track to hook for DMX output
+int g_dmx_midi_map[MAXPITCH] ; // map of the MIDI to dmx channel
+int g_dmx_nb_midi_map = 0;
 float g_dmx_tenuto = 1.0; // tenuto value in the time (0..256). 256==no decrease 0==quick decrease, default 256
 #endif
 
@@ -533,7 +538,10 @@ static void unlock_mutex_out()
 void dmxClose()
 {
 	if (g_dmx_port)
-		CloseHandle(g_dmx_port);
+	{
+		sp_close(g_dmx_port);
+		sp_free_port_list(g_dmx_port_list);
+	}
 	g_dmx_port = NULL;
 	g_portdmx_nr = -1; // comport closed
 }
@@ -548,45 +556,54 @@ bool dmxOpen(int comport)
 	if (g_dmx_port)
 		dmxClose();
 
-	// open comport
-	g_dmx_port = OpenCommPort(comport, GENERIC_WRITE, 0x0);
-	if (! g_dmx_port)
+	if (sp_list_ports(&g_dmx_port_list) != SP_OK)
+	{
 		return false;
-	//  Initialize the DCB structure.
-	SecureZeroMemory(&g_dmxdcb, sizeof(DCB));
-	g_dmxdcb.DCBlength = sizeof(DCB);
-
-	//  Build on the current configuration by first retrieving all current
-	//  settings.
-	if (!GetCommState(g_dmx_port, &g_dmxdcb))
+	}
+	g_dmx_port = NULL;
+	for (int i = 0; g_dmx_port_list[i] != NULL; i++) {
+		if (i == comport)
+		{
+			g_dmx_port = g_dmx_port_list[i];
+			break;
+		}
+	}
+	if (g_dmx_port == NULL)
+	{
+		sp_free_port_list(g_dmx_port_list);
 		return false;
-	g_dmxdcb.BaudRate = CBR_256000;     //  baud rate
-	g_dmxdcb.ByteSize = 8;             //  data size, xmit and rcv
-	g_dmxdcb.Parity = NOPARITY;      //  parity bit
-	g_dmxdcb.StopBits = TWOSTOPBITS;    //  stop bit
-
-	if (!SetCommState(g_dmx_port, &g_dmxdcb))
+	}
+	if ( sp_open(g_dmx_port, SP_MODE_WRITE) != SP_OK)
+	{
+		sp_free_port_list(g_dmx_port_list);
+		g_dmx_port = NULL;
+		g_portdmx_nr = -1; // comport closed	
 		return false;
-
+	}
 	g_portdmx_nr = comport;
+	sp_set_baudrate(g_dmx_port, 256000);
+	sp_set_bits(g_dmx_port, 8);
+	sp_set_parity(g_dmx_port, SP_PARITY_NONE);
+	sp_set_stopbits(g_dmx_port, 2);
+	sp_set_flowcontrol(g_dmx_port, SP_FLOWCONTROL_NONE);
+	mlog_out("dmx Open OK : #%d  %s", g_portdmx_nr , sp_get_port_name(g_dmx_port));
 	return true;
 }
 void dmxStart()
 {
-	g_dmxdcb.BaudRate = CBR_115200;     //  baud rate
-	SetCommState(g_dmx_port, &g_dmxdcb);
-	SetCommBreak(g_dmx_port);
-	g_dmxdcb.BaudRate = CBR_256000;     //  baud rate
-	SetCommState(g_dmx_port, &g_dmxdcb);
+	if ( !g_dmx_port)
+		return;	
+	sp_set_baudrate(g_dmx_port, 115200);
+	sp_start_break(g_dmx_port);
+	sp_set_baudrate(g_dmx_port, 256000);
 	byte hDmx = (byte)(255);
-	DWORD n;
-	WriteFile(g_dmx_port, &hDmx, (DWORD)1, &n, NULL);
+	sp_blocking_write(g_dmx_port, &hDmx, 1, 200);
 }
 void dmxSend()
 {
-	DWORD n;
-	// write dmx byte
-	WriteFile(g_dmx_port, g_dmx_byte_value, (DWORD)g_dmx_byte_nb, &n, NULL);
+	if (!g_dmx_port)
+		return;
+	sp_blocking_write(g_dmx_port, g_dmx_byte_value, g_dmx_byte_nb, 200);
 }
 void dmx_init()
 {
@@ -632,6 +649,19 @@ void dmxRefresh()
 		}
 	}
 }
+void dmx_hook(int pitch, int v)
+{
+	int c = g_dmx_midi_map[pitch % g_dmx_nb_midi_map];
+	if (c < 0)
+		return;
+	g_dmx_float_target[c] = ((float)(v * 2 )) / ((float)DMX_V_MAX);
+	if (g_dmx_ramping == 1.0)
+	{
+		// no ramping , direct assignment
+		g_dmx_float_value[c] = g_dmx_float_target[c];
+		g_dmx_byte_value[c] = (byte)v;
+	}
+}
 static int LdmxOpen(lua_State* L)
 {
 	// open dmx com port
@@ -661,10 +691,23 @@ static int LdmxSet(lua_State* L)
 	// set dmx values
 	// optional param 1 : tenuto value in the time (0..256). 256==direct 0,  0==no decrease, default 256
 	// optional param 2 : ramping value in the time (0..256). 256==direct value,  0==slow ramping, default 256
+	// optional param 3 : hook track nr ( 0..MAXTRACK). -1= no hook , else track to hook up to DMX, default 0
+	// optional param 4 : string of mapping MIDI-pitch (comma separated) to DMX-channel, default "" ( no mapping )
 
 	lock_mutex_out();
 	int tenuto = luaL_optinteger(L, 1, DMX_V_MAX);
 	int ramping = luaL_optinteger(L, 2, DMX_V_MAX);
+	g_dmx_track = cap((int)luaL_optinteger(L, 3, 0), -1, MAXTRACK, -1);
+	char dmx_midi_map[4 * MAXPITCH];
+	strcpy (dmx_midi_map , luaL_optstring(L,4,"")  );
+	char* pt = strtok(dmx_midi_map, ",");
+	g_dmx_nb_midi_map = 0;
+	while (pt != NULL)
+	{
+		g_dmx_midi_map[g_dmx_nb_midi_map] = atoi(pt);
+		g_dmx_nb_midi_map++;
+		pt = strtok(NULL, ",");
+	}
 	if (tenuto <= 1)
 	{
 		// tenuto
@@ -743,6 +786,81 @@ static int LdmxOut(lua_State* L)
 
 	unlock_mutex_out();
 	return 0;
+}
+static int LdmxList(lua_State* L)
+{
+	// return the midi In device in an array
+	// no parameter
+	lock_mutex_out();
+
+	lua_newtable(L);
+	struct sp_port** port_list;
+	enum sp_return result = sp_list_ports(&port_list);
+	if (result == SP_OK)
+	{
+		for (DWORD i = 0; port_list[i] != NULL; i++)
+		{
+			struct sp_port* port = port_list[i];
+			lua_pushinteger(L, i + 1);
+			lua_pushstring(L, sp_get_port_name(port));
+			lua_settable(L, -3);
+		}
+
+	}
+	sp_free_port_list(port_list);
+	unlock_mutex_out();
+	return(1);
+}
+static int LdmxCount(lua_State* L)
+{
+	// return the number of dmx serial device
+	// no parameter
+	lock_mutex_out();
+	struct sp_port** port_list;
+	enum sp_return result = sp_list_ports(&port_list);
+	int i = 0;
+	if (result == SP_OK) 
+	{
+		for (i = 0; port_list[i] != NULL; i++) 
+		{
+			struct sp_port* port = port_list[i];
+		}
+
+	}
+	lua_pushinteger(L, i);
+	sp_free_port_list(port_list);
+	unlock_mutex_out();
+	return(1);
+}
+static int LdmxName(lua_State* L)
+{
+	// return the name of the midi In device 
+	// parameter #1 : device nr
+	lock_mutex_out();
+
+	int nrDevice = cap((int)lua_tointeger(L, 1), 0, OUT_MAX_DEVICE, 1);
+	char name_device[MAXBUFCHAR] = "";
+	struct sp_port** port_list;
+	enum sp_return result = sp_list_ports(&port_list);
+	int i = 0;
+	if (result == SP_OK)
+	{
+		for (i = 0; port_list[i] != NULL; i++)
+		{
+			struct sp_port* port = port_list[i];
+			if (i == nrDevice)
+			{
+				char* port_name = sp_get_port_name(port);
+				strcpy(port_name, name_device);
+				break;
+			}
+		}
+	}
+	lua_pushstring(L, name_device);
+
+	unlock_mutex_out();
+	sp_free_port_list(port_list);
+	return(1);
 }
 #endif // V_DMX
 
@@ -2380,18 +2498,33 @@ static bool sendmsg(T_midioutmsg midioutmsg)
  	  //mlog_out("sendmsg track=%d nrdevice=%d nbByte=%d byte0=%02X byte1=%02X byte2=%02X", midioutmsg.track, nr_device , midioutmsg.nbbyte , midioutmsg.midimsg.bData[0] ,midioutmsg.midimsg.bData[1] ,midioutmsg.midimsg.bData[2] );
       // send to one device
 		if (nr_device < MIDIOUT_MAX)
-    {
-			if (g_midiout_rt[nr_device])
-			{
-				return_code = sendmidimsg(midioutmsg, true);
-			}
-    }
-    else
-    {
-			if (nr_device < (VI_ZERO + g_vi_opened_nb))
-         return_code = sendmidimsg(midioutmsg,true);
-    }
-  }
+		{
+				if (g_midiout_rt[nr_device])
+				{
+					return_code = sendmidimsg(midioutmsg, true);
+				}
+		}
+		else
+		{
+				if (nr_device < (VI_ZERO + g_vi_opened_nb))
+			 return_code = sendmidimsg(midioutmsg,true);
+		}
+	}
+	if ((g_dmx_track >= 0) && (midioutmsg.track == g_dmx_track))
+	{
+		int type_msg = (midioutmsg.midimsg.bData[0] & 0xF0) >> 4;
+		switch (type_msg )
+		{
+		case L_MIDI_NOTEON:
+			dmx_hook(midioutmsg.midimsg.bData[1], midioutmsg.midimsg.bData[2]);
+			break;
+		case L_MIDI_NOTEOFF:
+			dmx_hook(midioutmsg.midimsg.bData[1], 0);
+			break;
+		default : 
+			break;
+		}
+	}
   return(return_code);
 }
 static int unqueue(int critere, T_midioutmsg midioutmsg)
@@ -4698,6 +4831,10 @@ static const struct luaL_Reg luabass[] =
 	{ "dmxSet" , LdmxSet },
 	{ "dmxOut" , LdmxOut },
 	{ "dmxOutall" , LdmxOutAll },
+	{ "dmxList" , LdmxList },
+	{ "dmxCount" , LdmxCount },
+	{ "dmxName" , LdmxName },
+	
 #endif
 
 	////// in ///////

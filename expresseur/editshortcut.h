@@ -1,4 +1,4 @@
-// update : 31 / 10 / 2016 10 : 00
+
 #ifndef DEF_EDITSHORTCUT
 
 #define DEF_EDITSHORTCUT
