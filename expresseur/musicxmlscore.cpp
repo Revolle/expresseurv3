@@ -830,6 +830,9 @@ std::uint64_t musicxmlscore::crc_cumulate_string(wxString s)
 }
 bool musicxmlscore::newLayout(wxSize sizeClient)
 {
+	//// NOP
+	return false;
+
 	if (!isOk())
 		return false;
 	wxBusyCursor waitcursor;

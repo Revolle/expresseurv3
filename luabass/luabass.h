@@ -26,7 +26,7 @@
 #define soutSetRandomVelocity "outSetRandomVelocity"
 #define soutGetLog "outGetLog"
 #define sinGetMidiName "inGetMidiName"
-#define sDmxName "dmxName"
+#define soutGetDmxName "outGetDmxName"
 #define sinit "init"
 #define sfree "free"
 #define sexternalTimer "externalTimer"

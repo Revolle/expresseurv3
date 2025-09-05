@@ -43,6 +43,7 @@
 // POSIX
 #endif
 
+
 #ifdef V_PC
 #define V_DMX 1
 #endif
@@ -838,7 +839,7 @@ static int LdmxName(lua_State* L)
 	// parameter #1 : device nr
 	lock_mutex_out();
 
-	int nrDevice = cap((int)lua_tointeger(L, 1), 0, OUT_MAX_DEVICE, 1);
+	int nrDevice = cap((int)lua_tointeger(L, 1), 0, OUT_MAX_DEVICE, 0);
 	char name_device[MAXBUFCHAR] = "";
 	struct sp_port** port_list;
 	enum sp_return result = sp_list_ports(&port_list);
@@ -851,7 +852,7 @@ static int LdmxName(lua_State* L)
 			if (i == nrDevice)
 			{
 				char* port_name = sp_get_port_name(port);
-				strcpy(port_name, name_device);
+				strcpy(name_device , port_name);
 				break;
 			}
 		}
@@ -2510,6 +2511,7 @@ static bool sendmsg(T_midioutmsg midioutmsg)
 			 return_code = sendmidimsg(midioutmsg,true);
 		}
 	}
+#ifdef V_DMX
 	if ((g_dmx_track >= 0) && (midioutmsg.track == g_dmx_track))
 	{
 		int type_msg = (midioutmsg.midimsg.bData[0] & 0xF0) >> 4;
@@ -2525,6 +2527,7 @@ static bool sendmsg(T_midioutmsg midioutmsg)
 			break;
 		}
 	}
+#endif
   return(return_code);
 }
 static int unqueue(int critere, T_midioutmsg midioutmsg)
@@ -4827,13 +4830,13 @@ static const struct luaL_Reg luabass[] =
 
 #ifdef V_DMX
 	////// Dmx //////
-	{ "dmxOpen" , LdmxOpen },
-	{ "dmxSet" , LdmxSet },
-	{ "dmxOut" , LdmxOut },
-	{ "dmxOutall" , LdmxOutAll },
-	{ "dmxList" , LdmxList },
-	{ "dmxCount" , LdmxCount },
-	{ "dmxName" , LdmxName },
+	{ "outGetDmxOpen" , LdmxOpen },
+	{ "outGetDmxSet" , LdmxSet },
+	{ "outGetDmxOut" , LdmxOut },
+	{ "outGetDmxOutall" , LdmxOutAll },
+	{ "outGetDmxList" , LdmxList },
+	{ "outGetDmxCount" , LdmxCount },
+	{ soutGetDmxName , LdmxName },
 	
 #endif
 

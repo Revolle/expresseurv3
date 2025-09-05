@@ -210,14 +210,6 @@ function onStart(param)
 			luabass.logmsg("error loading user's lua " .. luauser .. " : does not return table of functions" )
 		end
 	end
-	
-	-- open DMX for light control (cf. postluabass.lua to control lights with MIDI-out )
-	luabass.dmxOpen(3,16) -- open DMXport on COM-4 with 8 channels
-	luabass.dmxSet(20, 200) -- set tenuto/ramping of lights ( can set by a MIDI controler using onControl)
-	--luabass.dmxOut(2,100) -- exemple to change DMX-channel 2 to the value 100
-	
-	-- load the hook on midiout , to manage DMX according to midi-out
-	luabass.onMidiOut("dmx.lua")
 end
 
 --===================== stop

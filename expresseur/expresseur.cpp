@@ -2540,17 +2540,16 @@ int Expresseur::GetListMidiIn()
 int Expresseur::GetListDmx()
 {
 	nameDmxDevices.clear();
-	int nrDmxDevice = 0;
 	int nbDmxDevice = 0;
 	char nameDmxDevice[MAXBUFCHAR];
 	*nameDmxDevice = '\0';
 	while (true)
 	{
-		basslua_call(moduleLuabass, sDmxName, "i>s", nrDmxDevice + 1, nameDmxDevice);
+		basslua_call(moduleLuabass, soutGetDmxName, "i>s", nbDmxDevice, nameDmxDevice);
 		if (*nameDmxDevice == '\0')
 			break;
 		nameDmxDevices.push_back(nameDmxDevice);
-		nrDmxDevice++;
+		nbDmxDevice++;
 	}
 	return nbDmxDevice;
 }
@@ -2751,12 +2750,12 @@ on the virtual midi-out cable.\n")), sizerFlagMaximumPlace);
 	topsizer_audio->Add(new wxStaticBitmap(pwizard_audio,wxID_ANY,wxBitmap(fWizardJpeg.GetFullPath(), wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
 	getListAudio();
 	int defaultNrDevice = setAudioDefault();
-	wxString saudio = _("\
+	wxString saudio = "\
 Audio is used to play VSTi & SF2.\n\
 Select the audio device to use.\n\
 Decrease the buffer sizes to\n\
 decrease latency.\n\
-VALIDATE THE GOOD QUALITY OF SOUND\n");
+VALIDATE THE GOOD QUALITY OF SOUND\n";
 	topsizer_audio->Add(new wxStaticText(pwizard_audio, wxID_ANY, saudio));
 	mlistAudio = new	wxListBox(pwizard_audio, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameaudioDevices, wxLB_SINGLE);
 	mlistAudio->Bind(wxEVT_LISTBOX, &Expresseur::OnAudioChoice, this);
@@ -2794,46 +2793,49 @@ VALIDATE THE GOOD QUALITY OF SOUND\n");
 	int nbdmx = GetListDmx();
 	if (nbdmx == 0)
 	{
-		sdmx = _("\
+		sdmx ="\
+\n\
 No DMX serial port connected.\n\
 With DMX, music notes can\n\
-drives DMX projectors.\n\n");
+drives DMX projectors.\n\n";
 	}
 	else
 	{
 		mlistDmx = new	wxListBox(pwizard_dmx, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameDmxDevices, wxLB_SINGLE);
 		topsizer_dmx->Add(mlistMidiin, sizerFlagMaximumPlace);
-		smidi_in += _("\
+		sdmx = "\
 Serial-port detected : if it is DMX\n\
 connection, you can select it.\n\
 Music notes will drive DMX lights.\n\
 Enter the list of DMX channels to drive, \n\
-separated by commas.\n\n");
+separated by commas.\n\n";
 	}
-	topsizer_dmx->Add(new wxStaticText(pwizard_dmx, wxID_ANY, smidi_in), sizerFlagMaximumPlace);
+	topsizer_dmx->Add(new wxStaticText(pwizard_dmx, wxID_ANY, sdmx), sizerFlagMaximumPlace);
 
-	wxGridSizer* msdmx = new wxGridSizer(2, 2, 2);
+	wxFlexGridSizer* msdmx = new wxFlexGridSizer(2, 2, 2);
+	msdmx->SetFlexibleDirection(wxHORIZONTAL);
 
-	mRampingDmx = new wxSlider(pwizard_dmx, wxID_ANY, 50, 0, 256);
-	msdmx->Add(new wxStaticText(pwizard_dmx, wxID_ANY, "Ramping (time to reach the lighting)"), sizerFlagMaximumPlace);
+	mRampingDmx = new wxSlider(pwizard_dmx, wxID_ANY, 50, 0, 256, wxDefaultPosition, wxSize(140, -1));
+	msdmx->Add(new wxStaticText(pwizard_dmx, wxID_ANY, "Ramping"), sizerFlagMaximumPlace);
 	msdmx->Add(mRampingDmx);
 
-	mTenutoDmx = new wxSlider(pwizard_dmx, wxID_ANY, 0, 0, 100, wxPoint(10, 30), wxSize(140, -1));
-	msdmx->Add(new wxStaticText(pwizard_dmx, wxID_ANY, "Tenuto (time to decrease the lighting)"), sizerFlagMaximumPlace);
+	mTenutoDmx = new wxSlider(pwizard_dmx, wxID_ANY,50, 0, 256, wxDefaultPosition, wxSize(140, -1));
+	msdmx->Add(new wxStaticText(pwizard_dmx, wxID_ANY, "Tenuto"), sizerFlagMaximumPlace);
 	msdmx->Add(mTenutoDmx);
 
 	mChannelDmx = new wxTextCtrl(pwizard_dmx, wxID_ANY, "1,2,3,5,6,7,9,10,11,13,14,15");
-	msdmx->Add(new wxStaticText(pwizard_dmx, wxID_ANY, "Channels (list of DMX channels speratedby comma)"), sizerFlagMaximumPlace);
+	msdmx->Add(new wxStaticText(pwizard_dmx, wxID_ANY, "DMX Channels sperated by comma)"), sizerFlagMaximumPlace);
 	msdmx->Add(mChannelDmx);
 
 	mTrackDmx = new wxSpinCtrl(pwizard_dmx, wxID_ANY, "1", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 10, 1);
-	msdmx->Add(new wxStaticText(pwizard_dmx, wxID_ANY, "Track (music Track to follow on DMX)"), sizerFlagMaximumPlace);
+	msdmx->Add(new wxStaticText(pwizard_dmx, wxID_ANY, "Track to follow on DMX)"), sizerFlagMaximumPlace);
 	msdmx->Add(mTrackDmx);
 
 	topsizer_dmx->AddSpacer(5);
 	topsizer_dmx->Add(msdmx, sizerFlagMaximumPlace);
 
 	wxButton* mDmxTest = new wxButton(pwizard_dmx, wxID_ANY, "TEST DMX");
+	mDmxTest->Enable(false);
 	mDmxTest->Bind(wxEVT_BUTTON, &Expresseur::OnDmxTest, this);
 	topsizer_dmx->AddSpacer(5);
 	topsizer_dmx->Add(mDmxTest);
@@ -2846,13 +2848,13 @@ separated by commas.\n\n");
 	wxBoxSizer *topsizer_playscore = new wxBoxSizer(wxVERTICAL);
 	fWizardJpeg.SetName("wizard_playscore");
 	topsizer_playscore->Add(new wxStaticBitmap(pwizard_playscore,wxID_ANY,wxBitmap(fWizardJpeg.GetFullPath(), wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
-	wxString splayscore = _("\
+	wxString splayscore = "\
 To play a score : open a musicXML\n\
 file, and play on your \n\
 MIDI keyboard, or with space-bar\n\
 on your computer.\n\n\
 Some example of musicXML files have\n\
-been installed.");
+been installed.";
 	topsizer_playscore->Add(new wxStaticText(pwizard_playscore, wxID_ANY, splayscore), sizerFlagMaximumPlace);
 	pwizard_playscore->SetSizerAndFit(topsizer_playscore);
 
@@ -2862,7 +2864,7 @@ been installed.");
 	wxBoxSizer *topsizer_improvise = new wxBoxSizer(wxVERTICAL);
 	fWizardJpeg.SetName("wizard_improvise");
 	topsizer_improvise->Add(new wxStaticBitmap(pwizard_improvise,wxID_ANY,wxBitmap(fWizardJpeg.GetFullPath(), wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
-	wxString simprovise = _("\
+	wxString simprovise = "\
 To improvise on a grid : \n\
   - select a MIDI-keyboard\n\
     preset in the setting menu.\n\
@@ -2872,7 +2874,7 @@ in the chord using white keys\n\
 and black keys for pithes\n\
 out of the chords.\n\
 Some example of text files with \n\
-chords have been installed.");
+chords have been installed.";
 	topsizer_improvise->Add(new wxStaticText(pwizard_improvise, wxID_ANY, simprovise), sizerFlagMaximumPlace);
 	pwizard_improvise->SetSizerAndFit(topsizer_improvise);
 
@@ -2882,14 +2884,14 @@ chords have been installed.");
 	wxBoxSizer *topsizer_pckeyboard = new wxBoxSizer(wxVERTICAL);
 	fWizardJpeg.SetName("wizard_pckeyboard");
 	topsizer_pckeyboard->Add(new wxStaticBitmap(pwizard_pckeyboard,wxID_ANY,wxBitmap(fWizardJpeg.GetFullPath(), wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
-	wxString spckeyboard = _("\
+	wxString spckeyboard = "\
 MIDI actions & ALT+shortcuts are set with\n\
 menu setting/MIDI-keyboard.\n\n\
 One-key shortcuts are defined\n\
 in LUA script ( mixer, move, ...)\n\
 Set keyboard configuration with\n\
 menu Setting/One-key configuration\n\n\
-Menu Actions displays all shortcuts.");
+Menu Actions displays all shortcuts.";
 	topsizer_pckeyboard->Add(new wxStaticText(pwizard_pckeyboard, wxID_ANY, spckeyboard), sizerFlagMaximumPlace);
 	configSet(CONFIG_KEYBOARDCONFIG, DEFAULTKEYBOARDDISPOSAL);
 	pwizard_pckeyboard->SetSizerAndFit(topsizer_pckeyboard);
@@ -2900,12 +2902,12 @@ Menu Actions displays all shortcuts.");
 	wxBoxSizer *topsizer_end = new wxBoxSizer(wxVERTICAL);
 	fWizardJpeg.SetName("wizard_end");
 	topsizer_end->Add(new wxStaticBitmap(pwizard_end,wxID_ANY,wxBitmap(fWizardJpeg.GetFullPath(), wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
-	wxString send = _("\
+	wxString send = "\
 Please consult the web help, to benefit\n\
 all the features, or to change the \n\
 configuration-behavior.\n\n\
 To come back later in this wizard,\n\
-select the menu setup/wizard.");
+select the menu setup/wizard.";
 	topsizer_end->Add(new wxStaticText(pwizard_end, wxID_ANY, send), sizerFlagMaximumPlace);
 	wxButton *bHelp = new wxButton(pwizard_end, wxID_ANY, "web help");
 	bHelp->Bind(wxEVT_BUTTON, &Expresseur::OnHelp, this);
@@ -3184,7 +3186,7 @@ void Expresseur::checkUpdate(bool interactive)
 
 void Expresseur::OnResetConfiguration(wxCommandEvent& WXUNUSED(event))
 {
-	int manswer = wxMessageBox(_("Delete and reset all the configuration ?"),"Confirm",wxYES_NO,this);
+	int manswer = wxMessageBox("Delete and reset all the configuration ?","Confirm",wxYES_NO,this);
 	if ( manswer == wxYES ) 
 	{
 		configErase() ;
