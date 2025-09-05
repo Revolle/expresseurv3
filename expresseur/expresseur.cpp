@@ -185,6 +185,7 @@ enum
 	ID_MAIN_LOCAL_OFF,
 	ID_MAIN_AUDIO_SETTING,
 	ID_MAIN_MIDI_SETTING,
+	ID_MAIN_DMX_SETTING,
 
 	ID_MAIN_PREVIOUS_PAGE,
 	ID_MAIN_NEXT_PAGE,
@@ -232,6 +233,7 @@ EVT_MENU(wxID_EDIT, Expresseur::OnEdit)
 EVT_MENU(ID_MAIN_LOCAL_OFF, Expresseur::OnLocaloff)
 EVT_MENU(ID_MAIN_AUDIO_SETTING, Expresseur::OnAudioSetting)
 EVT_MENU(ID_MAIN_MIDI_SETTING, Expresseur::OnMidiSetting)
+EVT_MENU(ID_MAIN_DMX_SETTING, Expresseur::OnDmxSetting)
 
 EVT_MENU(ID_MAIN_PREVIOUS_PAGE,Expresseur::OnPreviousPage)
 EVT_MENU(ID_MAIN_NEXT_PAGE, Expresseur::OnNextPage)
@@ -485,6 +487,7 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	settingMenu->AppendCheckItem(ID_MAIN_LOCAL_OFF, "Send MIDI local-off", _("Send local-off on MIDI-out opening, i.e. to unlink keyboard and soud-generator on electronic piano"));
 	settingMenu->Append(ID_MAIN_AUDIO_SETTING, "Audio config...", _("Audio settings, to decrease latency, and to select the default audio output"));
 	settingMenu->Append(ID_MAIN_MIDI_SETTING, "Midi config...", _("Midi settings, to select MIDI Inputs and Outputs, and the default MIDI output"));
+	settingMenu->Append(ID_MAIN_DMX_SETTING, "DMX config...", _("DMX settings, to synchronize MIDI-music with DMX-lighting"));
 	settingMenu->Append(ID_MAIN_KEYDOWNCONFIG, "One-key config...", "Configuration of the computer keyboard to use one-key shortcuts coded in LUA");
 	settingMenu->Append(ID_MAIN_LUAFILE, "LUA Files...");
 	settingMenu->Append(ID_MAIN_RESET, _("Reset audio/midi"), _("Reset the audio/midi configuration"));
@@ -2116,6 +2119,7 @@ bool Expresseur::settingReset(bool all)
 	{
 		openMidiIn();
 		openMidiOut();
+		openDmx();
 	}
 
 	basslua_call(moduleLuabass, soutAllNoteOff, "s", "a");
@@ -2495,12 +2499,17 @@ void Expresseur::initFirstUse(bool force)
 }
 void Expresseur::OnAudioSetting(wxCommandEvent& WXUNUSED(event))
 {
-	wizard(true,false);
+	wizard(true,false, false);
 	settingReset();
 }
 void Expresseur::OnMidiSetting(wxCommandEvent& WXUNUSED(event))
 {
-	wizard(false, true);
+	wizard(false, true, false);
+	settingReset();
+}
+void Expresseur::OnDmxSetting(wxCommandEvent& WXUNUSED(event))
+{
+	wizard(false, false, true);
 	settingReset();
 }
 int Expresseur::GetListMidiIn()
@@ -2528,6 +2537,23 @@ int Expresseur::GetListMidiIn()
 	}
 	return nbMidiInDevice;
 }
+int Expresseur::GetListDmx()
+{
+	nameDmxDevices.clear();
+	int nrDmxDevice = 0;
+	int nbDmxDevice = 0;
+	char nameDmxDevice[MAXBUFCHAR];
+	*nameDmxDevice = '\0';
+	while (true)
+	{
+		basslua_call(moduleLuabass, sDmxName, "i>s", nrDmxDevice + 1, nameDmxDevice);
+		if (*nameDmxDevice == '\0')
+			break;
+		nameDmxDevices.push_back(nameDmxDevice);
+		nrDmxDevice++;
+	}
+	return nbDmxDevice;
+}
 void Expresseur::testMidisetting()
 {
 	if (configExists(CONFIG_MIDIIN, false, wxString::Format("%d", 0)))
@@ -2544,18 +2570,17 @@ void Expresseur::openMidiIn()
 	for (unsigned int i = 0; i < MIDIIN_MAX; i++)
 	{
 		wxString smididevice = configGet(CONFIG_MIDIIN, "", false, wxString::Format("%d", i));
-		auto id = std::find(nameMidiInDevices.begin() ,nameMidiInDevices.end() ,smididevice);
-		if (id != nameMidiInDevices.end() )
+		auto id = std::find(nameMidiInDevices.begin(), nameMidiInDevices.end(), smididevice);
+		if (id != nameMidiInDevices.end())
 		{
 			nameOpenMidiInDevices.push_back(smididevice);
 			nrDevicesToOpen[nbDevicesToOpen] = std::distance(nameMidiInDevices.begin(), id);
 			nbDevicesToOpen++;
 		}
 	}
-	if (nbDevicesToOpen > 0 )
+	if (nbDevicesToOpen > 0)
 		basslua_openMidiIn(nrDevicesToOpen, nbDevicesToOpen);
 }
-
 int Expresseur::GetListMidiOut()
 {
 	nameValideMidiOutDevices.clear();
@@ -2597,7 +2622,11 @@ void Expresseur::openMidiOut()
 		}
 	}
 }
-void Expresseur::wizard(bool audio_only, bool midi_only)
+void Expresseur::openDmx()
+{
+
+}
+void Expresseur::wizard(bool audio_only, bool midi_only , bool dmx_only)
 {
 	luafile::reset(true , timerDt);
 
@@ -2618,6 +2647,8 @@ void Expresseur::wizard(bool audio_only, bool midi_only)
 		labelWizard = "Audio setting";
 	else if (midi_only)
 		labelWizard = "Midi setting";
+	else if (dmx_only)
+		labelWizard = "DMX setting";
 	else
 		labelWizard = "Wizard Expresseur";
 	wxWizard *mwizard = new wxWizard(this, wxID_ANY, labelWizard);
@@ -2641,9 +2672,9 @@ basic tunings to play.\n");
 	///// Midi-in
 
 	fWizardJpeg.SetName("wizard_midi_in");
-	wxWizardPageSimple *pwizard_midi_in = new wxWizardPageSimple(mwizard);
-	wxBoxSizer *topsizer_midi_in = new wxBoxSizer(wxVERTICAL);
-	topsizer_midi_in->Add(new wxStaticBitmap(pwizard_midi_in,wxID_ANY,wxBitmap(fWizardJpeg.GetFullPath(), wxBITMAP_TYPE_JPEG )), sizerFlagMaximumPlace);
+	wxWizardPageSimple* pwizard_midi_in = new wxWizardPageSimple(mwizard);
+	wxBoxSizer* topsizer_midi_in = new wxBoxSizer(wxVERTICAL);
+	topsizer_midi_in->Add(new wxStaticBitmap(pwizard_midi_in, wxID_ANY, wxBitmap(fWizardJpeg.GetFullPath(), wxBITMAP_TYPE_JPEG)), sizerFlagMaximumPlace);
 	wxString smidi_in;
 	int nbMidiInDevice = GetListMidiIn();
 	if (nbMidiInDevice == 0)
@@ -2659,9 +2690,9 @@ and velocity.\n\n");
 	}
 	else
 	{
-	  mlistMidiin = new	wxListBox(pwizard_midi_in, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameValideMidiInDevices, wxLB_MULTIPLE);
-	  mlistMidiin->Bind(wxEVT_LISTBOX, &Expresseur::OnMidiinChoice, this);
-	  topsizer_midi_in->Add(mlistMidiin, sizerFlagMaximumPlace);
+		mlistMidiin = new	wxListBox(pwizard_midi_in, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameValideMidiInDevices, wxLB_MULTIPLE);
+		mlistMidiin->Bind(wxEVT_LISTBOX, &Expresseur::OnMidiinChoice, this);
+		topsizer_midi_in->Add(mlistMidiin, sizerFlagMaximumPlace);
 		smidi_in += _("\
 MIDI-in detected : it can be used to\n\
 play music, adding sensivity and velocity.\n\
@@ -2753,6 +2784,62 @@ VALIDATE THE GOOD QUALITY OF SOUND\n");
 	pwizard_audio->SetSizerAndFit(topsizer_audio);
 	setAudioChoice(defaultNrDevice);
 
+	///// DMX
+
+	fWizardJpeg.SetName("wizard_dmx");
+	wxWizardPageSimple* pwizard_dmx = new wxWizardPageSimple(mwizard);
+	wxBoxSizer* topsizer_dmx = new wxBoxSizer(wxVERTICAL);
+	topsizer_dmx->Add(new wxStaticBitmap(pwizard_dmx, wxID_ANY, wxBitmap(fWizardJpeg.GetFullPath(), wxBITMAP_TYPE_JPEG)), sizerFlagMaximumPlace);
+	wxString sdmx;
+	int nbdmx = GetListDmx();
+	if (nbdmx == 0)
+	{
+		sdmx = _("\
+No DMX serial port connected.\n\
+With DMX, music notes can\n\
+drives DMX projectors.\n\n");
+	}
+	else
+	{
+		mlistDmx = new	wxListBox(pwizard_dmx, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameDmxDevices, wxLB_SINGLE);
+		topsizer_dmx->Add(mlistMidiin, sizerFlagMaximumPlace);
+		smidi_in += _("\
+Serial-port detected : if it is DMX\n\
+connection, you can select it.\n\
+Music notes will drive DMX lights.\n\
+Enter the list of DMX channels to drive, \n\
+separated by commas.\n\n");
+	}
+	topsizer_dmx->Add(new wxStaticText(pwizard_dmx, wxID_ANY, smidi_in), sizerFlagMaximumPlace);
+
+	wxGridSizer* msdmx = new wxGridSizer(2, 2, 2);
+
+	mRampingDmx = new wxSlider(pwizard_dmx, wxID_ANY, 50, 0, 256);
+	msdmx->Add(new wxStaticText(pwizard_dmx, wxID_ANY, "Ramping (time to reach the lighting)"), sizerFlagMaximumPlace);
+	msdmx->Add(mRampingDmx);
+
+	mTenutoDmx = new wxSlider(pwizard_dmx, wxID_ANY, 0, 0, 100, wxPoint(10, 30), wxSize(140, -1));
+	msdmx->Add(new wxStaticText(pwizard_dmx, wxID_ANY, "Tenuto (time to decrease the lighting)"), sizerFlagMaximumPlace);
+	msdmx->Add(mTenutoDmx);
+
+	mChannelDmx = new wxTextCtrl(pwizard_dmx, wxID_ANY, "1,2,3,5,6,7,9,10,11,13,14,15");
+	msdmx->Add(new wxStaticText(pwizard_dmx, wxID_ANY, "Channels (list of DMX channels speratedby comma)"), sizerFlagMaximumPlace);
+	msdmx->Add(mChannelDmx);
+
+	mTrackDmx = new wxSpinCtrl(pwizard_dmx, wxID_ANY, "1", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 10, 1);
+	msdmx->Add(new wxStaticText(pwizard_dmx, wxID_ANY, "Track (music Track to follow on DMX)"), sizerFlagMaximumPlace);
+	msdmx->Add(mTrackDmx);
+
+	topsizer_dmx->AddSpacer(5);
+	topsizer_dmx->Add(msdmx, sizerFlagMaximumPlace);
+
+	wxButton* mDmxTest = new wxButton(pwizard_dmx, wxID_ANY, "TEST DMX");
+	mDmxTest->Bind(wxEVT_BUTTON, &Expresseur::OnDmxTest, this);
+	topsizer_dmx->AddSpacer(5);
+	topsizer_dmx->Add(mDmxTest);
+
+	pwizard_dmx->SetSizerAndFit(topsizer_dmx);
+
 	////// play score
 
 	wxWizardPageSimple *pwizard_playscore = new wxWizardPageSimple(mwizard);
@@ -2837,7 +2924,13 @@ select the menu setup/wizard.");
 		pwizard_midi_in->SetNext(pwizard_midi_out);
 		pwizard_midi_out->SetPrev(pwizard_midi_in);
 		pwizard_midi_out->SetNext(NULL);
-		 mwizard->RunWizard(pwizard_midi_in);
+		mwizard->RunWizard(pwizard_midi_in);
+	}
+	else if (dmx_only)
+	{
+		pwizard_dmx->SetPrev(NULL);
+		pwizard_dmx->SetNext(NULL);
+		mwizard->RunWizard(pwizard_dmx);
 	}
 	else
 		{
@@ -2848,7 +2941,9 @@ select the menu setup/wizard.");
 		pwizard_midi_out->SetPrev(pwizard_midi_in);
 		pwizard_midi_out->SetNext(pwizard_audio);
 		pwizard_audio->SetPrev(pwizard_midi_out);
-		pwizard_audio->SetNext(pwizard_playscore);
+		pwizard_audio->SetNext(pwizard_dmx);
+		pwizard_dmx->SetPrev(pwizard_audio);
+		pwizard_dmx->SetNext(pwizard_playscore);
 		pwizard_playscore->SetPrev(pwizard_audio);
 		pwizard_playscore->SetNext(pwizard_improvise);
 		pwizard_improvise->SetPrev(pwizard_playscore);
@@ -2918,6 +3013,10 @@ void Expresseur::OnMidiinChoice(wxCommandEvent& WXUNUSED(event))
 		else
 			configSet(CONFIG_MIDIIN, "", false, wxString::Format("%d", i));
 	}
+}
+void Expresseur::OnDmxTest(wxCommandEvent& WXUNUSED(event))
+{
+	openDmx();
 }
 void Expresseur::OnAudioChoice(wxCommandEvent& event)
 {

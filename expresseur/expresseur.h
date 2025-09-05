@@ -35,6 +35,7 @@ public:
 	void OnLocaloff(wxCommandEvent& WXUNUSED(event));
 	void OnAudioSetting(wxCommandEvent& WXUNUSED(event));
 	void OnMidiSetting(wxCommandEvent& WXUNUSED(event));
+	void OnDmxSetting(wxCommandEvent& WXUNUSED(event));
 	void OnZoom(wxCommandEvent& WXUNUSED(event));
 	void OnPlayviewSolo(wxCommandEvent& WXUNUSED(event));
 	void OnSaveImpro(wxCommandEvent& WXUNUSED(event));
@@ -87,6 +88,7 @@ public:
 	void OnAsioSet(wxCommandEvent& event);
 	void OnAudioTest(wxCommandEvent& WXUNUSED(event));
 	void OnDefaultMidiOut(wxCommandEvent& WXUNUSED(event));
+	void OnDmxTest(wxCommandEvent& event);
 	int setAudioDefault();
 
 	void OnAbout(wxCommandEvent& WXUNUSED(event));
@@ -186,22 +188,29 @@ private:
 	void ornamentAdd(bool absolute);
 
 	void Open(wxString s);
-	void wizard(bool audio_only = false, bool midi_only = false );
+	void wizard(bool audio_only = false, bool midi_only = false , bool dmx_only = false);
 	int GetListMidiIn();
+	int GetListDmx();
 	void openMidiIn();
+	void openDmx();
 	void openMidiOut();
 	void testMidisetting();
 	int GetListMidiOut();
 	void initFirstUse(bool force);
 	void CreateExpresseurV3();
 	wxSpinCtrl *mupdatems , *mbufferms;
+	wxSlider *mRampingDmx, *mTenutoDmx;
+	wxTextCtrl *mChannelDmx;
+	wxSpinCtrl *mTrackDmx;
 	wxButton *mAsioSet;
 	wxListBox *mlistMidiout;
-	wxListBox *mlistMidiin;
+	wxListBox* mlistMidiin;
+	wxListBox* mlistDmx;
 	wxListBox *mlistAudio;
 	std::vector <wxString> nameaudioDevices;
 	wxString nameDefaultaudioDevices;
 	std::vector <wxString> nameMidiOutDevices;
+	std::vector <wxString> nameDmxDevices;
 	std::vector <wxString> nameMidiInDevices;
 	std::vector <wxString> nameValideMidiOutDevices;
 	std::vector <wxString> nameValideMidiInDevices;
