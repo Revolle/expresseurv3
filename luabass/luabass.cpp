@@ -43,11 +43,7 @@
 // POSIX
 #endif
 
-
-#ifdef V_PC
 #define V_DMX 1
-#endif
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -382,7 +378,8 @@ float g_dmx_float_target[DMX_CH_MAX]; // // dmx values target
 byte g_dmx_byte_value[DMX_CH_MAX]; // // dmx values to send
 unsigned int g_dmx_byte_nb = 0; // number of dmx values to send
 float g_dmx_ramping = 1.0; // attack value in the time (0..256). 256==direct attack 0==slow ramping, default 256
-int g_dmx_track = -1; // track to hook for DMX output
+int g_dmx_track[MAXTRACK] ; // track to hook for DMX output
+int g_dmx_nb_track = 0;
 int g_dmx_midi_map[MAXPITCH] ; // map of the MIDI to dmx channel
 int g_dmx_nb_midi_map = 0;
 float g_dmx_tenuto = 1.0; // tenuto value in the time (0..256). 256==no decrease 0==quick decrease, default 256
@@ -677,7 +674,7 @@ static int LdmxOpen(lua_State* L)
 	}
 	lock_mutex_out();
 
-	int comport = cap((int)lua_tointeger(L, 1), 1, 128, 0);
+	int comport = cap((int)lua_tointeger(L, 1), 0, 128, 0);
 	g_dmx_byte_nb = cap((int)lua_tointeger(L, 2), 1, DMX_CH_MAX, 0);
 	if (!dmxOpen(comport))
 		lua_pushboolean(L, false);
@@ -692,22 +689,37 @@ static int LdmxSet(lua_State* L)
 	// set dmx values
 	// optional param 1 : tenuto value in the time (0..256). 256==direct 0,  0==no decrease, default 256
 	// optional param 2 : ramping value in the time (0..256). 256==direct value,  0==slow ramping, default 256
-	// optional param 3 : hook track nr ( 0..MAXTRACK). -1= no hook , else track to hook up to DMX, default 0
-	// optional param 4 : string of mapping MIDI-pitch (comma separated) to DMX-channel, default "" ( no mapping )
+	// optional param 3 : string of hook track nr, comma separated , default : no change
+	// optional param 4 : string of mapping MIDI-pitch (comma separated) to DMX-channel, default : no change
 
 	lock_mutex_out();
 	int tenuto = luaL_optinteger(L, 1, DMX_V_MAX);
 	int ramping = luaL_optinteger(L, 2, DMX_V_MAX);
-	g_dmx_track = cap((int)luaL_optinteger(L, 3, 0), -1, MAXTRACK, -1);
+	char dmx_track[4 * MAXTRACK];
+	strcpy(dmx_track, luaL_optstring(L, 3, ""));
 	char dmx_midi_map[4 * MAXPITCH];
-	strcpy (dmx_midi_map , luaL_optstring(L,4,"")  );
-	char* pt = strtok(dmx_midi_map, ",");
-	g_dmx_nb_midi_map = 0;
-	while (pt != NULL)
+	strcpy(dmx_midi_map, luaL_optstring(L, 4, ""));
+	if (*dmx_track != '\0')
 	{
-		g_dmx_midi_map[g_dmx_nb_midi_map] = atoi(pt);
-		g_dmx_nb_midi_map++;
-		pt = strtok(NULL, ",");
+		char* pt = strtok(dmx_track, ",;:/ ");
+		g_dmx_nb_track = 0;
+		while (pt != NULL)
+		{
+			g_dmx_track[g_dmx_nb_track] = atoi(pt);
+			g_dmx_nb_track++;
+			pt = strtok(NULL, ",");
+		}
+	}
+	if (*dmx_midi_map != '\0')
+	{
+		char* pt = strtok(dmx_midi_map, ",;:/ ");
+		g_dmx_nb_midi_map = 0;
+		while (pt != NULL)
+		{
+			g_dmx_midi_map[g_dmx_nb_midi_map] = atoi(pt);
+			g_dmx_nb_midi_map++;
+			pt = strtok(NULL, ",");
+		}
 	}
 	if (tenuto <= 1)
 	{
@@ -2512,7 +2524,16 @@ static bool sendmsg(T_midioutmsg midioutmsg)
 		}
 	}
 #ifdef V_DMX
-	if ((g_dmx_track >= 0) && (midioutmsg.track == g_dmx_track))
+	bool hookfound = false;
+	for (int i = 0; i < g_dmx_nb_track; i++)
+	{
+		if (g_dmx_track[i] == midioutmsg.track)
+		{
+			hookfound = true;
+			break;
+		}
+	}
+	if (hookfound)
 	{
 		int type_msg = (midioutmsg.midimsg.bData[0] & 0xF0) >> 4;
 		switch (type_msg )
@@ -4830,10 +4851,10 @@ static const struct luaL_Reg luabass[] =
 
 #ifdef V_DMX
 	////// Dmx //////
-	{ "outGetDmxOpen" , LdmxOpen },
-	{ "outGetDmxSet" , LdmxSet },
-	{ "outGetDmxOut" , LdmxOut },
-	{ "outGetDmxOutall" , LdmxOutAll },
+	{ soutOpenDmx , LdmxOpen },
+	{ soutSetDmx , LdmxSet },
+	{ soutDmx , LdmxOut },
+	{ "outDmxall" , LdmxOutAll },
 	{ "outGetDmxList" , LdmxList },
 	{ "outGetDmxCount" , LdmxCount },
 	{ soutGetDmxName , LdmxName },

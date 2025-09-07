@@ -2623,6 +2623,35 @@ void Expresseur::openMidiOut()
 }
 void Expresseur::openDmx()
 {
+	int nrDevice = configGet(CONFIG_DMX_DEVICE , -1);
+	if (nrDevice == -1)
+	{ 
+		mlog_in("No DMX to open");
+		return;
+	}
+	int nbChannel = configGet(CONFIG_DMX_NBCHANNEL, 4);
+	int tenuto = configGet(CONFIG_DMX_TENUTO, 4);
+	int ramping = configGet(CONFIG_DMX_RAMPING, 4);
+	wxString dmx_midi_map = configGet(CONFIG_DMX_MIDIMAP, "1,2,3,4");
+	wxString dmx_track = configGet(CONFIG_DMX_TRACKS, "1,2,3,4");
+
+	int ret;
+	basslua_call(moduleLuabass, soutOpenDmx, "ii>i", nrDevice, nbChannel, &ret);
+	if (ret)
+		mlog_in("DMX serial-port #%s opened with %d channels", nrDevice, nbChannel);
+	else
+	{
+		mlog_in("Error opening DMX serial-port #%s with %d channels", nrDevice, nbChannel);
+		return;
+	}
+	char buff_dmx_track[MAXBUFCHAR];
+	char buff_dmx_midi_map[MAXBUFCHAR];
+	strcpy(buff_dmx_track, dmx_track.c_str());
+	strcpy(buff_dmx_midi_map, dmx_midi_map.c_str());
+	basslua_call(moduleLuabass, soutSetDmx, "iiss", tenuto, ramping, buff_dmx_track, buff_dmx_midi_map);
+	mlog_in("      DMX : Tenuto=%d Ramping=%d", tenuto, ramping);
+	mlog_in("      DMX : Midi-pitch# => Channel-DMX# : ", buff_dmx_midi_map);
+	mlog_in("      DMX : Track-Expresseur# to follow : ", buff_dmx_track);
 
 }
 void Expresseur::wizard(bool audio_only, bool midi_only , bool dmx_only)
@@ -2786,6 +2815,7 @@ VALIDATE THE GOOD QUALITY OF SOUND\n";
 	///// DMX
 
 	fWizardJpeg.SetName("wizard_dmx");
+	miChannelDmx = -1;
 	wxWizardPageSimple* pwizard_dmx = new wxWizardPageSimple(mwizard);
 	wxBoxSizer* topsizer_dmx = new wxBoxSizer(wxVERTICAL);
 	topsizer_dmx->Add(new wxStaticBitmap(pwizard_dmx, wxID_ANY, wxBitmap(fWizardJpeg.GetFullPath(), wxBITMAP_TYPE_JPEG)), sizerFlagMaximumPlace);
@@ -2796,18 +2826,19 @@ VALIDATE THE GOOD QUALITY OF SOUND\n";
 		sdmx ="\
 \n\
 No DMX serial port connected.\n\
-With DMX, music notes can\n\
-drives DMX projectors.\n\n";
+With DMX, music notes can drive DMX projectors.\n\n";
 	}
 	else
 	{
+		nameDmxDevices.push_back("(none)");
 		mlistDmx = new	wxListBox(pwizard_dmx, wxID_ANY, wxDefaultPosition, wxDefaultSize, nameDmxDevices, wxLB_SINGLE);
-		topsizer_dmx->Add(mlistMidiin, sizerFlagMaximumPlace);
+		topsizer_dmx->Add(mlistDmx, sizerFlagMaximumPlace);
 		sdmx = "\
 Serial-port detected : if it is DMX\n\
 connection, you can select it.\n\
 Music notes will drive DMX lights.\n\
 Enter the list of DMX channels to drive, \n\
+and the list of MIDI tracks to follow, \n\
 separated by commas.\n\n";
 	}
 	topsizer_dmx->Add(new wxStaticText(pwizard_dmx, wxID_ANY, sdmx), sizerFlagMaximumPlace);
@@ -2815,30 +2846,60 @@ separated by commas.\n\n";
 	wxFlexGridSizer* msdmx = new wxFlexGridSizer(2, 2, 2);
 	msdmx->SetFlexibleDirection(wxHORIZONTAL);
 
-	mRampingDmx = new wxSlider(pwizard_dmx, wxID_ANY, 50, 0, 256, wxDefaultPosition, wxSize(140, -1));
+	int nbChannel = configGet(CONFIG_DMX_NBCHANNEL, 4);
+	int tenuto = configGet(CONFIG_DMX_TENUTO, 20);
+	int ramping = configGet(CONFIG_DMX_RAMPING, 220);
+	wxString dmx_midi_map = configGet(CONFIG_DMX_MIDIMAP, "1,2,3,4");
+	wxString dmx_track = configGet(CONFIG_DMX_TRACKS, "1,2,3,4");
+
+
+	mNbChannelDmx = new wxSpinCtrl(pwizard_dmx, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 256, nbChannel);
+	msdmx->Add(new wxStaticText(pwizard_dmx, wxID_ANY, "nb DMX channels"), sizerFlagMaximumPlace);
+	msdmx->Add(mNbChannelDmx);
+
+	mChannelDmx = new wxTextCtrl(pwizard_dmx, wxID_ANY, dmx_midi_map);
+	msdmx->Add(new wxStaticText(pwizard_dmx, wxID_ANY, "DMX channels driven by MIDI"), sizerFlagMaximumPlace);
+	msdmx->Add(mChannelDmx);
+
+	mTrackDmx = new wxTextCtrl(pwizard_dmx, wxID_ANY, dmx_track);
+	msdmx->Add(new wxStaticText(pwizard_dmx, wxID_ANY, "MIDI Tracks to follow"), sizerFlagMaximumPlace);
+	msdmx->Add(mTrackDmx);
+
+	mRampingDmx = new wxSlider(pwizard_dmx, wxID_ANY, ramping, 0, 256, wxDefaultPosition, wxSize(140, -1));
 	msdmx->Add(new wxStaticText(pwizard_dmx, wxID_ANY, "Ramping"), sizerFlagMaximumPlace);
 	msdmx->Add(mRampingDmx);
 
-	mTenutoDmx = new wxSlider(pwizard_dmx, wxID_ANY,50, 0, 256, wxDefaultPosition, wxSize(140, -1));
+	mTenutoDmx = new wxSlider(pwizard_dmx, wxID_ANY, tenuto, 0, 256, wxDefaultPosition, wxSize(140, -1));
 	msdmx->Add(new wxStaticText(pwizard_dmx, wxID_ANY, "Tenuto"), sizerFlagMaximumPlace);
 	msdmx->Add(mTenutoDmx);
 
-	mChannelDmx = new wxTextCtrl(pwizard_dmx, wxID_ANY, "1,2,3,5,6,7,9,10,11,13,14,15");
-	msdmx->Add(new wxStaticText(pwizard_dmx, wxID_ANY, "DMX Channels sperated by comma)"), sizerFlagMaximumPlace);
-	msdmx->Add(mChannelDmx);
-
-	mTrackDmx = new wxSpinCtrl(pwizard_dmx, wxID_ANY, "1", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 10, 1);
-	msdmx->Add(new wxStaticText(pwizard_dmx, wxID_ANY, "Track to follow on DMX)"), sizerFlagMaximumPlace);
-	msdmx->Add(mTrackDmx);
-
-	topsizer_dmx->AddSpacer(5);
 	topsizer_dmx->Add(msdmx, sizerFlagMaximumPlace);
 
-	wxButton* mDmxTest = new wxButton(pwizard_dmx, wxID_ANY, "TEST DMX");
-	mDmxTest->Enable(false);
-	mDmxTest->Bind(wxEVT_BUTTON, &Expresseur::OnDmxTest, this);
-	topsizer_dmx->AddSpacer(5);
-	topsizer_dmx->Add(mDmxTest);
+	wxGridSizer* mbdmx = new wxGridSizer(3);
+
+	wxButton* mDmxTest = new wxButton(pwizard_dmx, wxID_ANY, "Test");
+	if (nbdmx == 0)
+		mDmxTest->Enable(false);
+	else
+		mDmxTest->Bind(wxEVT_BUTTON, &Expresseur::OnDmxTest, this);
+	mbdmx->Add(mDmxTest);
+
+	wxButton* mDmxOff = new wxButton(pwizard_dmx, wxID_ANY, "Off");
+	if (nbdmx == 0)
+		mDmxOff->Enable(false);
+	else
+		mDmxOff->Bind(wxEVT_BUTTON, &Expresseur::OnDmxOff, this);
+	mbdmx->Add(mDmxOff);
+
+	wxButton* mDmxSave = new wxButton(pwizard_dmx, wxID_ANY, "Save config");
+	if (nbdmx == 0)
+		mDmxSave->Enable(false);
+	else
+		mDmxSave->Bind(wxEVT_BUTTON, &Expresseur::OnDmxSave, this);
+	mbdmx->Add(mDmxSave);
+
+	topsizer_dmx->Add(mbdmx, sizerFlagMaximumPlace);
+
 
 	pwizard_dmx->SetSizerAndFit(topsizer_dmx);
 
@@ -3016,9 +3077,66 @@ void Expresseur::OnMidiinChoice(wxCommandEvent& WXUNUSED(event))
 			configSet(CONFIG_MIDIIN, "", false, wxString::Format("%d", i));
 	}
 }
+void Expresseur::OnDmxSave(wxCommandEvent& WXUNUSED(event))
+{
+	int nrDevice = mlistDmx->GetSelection();
+	if ((nrDevice == wxNOT_FOUND) || (nrDevice >= (nameDmxDevices.size()-1)))
+	{
+		configSet(CONFIG_DMX_DEVICE, -1);
+		return;
+	}
+	int nbChannel = mNbChannelDmx->GetValue();
+	int tenuto = mTenutoDmx->GetValue();
+	int ramping = mRampingDmx->GetValue();
+	wxString dmx_midi_map = mChannelDmx->GetValue();
+	wxString dmx_track = mTrackDmx->GetValue();
+	configSet(CONFIG_DMX_DEVICE, nrDevice);
+	configSet(CONFIG_DMX_NBCHANNEL, nbChannel);
+	configSet(CONFIG_DMX_TENUTO, tenuto);
+	configSet(CONFIG_DMX_RAMPING, ramping);
+	configSet(CONFIG_DMX_MIDIMAP, dmx_midi_map);
+	configSet(CONFIG_DMX_TRACKS, dmx_track);
+}
+void Expresseur::OnDmxOff(wxCommandEvent& WXUNUSED(event))
+{
+	int nbChannel = mNbChannelDmx->GetValue();
+	for (int i = 0; i < nbChannel; i++)
+		basslua_call(moduleLuabass, soutDmx, "ii", i, 0);
+
+}
 void Expresseur::OnDmxTest(wxCommandEvent& WXUNUSED(event))
 {
-	openDmx();
+	int nrDevice = mlistDmx->GetSelection();
+	if ((nrDevice == wxNOT_FOUND) || (nrDevice >= (nameDmxDevices.size()-1)))
+		return;
+	int nbChannel = mNbChannelDmx->GetValue();
+	basslua_call(moduleLuabass, soutOpenDmx, "ii", nrDevice , nbChannel);
+
+	int tenuto = mTenutoDmx->GetValue();
+	int ramping = mRampingDmx->GetValue();
+	basslua_call(moduleLuabass, soutSetDmx, "ii", tenuto, ramping);
+
+	wxString dmx_midi_map = mChannelDmx->GetValue();
+	mlChannelDmx.clear();
+	wxStringTokenizer tokenizer(dmx_midi_map, ",;:/ ");
+	while (tokenizer.HasMoreTokens())
+	{
+		wxString token = tokenizer.GetNextToken();
+		int nrch;
+		if (token.ToInt(&nrch))
+		{
+			mlChannelDmx.push_back(nrch-1);
+
+		}
+	}
+
+	if (miChannelDmx >= 0)
+		basslua_call(moduleLuabass, soutDmx, "ii", mlChannelDmx[miChannelDmx], 0);
+	miChannelDmx++;
+	if (miChannelDmx < mlChannelDmx.size())
+		basslua_call(moduleLuabass, soutDmx, "ii", mlChannelDmx[miChannelDmx], 255);
+	else
+		miChannelDmx = -1;
 }
 void Expresseur::OnAudioChoice(wxCommandEvent& event)
 {

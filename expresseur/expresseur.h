@@ -89,6 +89,8 @@ public:
 	void OnAudioTest(wxCommandEvent& WXUNUSED(event));
 	void OnDefaultMidiOut(wxCommandEvent& WXUNUSED(event));
 	void OnDmxTest(wxCommandEvent& event);
+	void OnDmxOff(wxCommandEvent& event);
+	void OnDmxSave(wxCommandEvent& event);
 	int setAudioDefault();
 
 	void OnAbout(wxCommandEvent& WXUNUSED(event));
@@ -201,7 +203,10 @@ private:
 	wxSpinCtrl *mupdatems , *mbufferms;
 	wxSlider *mRampingDmx, *mTenutoDmx;
 	wxTextCtrl *mChannelDmx;
-	wxSpinCtrl *mTrackDmx;
+	int miChannelDmx = -1;
+	std::vector <int> mlChannelDmx;
+	wxSpinCtrl* mNbChannelDmx;
+	wxTextCtrl *mTrackDmx;
 	wxButton *mAsioSet;
 	wxListBox *mlistMidiout;
 	wxListBox* mlistMidiin;

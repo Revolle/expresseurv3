@@ -35,6 +35,13 @@
 #define CONFIG_MIDIOUT "/mididevice/midiout"
 #define CONFIG_MIDIIN "/mididevice/midiin"
 
+#define CONFIG_DMX_DEVICE "/dmx/device"
+#define CONFIG_DMX_NBCHANNEL "/dmx/nbchannel"
+#define CONFIG_DMX_TENUTO "/dmx/tenuto"
+#define CONFIG_DMX_RAMPING "/dmx/ramping"
+#define CONFIG_DMX_MIDIMAP "/dmx/midimap"
+#define CONFIG_DMX_TRACKS "/dmx/tracks"
+
 #define CONFIG_MAINMAXIMIZED "/main/maximized"
 #define CONFIG_MAINWIDTH "/main/width"
 #define CONFIG_MAINDELTAHEIGHT "/main/deltaheight"
