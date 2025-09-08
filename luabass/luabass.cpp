@@ -390,14 +390,12 @@ float g_dmx_tenuto = 1.0; // tenuto value in the time (0..256). 256==no decrease
 // mutex to protect the access od the midiout queud messages
 static pthread_mutex_t g_mutex_out ;
 static pthread_t g_loop_out_run_thread ;
-static int g_dmx_port = 0;
 #endif
 #ifdef V_LINUX
 static pthread_t g_loop_out_run_thread ;
 static timer_t g_timer_out_id;
 #define MTIMERSIGNALOUT (SIGRTMIN+0)
 static pthread_mutex_t g_mutex_out;
-static int g_dmx_port = 0;
 #endif
 
 static T_queue_msg g_queue_msg[OUT_QUEUE_MAX_MSG];
