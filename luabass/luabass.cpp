@@ -77,6 +77,7 @@
 //#include <CoreMIDI/MIDISetup.h>
 //#include <CoreMIDI/MIDIThruConnection.h>
 #include <pthread.h>
+#define byte Byte
 #endif
 
 #ifdef V_LINUX
@@ -365,27 +366,8 @@ static bool g_mutex_out_ok = false ;
 static HANDLE g_timer_out = NULL;
 // mutex to protect the output ( from LUA and timer, to outputs )
 static HANDLE g_mutex_out = NULL;
-
-#define DMX_CH_MAX 256
-#define DMX_V_MAX 256
-#ifdef V_DMX
-// dmx management
-struct sp_port** g_dmx_port_list;
-struct sp_port *g_dmx_port = NULL;	// dmx comport handle
-int g_portdmx_nr = -1; // dmx comport number
-float g_dmx_float_value[DMX_CH_MAX]; // // dmx values actual
-float g_dmx_float_target[DMX_CH_MAX]; // // dmx values target
-byte g_dmx_byte_value[DMX_CH_MAX]; // // dmx values to send
-unsigned int g_dmx_byte_nb = 0; // number of dmx values to send
-float g_dmx_ramping = 1.0; // attack value in the time (0..256). 256==direct attack 0==slow ramping, default 256
-int g_dmx_track[MAXTRACK] ; // track to hook for DMX output
-int g_dmx_nb_track = 0;
-int g_dmx_midi_map[MAXPITCH] ; // map of the MIDI to dmx channel
-int g_dmx_nb_midi_map = 0;
-float g_dmx_tenuto = 1.0; // tenuto value in the time (0..256). 256==no decrease 0==quick decrease, default 256
 #endif
 
-#endif
 #ifdef V_MAC
 // mutex to protect the access od the midiout queud messages
 static pthread_mutex_t g_mutex_out ;
@@ -409,6 +391,28 @@ static bool g_process_PitchBend, g_process_KeyPressure, g_process_ChannelPressur
 static bool g_process_SystemCommon, g_process_Clock , g_process_Timer ;
 
 static char g_path_out_error_txt[MAXBUFCHAR];
+
+
+#define DMX_CH_MAX 256
+#define DMX_V_MAX 256
+#ifdef V_DMX
+// dmx management
+struct sp_port** g_dmx_port_list;
+struct sp_port *g_dmx_port = NULL;	// dmx comport handle
+int g_portdmx_nr = -1; // dmx comport number
+float g_dmx_float_value[DMX_CH_MAX]; // // dmx values actual
+float g_dmx_float_target[DMX_CH_MAX]; // // dmx values target
+byte g_dmx_byte_value[DMX_CH_MAX]; // // dmx values to send
+unsigned int g_dmx_byte_nb = 0; // number of dmx values to send
+float g_dmx_ramping = 1.0; // attack value in the time (0..256). 256==direct attack 0==slow ramping, default 256
+int g_dmx_track[MAXTRACK] ; // track to hook for DMX output
+int g_dmx_nb_track = 0;
+int g_dmx_midi_map[MAXPITCH] ; // map of the MIDI to dmx channel
+int g_dmx_nb_midi_map = 0;
+float g_dmx_tenuto = 1.0; // tenuto value in the time (0..256). 256==no decrease 0==quick decrease, default 256
+#endif
+
+
 
 static int cap(int vin, int min, int max, int offset)
 {

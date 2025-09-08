@@ -6,7 +6,7 @@ EXPRESSEURAPP := expresseur/Expresseur.app
 
 PLATFORM := $(shell uname)
 CPPFLAGS := -Wall -MD -MP
-CPPFLAGS := $(CPPFLAGS) -g
+CPPFLAGS := $(CPPFLAGS) -g -Wno-deprecated-declarations -Wno-unused-variable
 CXXFLAGS := -std=c++11 
 LDFLAGS  :=
 
@@ -29,8 +29,8 @@ ifeq ($(PLATFORM),Darwin)
 		LUADIR := $(DIRPLATFORM)/lua/src
 		RTMIDIDIR := ../rtmidi
 		BASSDIR := $(DIRPLATFORM)/bass
-
-		LUABASS_LIBS :=  -L$(BASSDIR) -lbass -lbassmidi -lbassmix -framework CoreFoundation -framework CoreAudio -framework CoreMIDI
+		SERIALDIR := $(DIRPLATFORM)/libserial
+		LUABASS_LIBS :=  -L$(BASSDIR) -lbass -lbassmidi -lbassmix -framework CoreFoundation -framework CoreAudio -framework CoreMIDI -L$(SERIALDIR) -lserialport
 		BASSLUA_LIBS := $(LUABASS_LIBS) -L$(LUADIR) -llua 
 		LILYPOND_X86_TAR := ../lilypond-2.25.28-darwin-x86_64.tar
 		LILYPOND_ARM_TAR := ../lilypond-2.25.28-darwin-arm64.tar
@@ -59,11 +59,12 @@ ifeq ($(PLATFORM),Linux)
 		LUADIR := $(DIRPLATFORM)/lua/src
 		RTMIDIDIR := $(DIRPLATFORM)/rtmidi
 		BASSDIR := $(DIRPLATFORM)/bass
+		SERIALDIR := (DIRPLATFORM)/libserial
 		LILYPOND_X86_TAR := ../lilypond-2.25.28-darwin-x86_64.tar
 		LILYPOND_ARM_TAR := ../lilypond-2.25.28-darwin-arm64.tar
 		MORIGIN := $$ORIGIN
 		EXPRESS_LIBPATH := -Wl,-rpath=$(BASSDIR),-rpath=../$(BASSDIR),-rpath=basslua,-rpath=luabass
-		LUABASS_LIBS := -L$(BASSDIR) -lbass -lbassmidi -lbassmix -lrt -lm -ldl -lasound -lpthread $(EXPRESS_LIBPATH)
+		LUABASS_LIBS := -L$(BASSDIR) -lbass -lbassmidi -lbassmix -lrt -lm -ldl -lasound -lpthread $(EXPRESS_LIBPATH) -L${SERIALDIR} -lserialport
 		BASSLUA_LIBS := $(LUABASS_LIBS)  -L$(LUADIR) -llua $(EXPRESS_LIBPATH)
 		WXWIDGESTLIB = $(shell $(WX_CONFIG) --libs base,net,core,adv,xml)
 		EXPRESSCMD_LIBS := -lrt -lm -ldl $(EXPRESS_LIBPATH)
@@ -100,7 +101,7 @@ LUA_OBJECTS := lua/*.*
 LIBLUABASS := luabass/luabass.$(SHAREDLIB_EXT)
 LIBLUABASS_OBJECTS := $(patsubst %.cpp,%.o,$(wildcard luabass/*.cpp))
 
-CPPFLAGS += -Ibasslua -Iluabass -Iexpresseur -I$(BASSDIR) -I$(LUADIR) -I$(RTMIDIDIR)
+CPPFLAGS += -Ibasslua -Iluabass -Iexpresseur -I$(BASSDIR) -I$(LUADIR) -I$(RTMIDIDIR) -I$(SERIALDIR)
 
 print-%  : ; @echo $* = $($*)
 
