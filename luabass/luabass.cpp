@@ -678,10 +678,7 @@ static int LdmxOpen(lua_State* L)
 
 	int comport = cap((int)lua_tointeger(L, 1), 0, 128, 0);
 	g_dmx_byte_nb = cap((int)lua_tointeger(L, 2), 1, DMX_CH_MAX, 0);
-	if (!dmxOpen(comport))
-		lua_pushboolean(L, false);
-
-	lua_pushboolean(L, true);
+	lua_pushboolean(L, dmxOpen(comport));
 
 	unlock_mutex_out();
 	return 1;

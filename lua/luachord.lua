@@ -44,6 +44,18 @@ e.g. of a score
     A coda
 
 
+Instead of a simple list of sequential chords, it is possible to have impovised path.
+For this purpose use this syntax : label=chord>nextlabel1>nextlabel2>...
+When this pattern is matched, it compiles the chord and propose it for improvisation.
+When next chord is trigerred, it will go to the next label. 
+The next label item is chosen according to the shift-value, preset by a trigger.
+
+e.g to improvise navigation between chords I II III IV
+LI=I>LV,LII,LIV
+LII=II>LVI,LIII
+LIII=III>LII
+LIV=IV>LV,LII
+LV=V>L1,LIV
 
 ]]--
 
@@ -77,6 +89,9 @@ local keyword = { "section" , "part" }
 
 -- position for getRecognizedText
 local typeRecognizedPosition , NrRecognizedPosition , NrRecognizedSubPosition 
+
+-- shift for the next label
+local shiftLabel = 1 
 
 function E.pitchToString(p)
   local d = (p%12) + 1
@@ -392,7 +407,6 @@ local function extractSectionFromPart()
     end
   end
 end
-
 local function extractChord()
   -- extract the chords fom the "section"
   -- chords are recognized according to the patterns
@@ -416,18 +430,42 @@ local function extractChord()
 			if (( sg ~= "[" ) and ( sg ~= "]" ) 
 			and ( sg ~= "(" ) and ( sg ~= ")" ) 
 			and ( sg ~= "|" ) and ( sg ~= "||" ) and ( sg ~= "/" )) then
-				local interpretedChord = texttochord.stringToChord(sg)
-				if interpretedChord then
+				-- search for a label. Ex : mylabel=G7>nextlabel_1:nexlabel_2
+				local labelstart
+				local labelend
+				local labelname
+				local labelchord
+				local labelnext
+				labelstart , labelend , labelname , labelchord , labelnext = string.find(sg,"(%w+)=(%g+)>(%g+)")
+				if ( labelstart ) then
+					-- label found
 					table.insert(section[nrSection].chord,{})
 					local pc = section[nrSection].chord[#(section[nrSection].chord)]
-					pc.interpretedChord = interpretedChord
-					if ( pc.interpretedChord.sameChord ) and ( #(section[nrSection].chord) > 1 ) then
-						pc.interpretedChord.pitch = section[nrSection].chord[#(section[nrSection].chord) - 1].interpretedChord.pitch
+					pc.label = labelname
+					pc.chord = labelchord
+					pc.next = {}
+					for w in string.gmatch(e, "(%w+)") do
+						table.insert(pc.next, w )
 					end
 					pc.posStart = section[nrSection].posStart + gstart-1
 					pc.posEnd = section[nrSection].posStart + gend
 					pc.nrChord = nrChord
 					nrChord = nrChord + 1
+				else
+					-- no label, interpret the chord
+					local interpretedChord = texttochord.stringToChord(sg)
+					if interpretedChord then
+						table.insert(section[nrSection].chord,{})
+						local pc = section[nrSection].chord[#(section[nrSection].chord)]
+						pc.interpretedChord = interpretedChord
+						if ( pc.interpretedChord.sameChord ) and ( #(section[nrSection].chord) > 1 ) then
+							pc.interpretedChord.pitch = section[nrSection].chord[#(section[nrSection].chord) - 1].interpretedChord.pitch
+						end
+						pc.posStart = section[nrSection].posStart + gstart-1
+						pc.posEnd = section[nrSection].posStart + gend
+						pc.nrChord = nrChord
+						nrChord = nrChord + 1
+					end
 				end
 			end
 		end
@@ -570,6 +608,10 @@ function E.letChord()
     end
   end
   currentChord = section[part[posPart].section[posSection].nrSection].chord[posChord]
+  if (( currentChord.interpretedChord == nil ) and ( currenChord.chord)) then
+		-- chord not yet interpreted
+		currentChord.interpretedChord = texttochord.stringToChord(currenChord.chord)
+  end
 end
 
 function E.isRestart()
@@ -577,11 +619,38 @@ function E.isRestart()
   restart = false 
   return r
 end
+function E.gotoLabel(label)
+  for nrSection = 1 , #(section) , 1 do
+    for nrChord = 1 , #(section[nrSection].chord) , 1 do
+      local pc = section[nrSection].chord[nrChord]
+      if ( pc == nil ) then 
+        print ( "error section[".. nrSection .. "].chord[" .. nrChord .. "]" ) 
+        return
+      end
+	  if ( pc.label and (pc.label == label)) then
+		E.setPosition(pc.posStart)
+	  end
+	end
+  end
+end
 function E.nextChord(time,bid,ch,nr,velocity)
   -- move to the next chord
   if velocity == 0 then return end
-  posChord = posChord + 1
-  E.letChord()
+  if ((current_chord) and (currentChord.next) and ( #(currentChord.next) > 0 )) then
+    -- label, go to the next label
+	local n = 1
+	if ( shiftLabel <= #(currentChord.next) ) then
+		n = shiftLabel
+	end
+	E.gotoLabel(currentChord.next[n])
+  else
+    -- standard chord , go the next one i nthe sequential path
+	posChord = posChord + 1
+    E.letChord()
+  end
+end
+function E.setShiftLabel(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
+	shiftLabel = index ;
 end
 function E.isNewChord()
   if currentChord == prevCurrentChord then return false end
@@ -975,7 +1044,7 @@ function E.changeNextChord()
   end
 end
 function E.changeChord(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whiteindex,whitemediane,black)
-  -- change to next chord on noteOn
+  -- change to next chord on noteOn or noteOff
   local v =  param or "on"
   --luabass.logmsg("changechord:" .. v )
   if string.sub(v,1,2) == "on" then
@@ -1002,5 +1071,4 @@ function E.changeChord(time,bid,ch,typemsg, nr,velocity,param,index,mediane,whit
 	  end
    end
 end
-
 return E -- to export the functions
