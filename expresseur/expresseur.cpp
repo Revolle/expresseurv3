@@ -126,7 +126,7 @@ enum
 	ID_MAIN_LIST_UP,
 	ID_MAIN_LIST_DOWN,
 
-	ID_MAIN_ORNAMENT_ADD_ABSOLUTE,
+	ID_MAIN_ORNAMENT_ADD_ABSOLUTE, 
 	ID_MAIN_ORNAMENT_ADD_RELATIVE,
 	ID_MAIN_UNZOOM_3,
 	ID_MAIN_UNZOOM_2,
@@ -2635,13 +2635,13 @@ void Expresseur::openDmx()
 	wxString dmx_midi_map = configGet(CONFIG_DMX_MIDIMAP, "1,2,3,4");
 	wxString dmx_track = configGet(CONFIG_DMX_TRACKS, "1,2,3,4");
 
-	int ret;
-	basslua_call(moduleLuabass, soutOpenDmx, "ii>i", nrDevice, nbChannel, &ret);
+	bool ret;
+	basslua_call(moduleLuabass, soutOpenDmx, "ii>b", nrDevice, nbChannel, &ret);
 	if (ret)
-		mlog_in("DMX serial-port #%s opened with %d channels", nrDevice, nbChannel);
+		mlog_in("DMX serial-port #%d opened with %d channels", nrDevice, nbChannel);
 	else
 	{
-		mlog_in("Error opening DMX serial-port #%s with %d channels", nrDevice, nbChannel);
+		mlog_in("Error opening DMX serial-port #%d with %d channels", nrDevice, nbChannel);
 		return;
 	}
 	char buff_dmx_track[MAXBUFCHAR];
@@ -2650,8 +2650,8 @@ void Expresseur::openDmx()
 	strcpy(buff_dmx_midi_map, dmx_midi_map.c_str());
 	basslua_call(moduleLuabass, soutSetDmx, "iiss", tenuto, ramping, buff_dmx_track, buff_dmx_midi_map);
 	mlog_in("      DMX : Tenuto=%d Ramping=%d", tenuto, ramping);
-	mlog_in("      DMX : Midi-pitch# => Channel-DMX# : ", buff_dmx_midi_map);
-	mlog_in("      DMX : Track-Expresseur# to follow : ", buff_dmx_track);
+	mlog_in("      DMX : Midi-pitch# => Channel-DMX# : %s", buff_dmx_midi_map);
+	mlog_in("      DMX : Track-Expresseur# to follow : %s", buff_dmx_track);
 
 }
 void Expresseur::wizard(bool audio_only, bool midi_only , bool dmx_only)

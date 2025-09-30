@@ -780,6 +780,7 @@ actions = {
   {name="chord/play bass", callFunction = luachord.playBass },
   {name="chord/pedal", callFunction = luachord.pedal},
   {name="chord/octave", callFunction = luachord.octave },
+  {name="chord/shift label", callFunction = luachord.setShiftLabel }
   }
 
 
