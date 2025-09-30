@@ -830,9 +830,6 @@ std::uint64_t musicxmlscore::crc_cumulate_string(wxString s)
 }
 bool musicxmlscore::newLayout(wxSize sizeClient)
 {
-	//// NOP
-	return false;
-
 	if (!isOk())
 		return false;
 	wxBusyCursor waitcursor;
@@ -898,29 +895,32 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 #ifdef RUN_MAC
 	// liliy translator 
 	fm.SetPath(getCwdDir());
-	fm.AppendDir("lilypond-2.25.28");
+	fm.AppendDir(wxGetCpuArchitectureName());
+	fm.AppendDir("lilypond");
 	fm.AppendDir("libexec");
+	pythonexe = wxDir::FindFirst(fm.GetPath(), "python*" );
+
 	fm.SetFullName("musicxml2ly");
 	pythonscript = fm.GetFullPath();
 	// lilypond bin
 	fm.SetPath(getCwdDir());
-	fm.AppendDir("lilypond-2.25.28");
+	fm.AppendDir(wxGetCpuArchitectureName());
+	fm.AppendDir("lilypond");
 	fm.AppendDir("bin");
 	fm.SetFullName("lilypond");
 	lilyexe = fm.GetFullPath();
 #else
 #ifdef _DEBUG
-	fm.SetPath("C:\\Users\\franc\\Documents\\lilypond\\lilypond-2.25.28");
+	fm.SetPath("C:\\Users\\franc\\Documents\\lilypond\\lilypond-2.25.29");
 #else
 	fm.SetPath(getCwdDir());
 	fm.AppendDir("lilypond");
 #endif
 	fm.AppendDir("bin");
-	fm.SetFullName("python.exe");
-	pythonexe = fm.GetFullPath();
+	pythonexe = wxDir::FindFirst(fm.GetPath(), "python*" );
 	// liliy translator 
 	fm.SetFullName("musicxml2ly.py");
-	pythonscript = pythonexe + "\" \"" + fm.GetFullPath();
+	pythonscript = fm.GetFullPath();
 	// lilypond bin
 	fm.SetFullName("lilypond.exe");
 	lilyexe = fm.GetFullPath();
@@ -960,7 +960,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 			}
 			if (str.StartsWith("%%%%%%%%translate_xml_to_ly:"))
 			{
-				command_xmltolily.Printf(str, pythonscript, FILE_OUT_LILY , FILE_OUT_XML);
+				command_xmltolily.Printf(str, pythonexe , pythonscript, FILE_OUT_LILY , FILE_OUT_XML);
 				fout.AddLine(command_xmltolily);
 				command_xmltolily.Replace("%%%%translate_xml_to_ly:", "");
 				continue;

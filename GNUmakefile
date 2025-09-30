@@ -9,6 +9,7 @@ CPPFLAGS := -Wall -MD -MP
 CPPFLAGS := $(CPPFLAGS) -g -Wno-deprecated-declarations -Wno-unused-variable
 CXXFLAGS := -std=c++11 
 LDFLAGS  :=
+LILYPOND := lilypond-2.25.29
 
 ifeq ($(PLATFORM),Darwin)
 	  
@@ -32,8 +33,8 @@ ifeq ($(PLATFORM),Darwin)
 		SERIALDIR := $(DIRPLATFORM)/libserial
 		LUABASS_LIBS :=  -L$(BASSDIR) -lbass -lbassmidi -lbassmix -framework CoreFoundation -framework CoreAudio -framework CoreMIDI -L$(SERIALDIR) -lserialport
 		BASSLUA_LIBS := $(LUABASS_LIBS) -L$(LUADIR) -llua 
-		LILYPOND_X86_TAR := ../lilypond-2.25.28-darwin-x86_64.tar
-		LILYPOND_ARM_TAR := ../lilypond-2.25.28-darwin-arm64.tar
+		LILYPOND_X86_64_TAR := ../lilypond/$(LILYPOND)-darwin-x86_64.tar
+		LILYPOND_ARM64_TAR := ../lilypond/$(LILYPOND)-darwin-arm64.tar
 		WXWIDGESTLIB = $(shell $(WX_CONFIG) --libs base,net,core,adv,xml)
 		EXPRESSCMD_LIBS := 
 		EXPRESSEUR_LIBS := $(WXWIDGESTLIB) $(EXPRESSCMD_LIBS) 
@@ -60,8 +61,8 @@ ifeq ($(PLATFORM),Linux)
 		RTMIDIDIR := $(DIRPLATFORM)/rtmidi
 		BASSDIR := $(DIRPLATFORM)/bass
 		SERIALDIR := (DIRPLATFORM)/libserial
-		LILYPOND_X86_TAR := ../lilypond-2.25.28-darwin-x86_64.tar
-		LILYPOND_ARM_TAR := ../lilypond-2.25.28-darwin-arm64.tar
+		LILYPOND_X86_64_TAR := ../lilypond/$(LILYPOND)-darwin-x86_64.tar
+		LILYPOND_ARM64_TAR := ../lilypond/$(LILYPOND)-darwin-arm64.tar
 		MORIGIN := $$ORIGIN
 		EXPRESS_LIBPATH := -Wl,-rpath=$(BASSDIR),-rpath=../$(BASSDIR),-rpath=basslua,-rpath=luabass
 		LUABASS_LIBS := -L$(BASSDIR) -lbass -lbassmidi -lbassmix -lrt -lm -ldl -lasound -lpthread $(EXPRESS_LIBPATH) -L${SERIALDIR} -lserialport
@@ -117,8 +118,12 @@ $(EXPRESSEURAPP): $(EXPRESSEUR) $(LUA_OBJECTS) expresseur/Info.plist
 	cp expresseur/AppIcon.icns $(EXPRESSEURRESOURCES)
 	cp expresseur/Info.plist $@/Contents
 	cp $(EXPRESSEUR) $(LIBLUABASS) $(LIBBASSLUA) $(BASSDIR)/*.dylib $(LUADIR)/liblua.a $(LUA_OBJECTS) $(EXPRESSEURCONTENT)
-	cp $(LILYPOND_X86_TAR) $(EXPRESSEURCONTENT)/
-	cp $(LILYPOND_ARM_TAR) $(EXPRESSEURCONTENT)/
+	-mkdir -p $(EXPRESSEURCONTENT)/arm64
+	tar -xf $(LILYPOND_ARM64_TAR) -C $(EXPRESSEURCONTENT)/arm64/
+	mv $(EXPRESSEURCONTENT)/arm64/$(LILYPOND) $(EXPRESSEURCONTENT)/arm64/lilypond
+	-mkdir -p $(EXPRESSEURCONTENT)/x86_64
+	tar -xf $(LILYPOND_X86_64_TAR) -C $(EXPRESSEURCONTENT)/x86_64/
+	mv $(EXPRESSEURCONTENT)/x86_64/$(LILYPOND) $(EXPRESSEURCONTENT)/x86_64/lilypond
 	cp ressources/*.* $(EXPRESSEURCONTENT)/ressources
 	cp example/*.* $(EXPRESSEURCONTENT)/example
 	install_name_tool -change @rpath/libbass.dylib @loader_path/libbass.dylib $(EXPRESSEURCONTENT)/luabass.so
@@ -150,8 +155,10 @@ $(EXPRESSEURAPP): $(EXPRESSEUR) $(LUA_OBJECTS)
 	cp $(BASSDIR)/lib*.so $(EXPRESSEURCONTENT)/$(BASSDIR)
 	cp $(EXPRESSEUR) $(LIBLUABASS) $(LUA_OBJECTS) $(EXPRESSEURCONTENT)
 	cp $(LIBBASSLUA) $(EXPRESSEURCONTENT)/basslua
-	cp $(LILYPOND_X86_TAR) $(EXPRESSEURCONTENT)/
-	cp $(LILYPOND_ARM_TAR) $(EXPRESSEURCONTENT)/
+	-mkdir -p $(EXPRESSEURCONTENT)/arm64
+	tar -xf $(LILYPOND_ARM64_TAR) -C $(EXPRESSEURCONTENT)/arm64/
+	-mkdir -p $(EXPRESSEURCONTENT)/x86_64
+	tar -xf $(LILYPOND_X86_64_TAR) -C $(EXPRESSEURCONTENT)/x86_64/
 	cp ressources/*.* $(EXPRESSEURCONTENT)/ressources
 	cp example/*.* $(EXPRESSEURCONTENT)/example
 	cp lua/*.* $(EXPRESSEURCONTENT)
