@@ -1737,7 +1737,7 @@ bool basslua_open(const char* fluaname, const char* luaparam, bool reset, long d
 	// open the dedicated midiin-LUA-thread to process midiin msg
 	g_LUAstate = luaL_newstate(); // newthread 
 	luaL_openlibs(g_LUAstate);
-	//mlog_in("debug basslua_open OK : luaL_openlibs getop=%d==0", lua_gettop(g_LUAstate));
+	mlog_in("debug basslua_open OK : luaL_openlibs getop=%d==0", lua_gettop(g_LUAstate));
 
  	
 	lua_getglobal(g_LUAstate, "package"); // to modify the PATH
@@ -1756,10 +1756,9 @@ bool basslua_open(const char* fluaname, const char* luaparam, bool reset, long d
 		lua_pop(g_LUAstate, 1);
 		return(false);
 	}
-	//mlog_in("debug basslua_open OK : lua_loadfile <%s>  getop=%d==1",fluaname, lua_gettop(g_LUAstate));
+	mlog_in("debug basslua_open OK : lua_loadfile <%s>  getop=%d==1",fluaname, lua_gettop(g_LUAstate));
 
 
-	// require the "luabass" module for Midi-out
 #ifdef V_PC
 	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
 	if (!SUCCEEDED(hr))
@@ -1767,64 +1766,67 @@ bool basslua_open(const char* fluaname, const char* luaparam, bool reset, long d
 		mlog_in("Error : CoInitializeEx fails");
 	}
 #endif
-	lua_getglobal(g_LUAstate, "require");
-	lua_pushstring(g_LUAstate, moduleLuabass);
-	if ( lua_pcall(g_LUAstate, 1, 1,0) != LUA_OK )
-	{
-		mlog_in("debug basslua_open error require %s <%s>", moduleLuabass, lua_tostring(g_LUAstate, -1));
-		lua_pop(g_LUAstate, 1);
-		return false;
-	}
-	//mlog_in("debug basslua_open OK : require <%s> getop=%d==2",moduleLuabass, lua_gettop(g_LUAstate));
 
-	if (! lua_istable(g_LUAstate, -1))
-	{
-		mlog_in("debug basslua_open error require %s : not a table", moduleLuabass);
-		lua_pop(g_LUAstate, 1);
-		return false;
-	}
-	lua_setglobal(g_LUAstate, moduleLuabass);
-	//mlog_in("debug basslua_open OK : lua_setglobal <%s> getop=%d==1",moduleLuabass, lua_gettop(g_LUAstate));
-	
 	// require the "chord" module for chord interpretation
 	lua_getglobal(g_LUAstate, "require");
 	lua_pushstring(g_LUAstate, moduleChord);
 	if (lua_pcall(g_LUAstate, 1, 1, 0) != LUA_OK)
 	{
-		mlog_in("debug basslua_open error require %s <%s>", moduleChord, lua_tostring(g_LUAstate, -1));
+		mlog_in("Error basslua_open require %s <%s>", moduleChord, lua_tostring(g_LUAstate, -1));
 		lua_pop(g_LUAstate, 1);
 		return  false;
 	}
-	//mlog_in("debug basslua_open OK : require <%s>",moduleChord);
+	mlog_in("debug basslua_open OK : require <%s>",moduleChord);
 
 	if (!lua_istable(g_LUAstate, -1))
 	{
-		mlog_in("debug basslua_open error require %s : not a table", moduleChord);
+		mlog_in("Error basslua_open require %s : not a table", moduleChord);
 		lua_pop(g_LUAstate, 1);
 		return false;
 	}
 	lua_setglobal(g_LUAstate, moduleChord);
-	//mlog_in("debug basslua_open OK : lua_setglobal <%s>",moduleChord);
+	mlog_in("debug basslua_open OK : lua_setglobal <%s>",moduleChord);
 
 	// require the "score" module for score interpretation
 	lua_getglobal(g_LUAstate, "require");
 	lua_pushstring(g_LUAstate, moduleScore);
 	if (lua_pcall(g_LUAstate, 1, 1, 0) != LUA_OK)
 	{
-		mlog_in("basslua_open mlog_in require %s <%s>", moduleScore, lua_tostring(g_LUAstate, -1));
+		mlog_in("Error basslua_open require %s <%s>", moduleScore, lua_tostring(g_LUAstate, -1));
 		lua_pop(g_LUAstate, 1);
 		return  false;
 	}
-	//mlog_in("debug basslua_open OK : require <%s>",moduleScore);
+	mlog_in("debug basslua_open OK : require <%s>",moduleScore);
 
 	if (!lua_istable(g_LUAstate, -1))
 	{
-		mlog_in("debug basslua_open error require %s : not a table", moduleScore);
+		mlog_in("Error basslua_open require %s : not a table", moduleScore);
 		lua_pop(g_LUAstate, 1);
 		return false;
 	}
 	lua_setglobal(g_LUAstate, moduleScore);
-	//mlog_in("debug basslua_open OK : lua_setglobal <%s> gettop=%d==1",moduleScore, lua_gettop(g_LUAstate));
+	mlog_in("debug basslua_open OK : lua_setglobal <%s> gettop=%d==1",moduleScore, lua_gettop(g_LUAstate));
+
+	// require the "luabass" module for Midi-out
+	lua_getglobal(g_LUAstate, "require");
+	lua_pushstring(g_LUAstate, moduleLuabass);
+	if ( lua_pcall(g_LUAstate, 1, 1,0) != LUA_OK )
+	{
+		mlog_in("Error : basslua_open error require %s <%s>", moduleLuabass, lua_tostring(g_LUAstate, -1));
+		lua_pop(g_LUAstate, 1);
+		return false;
+	}
+	mlog_in("debug basslua_open OK : require <%s> getop=%d==2",moduleLuabass, lua_gettop(g_LUAstate));
+
+	if (! lua_istable(g_LUAstate, -1))
+	{
+		mlog_in("Error basslua_open require %s : not a table", moduleLuabass);
+		lua_pop(g_LUAstate, 1);
+		return false;
+	}
+	lua_setglobal(g_LUAstate, moduleLuabass);
+	mlog_in("debug basslua_open OK : lua_setglobal <%s> getop=%d==1",moduleLuabass, lua_gettop(g_LUAstate));
+	
 
 	// create the "info" table to receive instructions
 	lua_newtable(g_LUAstate);
@@ -1834,27 +1836,34 @@ bool basslua_open(const char* fluaname, const char* luaparam, bool reset, long d
 	// run the script
 	if (lua_pcall(g_LUAstate, 0, 0, 0) != LUA_OK)
 	{
-		mlog_in("debug basslua_open error lua_pcall <%s>", lua_tostring(g_LUAstate, -1));
+		mlog_in("Error basslua_open error lua_pcall <%s>", lua_tostring(g_LUAstate, -1));
 		lua_pop(g_LUAstate, 1);
 		return false;
 	}
-	//mlog_in("debug basslua_open OK : lua_pcall run script <%s>",fluaname);
+	mlog_in("debug basslua_open OK : lua_pcall run script <%s>",fluaname);
 
 	// init the luabass module
-	if ( ! basslua_call(moduleLuabass, sinit, "sii", (logpath == NULL) ? "" : logpath, true, timerDt )) // ask for the luabass.init out-process : init the module 
-		mlog_in("debug basslua_open error : luabass.init()");
-	//mlog_in("debug basslua_open OK : luabass.init()");
+	if (!basslua_call(moduleLuabass, sinit, "sii", (logpath == NULL) ? "" : logpath, true, timerDt))
+	{
+		// ask for the luabass.init out-process : init the module 
+		mlog_in("Error basslua_open error : luabass.init()");
+		return false;
+	}
+	mlog_in("debug basslua_open OK : luabass.init()");
 
 	// init the lua script
-	basslua_call(moduleGlobal, sonStart, "s", luaparam) ; // ask for the userlua.onStart() : init user's settings
-	//mlog_in("debug basslua_open OK : %s %s",fluaname,sonStart);
+	if (!basslua_call(moduleGlobal, sonStart, "s", luaparam))
+	{
+		mlog_in("Error basslua_open error : luabass.onStart()");
+		return false;
+	}
+	mlog_in("debug basslua_open OK : %s %s",fluaname,sonStart);
 
 	// init the static variable of this dll
 	init_in(externalTimer, timerDt);
-	//mlog_in("debug basslua_open OK : init");
+	mlog_in("debug basslua_open OK : init");
 
-	//mlog_in("debug basslua_open(%s,%s) ended succesfully", fluaname, fusername );
-	//mlog_in("basslua_open OK (gettop=%d %s)",lua_gettop(g_LUAstate), (lua_gettop(g_LUAstate) == 0 ? "OK" : "KO"));
+	mlog_in("basslua_open OK (gettop=%d %s)",lua_gettop(g_LUAstate), (lua_gettop(g_LUAstate) == 0 ? "OK" : "KO"));
 	return (true);
 }
 /**

@@ -1,9 +1,7 @@
-/**
+/*
 * \file luabass.c
 * \brief LUA extension to drive Midi-out
 * \author Franck Revolle
-* \version 1.1
-* \date 05/10/2015
 * Objective :
 *  LUA script language can use these functions to create easily any logic over MIDI-out.
 *  List of function is available at the end of this source code file.

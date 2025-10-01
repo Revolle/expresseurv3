@@ -2,8 +2,6 @@
 // Name:        muscixmlscore.cpp
 // Purpose:     display a musicxml of the score 
 // Author:      Franck REVOLLE
-// Modified by:
-// Created:     27/07/2015
 // Copyright:   (c) Franck REVOLLE Expresseur
 // Licence:    Expresseur licence
 /////////////////////////////////////////////////////////////////////////////

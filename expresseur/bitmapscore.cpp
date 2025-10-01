@@ -3,8 +3,6 @@
 // Purpose:     display a bitmap of the score /  expresseur V3
 // Author:      Franck REVOLLE
 // Modified by:
-// Created:     27/07/2015
-// update : 15/11/2016 18:00
 // Copyright:   (c) Franck REVOLLE Expresseur
 // Licence:    Expresseur licence
 /////////////////////////////////////////////////////////////////////////////
@@ -171,6 +169,11 @@ bool bitmapscore::setPage(wxDC& gdc , bool redraw)
 bool bitmapscore::setCursor(wxDC& dc, int pos, bool redraw)
 {
 	if ( ! setPage(dc , redraw)) return false ;
+	if ((pos < 0) || (pos >= MAX_RECTCHORD))
+	{
+		prevNrChord = nrChord;
+		return false;
+	}
 
 	if (prevRectPos.GetWidth() > 0)
 	{

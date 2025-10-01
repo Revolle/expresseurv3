@@ -131,7 +131,8 @@ int textscore::scanPosition()
 
 	int chordStart, chordEnd, nrChord;
 	bool userModification = this->IsModified();
-	basslua_call(moduleChord, functionChordGetPosition, ">iii", &chordStart, &chordEnd, &nrChord);
+	if ( ! basslua_call(moduleChord, functionChordGetPosition, ">iii", &chordStart, &chordEnd, &nrChord) )
+		return -1 ;
 	if (nrChord >= 0)
 	{
 		if ((chordStart != oldchordStart) || (chordEnd != oldchordEnd))
@@ -144,7 +145,8 @@ int textscore::scanPosition()
 			oldchordEnd = chordEnd;
 			wxString spos ;
 			char part[256] , section[256], chord[256];
-			basslua_call(moduleChord, "getTextPosition", ">sss", &part, &section, &chord);
+			if (!basslua_call(moduleChord, "getTextPosition", ">sss", &part, &section, &chord))
+				return -1;
 			spos.Printf("%s/%s/%s",part,section,chord);
 			((wxFrame *)mParent)->SetStatusText(spos, 0);
 		}
