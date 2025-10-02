@@ -686,7 +686,7 @@ static int LdmxSet(lua_State* L)
 	// set dmx values
 	// optional param 1 : tenuto value in the time (0..256). 256==direct 0,  0==no decrease, default 256
 	// optional param 2 : ramping value in the time (0..256). 256==direct value,  0==slow ramping, default 256
-	// optional param 3 : string of hook track nr, comma separated , default : no change
+	// optional param 3 : string of hook track nr, comma separated , 1... , default : no change
 	// optional param 4 : string of mapping MIDI-pitch (comma separated) to DMX-channel, default : no change
 
 	lock_mutex_out();
@@ -702,7 +702,7 @@ static int LdmxSet(lua_State* L)
 		g_dmx_nb_track = 0;
 		while (pt != NULL)
 		{
-			g_dmx_track[g_dmx_nb_track] = atoi(pt);
+			g_dmx_track[g_dmx_nb_track] = cap(atoi(pt), 0, MAXTRACK , 1) ;
 			g_dmx_nb_track++;
 			pt = strtok(NULL, ",");
 		}
@@ -713,7 +713,7 @@ static int LdmxSet(lua_State* L)
 		g_dmx_nb_midi_map = 0;
 		while (pt != NULL)
 		{
-			g_dmx_midi_map[g_dmx_nb_midi_map] = atoi(pt);
+			g_dmx_midi_map[g_dmx_nb_midi_map] = cap(atoi(pt), 0, DMX_CH_MAX, 0 );
 			g_dmx_nb_midi_map++;
 			pt = strtok(NULL, ",");
 		}
