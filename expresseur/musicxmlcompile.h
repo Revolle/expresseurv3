@@ -338,7 +338,8 @@ private:
 	void buildMeasures();
 	void buildBars();
 	void compilePlayedScore();
-	void deleteBarLabel(c_measure *newMeasure);
+	void deleteBarLabel(c_measure* newMeasure);
+	void sortLyric(c_measure* newMeasure , int nrrepeat);
 	void addExpresseurPart();
 	void compileExpresseurPart();
 	void addNote(std::vector<c_measure>::iterator measure, bool after_measure , int from_t, int to_t, bool rest, bool tie_back, bool tie_next, bool *first_note , int * nrExpresseurNote, int nbOrnaments , wxString *text, bool *staccato, bool *fermata , bool *breath_mark , bool ternaire, bool cross, int* ituplet);

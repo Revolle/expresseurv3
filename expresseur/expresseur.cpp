@@ -310,7 +310,7 @@ bool MyApp::OnInit()
 	wxImage::AddHandler(new wxXPMHandler);
 
     // Create the main frame window
-	frame = new Expresseur(NULL, wxID_ANY, APP_NAME, wxPoint(0, 0), wxSize(500, 400), wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxRESIZE_BORDER | wxSYSTEM_MENU | wxCAPTION | wxCLOSE_BOX | wxCLIP_CHILDREN);
+	frame = new Expresseur(NULL, wxID_ANY, APP_NAME, wxPoint(30, 30), wxSize(500, 400), wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxRESIZE_BORDER | wxSYSTEM_MENU | wxCAPTION | wxCLOSE_BOX | wxCLIP_CHILDREN);
 
 	// Give it an icon (this is ignored in MDI mode: uses resources)
 #ifdef RUN_WIN

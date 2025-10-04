@@ -2824,13 +2824,46 @@ void musicxmlcompile::addExpresseurPart()
 	compiled_score->part_list.score_parts.push_back(c_score_part(ExpresseurId, PART_EXPRESSEUR_LONG, PART_EXPRESSEUR_SHORT));
 	compiled_score->parts.push_back(c_part(ExpresseurId));
 }
-void musicxmlcompile::deleteBarLabel(c_measure *mmeasure)
+void musicxmlcompile::sortLyric(c_measure* mmeasure, int nrrepeat )
+{
+	// rearrange lyrics for the repeatition required
+	for (auto& current_measure_sequence : mmeasure->measure_sequences)
+	{
+		if (current_measure_sequence.note.used)
+		{
+			int min_nr = 999;
+			int max_nr = 0;
+			for (auto& current_lyric : current_measure_sequence.note.lyrics)
+			{
+				if (current_lyric.number == NULL_INT)
+					current_lyric.number = 1;
+				if (current_lyric.number > max_nr)
+					max_nr = current_lyric.number;
+				if (current_lyric.number < min_nr)
+					min_nr = current_lyric.number;
+			}
+			int macth_nr = (nrrepeat - 1) % (max_nr - min_nr + 1) + min_nr ;
+			bool tobeused = true;
+			for (auto& current_lyric : current_measure_sequence.note.lyrics)
+			{
+				if ((current_lyric.number) == macth_nr)
+				{
+					current_lyric.used = tobeused;
+					current_lyric.number = 1; // renumber to 1
+					tobeused = false;
+				}
+				else
+					current_lyric.used = false;
+			}
+		}
+	}
+}
+void musicxmlcompile::deleteBarLabel(c_measure * mmeasure)
 {
 
 	// delete double-bars,and label
 	for (auto & current_measure_sequence : mmeasure->measure_sequences)
 	{
-		//c_measure_sequence *current_measure_sequence = *iter_measure_sequence;
 		current_measure_sequence.tobedeleted = false;
 		{
 		if (current_measure_sequence.barline.used)
@@ -3018,6 +3051,9 @@ void musicxmlcompile::buildMeasures()
 			c_measure newMeasure (measure);
 			(measure.repeat)++;
 
+			// rearrange lyrics according to reetitions
+			sortLyric(&newMeasure, measure.repeat);
+
 			deleteBarLabel(&newMeasure);
 
 			if (barlineTodo)
@@ -3140,12 +3176,6 @@ void musicxmlcompile::compileExpresseurPart()
 		musicxmlevent_from->nrExpresseurNote = nrExpresseurNote; // to have a sequential marker for the list of Expresseur notes
 		int from_start_measureNr = musicxmlevent_from->start_measureNr;
 
-		//// DEBUG
-		if (from_start_measureNr == 62)
-		{
-			int h;
-			h = 0;
-		}
 		int from_stop_measureNr = musicxmlevent_from->stop_measureNr;
 		int from_startT = musicxmlevent_from->start_t;
 		int from_stopT = musicxmlevent_from->stop_t;
