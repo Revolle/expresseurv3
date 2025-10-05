@@ -739,20 +739,26 @@ c_lyric::c_lyric(wxXmlNode *xmlnode) // : c_default_xy(xmlnode)
 void c_lyric::write(wxFFile *f)
 {
 	if (!used) return;
+	// workaround bug musc2xml.py from lilypond for "hyphens"
 	f->Write(wxString::Format("<lyric "));
 	// write_xy(f);
 	if (number != NULL_INT)
 		f->Write(wxString::Format(" number=\"%d\" ", number));
-	if (placement != NULL_STRING)
-		f->Write(wxString::Format(" placement=\"%s\" ", placement));
-	if (name != NULL_STRING)
-		f->Write(wxString::Format(" name=\"%s\" ", name));
+	//if (placement != NULL_STRING)
+	//	f->Write(wxString::Format(" placement=\"%s\" ", placement));
+	//if (name != NULL_STRING)
+	//	f->Write(wxString::Format(" name=\"%s\" ", name));
 	f->Write(wxString::Format(">\n"));
-	if (syllabic != NULL_STRING)
-		f->Write(wxString::Format("<syllabic>%s</syllabic>\n", syllabic));
-	if (extend_type != NULL_STRING)
-		f->Write(wxString::Format("<extend type=\"%s\" />\n", extend_type));
-	if (text != NULL_STRING)
+	//if (syllabic != NULL_STRING)
+	//	f->Write(wxString::Format("<syllabic>%s</syllabic>\n", syllabic));
+	//if (extend_type != NULL_STRING)
+	//	f->Write(wxString::Format("<extend type=\"%s\" />\n", extend_type));
+	//if (text != NULL_STRING)
+	//	f->Write(wxString::Format("<text>%s</text>\n", encodeXML(text)));
+	f->Write(wxString::Format("<syllabic>single</syllabic>\n"));
+	if (text.IsEmpty())
+		f->Write(wxString::Format("<text>%s</text>\n", encodeXML("-")));
+	else
 		f->Write(wxString::Format("<text>%s</text>\n", encodeXML(text)));
 	f->Write(wxString::Format("</lyric>\n"));
 }
