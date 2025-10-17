@@ -1064,7 +1064,7 @@ void musicxmlcompile::sortMeasureMarks()
 	{
 		if (measureMark.number == prev_number)
 		{
-			if (measureMark.rehearsal != NULL)
+			if (measureMark.rehearsal )
 			{
 				measureMark.merge(*prev_measureMark);
 				prev_measureMark->toBeDeleted = true;
@@ -1756,7 +1756,7 @@ void musicxmlcompile::compileTie(const c_part & part, const c_note & note, int *
 		*t = 0;
 		(*measureNr)++;
 	}
-	if ((! note.tie.used == NULL) || (note.tie.start == false))
+	if ((! note.tie.used == false) || (note.tie.start == false))
 		return;
 	// scan a note which can be tied to current note
 	for (auto & current_measure : part.measures )

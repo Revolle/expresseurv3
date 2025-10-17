@@ -13,7 +13,7 @@ LILYPOND := lilypond-2.25.29
 
 ifeq ($(PLATFORM),Darwin)
 	  
-    WX_CONFIG =../wxWidgets/build64/wx-config
+    WX_CONFIG =/Users/revolle/wxWidgets/build64/wx-config
 
     CXXFLAGS := $(CXXFLAGS) -mmacosx-version-min=10.15 -D__MACOSX_CORE__
     LDFLAGS := $(LDFLAGS) -mmacosx-version-min=10.15
@@ -27,7 +27,7 @@ ifeq ($(PLATFORM),Darwin)
     SHAREDLIB_LDFLAGS := $(LDFLAGS) -undefined dynamic_lookup 
 
 		DIRPLATFORM := osx
-		LUADIR := $(DIRPLATFORM)/lua/src
+		LUADIR := ../lua/src
 		RTMIDIDIR := ../rtmidi
 		BASSDIR := $(DIRPLATFORM)/bass
 		SERIALDIR := $(DIRPLATFORM)/libserial
@@ -117,7 +117,7 @@ $(EXPRESSEURAPP): $(EXPRESSEUR) $(LUA_OBJECTS) expresseur/Info.plist
 	-mkdir -p $(EXPRESSEURCONTENT)/ressources
 	cp expresseur/AppIcon.icns $(EXPRESSEURRESOURCES)
 	cp expresseur/Info.plist $@/Contents
-	cp $(EXPRESSEUR) $(LIBLUABASS) $(LIBBASSLUA) $(BASSDIR)/*.dylib $(LUADIR)/liblua.a $(LUA_OBJECTS) $(EXPRESSEURCONTENT)
+	cp $(EXPRESSEUR) $(LIBLUABASS) $(LIBBASSLUA) $(BASSDIR)/*.dylib $(LUADIR)/liblua.a $(LUA_OBJECTS) $(SERIALDIR)/*.dylib $(EXPRESSEURCONTENT)
 	-mkdir -p $(EXPRESSEURCONTENT)/arm64
 	tar -xf $(LILYPOND_ARM64_TAR) -C $(EXPRESSEURCONTENT)/arm64/
 	mv $(EXPRESSEURCONTENT)/arm64/$(LILYPOND) $(EXPRESSEURCONTENT)/arm64/lilypond
@@ -126,6 +126,8 @@ $(EXPRESSEURAPP): $(EXPRESSEUR) $(LUA_OBJECTS) expresseur/Info.plist
 	mv $(EXPRESSEURCONTENT)/x86_64/$(LILYPOND) $(EXPRESSEURCONTENT)/x86_64/lilypond
 	cp ressources/*.* $(EXPRESSEURCONTENT)/ressources
 	cp example/*.* $(EXPRESSEURCONTENT)/example
+	install_name_tool -change /usr/local/lib/libserialport.0.dylib @loader_path/libserialport.dylib luabass.so
+	install_name_tool -change /usr/local/lib/libserialport.0.dylib @loader_path/libserialport.dylib libbasslua.dylib
 	install_name_tool -change @rpath/libbass.dylib @loader_path/libbass.dylib $(EXPRESSEURCONTENT)/luabass.so
 	install_name_tool -change @rpath/libbassmidi.dylib @loader_path/libbassmidi.dylib $(EXPRESSEURCONTENT)/luabass.so
 	install_name_tool -change @rpath/libbassmix.dylib @loader_path/libbassmix.dylib $(EXPRESSEURCONTENT)/luabass.so
@@ -134,7 +136,6 @@ $(EXPRESSEURAPP): $(EXPRESSEUR) $(LUA_OBJECTS) expresseur/Info.plist
 	install_name_tool -change @rpath/libbassmix.dylib @loader_path/libbassmix.dylib $(EXPRESSEURCONTENT)/libbasslua.dylib
 	install_name_tool -change basslua/libbasslua.dylib @loader_path/libbasslua.dylib $(EXPRESSEURCONTENT)/expresseur
 	cp lua/*.* $(EXPRESSEURCONTENT)
-	rm -f ~/Documents/ExpresseurV3/ressources/*.txt
 	
 $(EXPRESSCMDEXE) : $(EXPRESSCMD)
 	-mkdir -p $(EXPRESSEURCONTENT)
@@ -163,7 +164,6 @@ $(EXPRESSEURAPP): $(EXPRESSEUR) $(LUA_OBJECTS)
 	cp example/*.* $(EXPRESSEURCONTENT)/example
 	cp lua/*.* $(EXPRESSEURCONTENT)
 	cp expresseur/*.ico $(EXPRESSEURCONTENT)
-	rm -f ~/Documents/ExpresseurV3/ressources/*.txt
 	
 $(EXPRESSCMDEXE) : $(EXPRESSCMD)
 	-mkdir -p $(EXPRESSEURCONTENT)/basslua
