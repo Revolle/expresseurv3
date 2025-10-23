@@ -15,6 +15,8 @@
 class c_measureMark
 {
 public:
+	c_measureMark() = default;
+	c_measureMark(const c_measureMark& measureMark) = default;
 	c_measureMark(int inr) { number = inr; name.sprintf("M%d", inr); }
 	void changeMeasure(int inr) { number = inr; name.sprintf("M%d", inr); }
 	void merge(const c_measureMark &m) 
@@ -53,6 +55,8 @@ public:
 class c_ornament
 {
 public:
+	c_ornament() = default;
+	c_ornament(const c_ornament& ornament) = default;
 	c_ornament(int itype, int imeasureNumber, int it, int ipartNr, int istaffNr, int irepeat , bool ibefore , wxString ivalue )
 	{
 		type = itype;
@@ -89,7 +93,9 @@ class c_musicxmlevent
 public:
 	c_musicxmlevent()
 	{
-	}
+		uid = next_uid++;
+	} ;
+	c_musicxmlevent(const c_musicxmlevent& musicxmlevent) = default;
 	/*
 	c_musicxmlevent(const c_musicxmlevent &musicxmlevent)
 	{
@@ -129,6 +135,7 @@ public:
 		int ipitch, int idivision_measure, int idivision_beat, int idivision_quarter, 
 		int irepeat, int iorder, int ififths)
 	{
+		uid = next_uid++;
 		partNr = ipartNr;
 		staffNr = istaffNr;
 		voice = ivoice;
@@ -147,6 +154,10 @@ public:
 		fifths = ififths;
 		nrExpresseurNote = -1;
 	}
+
+	int uid; // unique id 
+	static int next_uid;
+
 	int nr = 0; // index sorted with start_* as key
 	int nextNr = 0; // next element just which starts after the stop ;
 
@@ -213,17 +224,21 @@ public:
 class c_arpeggiate_toapply
 {
 public:
-	c_arpeggiate_toapply(int inr, bool idown, bool ibefore, c_musicxmlevent *imusicxmlevent)
+	c_arpeggiate_toapply() = default;
+	c_arpeggiate_toapply(const c_arpeggiate_toapply& arpeggiate_toapply) = default;
+	c_arpeggiate_toapply(int inr, bool idown, bool ibefore, int imusicxmlevent_uid , int ipitch)
 	{
 		nr = inr;
 		down = idown;
 		before = ibefore;
-		musicxmlevent = imusicxmlevent;
+		musicxmlevent_uid = imusicxmlevent_uid ;
+		pitch = ipitch;
 	}
 	int nr;
-	bool down;
-	bool before;
-	c_musicxmlevent *musicxmlevent;
+	bool down = false;
+	bool before = false;
+	int pitch = 0;
+	int musicxmlevent_uid;
 };
 
 // class to have a list of pedal_bar
@@ -231,6 +246,8 @@ public:
 class c_pedal_bar_toapply
 {
 public:
+	c_pedal_bar_toapply() = default;
+	c_pedal_bar_toapply(const c_pedal_bar_toapply& pedal_bar_toappl) = default;
 	c_pedal_bar_toapply(int ivalue, c_musicxmlevent *imusicxmlevent)
 	{
 		value = ivalue;
@@ -244,6 +261,8 @@ public:
 class c_eventPlayback
 {
 public:
+	c_eventPlayback() = default;
+	c_eventPlayback(const c_eventPlayback& eventPlayback) = default;
 	c_eventPlayback(	wxLongLong itime , int inr_device, int itype_msg, int ichannel, int ivalue1, int ivalue2)
 	 { 
 		time=itime ; nr_device=inr_device;  type_msg=itype_msg; channel=ichannel; value1=ivalue1;  value2=ivalue2;
@@ -301,6 +320,7 @@ public:
 	wxString getPlayback();
 
 private:
+	c_musicxmlevent* getmusicxmlevent_uid(int muid);
 	void dump_musicxmlevents();
 	void fillStartStopNext();
 	void compileScore(bool reanalyse);

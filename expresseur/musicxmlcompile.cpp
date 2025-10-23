@@ -116,6 +116,7 @@ char const *ornamentName[] =
 	"flagend"
 };
 
+int c_musicxmlevent::next_uid = 0;
 
 
 static bool musicXmlEventsCompareStart(const c_musicxmlevent& a, const c_musicxmlevent& b)
@@ -257,9 +258,9 @@ static bool arpeggiateCompare(const c_arpeggiate_toapply& a, const c_arpeggiate_
 		return true;
 	if (a.nr > b.nr)
 		return false;
-	if (a.musicxmlevent->pitch < b.musicxmlevent->pitch)
+	if (a.pitch < b.pitch)
 		return ((a.down && !(a.before)) || (!(a.down) && a.before) ? false : true);
-	if (a.musicxmlevent->pitch > b.musicxmlevent->pitch)
+	if (a.pitch > b.pitch)
 		return ((a.down && !(a.before)) || (!(a.down) && a.before) ? true : false);
 	return false;
 }
@@ -368,6 +369,8 @@ void musicxmlcompile::dump_musicxmlevents()
 musicxmlcompile::musicxmlcompile()
 {
 	// slMusicxmlevents = new SortedArrayOfMusicxmlevents(ComparemusicXmlEvents);
+	c_musicxmlevent::next_uid = 0;
+
 	score = NULL;
 	compiled_score = NULL;
 	lMusicxmlevents.clear();
@@ -1933,6 +1936,15 @@ void musicxmlcompile::compileTransposition()
 		musicxmlevent.pitch += pTransposition[musicxmlevent.partNr];
 	}
 }
+c_musicxmlevent* musicxmlcompile::getmusicxmlevent_uid(int muid)
+{
+	for (auto& m : lMusicxmlevents)
+	{
+		if (m.uid == muid)
+			return &m;
+	}
+	return NULL;
+}
 void musicxmlcompile::compileArppegio()
 {
 	// proccess pending arpegiatte
@@ -1941,13 +1953,17 @@ void musicxmlcompile::compileArppegio()
 	std::sort(lArpeggiate_toapply.begin() , lArpeggiate_toapply.end() , arpeggiateCompare);
 	int dt = 0;
 	int pnr = -1;
-	for (auto & arpeggiate_toapply : lArpeggiate_toapply ) // .begin(), iter_arpeggiate_toapply++; iter_arpeggiate_toapply != lArpeggiate_toapply.end(); ++iter_arpeggiate_toapply)
+	for (auto & arpeggiate_toapply : lArpeggiate_toapply ) 
 	{
 		if (arpeggiate_toapply.nr == pnr)
 		{
 			dt += (arpeggiate_toapply.before) ? -1 : 1;
-			arpeggiate_toapply.musicxmlevent->start_order = dt;
-			arpeggiate_toapply.musicxmlevent->visible = false;
+			c_musicxmlevent* m_musicxmlevent = getmusicxmlevent_uid(arpeggiate_toapply.musicxmlevent_uid);
+			if (m_musicxmlevent)
+			{
+				m_musicxmlevent->start_order = dt;
+				m_musicxmlevent->visible = false;
+			}
 		}
 		else
 		{
@@ -2311,7 +2327,7 @@ void musicxmlcompile::addOrnament(c_ornament *ornament, c_musicxmlevent *musicxm
 		break;
 	}
 	case o_arpeggiate:
-		lArpeggiate_toapply.push_back(c_arpeggiate_toapply(100 * musicxmlevent->repeat + nr_ornament, (ornament->value == "down"), ornament->before, musicxmlevent));
+		lArpeggiate_toapply.push_back(c_arpeggiate_toapply(100 * musicxmlevent->repeat + nr_ornament, (ornament->value == "down"), ornament->before, musicxmlevent->uid , musicxmlevent->pitch));
 		break;
 	case o_dynamic:
 	{
