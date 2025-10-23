@@ -95,7 +95,6 @@ public:
 
 	void OnAbout(wxCommandEvent& WXUNUSED(event));
 	void OnHelp(wxCommandEvent& WXUNUSED(event));
-	void OnUpdate(wxCommandEvent& WXUNUSED(event));
 	void OnResetConfiguration(wxCommandEvent& WXUNUSED(event));
 
 	//void OnActivate(wxActivateEvent& event);
@@ -149,7 +148,7 @@ private:
 	void FileOpen(bool all = false);
 	void FileSave();
 	void setWindowsTitle();
-	void checkUpdate(bool interactive = false);
+	void checkUpdate();
 
 	// management of the file list
 	void ListClearMenu();

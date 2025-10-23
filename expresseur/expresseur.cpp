@@ -52,6 +52,7 @@
 #include "wx/stopwatch.h"
 #include "wx/tokenzr.h"
 #include "wx/kbdstate.h"
+#include "wx/webrequest.h"
 
 #include "version.h"
 #include "global.h"
@@ -168,7 +169,6 @@ enum
 	ID_MAIN_RESET,
 	ID_MAIN_LOG,
 	ID_MAIN_MIDILOG,
-	ID_MAIN_UPDATE,
 	ID_MAIN_FIRSTUSE,
 	ID_MAIN_RECORD_PLAYBACK,
 	ID_MAIN_SAVE_PLAYBACK,
@@ -276,7 +276,6 @@ EVT_MENU(ID_MAIN_PLAYBACK, Expresseur::OnPlayback)
 
 EVT_MENU(wxID_ABOUT, Expresseur::OnAbout)
 EVT_MENU(wxID_HELP, Expresseur::OnHelp)
-EVT_MENU(ID_MAIN_UPDATE, Expresseur::OnUpdate)
 EVT_MENU(ID_MAIN_FIRSTUSE, Expresseur::OnResetConfiguration)
 
 EVT_COMMAND_SCROLL_THUMBRELEASE(ID_MAIN_SCROLL_HORIZONTAL, Expresseur::OnHorizontalScroll)
@@ -500,7 +499,6 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 	helpMenu->Append(wxID_HELP, "help");
 	helpMenu->Append(wxID_ABOUT, "About");
 	//helpMenu->Append(ID_MAIN_TEST, "test");
-	helpMenu->Append(ID_MAIN_UPDATE, "Check update", "check if an update is available on the www.expresseur.com web site");
 
     mMenuBar = new wxMenuBar( wxMB_DOCKABLE );
 
@@ -558,9 +556,6 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 }
 Expresseur::~Expresseur()
 {
-
-	checkUpdate();
-
 	musicxmlscore::cleanCache(configGet(CONFIG_DAYCACHE, 15));
 	
 	if ( fileHistory)
@@ -1427,6 +1422,8 @@ void Expresseur::OnExit(wxCommandEvent& WXUNUSED(event))
 			wxICON_QUESTION | wxYES_NO, this) == wxNO)
 			return;
 	}
+	checkUpdate();
+
 	Close(true);
 }
 void Expresseur::OnUndo(wxCommandEvent& WXUNUSED(event)) 
@@ -3218,88 +3215,63 @@ int Expresseur::setAudioDefault()
 	}
 	return nrDevice;
 }
-void Expresseur::OnUpdate(wxCommandEvent& WXUNUSED(event))
+void Expresseur::checkUpdate()
 {
-	checkUpdate(true);;
-}
-void Expresseur::checkUpdate(bool interactive)
-{
-	wxHTTP get;
-	wxInputStream *httpStream ;
+	// Create the request object
+	wxWebRequest request = wxWebSession::GetDefault().CreateRequest(this,"https://www.expresseur.com/version.txt");
+	request.SetStorage(wxWebRequest::Storage_Memory);
+	if (!request.IsOk()) 
+		return;
+	request.Start();
+	int loopwait = 0;
+	wxString sversion;
+	wxWebResponse iresponse;  
+	long lversion;
+	int vo = 0;
+	wxString mes;
+	while (loopwait < 3)
 	{
-		wxBusyCursor wait;
-
-		get.SetHeader(_T("Content-type"), _T("text/html; charset=utf-8"));
-		get.SetTimeout(2);
-
-		// this will wait until the user connects to the internet. It is important in case of dialup (or ADSL) connections
-		if (!get.Connect(_T("https://www.expresseur.com")))
+		switch (request.GetState()) 
 		{
-			get.Close();
-			return;// only the server, no pages here yet ...
-		}
-
-		wxApp::IsMainLoopRunning(); // should return true
-
-		// use _T("/") for index.html, index.php, default.asp, etc.
-		httpStream = get.GetInputStream(_T("/update/"));
-
-		// wxLogVerbose( wxString(_T(" GetInputStream: ")) << get.GetResponse() << _T("-") << ((resStream)? _T("OK ") : _T("FAILURE ")) << get.GetError() );
-	}
-
-	if (get.GetError() == wxPROTO_NOERR)
-	{
-		wxString res;
-		wxStringOutputStream out_stream(&res);
-		httpStream->Read(out_stream);
-
-		int pos = res.Find("Version#");
-		if (pos != wxNOT_FOUND)
-		{
-			pos += 10;
-			int epos = pos ;
-			while ((res[epos] >= '0') && (res[epos] <= '9') && (epos < (pos + 10)))
-				epos++;
-			wxString sv = res.Mid(pos,epos - pos);
-			long l;
-			if (sv.ToLong(&l))
+		case wxWebRequest::State_Completed:
+			iresponse = request.GetResponse();
+			if (!iresponse.IsOk())
 			{
-				int vo = 0;
-				vo = configGet(CONFIG_VERSION_CHECKED, VERSION_EXPRESSEUR);
-				configSet(CONFIG_VERSION_CHECKED, l);
-				if (l > vo)
-				{
-					wxString mes;
-					mes.Printf("New version 3.%d available. Go to the web-page ?", l);
-					if (wxMessageBox(mes, "update", wxYES_NO) == wxYES)
-					{
-						wxDELETE(httpStream);
-						get.Close();
-						wxLaunchDefaultBrowser("https://www.expresseur.com/update/");
-						return;
-					}
-				}
-				else
-				{
-					if ( interactive )
-						wxMessageBox("this version is up to date");
-				}
+				request.Cancel();
+				return;
 			}
-		}
-		else
-		{
-			if ( interactive )
-				wxMessageBox("error : no version available on www.expresseur.com/update/");
+			sversion = iresponse.AsString();
+			sversion.Trim();
+			if (!sversion.ToLong(&lversion))
+			{
+				request.Cancel();
+				return;
+			}
+			vo = configGet(CONFIG_VERSION_CHECKED, VERSION_EXPRESSEUR);
+			configSet(CONFIG_VERSION_CHECKED, (int)(lversion));
+			if (lversion <= vo)
+			{
+				request.Cancel();
+				return;
+			}
+			mes.Printf("New version 3.%d available. Go to the web-page ?", lversion);
+			if (wxMessageBox(mes, "update", wxYES_NO) == wxYES)
+			{
+				wxLaunchDefaultBrowser("https://www.expresseur.com/en/download/");
+			}
+			request.Cancel();
+			return;
+		case wxWebRequest::State_Failed: 
+			request.Cancel();
+			return;
+		case wxWebRequest::State_Unauthorized:
+			request.Cancel();
+			return;
+		default :
+			loopwait++;
+			wxSleep(1);
 		}
 	}
-	else
-	{
-		if ( interactive )
-		wxMessageBox("www.expresseur.com not acessible");
-	}
-	wxDELETE(httpStream);
-	get.Close();
-
 }
 
 void Expresseur::OnResetConfiguration(wxCommandEvent& WXUNUSED(event))
