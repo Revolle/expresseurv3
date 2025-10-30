@@ -126,8 +126,8 @@ $(EXPRESSEURAPP): $(EXPRESSEUR) $(LUA_OBJECTS) expresseur/Info.plist
 	mv $(EXPRESSEURCONTENT)/x86_64/$(LILYPOND) $(EXPRESSEURCONTENT)/x86_64/lilypond
 	cp ressources/*.* $(EXPRESSEURCONTENT)/ressources
 	cp example/*.* $(EXPRESSEURCONTENT)/example
-	install_name_tool -change /usr/local/lib/libserialport.0.dylib @loader_path/libserialport.dylib luabass.so
-	install_name_tool -change /usr/local/lib/libserialport.0.dylib @loader_path/libserialport.dylib libbasslua.dylib
+	install_name_tool -change /usr/local/lib/libserialport.0.dylib @loader_path/libserialport.dylib $(EXPRESSEURCONTENT)/luabass.so
+	install_name_tool -change /usr/local/lib/libserialport.0.dylib @loader_path/libserialport.dylib $(EXPRESSEURCONTENT)/libbasslua.dylib
 	install_name_tool -change @rpath/libbass.dylib @loader_path/libbass.dylib $(EXPRESSEURCONTENT)/luabass.so
 	install_name_tool -change @rpath/libbassmidi.dylib @loader_path/libbassmidi.dylib $(EXPRESSEURCONTENT)/luabass.so
 	install_name_tool -change @rpath/libbassmix.dylib @loader_path/libbassmix.dylib $(EXPRESSEURCONTENT)/luabass.so
