@@ -10,7 +10,7 @@ A
 PARTS :
 P1_chant:played/visible
 P2_Alto:played/visible
-P3_Tnor:played/visible
+P3_Tenor:played/visible
 P4_Bass:played/visible
 
 ORNAMENTS :
