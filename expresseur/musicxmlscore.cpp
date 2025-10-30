@@ -475,6 +475,8 @@ bool musicxmlscore::getScorePosition(int *absolute_measure_nr, int *measure_nr, 
 }
 bool musicxmlscore::drawPage(int pageNr, bool turnPage)
 {
+	if (( pageNr < 0 ) || (pageNr >= totalPages))
+		return false;
 	//mlog_in("drawPage %d sec/ pageNr=%d / turnPage=%d", wxGetLocalTimeMillis().GetValue() ,  pageNr, turnPage);
 	//prevRectPos.SetWidth(0);
 	scoreBitmap.Create(sizePage.GetWidth(), sizePage.GetHeight());
@@ -587,6 +589,11 @@ bool musicxmlscore::setPage(int pageNr, bool turnPage, bool redraw)
 bool musicxmlscore::setCursor(int pos,bool playing, bool redraw )
 {
 	wxRect rectPos ;
+	// nbSetPosition ++ ;
+	int absolute_measure_nr, measure_nr, repeat, beat, t, uid;
+
+	bool end_score = xmlCompile->getScorePosition(pos, &absolute_measure_nr, &measure_nr, &repeat, &beat, &t, &uid);
+
 	int nr_ornament = 0;
 
 	// get the pagenr adn misc info
@@ -617,18 +624,15 @@ bool musicxmlscore::setCursor(int pos,bool playing, bool redraw )
 			prevNrOrnament = false;
 		}
 	}
-
-	setPage( pageNr , turnPage , redraw );
+	if ( !end_score)
+		setPage( pageNr , turnPage , redraw );
 	
-	// nbSetPosition ++ ;
-	int absolute_measure_nr, measure_nr, repeat, beat, t , uid;
-	bool end_score = xmlCompile->getScorePosition(pos, &absolute_measure_nr, &measure_nr, &repeat, &beat, &t, &uid);
 	if (absolute_measure_nr != prev_absolute_measure_nr)
 	{
 		prev_absolute_measure_nr = absolute_measure_nr;
 		wxString spos;
 		if (end_score)
-			spos = "end";
+			spos = "Fine";
 		else
 		{
 			switch (repeat)
