@@ -1,3 +1,9 @@
+/*
+MIDI keyboard
+Optical sensors : MIDI-velocity depends on light-sensor decresaing/increasing
+Mechanical sensor : pullu-up buttons to do different actions
+MIDI-thru USB => serail-midi 
+*/
 #include <EEPROM.h>
 #include <ADC.h>
 #include <ADC_util.h>
@@ -10,14 +16,15 @@
 #define PINLED 13
 
 // optical button
-#define opticalNb 3      // nb optical button
-#define SLOPEMIN 0.0001  // slope for minimum velocity
-#define SLOPEMAX 0.025   // slope for maximum velocity
+#define opticalNb 2      // nb optical button
+#define opticalIncrease true // true if the sensor value increases while pressng the optical button (else false)
 struct T_optical {
   uint8_t nr;                                  // incremntal number of the optical button
   uint8_t pin;                                 // analog pin to read ( 3.1V max )
   uint8_t v;                                   // value of the analog read 8 bits
-  uint8_t triggerMin, triggerMax;              // min max of the trigger applied on v
+  uint8_t v_off, v_on;                        // min max of analog read v
+  uint8_t v_trigger_off, v_trigger_on;        // min max of the trigger applied on v
+  float slope_min, slope_max ;                 // min max of the slope
   unsigned long int ftv;                       // time of the analog convertion
   unsigned long int ftv0;                      // time of the beginning of the press
   float sumt, sumv, sumtv, sumt2, fnb, slope;  // linear regression for the slope
@@ -25,7 +32,7 @@ struct T_optical {
   uint8_t pitch;                               // pitch sent on midiOn
 };
 T_optical optical[opticalNb];                    // optical buttons
-uint8_t opticalPin[opticalNb] = { A4, A3, A2 };  // analog pins for the optical button
+uint8_t opticalPin[opticalNb] = { A3, A2 };  // analog pins for the optical button
 void opticalAdcPreset(T_optical *o);
 elapsedMicros opticalSince;  // timer to measure the slope
 float veloMin = 10.0;        // velocity minimum ( velocity maximum = 128 - veloMin) : :  can be changed by CTRL-CHG-2-value[0.127]
@@ -435,9 +442,7 @@ void opticalAdcPreset(T_optical *o) {
   adcState = adcOptical + o->nr;
 }
 void opticalAdcRead(T_optical *o) {
-
   bool err = false;
-
   // control status of adc
   if (adcState != (adcOptical + o->nr)) {
     err = true;
@@ -495,34 +500,34 @@ void opticalInit() {
     o->pin = opticalPin[nr];
     pinMode(o->pin, INPUT_DISABLE);  // ?
     o->state = 0;
-    o->triggerMax = 255;
+    o->v_trigger_on = 255;
   }
   opticalAdcPreset(optical);
   for (n = 0; n < 5000; n++) {
     for (nr = 0, o = optical, modulo2 = true; nr < opticalNb; nr++, o++, modulo2 = !modulo2) {
       if (modulo2)
         opticalAdcRead(o);  // read adc0 and adc1, and prepare next ones. Unsigned 8 bits [0..2^8]
-      if (o->v < o->triggerMax)
-        o->triggerMax = o->v;
+      if (o->v < o->v_trigger_on)
+        o->v_trigger_on = o->v;
     }
   }
   for (nr = 0, o = optical; nr < opticalNb; nr++, o++) {
-    if (o->triggerMax > 254) {
+    if (o->v_trigger_on > 254) {
       // saturation electrique potentiellement dangereuse sur l'entree ADC
 #ifdef DEBUGMODE
       prtln("Saturation opticalAdc !!");
 #endif
       ledAlert();
     }
-    o->triggerMax = 80 * o->triggerMax / 100;
-    o->triggerMin = 20 * o->triggerMax / 100;
+    o->v_trigger_on = 80 * o->v_trigger_on / 100;
+    o->v_trigger_off = 20 * o->v_trigger_on / 100;
 #ifdef DEBUGMODE
     prt("trigger[");
     prt(nr);
     prt("] : ");
-    prt(o->triggerMin);
+    prt(o->v_trigger_off);
     prt(" .. ");
-    prtln(o->triggerMax);
+    prtln(o->v_trigger_on);
 #endif
   }
   // prepare to read the two first optical sensors
@@ -601,7 +606,7 @@ bool opticalProcess() {
 
     switch (o->state) {
       case 0:
-        if (o->v < o->triggerMax) {
+        if (o->v < o->v_trigger_on) {
           allOff = false;
           o->state++;
           o->ftv0 = o->ftv;
@@ -617,7 +622,7 @@ bool opticalProcess() {
         break;
       case 1:
         opticalMeasure = true;
-        if (o->v < o->triggerMin) {
+        if (o->v < o->v_trigger_off) {
           o->state++;
           // linear regression ended
           float d = o->fnb * o->sumt2 - o->sumv * o->sumv;
@@ -626,7 +631,7 @@ bool opticalProcess() {
           o->ftv0 = opticalSince;
           break;
         }
-        if (o->v > o->triggerMax) {
+        if (o->v > o->v_trigger_on) {
           // bad alert
           o->state = 0;
           break;
@@ -644,7 +649,7 @@ bool opticalProcess() {
           o->state++;
         break;
       case 3:
-        if (o->v > o->triggerMax) {
+        if (o->v > o->v_trigger_on) {
           o->state++;
           opticalMsgOff(o);
           o->ftv0 = o->ftv;
