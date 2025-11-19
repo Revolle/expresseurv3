@@ -17,13 +17,18 @@ MIDI-thru USB => serail-midi
 
 // optical button
 #define opticalNb 2      // nb optical button
-#define opticalIncrease true // true if the sensor value increases while pressng the optical button (else false)
+#define ADC_RESOLUION 8 // bits
+#define ADC_MAX 255 // max value delivered by ADC
+#define ADC_GAP_MIN 40 // Min gap between min-max to start the analysis
+#define ADC_TRIGGER_PERCENT 0.2 // limit ofr the riggers over min and max
+#define ADC_POSITIVE true // true if the sensor value increases while pressng the optical button (else false)
+#define ADC_DELAY 100 // ms to debounce states
 struct T_optical {
   uint8_t nr;                                  // incremntal number of the optical button
   uint8_t pin;                                 // analog pin to read ( 3.1V max )
-  uint8_t v;                                   // value of the analog read 8 bits
-  uint8_t v_off, v_on;                        // min max of analog read v
-  uint8_t v_trigger_off, v_trigger_on;        // min max of the trigger applied on v
+  float v;                                     // value of the analog read 8 bits
+  float v_min, v_max;                          // min max of analog read v
+  float v_trigger_min, v_trigger_max;          // min max of the trigger applied on v
   float slope_min, slope_max ;                 // min max of the slope
   unsigned long int ftv;                       // time of the analog convertion
   unsigned long int ftv0;                      // time of the beginning of the press
@@ -42,28 +47,17 @@ float veloMin = 10.0;        // velocity minimum ( velocity maximum = 128 - velo
 float veloCurve = 0.5;  // velocity curve [CURVEMIN..CURVEMAX] :  can be changed by CTRL-CHG-3-value[0.127]
 
 // mechanical button
-#define buttonNb 4  // nb button
+#define buttonNb 1  // nb button
 struct T_button {
-  uint8_t nr;              // incremntal number of the mechanical button
-  uint8_t pin;             // digital pin to read
-  uint8_t state;           // state of the button
-  unsigned long int ftv0;  // time of the beginning of the press
+  uint8_t nr;               // incremntal number of the mechanical button
+  uint8_t pin;              // digital pin to read
+  uint8_t state;            // state of the button
+  unsigned long int ftv0;   // time of the beginning of the press
 };
 T_button button[buttonNb];                      // mechanical buttons
-uint8_t buttonPin[buttonNb] = { 10, 6, 7, 9 };  // digital pin for mechanical buttons
+uint8_t buttonPin[buttonNb] = { 10 };  // digital pin for mechanical buttons
 elapsedMillis buttonSince;                      // timer to measure the states
-#define VMIN 16                                 // volume min
-#define VMAX (128 - VMIN)                       // volume max
-#define VMID (128 / 2)                          // volume medium
-#define VINC 16                                 // increment of the volume by the mechanical buttons 2 3
-int volume = VMID;                              // volume tuned-sent by the two mechanical buttons 2 3
-int volumeOld = volume;                         //mem of the volume in case of shift button 2 & 3
-
-// led
-#define ledNb 2                      // nb led
-uint8_t ledPin[ledNb] = { 14, 15 };  // digital pins for the led
-uint8_t ledChannelOn;                // reminder of the ledChannel which switched on the leds
-uint8_t ledValue, ledFormerValue;    // value of the led bargraph
+int8_t buttonOn = -1 ; // last buttons pressed
 
 uint8_t adcState;  // state of presets in the ADC
 enum ADCSTATE { adcNothing,
@@ -107,7 +101,7 @@ void confWrite() {
 ///////////////
 // On board Led
 ///////////////
-void ledOnboardFlash() {
+void ledOnboardFlash(int v) {
   digitalWrite(PINLED, HIGH);
   sinceOnboardLed = 0;
 }
@@ -124,103 +118,12 @@ void ledOnboardInit() {
   pinMode(PINLED, OUTPUT);
 }
 
-// Led
-//////
-void ledSet(uint8_t v, uint8_t ledChannel) {
-  // Set the status of the led. v [0..127]
-  if (v == 0) {
-    if ((ledChannel != ledChannelOn) || (ledChannel != 0))
-      ledValue = 0;
-    return;
-  }
-  ledValue = v;
-  ledChannelOn = ledChannel;
-}
-void ledShow() {
-  // show the status of the leds with a bargraph for  0,[1..127]
-  if (ledFormerValue == ledValue)
-    return;
-  ledFormerValue = ledValue;
-#ifdef DEBUGMODE
-  prt("led=");
-  prt(ledValue);
-#endif
-  uint8_t nr;
-  if (ledValue == 0) {
-    for (nr = 0; nr < ledNb; nr++)
-      analogWrite(ledPin[nr], 0);
-#ifdef DEBUGMODE
-    prtln(" off");
-#endif
-    return;
-  }
-  float fv = ledValue;
-  float fled;
-  float flim;
-  flim = 127.0 * 2.0 / 3.0;
-  if (fv < flim) {
-    fled = 200.0 * pow((fv - flim) / (127.0 - flim), 2);
-    analogWrite(ledPin[0], fled);
-#ifdef DEBUGMODE
-    prt(" led#0=");
-    prtln((int)fled);
-#endif
-  } else {
-#ifdef DEBUGMODE
-    prt("led#0=off");
-#endif
-    analogWrite(ledPin[0], 0);
-  }
-  flim = 127.0 * 1.0 / 3.0;
-  if (fv > flim) {
-    fled = 255.0 * pow((fv - flim) / (127.0 - flim), 2);
-    analogWrite(ledPin[1], fled);
-#ifdef DEBUGMODE
-    prt(" led#1=");
-    prtln((int)fled);
-#endif
-  } else {
-#ifdef DEBUGMODE
-    prt("led#1=off");
-#endif
-    analogWrite(ledPin[1], 0);
-  }
-}
-void ledAlert() {
-  // all led on
-  for (uint8_t nr = 0; nr < ledNb; nr++)
-    analogWrite(ledPin[nr], 200);
-}
-void ledFlash(uint8_t d) {
-  uint8_t nr;
-  for (nr = 0; nr < 10; nr++) {
-    digitalWrite(PINLED, HIGH);
-    analogWrite(ledPin[1], 0);
-    analogWrite(ledPin[0], 255);
-    delay(d);
-    digitalWrite(PINLED, LOW);
-    analogWrite(ledPin[0], 0);
-    analogWrite(ledPin[1], 255);
-    delay(d);
-  }
-  for (nr = 0; nr < ledNb; nr++)
-    analogWrite(ledPin[nr], 0);
-}
-void ledInit() {
-  uint8_t nr;
-  ledChannelOn = 0;
-  ledFormerValue = 1;
-  ledValue = 0;
-  for (nr = 0; nr < ledNb; nr++)
-    analogWrite(ledPin[nr], 0);
-}
-
 // MIDI-thru USB => S2
 //////////////////////
 void s2Process() {
   // forward MIDI-in/USB to MIDI/S2
   if (usbMIDI.read()) {
-    ledOnboardFlash();
+    ledOnboardFlash(64);
     midiType = usbMIDI.getType();
     midiLen = 3;
     midiBuf[0] = (midiType & 0xF0) | (usbMIDI.getChannel() - 1);
@@ -231,21 +134,8 @@ void s2Process() {
         Serial1.write(usbMIDI.getSysExArray(), usbMIDI.getSysExArrayLength());
         break;
       case usbMIDI.ProgramChange:  // PROG is only two bytes
-        midiLen = 2;
-      case usbMIDI.ControlChange:  // catch some control change for internal settings
-        switch (midiBuf[1]) {
-          case 2:
-            veloMin = midiBuf[2] / 2;
-            confWrite();
-            return;
-          case 3:
-            veloCurve = CURVEMIN + (CURVEMAX - CURVEMIN) * (float)(midiBuf[2]) / 128.0;
-            confWrite();
-            return;
-          default:
-            break;
-        }
-      default:
+        midiLen = 2; // no break to continue on default processing
+       default:
         // all Midi messages are sent on the S2-midi-expander
         midiBuf[0] = (midiType & 0xF0) | (usbMIDI.getChannel() - 1);
         midiBuf[1] = usbMIDI.getData1();
@@ -278,8 +168,6 @@ void midiNote(uint8_t p, uint8_t v) {
     usbMIDI.sendNoteOn(p, v, MidiChannelOut);
 
   usbMIDI.send_now();
-
-  ledSet(v, p);
 }
 void midiControl(uint8_t c, uint8_t v) {
   // send msg MIDI Control
@@ -298,93 +186,11 @@ void buttonInit() {
     pinMode(b->pin, INPUT_PULLUP);
     b->state = 0;
   }
-  volume = VMID;
-  volumeOld = volume;
+  buttonOn = -1 ;
 }
-void buttonVolume(T_button *b) {
-#ifdef DEBUGMODE
-  prt("button#");
-  prtln(b->nr);
-#endif
-  uint8_t shiftButton = 0;
-  switch (b->nr) {
-    case 2:
-      if ((button[3].state > 0) && (button[0].state == 0)) {
-        veloMin += VINC;
-        shiftButton = 1;
-      }
-      else {
-        if ((button[3].state > 0) && (button[0].state > 0)) {
-          veloCurve += CURVEINC;
-          shiftButton = 2;
-        }
-        else
-          volume += VINC ;
-      }
-      break ;
-    case 3 :
-      if ((button[2].state > 0) && (button[0].state == 0)) {
-        veloMin -= VINC;
-        shiftButton = 1;
-      }
-      else {
-        if ((button[2].state > 0) && (button[0].state > 0)) {
-          veloCurve -= CURVEINC;
-          shiftButton = 2;
-        }
-        else
-          volume -= VINC ;
-      }
-      break ;
-    default : 
-      return ;
-      break ;
-  }
-  switch (shiftButton) {
-    case 1:
-      if (veloMin < VMIN)
-        veloMin = VMIN;
-      if (veloMin > 64.0)
-        veloMin = 64.0;
-      confWrite();
-      ledFlash(20);
-      ledSet(veloMin * 2, 0);
-#ifdef DEBUGMODE
-      prt("veloMin=");
-      prtln(veloMin);
-#endif
-      volume = volumeOld;
-      midiControl(7, volume);
-      break;
-    case 2:
-      if (veloCurve < CURVEMIN)
-        veloCurve = CURVEMIN;
-      if (veloCurve > CURVEMAX)
-        veloCurve = CURVEMAX;
-      confWrite();
-      ledFlash(40);
-      ledSet((int)((veloCurve - CURVEMIN) * 256.0 / (CURVEMAX - CURVEMIN)), 0);
-#ifdef DEBUGMODE
-      prt("veloCurve=");
-      prtln(veloCurve);
-#endif
-      volume = volumeOld;
-      midiControl(7, volume);
-      break;
-    default:
-      if (volume < VMIN)
-        volume = VMIN;
-      if (volume > VMAX)
-        volume = VMAX;
-      midiControl(7, volume);
-      volumeOld = volume;
-      ledSet(volume, 0);
-#ifdef DEBUGMODE
-      prt("volume=");
-      prtln(volume);
-#endif
-      break;
-  }
+void buttonAction(T_button *b , bool on)
+{
+  midiNote(b->nr + 1, on?127:0);
 }
 void buttonProcess() {
   uint8_t nr;
@@ -397,10 +203,10 @@ void buttonProcess() {
       case 0:
         if (digitalRead(b->pin) == LOW) {
           b->state = 1;
-          midiNote(nr + 1, 127);
-          buttonVolume(b);
+          buttonAction(b,True);
+          buttonOn = nr ;
           b->ftv0 = buttonSince;
-          ledOnboardFlash();
+          ledOnboardFlash(64);
         }
         break;
       case 1:
@@ -410,7 +216,8 @@ void buttonProcess() {
       case 2:
         if (digitalRead(b->pin) == HIGH) {
           b->state = 3;
-          midiNote(nr + 1, 0);
+          buttonAction(b,False);
+          buttonOn = -1 ;
           b->ftv0 = buttonSince;
         }
         break;
@@ -421,7 +228,9 @@ void buttonProcess() {
       default:
         // state zombi
         b->state = 0;
+#ifdef DEBUGMODE
         prtln("Error state button");
+#endif
         break;
     }
   }
@@ -478,13 +287,13 @@ void opticalAdcRead(T_optical *o) {
   // read adc0
   while (!adc->adc0->isComplete())
     ;
-  o->v = adc->adc0->readSingle();
+  o->v = ADC_POSTIVE?(adc->adc0->readSingle()):(ADC_MAX - adc->adc0->readSingle());
 
   if (o->nr < (opticalNb - 1)) {
     // read adc1
     while (!adc->adc1->isComplete())
       ;
-    (o + 1)->v = adc->adc1->readSingle();
+    (o + 1)->v = ADC_POSTIVE?(adc->adc1->readSingle()):(ADC_MAX - adc->adc1->readSingle());
   }
 
   opticalAdcPreset(((o->nr) < (opticalNb - 2)) ? (optical + 2) : (optical));  // prepare next two adc
@@ -493,55 +302,38 @@ void opticalInit() {
   // initialization of optical buttons
   uint8_t nr;
   unsigned long int n;
-  T_optical *o;
-  bool modulo2;
   for (nr = 0, o = optical; nr < opticalNb; nr++, o++) {
     o->nr = nr;
     o->pin = opticalPin[nr];
     pinMode(o->pin, INPUT_DISABLE);  // ?
     o->state = 0;
-    o->v_trigger_on = 255;
-  }
-  opticalAdcPreset(optical);
-  for (n = 0; n < 5000; n++) {
-    for (nr = 0, o = optical, modulo2 = true; nr < opticalNb; nr++, o++, modulo2 = !modulo2) {
-      if (modulo2)
-        opticalAdcRead(o);  // read adc0 and adc1, and prepare next ones. Unsigned 8 bits [0..2^8]
-      if (o->v < o->v_trigger_on)
-        o->v_trigger_on = o->v;
-    }
-  }
-  for (nr = 0, o = optical; nr < opticalNb; nr++, o++) {
-    if (o->v_trigger_on > 254) {
-      // saturation electrique potentiellement dangereuse sur l'entree ADC
-#ifdef DEBUGMODE
-      prtln("Saturation opticalAdc !!");
-#endif
-      ledAlert();
-    }
-    o->v_trigger_on = 80 * o->v_trigger_on / 100;
-    o->v_trigger_off = 20 * o->v_trigger_on / 100;
-#ifdef DEBUGMODE
-    prt("trigger[");
-    prt(nr);
-    prt("] : ");
-    prt(o->v_trigger_off);
-    prt(" .. ");
-    prtln(o->v_trigger_on);
-#endif
+    o->v_trigger_min = ADC_MAX;
+    o->v_trigger_max = 0 ;
+    o->v_min = ADC_MAX ;
+    o->v_max = 0 ;
+    o->slope_min = 99999.0 ;
+    o->slope_max = 0.0 ;
   }
   // prepare to read the two first optical sensors
   opticalAdcPreset(optical);
 }
 void opticalMsgOn(T_optical *o) {
   // send notOn with calculated velocity
+
+  if ( o->slope < o->slope_min)
+    o->slope_min = 0.99 * o->slope ;
+  if ( o->slope > o->slope_max)
+    o->slope_max = 1.01 * o->slope;
+  
   int v;
+  float veloMin ;
   o->pitch = o->nr + buttonNb + 48;
   if (button[0].state > 0)
     o->pitch += opticalNb;
   if (button[1].state > 0)
-    o->pitch += 2 * opticalNb;
-  v = veloMin + ((128.0 - veloMin) - veloMin) * pow(((o->slope - SLOPEMIN) / (SLOPEMAX - SLOPEMIN)), veloCurve);
+    o->pitch += 2 * opticalNb; 
+  v = veloMin + ((128.0 - veloMin) - veloMin) * pow(((o->slope - o->slope_min) / (o->slope_max - o->slope_min)), veloCurve);
+  ledOnboardFlash(v);
 #if DEBUGMODE > 2
   prt("opticalMsgOn : ");
   prt("v=");
@@ -549,19 +341,19 @@ void opticalMsgOn(T_optical *o) {
   prt("");
   prt(veloMin, 1);
   prt(" : ");
-  prt(SLOPEMIN, 8);
+  prt(o->slope_min, 8);
   prt("..");
   prt(o->slope, 8);
   prt("..");
-  prt(SLOPEMAX, 8);
+  prt(o->slope_max, 8);
   prt(" : ");
   prt((128.0 - veloMin), 1);
   prt(" / ");
   prt("%slope=");
-  prt(((o->slope - SLOPEMIN) / (SLOPEMAX - SLOPEMIN)),3);
+  prt(((o->slope - o->slopemin) / (o->slopemax - o->slopemin)),3);
   prt(" / ");
   prt("pow(%slope)=");
-  prt(pow(((o->slope - SLOPEMIN) / (SLOPEMAX - SLOPEMIN)), veloCurve),3);
+  prt(pow(((o->slope - o->slopemin) / (o->slopemax - o->slopemin)), veloCurve),3);
   prt(" / ");
   prt("veloCurve=");
   prt(veloCurve);
@@ -593,6 +385,7 @@ bool opticalProcess() {
   // return true if an optical slope-measurement is in progress
   uint8_t nr;
   bool modulo2;
+  bool limite_changed;
   bool opticalMeasure, allOff;
   unsigned long int dt;
   T_optical *o;
@@ -601,17 +394,35 @@ bool opticalProcess() {
     if (modulo2)
       opticalAdcRead(o);  // read adc0 and adc1, and prepare next ones. Unsigned 8 bits [0..2^8]
 
+    limite_changed = false ;
+    if ( v < v_min )
+    {
+      limite_changed = true ;
+      v_min = v ;
+    }
+    if ( v > v_max )
+    {
+      v_max = v ;
+      limite_changed = true ;
+    }
+    if (limite_changed)
+    {
+      if ( (o->v_max - o->v_min) < ADC_GAP_MIN )
+        return false ;
+      o->v_trigger_min = o->v_min + ( o->v_max - o->v_min ) * ADC_TRIGGER_PERCENT ;
+      o->v_trigger_max = o->v_max - ( o->v_max - o->v_min ) * ADC_TRIGGER_PERCENT ;
+    }
+    
     if (o->state > 0)
       allOff = false;
 
     switch (o->state) {
       case 0:
-        if (o->v < o->v_trigger_on) {
+        if (o->v > o->v_trigger_min) {
           allOff = false;
           o->state++;
           o->ftv0 = o->ftv;
           opticalMeasure = true;
-          ledOnboardFlash();
           // linear regression init
           o->sumt = 0;
           o->sumv = o->v;
@@ -622,7 +433,7 @@ bool opticalProcess() {
         break;
       case 1:
         opticalMeasure = true;
-        if (o->v < o->v_trigger_off) {
+        if (o->v > o->v_trigger_max) {
           o->state++;
           // linear regression ended
           float d = o->fnb * o->sumt2 - o->sumv * o->sumv;
@@ -631,7 +442,7 @@ bool opticalProcess() {
           o->ftv0 = opticalSince;
           break;
         }
-        if (o->v > o->v_trigger_on) {
+        if (o->v < o->v_trigger_min) {
           // bad alert
           o->state = 0;
           break;
@@ -645,24 +456,26 @@ bool opticalProcess() {
         o->fnb += 1.0;
         break;
       case 2:
-        if ((opticalSince - o->ftv0) > 100 * 1000)  // ms
+        if ((opticalSince - o->ftv0) > ADC_DELAY * 1000)  // microsec
           o->state++;
         break;
       case 3:
-        if (o->v > o->v_trigger_on) {
+        if (o->v < o->v_trigger_min) {
           o->state++;
           opticalMsgOff(o);
           o->ftv0 = o->ftv;
         }
         break;
       case 4:
-        if ((opticalSince - o->ftv0) > 100 * 1000)  // ms
+        if ((opticalSince - o->ftv0) > ADC_DELAY * 1000)  // microsec
           o->state = 0;
         break;
       default:
         // state zombi
         o->state = 0;
+#ifdef DEBUGMODE
         prtln("Error optical button");
+#endif
         break;
     }
   }
@@ -679,7 +492,7 @@ bool opticalProcess() {
 // ADC
 ////////
 void adcInit() {
-  adc->adc0->setResolution(8);  // unsigned 8 bits [0..2^8]
+  adc->adc0->setResolution(ADC_RESOLUION);  // unsigned 8 bits [0..2^8]
   adc->adc0->setAveraging(4);
   adc->adc0->setConversionSpeed(ADC_CONVERSION_SPEED::HIGH_SPEED);
   adc->adc0->setSamplingSpeed(ADC_SAMPLING_SPEED::HIGH_SPEED);
@@ -696,14 +509,13 @@ void setup() {
   confWrite();
   confRead();
   ledOnboardInit();
-  ledInit();
 
   adcInit();
-  s2Init();
+  // s2Init();
   buttonInit();
   opticalInit();
   sinceOnboardLed = 0;  // ms
-  ledFlash(20);
+  ledOnboardFlash(64);
 }
 
 ///////////
@@ -714,11 +526,9 @@ void loop() {
     // no optical slope-measurement in progress
     // process buttons
     buttonProcess();
-    // show the bargraph on the leds
-    ledShow();
     // led onboard
     ledOnboardProcess();
     // transmit Midi-in => S2-expander
-    s2Process();
+    // s2Process();
   }
 }
