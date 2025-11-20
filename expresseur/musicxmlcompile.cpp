@@ -1995,102 +1995,92 @@ wxString musicxmlcompile::pitchToString(std::vector <int> pitches)
 	}
 	return s;
 }
-std::vector <int> musicxmlcompile::stringToPitch(wxString s, int *nbChord)
+std::vector<std::vector<int>> musicxmlcompile::stringToPitch(wxString s)
 {
-	std::vector <int> ap;
 
-	// return array of pitches ( a chord ), extracted from string s in first call, chord by chord
-	// e.g. stringToPitch("C4/E4,G4") returns first 64,68 , and nbChord=2
-	//      then stringToPitch("") returns 71 
-	//      then stringToPitch("") return empty arrary
-	static std::vector <int> t;
-	static unsigned int pt;
-	if (s.empty() == false)
+	// return array of chords of pitches, extracted from string s 
+	// e.g. stringToPitch("C4/E4,G4") returns  [[64,68] , [71]] 
+
+	std::vector<std::vector<int>> listChord;
+	std::vector<int> newChord ;
+
+	wxStringTokenizer tokenizer(s, "- /,", wxTOKEN_STRTOK);
+	while (tokenizer.HasMoreTokens())
 	{
-		*nbChord = 0;
-		t.clear();
-		pt = 0;
-		wxStringTokenizer tokenizer(s, "+,", wxTOKEN_STRTOK);
-		while (tokenizer.HasMoreTokens())
+		wxString token = tokenizer.GetNextToken();
+		char cp = token.GetChar(0);
+		int p = 0;
+		switch (cp)
 		{
-			wxChar sep = tokenizer.GetLastDelimiter();
-			wxString token = tokenizer.GetNextToken();
-			char cp = token.GetChar(0);
-			int p = 0;
-			switch (cp)
-			{
-			case 'C': p = 0; break;
-			case 'D': p = 2; break;
-			case 'E': p = 4; break;
-			case 'F': p = 5; break;
-			case 'G': p = 7; break;
-			case 'A': p = 9; break;
-			case 'B': p = 11; break;
-			default: break;
-			}
-			if (token.Contains("bb"))
-				p -= 2;
-			else if (token.Contains("b"))
-				p--;
-			else if (token.Contains("##"))
-				p += 2;
-			else if (token.Contains("#"))
-				p++;
-			cp = token.Last();
-			switch (cp)
-			{
-			case '0': p += 1 * 12; break;
-			case '1': p += 2 * 12; break;
-			case '2': p += 3 * 12; break;
-			case '3': p += 4 * 12; break;
-			case '4': p += 5 * 12; break;
-			case '5': p += 6 * 12; break;
-			case '6': p += 7 * 12; break;
-			case '7': p += 8 * 12; break;
-			case '8': p += 9 * 12; break;
-			case '9': p += 10* 12; break;
-			default: break;
-			}
-			while (p < 0)
-				p += 12;
-			while (p > 127)
-				p -= 12;
-			if (sep == '+')
-				p *= (-1);
-			else
-				(*nbChord)++;
-			t.push_back(p);
+		case 'C': p = 0; break;
+		case 'D': p = 2; break;
+		case 'E': p = 4; break;
+		case 'F': p = 5; break;
+		case 'G': p = 7; break;
+		case 'A': p = 9; break;
+		case 'B': p = 11; break;
+		default: break;
+		}
+		if (token.Contains("bb"))
+			p -= 2;
+		else if (token.Contains("b"))
+			p--;
+		else if (token.Contains("##"))
+			p += 2;
+		else if (token.Contains("#"))
+			p++;
+		cp = token.Last();
+		switch (cp)
+		{
+		case '0': p += 1 * 12; break;
+		case '1': p += 2 * 12; break;
+		case '2': p += 3 * 12; break;
+		case '3': p += 4 * 12; break;
+		case '4': p += 5 * 12; break;
+		case '5': p += 6 * 12; break;
+		case '6': p += 7 * 12; break;
+		case '7': p += 8 * 12; break;
+		case '8': p += 9 * 12; break;
+		case '9': p += 10* 12; break;
+		default: break;
+		}
+		while (p < 0)
+			p += 12;
+		while (p > 127)
+			p -= 12;
+		wxChar separateur = tokenizer.GetLastDelimiter();
+		if (separateur == ',')
+		{
+			listChord.push_back(newChord);
+			newChord.clear();
 		}
 	}
-	if (pt >= t.size())
-		return ap;
-	ap.push_back(abs(t[pt]));
-	pt++;
-	while (true)
-	{
-		if ((pt >= t.size()) || (t[pt] > 0))
-			return ap;
-		ap.push_back(abs(t[pt]));
-		pt++;
-	}
-	return ap;
+	listChord.push_back(newChord);
+	return listChord;
 }
-void musicxmlcompile::addGraces(std::vector <int> gracePitches, bool before, c_musicxmlevent *musicxmlevent)
+void musicxmlcompile::addGraces(std::vector<std::vector<int>> gracePitches, bool before, c_musicxmlevent *musicxmlevent)
 {
-	// add grace notes, using a array of grace integer pitches. 
-	int nbChord = gracePitches.size() ;
+	// add grace notes from the array of chords gracePitches
+
 	c_musicxmlevent mtemplate(*musicxmlevent);
 	musicxmlevent->visible = true;
 	mtemplate.visible = false;
 	mtemplate.stop_measureNr = mtemplate.start_measureNr;
 	mtemplate.stop_t = mtemplate.start_t;
 	int start_order = musicxmlevent->start_order;
+
+	int nbChord = gracePitches.size();
+
 	if (before)
 		musicxmlevent->start_order = start_order + 0;
 	else
 		musicxmlevent->start_order = start_order + 2 * nbChord;
-	for (int nrChord = 0; nrChord < nbChord; nrChord++)
-	{
+
+	int nrChord = -1;
+	for (const auto& chord : gracePitches)
+	{  
+		// for each chord in gracePitches
+		nrChord++;
 		if (before)
 		{
 			mtemplate.start_order = start_order - 2 * (nbChord - nrChord);
@@ -2101,50 +2091,13 @@ void musicxmlcompile::addGraces(std::vector <int> gracePitches, bool before, c_m
 			mtemplate.start_order = start_order + 2 * nrChord;
 			mtemplate.stop_order = start_order + 2 * nrChord + 1;
 		}
-		c_musicxmlevent m(mtemplate);
-		m.pitch = gracePitches[nrChord];
-		lOrnamentsMusicxmlevents.push_back(m);
-	}
-}
-void musicxmlcompile::addGraces(wxString gracePitches, bool before, c_musicxmlevent *musicxmlevent)
-{
-
-	// add grace notes, using a text of grace notes. e.g. "C4/E4,G4" adds chord C4/E4 and G4
-	std::vector <int> pitchChord;
-	int nbChord ;
-	pitchChord = stringToPitch(gracePitches, &nbChord);
-	int nrChord = 0;
-	c_musicxmlevent mtemplate(*musicxmlevent);
-	musicxmlevent->visible = true;
-	mtemplate.visible = false;
-	mtemplate.stop_measureNr = mtemplate.start_measureNr;
-	mtemplate.stop_t = mtemplate.start_t;
-	int start_order = musicxmlevent->start_order;
-	if (before)
-		musicxmlevent->start_order = start_order + 0;
-	else
-		musicxmlevent->start_order = start_order + 2 * nbChord;
-	while (pitchChord.size() == false)
-	{
-		if (before)
-		{
-			mtemplate.start_order = start_order - 2 * (nbChord - nrChord);
-			mtemplate.stop_order = start_order - 2 * (nbChord - nrChord) + 1;
-		}
-		else
-		{
-			mtemplate.start_order = start_order + 2 * nrChord;
-			mtemplate.stop_order = start_order + 2 * nrChord + 1;
-		}
-		int nbPitch = pitchChord.size();
-		for (int nrPitch = 0; nrPitch < nbPitch; nrPitch++)
-		{
-			c_musicxmlevent m(mtemplate);
-			m.pitch = pitchChord[nrPitch];
+		for (int pitch : chord)
+		{       
+			// for each pitch in the chord
+			c_musicxmlevent m(mtemplate) ;
+			m.pitch = pitch;
 			lOrnamentsMusicxmlevents.push_back(m);
 		}
-		nrChord++;
-		pitchChord = stringToPitch("", NULL);
 	}
 }
 void musicxmlcompile::addOrnament(c_ornament *ornament, c_musicxmlevent *musicxmlevent, int nr_ornament)
@@ -2260,38 +2213,52 @@ void musicxmlcompile::addOrnament(c_ornament *ornament, c_musicxmlevent *musicxm
 	}
 	case o_grace:
 	{
-		std::vector <int> gracePitches;
+		std::vector<std::vector<int>> gracePitches;
 		if (ornament->value.empty())
 		{
 			// just one grace note one diatonic tone upper
-			gracePitches.push_back(c_pitch::shiftPitch(musicxmlevent->pitch, 1, musicxmlevent->fifths));
+			std::vector<int> chord;
+			chord.push_back(c_pitch::shiftPitch(musicxmlevent->pitch, 1, musicxmlevent->fifths));
+			gracePitches.push_back(chord);
 			addGraces(gracePitches, ornament->before, musicxmlevent);
 		}
 		else if (ornament->value.StartsWith("i"))
 		{
 			// "i"nverted : just one grace note one diatonic tone lower
-			gracePitches.push_back(c_pitch::shiftPitch(musicxmlevent->pitch, 1, musicxmlevent->fifths));
+			std::vector<int> chord;
+			chord.push_back(c_pitch::shiftPitch(musicxmlevent->pitch, -1, musicxmlevent->fifths));
+			gracePitches.push_back(chord);
 			addGraces(gracePitches, ornament->before, musicxmlevent);
 		}
 		else
 			// a text of grace notes. e.g. "C4/E4,G4" adds chord C4/E4 and G4
-			addGraces(ornament->value, ornament->before, musicxmlevent);
+			addGraces(stringToPitch(ornament->value), ornament->before, musicxmlevent);
 		break;
 	}
 	case o_mordent:
 	{
-	    std::vector <int> gracePitches;
-		gracePitches.push_back(musicxmlevent->pitch);
-		gracePitches.push_back(c_pitch::shiftPitch(musicxmlevent->pitch, (ornament->value.StartsWith('i'/*inverted*/)) ? -1 : 1, musicxmlevent->fifths));
+		std::vector<std::vector<int>>  gracePitches;
+		std::vector<int> chord;
+		chord.push_back(musicxmlevent->pitch);
+		gracePitches.push_back(chord);
+		chord.clear();
+		chord.push_back(c_pitch::shiftPitch(musicxmlevent->pitch, (ornament->value.StartsWith('i'/*inverted*/)) ? -1 : 1, musicxmlevent->fifths));
+		gracePitches.push_back(chord);
 		addGraces(gracePitches, ornament->before, musicxmlevent); 
 		break;
 	}
 	case o_turn:
 	{
-		std::vector <int> gracePitches;
-		gracePitches.push_back(c_pitch::shiftPitch(musicxmlevent->pitch, (ornament->value.StartsWith('i'/*inverted*/)) ? -1 : 1, musicxmlevent->fifths));
-		gracePitches.push_back(musicxmlevent->pitch);
-		gracePitches.push_back(c_pitch::shiftPitch(musicxmlevent->pitch, (ornament->value.StartsWith('i'/*inverted*/)) ? 1 : -1, musicxmlevent->fifths));
+		std::vector<std::vector<int>>  gracePitches;
+		std::vector<int> chord;
+		chord.push_back(c_pitch::shiftPitch(musicxmlevent->pitch, (ornament->value.StartsWith('i'/*inverted*/)) ? -1 : 1, musicxmlevent->fifths));
+		gracePitches.push_back(chord);
+		chord.clear();
+		chord.push_back(musicxmlevent->pitch);
+		gracePitches.push_back(chord);
+		chord.clear();
+		chord.push_back(c_pitch::shiftPitch(musicxmlevent->pitch, (ornament->value.StartsWith('i'/*inverted*/)) ? 1 : -1, musicxmlevent->fifths));
+		gracePitches.push_back(chord);
 		addGraces(gracePitches, ornament->before, musicxmlevent);
 		break;
 	}
@@ -2299,7 +2266,8 @@ void musicxmlcompile::addOrnament(c_ornament *ornament, c_musicxmlevent *musicxm
 		btrill = true;
 	case o_trill:
 	{
-		std::vector <int> gracePitches;
+		std::vector<std::vector<int>>  gracePitches;
+		std::vector<int> chord;
 		int p0, p1;
 		if (btrill)
 		{
@@ -2318,9 +2286,15 @@ void musicxmlcompile::addOrnament(c_ornament *ornament, c_musicxmlevent *musicxm
 		v /= 2;
 		for (int i = 0; i < v; i++)
 		{
-			gracePitches.push_back(p0);
+			chord.push_back(p0);
+			gracePitches.push_back(chord);
+			chord.clear();
 			if (i != (v - 1))
-				gracePitches.push_back(p1);
+			{
+				chord.push_back(p1);
+				gracePitches.push_back(chord);
+				chord.clear();
+			}
 		}
 		addGraces(gracePitches, ornament->before, musicxmlevent);
 		musicxmlevent->pitch = p1;

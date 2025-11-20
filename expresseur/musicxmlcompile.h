@@ -307,7 +307,7 @@ public:
 	static void clearLuaScore();
 	wxString pitchToString(int p);
 	wxString pitchToString(std::vector <int> p);
-	std::vector <int> stringToPitch(wxString s, int *nbChord);
+	std::vector<std::vector<int>> stringToPitch(wxString s);
 	static std::vector <wxString> getListOrnament();
 	wxString music_xml_complete_file;
 	wxString music_xml_displayed_file;
@@ -346,8 +346,7 @@ private:
 	//void createOrnament(c_ornament *ornament);
 	void createImperativeOrnament(c_ornament *ornament);
 	void createImperativePartOrnament(c_ornament *ornament,int nrPart,int nrStaff, int end_measure,int end_start_t, int division_measure, int division_beat , int division_quarter );
-	void addGraces(wxString gracePitches, bool before, c_musicxmlevent *musicxmlevent);
-	void addGraces(std::vector <int> gracePitches, bool before, c_musicxmlevent *musicxmlevent);
+	void addGraces(std::vector<std::vector<int>> gracePitches, bool before, c_musicxmlevent *musicxmlevent);
 	void addOrnament(c_ornament *ornament, c_musicxmlevent *musicxmlevent,int nr_ornament);
 	void compileCrescendo();
 	void compileTransposition();

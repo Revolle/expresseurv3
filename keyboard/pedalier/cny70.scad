@@ -83,6 +83,8 @@ module plaque()
 }
 //cny70();
 plaque() ;
+translate ([chaussure_l_max,ruban_l + 20,0,])
+mirror([1,0,0]) plaque();
 
 
 
