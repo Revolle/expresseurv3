@@ -12,9 +12,9 @@ chaussure_l_max = 85;
 
 fil_d = 3.5 ;
 
-cny70_x = 7.2 ;
-cny70_y = 7.2 ;
-cny70_z = 6.2 ;
+cny70_x = 7.4 ;
+cny70_y = 7.4 ;
+cny70_z = 6.4 ;
 cny70_patte_x = 5 ;
 cny70_patte_y = 5 ;
 cny70_patte_z = 6 ;

@@ -88,7 +88,7 @@ void confRead() {
   for (uint8_t i = 0; i < CONF_ADDR_VMIN; i++) {
     value = EEPROM.read(i);
     if (value != CONF_MAGIC) {
-      veloMin = VMIN;
+      veloMin = 10;
       veloCurve = CURVEMIN + ( CURVEMAX - CURVEMIN ) / 2.0 ; 
       return;
     }
@@ -213,7 +213,7 @@ void buttonProcess() {
       case 0:
         if (digitalRead(b->pin) == LOW) {
           b->state = 1;
-          buttonAction(b,True);
+          buttonAction(b,true);
           b->ftv0 = buttonSince;
           ledOnboardFlash(64);
         }
@@ -225,7 +225,7 @@ void buttonProcess() {
       case 2:
         if (digitalRead(b->pin) == HIGH) {
           b->state = 3;
-          buttonAction(b,False);
+          buttonAction(b,false);
           b->ftv0 = buttonSince;
         }
         break;
@@ -295,13 +295,13 @@ void opticalAdcRead(T_optical *o) {
   // read adc0
   while (!adc->adc0->isComplete())
     ;
-  o->v = ADC_POSTIVE?(adc->adc0->readSingle()):(ADC_MAX - adc->adc0->readSingle());
+  o->v = ADC_POSITIVE?(adc->adc0->readSingle()):(ADC_MAX - adc->adc0->readSingle());
 
   if (o->nr < (opticalNb - 1)) {
     // read adc1
     while (!adc->adc1->isComplete())
       ;
-    (o + 1)->v = ADC_POSTIVE?(adc->adc1->readSingle()):(ADC_MAX - adc->adc1->readSingle());
+    (o + 1)->v = ADC_POSITIVE?(adc->adc1->readSingle()):(ADC_MAX - adc->adc1->readSingle());
   }
 
   opticalAdcPreset(((o->nr) < (opticalNb - 2)) ? (optical + 2) : (optical));  // prepare next two adc
@@ -309,7 +309,7 @@ void opticalAdcRead(T_optical *o) {
 void opticalInit() {
   // initialization of optical buttons
   uint8_t nr;
-  unsigned long int n;
+  T_optical *o ;
   for (nr = 0, o = optical; nr < opticalNb; nr++, o++) {
     o->nr = nr;
     o->pin = opticalPin[nr];
@@ -335,7 +335,7 @@ void opticalMsgOn(T_optical *o) {
     o->slope_max = 1.01 * o->slope;
   
   int v;
-  float ffeloMin = (float)veloMin ;
+  float fveloMin = (float)veloMin ;
   v = fveloMin + ((128.0 - fveloMin) - fveloMin) * pow(((o->slope - o->slope_min) / (o->slope_max - o->slope_min)), veloCurve);
 #if DEBUGMODE > 2
   prt("opticalMsgOn : ");
@@ -353,10 +353,10 @@ void opticalMsgOn(T_optical *o) {
   prt((128.0 - veloMin), 1);
   prt(" / ");
   prt("%slope=");
-  prt(((o->slope - o->slopemin) / (o->slopemax - o->slopemin)),3);
+  prt(((o->slope - o->slope_min) / (o->slope_max - o->slope_min)),3);
   prt(" / ");
   prt("pow(%slope)=");
-  prt(pow(((o->slope - o->slopemin) / (o->slopemax - o->slopemin)), veloCurve),3);
+  prt(pow(((o->slope - o->slope_min) / (o->slope_max - o->slope_min)), veloCurve),3);
   prt(" / ");
   prt("veloCurve=");
   prt(veloCurve);
@@ -392,11 +392,12 @@ void opticalMsgOn(T_optical *o) {
         confWrite() ;
         break ;
       case 1 :
-        veloCurve = CURVEMIN + (CURVEMAX - CURVEMIN) * (float(constrain(v,1, 128)) / 128.0 ;
+        veloCurve = CURVEMIN + (CURVEMAX - CURVEMIN) * (float)(constrain(v,1, 128)) / 128.0 ;
         confWrite() ;
         break ;
       default :
         break ;
+    }
   }
 }
 void opticalMsgOff(T_optical *o) {
@@ -419,14 +420,14 @@ bool opticalProcess() {
       opticalAdcRead(o);  // read adc0 and adc1, and prepare next ones. Unsigned 8 bits [0..2^8]
 
     limite_changed = false ;
-    if ( v < v_min )
+    if ( o->v < o->v_min )
     {
       limite_changed = true ;
-      v_min = v ;
+      o->v_min = o->v ;
     }
-    if ( v > v_max )
+    if ( o->v > o->v_max )
     {
-      v_max = v ;
+      o->v_max = o->v ;
       limite_changed = true ;
     }
     if (limite_changed)
