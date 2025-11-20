@@ -2048,6 +2048,7 @@ std::vector<std::vector<int>> musicxmlcompile::stringToPitch(wxString s)
 			p += 12;
 		while (p > 127)
 			p -= 12;
+		newChord.push_back(p);
 		wxChar separateur = tokenizer.GetLastDelimiter();
 		if (separateur == ',')
 		{
@@ -2214,19 +2215,11 @@ void musicxmlcompile::addOrnament(c_ornament *ornament, c_musicxmlevent *musicxm
 	case o_grace:
 	{
 		std::vector<std::vector<int>> gracePitches;
-		if (ornament->value.empty())
+		if ((ornament->value.empty()) || (ornament->value.StartsWith("i")) || (ornament->value.StartsWith("u")))
 		{
 			// just one grace note one diatonic tone upper
 			std::vector<int> chord;
-			chord.push_back(c_pitch::shiftPitch(musicxmlevent->pitch, 1, musicxmlevent->fifths));
-			gracePitches.push_back(chord);
-			addGraces(gracePitches, ornament->before, musicxmlevent);
-		}
-		else if (ornament->value.StartsWith("i"))
-		{
-			// "i"nverted : just one grace note one diatonic tone lower
-			std::vector<int> chord;
-			chord.push_back(c_pitch::shiftPitch(musicxmlevent->pitch, -1, musicxmlevent->fifths));
+			chord.push_back(c_pitch::shiftPitch(musicxmlevent->pitch, (ornament->value.StartsWith('i'/*inverted*/)) ? -1 : 1, musicxmlevent->fifths));
 			gracePitches.push_back(chord);
 			addGraces(gracePitches, ornament->before, musicxmlevent);
 		}
