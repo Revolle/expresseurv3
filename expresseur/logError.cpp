@@ -1,9 +1,6 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        logerror.cpp
 // Purpose:     non-modal dialog to log Midi activity /  expresseur V3
-// Author:      Franck REVOLLE
-// Modified by:
-// Created:     08/09/2015
 // Copyright:   (c) Franck REVOLLE Expresseur
 // Licence:    Expresseur licence
 /////////////////////////////////////////////////////////////////////////////

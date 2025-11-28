@@ -2528,10 +2528,16 @@ int Expresseur::GetListMidiIn()
 		if (valid)
 		{
 			nameValideMidiInDevices.push_back(nameMidiInDevice);
+			mlog_in("Midi-In : device %s valid", nameMidiInDevice);
 			nbMidiInDevice++;
+		}
+		else
+		{
+			mlog_in("Midi-In : device %s NOT valid", nameMidiInDevice);
 		}
 		nrMidiInDevice++;
 	}
+	mlog_in("Midi-In : %d devices", nbMidiInDevice);
 	return nbMidiInDevice;
 }
 int Expresseur::GetListDmx()
@@ -2543,11 +2549,13 @@ int Expresseur::GetListDmx()
 	while (true)
 	{
 		basslua_call(moduleLuabass, soutGetDmxName, "i>s", nbDmxDevice, nameDmxDevice);
+		mlog_in("DMX : serial device %s", nameDmxDevice);
 		if (*nameDmxDevice == '\0')
 			break;
 		nameDmxDevices.push_back(nameDmxDevice);
 		nbDmxDevice++;
 	}
+	mlog_in("DMX : %d serial devices", nbDmxDevice);
 	return nbDmxDevice;
 }
 void Expresseur::testMidisetting()
@@ -2570,6 +2578,7 @@ void Expresseur::openMidiIn()
 		if (id != nameMidiInDevices.end())
 		{
 			nameOpenMidiInDevices.push_back(smididevice);
+			mlog_in("Midi-In : open device %s", static_cast<const char*>(smididevice.c_str()));
 			nrDevicesToOpen[nbDevicesToOpen] = std::distance(nameMidiInDevices.begin(), id);
 			nbDevicesToOpen++;
 		}
@@ -2595,11 +2604,17 @@ int Expresseur::GetListMidiOut()
 		basslua_call(moduleGlobal, soutMidiIsValid, "s>b", nameMidiOutDevice, &valid);
 		if (valid)
 		{
+			mlog_in("Midi-Out : device %s valid", nameMidiOutDevice);
 			nameValideMidiOutDevices.push_back(nameMidiOutDevice);
 			nbMidiOutDevice++;
 		}
+		else
+		{
+			mlog_in("Midi-Out : device %s NOT valid", nameMidiOutDevice);
+		}
 		nrMidiOutDevice++;
 	}
+	mlog_in("Midi-Out : %d devices", nbMidiOutDevice);
 	return nbMidiOutDevice;
 }
 void Expresseur::openMidiOut()
@@ -2614,6 +2629,7 @@ void Expresseur::openMidiOut()
 		if (id != nameMidiOutDevices.end())
 		{
 			nameOpenMidiOutDevices.push_back(smididevice);
+			mlog_in("Midi-Out : open device %s", static_cast<const char*>(smididevice.c_str()));
 			basslua_call(moduleLuabass, soutOpenMidi, "i", std::distance(nameMidiOutDevices.begin(),id) + 1);
 		}
 	}
