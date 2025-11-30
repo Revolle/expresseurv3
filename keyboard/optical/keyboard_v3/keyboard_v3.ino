@@ -4,7 +4,7 @@ Optical sensors : MIDI-velocity depends on sensor slope-value. It sends a MIDI-o
 Mechanical sensor : pullu-up buttons to Midi-out note message
 MIDI-thru : USB-MidiIn => serial-midi-out 
 Tuning : maintaining an optical sensor on, and clicking 5 time on another optical sensor : the next click on this last optical sensor will tune a parameter ( resp. velocity min, curve ;, nothing, .. )
-On board led : flashes on various events ( onStart, MIDI-In, Midi-out , tuning )
+On board led : flashes on various events ( onStart, MIDI-In, Midi-out , nb_click_tuning )
 */
 #include <EEPROM.h>
 #include <ADC.h>
@@ -17,6 +17,7 @@ On board led : flashes on various events ( onStart, MIDI-In, Midi-out , tuning )
 
 #define ONBOARD_LED_PIN 13
 bool onBoardLedOn = false ;
+#define FLASH_DT 500 // ms  flash
 
 // optical button
 #define opticalNb 2      // nb optical button
@@ -26,11 +27,11 @@ bool onBoardLedOn = false ;
 #define ADC_TRIGGER_PERCENT 0.2 // limit ofr the riggers over min and max
 #define ADC_POSITIVE true // true if the sensor value increases while pressng the optical button (else false)
 #define ADC_DELAY 100 // ms to debounce states
-#define NB_CLICK_STATUS 5 // nb of click to enter in status mode (while another button is on)
+#define MIN_CLICK_TUNING 3 // nb of click to enter in status mode (while another button is on)
 struct T_optical {
   uint8_t nr;                                  // incremntal number of the optical button
   uint8_t pin;                                 // analog pin to read ( 3.1V max )
-  float v;                                     // value of the analog read 8 bits
+  float v , pv ;                                     // value of the analog read 8 bits
   float v_min, v_max;                          // min max of analog read v
   float v_trigger_min, v_trigger_max;          // min max of the trigger applied on v
   float slope_min, slope_max ;                 // min max of the slope
@@ -39,7 +40,8 @@ struct T_optical {
   float sumt, sumv, sumtv, sumt2, fnb, slope;  // linear regression for the slope
   uint8_t state;                               // state of the optical button
   uint8_t pitch;                               // pitch sent on midiOn
-  uint8_t tuning ;                              // count number of click while another button is maintained on
+  uint8_t nb_click_tuning ;                    // count number of click while another button is maintained on
+  uint8_t ccMidi ;                             // Control change 
 };
 T_optical optical[opticalNb];                    // optical buttons
 uint8_t opticalPin[opticalNb] = { A3, A2 };      // analog pins for the optical button
@@ -49,7 +51,8 @@ int veloMin = 10;        // velocity minimum ( velocity maximum = 128 - veloMin)
 #define CURVEMIN 0.4
 #define CURVEMAX 1.5
 float veloCurve = 0.5;  // velocity curve [CURVEMIN..CURVEMAX]
-
+#define DV_CONTROLCHANGE 2 // minimum Dv to send a Control-Change
+uint8_t controlMidi[opticalNb] = { 1, 4 };      // Control change for each optical button
 
 // mechanical button
 #define buttonNb 1  // nb button
@@ -115,7 +118,7 @@ void ledOnboardProcess() {
   // keep alive led
   if ( ! onBoardLedOn )
     return ;
-  if (sinceOnboardLed > 800) {
+  if (sinceOnboardLed > FLASH_DT) {
     pinMode(ONBOARD_LED_PIN, OUTPUT);
     digitalWrite(ONBOARD_LED_PIN,HIGH);
     onBoardLedOn = false ;
@@ -321,12 +324,22 @@ void opticalInit() {
     o->v_max = 0 ;
     o->slope_min = 99999.0 ;
     o->slope_max = 0.0 ;
-    o->tuning  = 0 ;
+    o->nb_click_tuning  = 0 ;
+    o->ccMidi = controlMidi[nr];
   }
   // prepare to read the two first optical sensors
   opticalAdcPreset(optical);
 }
-void opticalMsgOn(T_optical *o) {
+void opticalMidiControl(T_optical *o) {
+  // send Contorl Change according to position
+  if ( o->ccmidi == 0)
+    return;
+  if ( abs(o->v - o->pv) > DV_CONTROLCHANGE) {
+    o->pv = o->v ;
+    midiControl(o->ccMidi, constrain(map(o->v,o->v_min, o->v_max,0,127),0,127)) ;
+  }
+}
+void opticalMidiNoteOn(T_optical *o) {
   // send notOn with calculated velocity
 
   if ( o->slope < o->slope_min)
@@ -338,7 +351,7 @@ void opticalMsgOn(T_optical *o) {
   float fveloMin = (float)veloMin ;
   v = fveloMin + ((128.0 - fveloMin) - fveloMin) * pow(((o->slope - o->slope_min) / (o->slope_max - o->slope_min)), veloCurve);
 #if DEBUGMODE > 2
-  prt("opticalMsgOn : ");
+  prt("opticalMidiNoteOn : ");
   prt("v=");
   prt(v, 1);
   prt("");
@@ -375,7 +388,7 @@ void opticalMsgOn(T_optical *o) {
   prtln(s);
 #endif
   ledOnboardFlash(v);
-  if ( o-> tuning < NB_CLICK_STATUS ) {
+  if ( o->nb_click_tuning < MIN_CLICK_TUNING ) {
     // standard mode : send MIDI note msg
     if (v > (128 - veloMin)) 
       v = (128 - veloMin);
@@ -385,22 +398,32 @@ void opticalMsgOn(T_optical *o) {
     midiNote(o->pitch, (uint8_t)(v));
   }
   else {
-    // mode tuning : take velocty as a tuning value
-    switch (o->nr) {
-      case 0 :
-        veloMin = constrain(map(v,1,128,10, 60),10, 60);
-        confWrite() ;
-        break ;
-      case 1 :
-        veloCurve = CURVEMIN + (CURVEMAX - CURVEMIN) * (float)(constrain(v,1, 128)) / 128.0 ;
-        confWrite() ;
-        break ;
-      default :
-        break ;
+    if ( o->nb_click_tuning == MIN_CLICK_TUNING ) {
+      delay(2*FLASH_DT);
+      ledOnboardFlash(128);
+      delay(2*FLASH_DT);
+      ledOnboardFlash(128);
+      delay(2*FLASH_DT);
+      ledOnboardFlash(128);
+    }
+    else {
+      // mode nb_click_tuning : take velocity as a nb_click_tuning value
+      switch (o->nr) {
+        case 0 :
+          veloMin = constrain(map(v,1,128,10, 60),10, 60);
+          confWrite() ;
+          break ;
+        case 1 :
+          veloCurve = CURVEMIN + (CURVEMAX - CURVEMIN) * (float)(constrain(v,1, 128)) / 128.0 ;
+          confWrite() ;
+          break ;
+        default :
+          break ;
+      }
     }
   }
 }
-void opticalMsgOff(T_optical *o) {
+void opticalMidiNoteOff(T_optical *o) {
   // send noteOff
   if (o->pitch > 0)
     midiNote(o->pitch, 0);
@@ -463,7 +486,7 @@ bool opticalProcess() {
           // linear regression ended
           float d = o->fnb * o->sumt2 - o->sumv * o->sumv;
           o->slope = abs(o->fnb * o->sumtv - o->sumt * o->sumv) / d;
-          opticalMsgOn(o);
+          opticalMidiNoteOn(o);
           o->ftv0 = opticalSince;
           break;
         }
@@ -487,11 +510,11 @@ bool opticalProcess() {
       case 3:
         if (o->v < o->v_trigger_min) {
           o->state++;
-          opticalMsgOff(o);
+          opticalMidiNoteOff(o);
           for(i = 0 ; i < opticalNb ; i ++ ) {
-            // when a button is released, it cancels the tuning mode of other buttons
+            // when a button is released, it cancels the nb_click_tuning mode of other buttons
             if ( i != nr )
-              optical[i].tuning = 0 ;
+              optical[i].nb_click_tuning = 0 ;
           }
           o->ftv0 = o->ftv;
         }
@@ -512,6 +535,10 @@ bool opticalProcess() {
   if (allOff) {
     // no activity on optical : reset µsecond counter
     opticalSince = 0;
+  }
+  if ( ! opticalMeasure )
+    // send Control Chanage on MIDI
+    opticalMidiControl(o);
   }
 
   // => opticalMeasure is false
