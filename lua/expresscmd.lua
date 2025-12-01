@@ -14,9 +14,6 @@ vShortchord = nil ;
 values = {["chord_delay"] = 100 , ["chord_decay"] = -10 };
 tracks = { ["chord-bass"] = 1 , ["chord-background"] = 1 , ["chord-chord"] = 1 , ["chord-scale"] = 1 }
 
-channelNr = 1 ; 
-midiNr = 1 ;
-
 tShortchord = {
 {[48]="Do", [50]="Re.m", [52]="Mi.m", [53]="Fa" , [55]="Sol" , [57]="La.m" } ,
 {[48]="Do", [50]="Re", [52]="Mi.m", [55]="Sol" , [57]="La.m" , [59] = "Si.m" } ,
@@ -105,7 +102,7 @@ function openout(s)
   end
   if n then
     local trackName = "track" .. s
-    if luabass.outTrackOpenMidi(1, 1,"",n,3) ~= 0 then
+    if luabass.outTrackOpenMidi(1, channelNr,"",n,3) ~= 0 then
       print("ok")
       print("midiOut open #" , n , lOut[n] , "on Track #1")
     else
@@ -198,42 +195,49 @@ function echo(d)
 end
 
 function opendmx(port , nbchannel)
-  luabass.dmxOpen(tonumber(port),tonumber(nbchannel))
+  luabass.outOpenDmx (tonumber(port),tonumber(nbchannel))
   print("opendmx COM=" .. tonumber(port) .. " channels=" .. tonumber(nbchannel))
 end
 function senddmx(channel , value)
-  luabass.dmxOut(tonumber(channel),tonumber(value))
+  luabass.outDmx(tonumber(channel),tonumber(value))
   print("senddmx ch=" .. tonumber(channel) .. " v=" .. tonumber(value))
 end
 function setdmx(tenuto , ramping)
-  luabass.dmxSet(tonumber(tenuto), tonumber(ramping))
+  luabass.outSetDmx(tonumber(tenuto), tonumber(ramping))
   print("setdmx tenuto=" .. tonumber(tenuto) .. " ramping=" .. tonumber(ramping))
 end
-function channel(nr)
-	channelNr = nr
-end
-function out(nr)
-	midiNr = nr
-end
+
 function noteon(pitch , velocity)
-	luabass.outNoteOn(pitch,velocity,pitch+128,myDelay)
+	luabass.outNoteOn(pitch,velocity)
+	print("NoteOn pitch=" .. pitch .. " velocity=" )
 end
+function noteoff(pitch)
+	luabass.outNoteOn(pitch)
+	print("NoteOff pitch=" .. pitch )
+end
+function program(nr)
+	luabass.outProgram(nr)
+	print("NoteOff program=" .. nr )
+end
+function control(nr,value)
+	luabass.outControl(nr,value)
+	print("Control " .. nr .. "/" .. value )
+end
+
 function help()
   print("Commands :")
-  print("listin")
-  print("listout")
-  print("openin <name or #>" )
-  print("openout <name or #>" )
+  print("listin  : List valid Midi-In")
+  print("listout : list valise MidiOut")
+  print("openin <name or #> : open midiIn" )
+  print("openout <name or #> : open MidiOut on Track#1 , channel#1" )
   print()
   print("through on|off : send Midi-In to Midi-out")
   print(" ")
   print("Send Midi-Out events")
-  print("noteon pitch velo")
-  print("noteoff pitch")
-  print("program nr")
-  print("control nr value")
-  print("channel nr : select the channel nr to send " )
-  print("out nr : select the midiout device to send (already opened with openout)" )
+  print(" noteon pitch velo")
+  print(" noteoff pitch")
+  print(" program nr")
+  print(" control nr value")
   print(" ")
 
   print("echo delay ( in ms )")
