@@ -48,6 +48,7 @@
 #include "wx/time.h"
 #include "wx/longlong.h"
 #include "wx/bitmap.h"
+#include "wx/splash.h"
 
 
 #include "global.h"
@@ -835,6 +836,8 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	if (!isOk())
 		return false;
 	wxBusyCursor waitcursor;
+	wxBitmap bitmapSplash;
+	wxSplashScreen* splash = NULL ;
 	mlog_in("newLayout file %s" , (const char*)(xmlName.GetFullPath().c_str()));
 	wxFileName fm;
 	wxString xmlout, lilyscore, pythonexe, pythonscript,lilyexe, lilysetting, lilypresetting , lilylog , lilybar ;
@@ -849,6 +852,8 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	int ys = sizeClient.GetHeight();
 	if ((xs < SIZECLIENTMINWIDTH) || (ys < SIZECLIENTMINHEIGHT))
 	{
+		if (splash != NULL)
+			destroy splash ;
 		wxMessageBox("Window too small for music display", "build score", wxOK | wxICON_ERROR);
 		return false;
 	}
@@ -997,6 +1002,8 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	else
 	{
 		wxString serr;
+		if (splash != NULL)
+			destroy splash ;
 		serr.Printf("Cannot adapt Lilypond settings from %s", FILE_IN_PRESETLILY);
 		wxMessageBox(serr, "build score", wxOK | wxICON_ERROR);
 		return false;
@@ -1049,7 +1056,9 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	else
 	{
 		((wxFrame *)mParent)->SetStatusText("Score pages : computation by Lilypond in progress", 0);
-
+		if (bitmapSplash.LoadFile("lilypond.png", wxBITMAP_TYPE_PNG))
+		    splash = new wxSplashScreen(bitmapSplash, wxSPLASH_CENTRE_ON_PARENT|wxSPLASH_NO_TIMEOUT , 1000000, ((wxFrame *)mParent));
+		
 		wxExecuteEnv execenv;
 		execenv.cwd = getTmpDir();
 		wxArrayString stdouput;
@@ -1058,6 +1067,8 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		lexec = wxExecute(command_xmltolily, stdouput , stderror , wxEXEC_SYNC | wxEXEC_HIDE_CONSOLE  , &execenv);
 		if (lexec < 0)
 		{
+			if (splash != NULL)
+				destroy splash ;
 			wxMessageBox("Cannot translate XML to Lilypond", "build score", wxOK | wxICON_ERROR);
 			mlog_in("Cannot translate XML to Lilypond");
 			return false;
@@ -1171,6 +1182,8 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		else
 		{
 			wxString serr;
+			if (splash != NULL)
+				destroy splash ;
 			serr.Printf("Cannot adapt Lilypond score from %s", lilyscore);
 			wxMessageBox(serr, "build score", wxOK | wxICON_ERROR);
 			return false;
@@ -1181,6 +1194,8 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		lexec = wxExecute(command_lilytopng, stdouput, stderror, wxEXEC_SYNC | wxEXEC_HIDE_CONSOLE, &execenv);
 		if (lexec < 0)
 		{
+			if (splash != NULL)
+				destroy splash ;
 			wxMessageBox("Cannot translate Lilypond to PNG", "build score", wxOK | wxICON_ERROR);
 			mlog_in("Cannot translate Lilypond to PNG : %s\n", (const char*)(command_lilytopng.c_str()));
 			return false;
@@ -1229,6 +1244,8 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	currentPageNrPartial = -1;
 	prevPos = -1 ;
 	prevPlaying = true ;
+	if (splash != NULL)
+		destroy splash ;
 	return true ;
 }
 bool musicxmlscore::readlilypos()
