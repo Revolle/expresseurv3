@@ -1,10 +1,12 @@
 /*
 MIDI keyboard
-Optical sensors : MIDI-velocity depends on sensor slope-value. It sends a MIDI-out note message
+Optical sensors :  It sends a MIDI-out noteOn/Off message : MIDI-velocity depends on sensor slope-value ; and a permanent MIDI-CC according to position
 Mechanical sensor : pullu-up buttons to Midi-out note message
 MIDI-thru : USB-MidiIn => serial-midi-out 
-Tuning : maintaining an optical sensor on, and clicking 5 time on another optical sensor : the next click on this last optical sensor will tune a parameter ( resp. velocity min, curve ;, nothing, .. )
-On board led : flashes on various events ( onStart, MIDI-In, Midi-out , nb_click_tuning )
+Tuning : Receive USB CC to tune parameters. 
+     - CC-102 : curve/aggressivity of noteOn velocity ; 
+     - CC-103 : dynamic of noteOn velocity
+On board led : flashes on various events
 */
 #include <EEPROM.h>
 #include <ADC.h>
@@ -40,19 +42,20 @@ struct T_optical {
   float sumt, sumv, sumtv, sumt2, fnb, slope;  // linear regression for the slope
   uint8_t state;                               // state of the optical button
   uint8_t pitch;                               // pitch sent on midiOn
-  uint8_t nb_click_tuning ;                    // count number of click while another button is maintained on
-  uint8_t ccMidi ;                             // Control change 
+  uint8_t ccMidi ;                             // MIDI-Control-Change to send when value changes 
 };
 T_optical optical[opticalNb];                    // optical buttons
 uint8_t opticalPin[opticalNb] = { A3, A2 };      // analog pins for the optical button
 void opticalAdcPreset(T_optical *o);
 elapsedMicros opticalSince;  // timer to measure the slope
 int veloMin = 10;        // velocity minimum ( velocity maximum = 128 - veloMin) 
-#define CURVEMIN 0.4
-#define CURVEMAX 1.5
+#define VELOMINDEFAULT 10
+#define CURVEMIN 0.2
+#define CURVEMAX 2.0
+#define CURVEDEFAULT 0.5
 float veloCurve = 0.5;  // velocity curve [CURVEMIN..CURVEMAX]
 #define DV_CONTROLCHANGE 2 // minimum Dv to send a Control-Change
-uint8_t controlMidi[opticalNb] = { 1, 4 };      // Control change for each optical button
+uint8_t controlMidi[opticalNb] = { 1, 4 };      // Midi-our-Control-Change for each optical button
 
 // mechanical button
 #define buttonNb 1  // nb button
@@ -66,22 +69,22 @@ T_button button[buttonNb];                      // mechanical buttons
 uint8_t buttonPin[buttonNb] = { 10 };  // digital pin for mechanical buttons
 elapsedMillis buttonSince;                      // timer to measure the states
 
+// Analog Digital Converter tuning
 uint8_t adcState;  // state of presets in the ADC
 enum ADCSTATE { adcNothing,
                 adcOptical };  // ends with adcOptical !!
-
 ADC *adc = new ADC();  // analog to digital converter
 
 elapsedMillis sinceOnboardLed;  // time elapsed for the onboard led
-
 #define MidiChannelOut 1  // channel MIDI used for output
-
+#define PITCH_OFFSET 48 // offset of optical MidiOn pitch
 uint8_t midiBuf[5];
 uint8_t midiType, midiLen;
 uint8_t midiJingle[] = { 0 };  // { 66, 68, 71, 76, 75, 71, 73, 0 }; // midi pitch to play at the init : ends with zero !!!
+bool s2Open = false ; // true when serial is opened to forward Midi-In messages
 
-#define CONF_MAGIC 20     // key to detect if EEPROM has been set
-#define CONF_ADDR_VMIN 4  // address EEPROM for the VMIN setting
+#define CONF_ADDR_VMIN 4  // number of keys in conf_magic 
+uint8_t conf_magic[CONF_ADDR_VMIN] = { 20,45,10,89 } ;  // keys to detect if EEPROM has been set
 
 ///////////////
 // read conf from EEPROM
@@ -90,9 +93,9 @@ void confRead() {
   byte value;
   for (uint8_t i = 0; i < CONF_ADDR_VMIN; i++) {
     value = EEPROM.read(i);
-    if (value != CONF_MAGIC) {
-      veloMin = 10;
-      veloCurve = CURVEMIN + ( CURVEMAX - CURVEMIN ) / 2.0 ; 
+    if (value != conf_magic[i]) {
+      veloMin = VELOMINDEFAULT;
+      veloCurve = CURVEDEFAULT ; 
       return;
     }
   }
@@ -101,7 +104,7 @@ void confRead() {
 }
 void confWrite() {
   for (uint8_t i = 0; i < CONF_ADDR_VMIN; i++)
-    EEPROM.update(i, CONF_MAGIC);
+    EEPROM.update(i, conf_magic[i]);
   EEPROM.update(CONF_ADDR_VMIN, (byte)(veloMin));
   EEPROM.put(CONF_ADDR_VMIN + 1, veloCurve);
 }
@@ -145,16 +148,32 @@ void s2Process() {
     midiBuf[2] = usbMIDI.getData2();
     switch (midiType) {
       case usbMIDI.SystemExclusive:  // sysex
-        Serial1.write(usbMIDI.getSysExArray(), usbMIDI.getSysExArrayLength());
+        if ( s2Open )
+          Serial1.write(usbMIDI.getSysExArray(), usbMIDI.getSysExArrayLength());
         break;
       case usbMIDI.ProgramChange:  // PROG is only two bytes
         midiLen = 2; // no break to continue on default processing
-       default:
+      case usbMIDI.ControlChange: // CC 102 & 103 are trapped to tune the keyboard
+        if ( usbMIDI.getData1() == 102) {
+          // curve of Midi-On velocity : 0=slow reactiviy ; 127=quick reactivity for high velocity
+          veloCurve = map((float)(usbMIDI.getData2()), 0.0,127.0,CURVEMIN, CURVEMAX);
+          confWrite() ;
+          break ;
+        }
+        if ( usbMIDI.getData1() == 103) {
+          // dynamic ofMidi-On velocity : 0=fixed velocity 64 ; 127=full range velocity 1..127
+          veloMin = map(usbMIDI.getData2(), 0,127,63, 1);
+          confWrite() ;
+          break ;
+        }
+        // CC not trapped, continue on default forward to Serial1 
+      default:
         // all Midi messages are sent on the S2-midi-expander
         midiBuf[0] = (midiType & 0xF0) | (usbMIDI.getChannel() - 1);
         midiBuf[1] = usbMIDI.getData1();
         midiBuf[2] = usbMIDI.getData2();
-        Serial1.write(midiBuf, midiLen);
+        if ( s2Open )
+          Serial1.write(midiBuf, midiLen);
         break;
     }
   }
@@ -171,6 +190,7 @@ void s2Jingle(uint8_t *p, uint8_t dt) {
 }
 void s2Init() {
   Serial1.begin(31250);
+  s2Open = true ;
   s2Jingle(midiJingle, 200);
 }
 
@@ -203,7 +223,7 @@ void buttonInit() {
 }
 void buttonAction(T_button *b , bool on)
 {
-  midiNote(b->nr + 1, on?127:0);
+  midiNote(b->nr + 1 , on?127:0);
 }
 void buttonProcess() {
   uint8_t nr;
@@ -324,7 +344,6 @@ void opticalInit() {
     o->v_max = 0 ;
     o->slope_min = 99999.0 ;
     o->slope_max = 0.0 ;
-    o->nb_click_tuning  = 0 ;
     o->ccMidi = controlMidi[nr];
   }
   // prepare to read the two first optical sensors
@@ -388,40 +407,12 @@ void opticalMidiNoteOn(T_optical *o) {
   prtln(s);
 #endif
   ledOnboardFlash(v);
-  if ( o->nb_click_tuning < MIN_CLICK_TUNING ) {
-    // standard mode : send MIDI note msg
-    if (v > (128 - veloMin)) 
-      v = (128 - veloMin);
-    if (v < veloMin) 
-      v = veloMin;
-    o->pitch = o->nr + 48;
-    midiNote(o->pitch, (uint8_t)(v));
-  }
-  else {
-    if ( o->nb_click_tuning == MIN_CLICK_TUNING ) {
-      delay(2*FLASH_DT);
-      ledOnboardFlash(128);
-      delay(2*FLASH_DT);
-      ledOnboardFlash(128);
-      delay(2*FLASH_DT);
-      ledOnboardFlash(128);
-    }
-    else {
-      // mode nb_click_tuning : take velocity as a nb_click_tuning value
-      switch (o->nr) {
-        case 0 :
-          veloMin = constrain(map(v,1,128,10, 60),10, 60);
-          confWrite() ;
-          break ;
-        case 1 :
-          veloCurve = CURVEMIN + (CURVEMAX - CURVEMIN) * (float)(constrain(v,1, 128)) / 128.0 ;
-          confWrite() ;
-          break ;
-        default :
-          break ;
-      }
-    }
-  }
+  if (v > (128 - veloMin)) 
+    v = (128 - veloMin);
+  if (v < veloMin) 
+    v = veloMin;
+  o->pitch = o->nr + PITCH_OFFSET;
+  midiNote(o->pitch, (uint8_t)(v));
 }
 void opticalMidiNoteOff(T_optical *o) {
   // send noteOff
@@ -431,6 +422,11 @@ void opticalMidiNoteOff(T_optical *o) {
 bool opticalProcess() {
   // scan optical buttons
   // return true if an optical slope-measurement is in progress
+  // states of the midi-On/Off calculation :
+  //   1- when value o->v is more than o->v_min, linear regression starts 
+  //   2- when value o->v is more than o->v_max, note-on is sent with velocity mapped on the result of linear regression
+  //   3- when value o->v is less than o->v_min, note-off is sent
+  // in addition when value o->v changes, Control-Change is sent
   uint8_t nr , i ;
   bool modulo2;
   bool limite_changed;
@@ -511,11 +507,6 @@ bool opticalProcess() {
         if (o->v < o->v_trigger_min) {
           o->state++;
           opticalMidiNoteOff(o);
-          for(i = 0 ; i < opticalNb ; i ++ ) {
-            // when a button is released, it cancels the nb_click_tuning mode of other buttons
-            if ( i != nr )
-              optical[i].nb_click_tuning = 0 ;
-          }
           o->ftv0 = o->ftv;
         }
         break;
@@ -563,16 +554,23 @@ void adcInit() {
 // SETUP
 ///////////
 void setup() {
-  confWrite();
   confRead();
+  
   ledOnboardInit();
 
   adcInit();
-  // s2Init();
+  // s2Init(); // if serial is connected to an expander 
   buttonInit();
   opticalInit();
+  
   sinceOnboardLed = 0;  // ms
+  ledOnboardFlash(32);
+  delay(FLASH_DT * 2 ) ;
   ledOnboardFlash(64);
+  delay(FLASH_DT * 2 ) ;
+  ledOnboardFlash(100);
+  delay(FLASH_DT * 2 ) ;
+  ledOnboardFlash(127);
 }
 
 ///////////
@@ -586,6 +584,6 @@ void loop() {
     // led onboard
     ledOnboardProcess();
     // transmit Midi-in => S2-expander
-    // s2Process();
+    s2Process();
   }
 }
