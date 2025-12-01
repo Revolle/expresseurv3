@@ -14,6 +14,9 @@ vShortchord = nil ;
 values = {["chord_delay"] = 100 , ["chord_decay"] = -10 };
 tracks = { ["chord-bass"] = 1 , ["chord-background"] = 1 , ["chord-chord"] = 1 , ["chord-scale"] = 1 }
 
+channelNr = 1 ; 
+midiNr = 1 ;
+
 tShortchord = {
 {[48]="Do", [50]="Re.m", [52]="Mi.m", [53]="Fa" , [55]="Sol" , [57]="La.m" } ,
 {[48]="Do", [50]="Re", [52]="Mi.m", [55]="Sol" , [57]="La.m" , [59] = "Si.m" } ,
@@ -22,7 +25,7 @@ function midiOutIsValid(midiout_name)
   -------================
   -- return -1 if the midiout is not valid for the GUI
   local s = string.lower(midiout_name)
-  local invalid = { "teensy", "wavetable" , "sd%-50 midi" , "sd%-50 control" , "keystation" , "nanokey" , "key25" , "key49" }
+  local invalid = { "wavetable" , "sd%-50 midi" , "sd%-50 control" , "keystation" , "nanokey" , "key25" , "key49" }
   for i,v in ipairs(invalid) do
     if ( string.find(s,v ) ~= nil) then
       return false ;
@@ -206,14 +209,33 @@ function setdmx(tenuto , ramping)
   luabass.dmxSet(tonumber(tenuto), tonumber(ramping))
   print("setdmx tenuto=" .. tonumber(tenuto) .. " ramping=" .. tonumber(ramping))
 end
-
+function channel(nr)
+	channelNr = nr
+end
+function out(nr)
+	midiNr = nr
+end
+function noteon(pitch , velocity)
+	luabass.outNoteOn(pitch,velocity,pitch+128,myDelay)
+end
 function help()
-  print("open a MIDI-in using openin. Open a MIDI-out using openout. MIDI-in is going to Midi-out.")
-  print("openin <name or #>" )
-  print("openout <name or #>" )
+  print("Commands :")
   print("listin")
   print("listout")
-  print("through on|off")
+  print("openin <name or #>" )
+  print("openout <name or #>" )
+  print()
+  print("through on|off : send Midi-In to Midi-out")
+  print(" ")
+  print("Send Midi-Out events")
+  print("noteon pitch velo")
+  print("noteoff pitch")
+  print("program nr")
+  print("control nr value")
+  print("channel nr : select the channel nr to send " )
+  print("out nr : select the midiout device to send (already opened with openout)" )
+  print(" ")
+
   print("echo delay ( in ms )")
   print("chord <chordname> ( e.g. C , G7, Dm )" )
   for i,v in pairs(instruments) do
