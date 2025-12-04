@@ -9,10 +9,10 @@ class cposnote
 {
 public:
 	bool empty;
-	sposly ply;
-	spos png;
-	sfpos pdf;
-	unsigned int page;
+	sposly ply = { 0,0 } ;
+	spos png = { 0,0,0,0 };
+	sfpos pdf = { 0,0,0,0 };;
+	unsigned int page = 0;
 };
 
 

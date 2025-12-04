@@ -7,8 +7,8 @@ vis_l = 3 ;
 vis_tete_d = 4.5 ;
 vis_tete_l=2 ;
 
-cable_d = 3.5 ;
-cable_usb_d = 4 ;
+cable_d = 3.0 ;
+cable_usb_d = 3.3 ;
 
 teensy_40_x = 18.1 ; // 17.78 ;
 teensy_40_y = 35.7 ; // 35.56 ;
@@ -45,6 +45,7 @@ couvercle_x = boitier_x + e ;
 cale_e = e + vis_d ;
 fermeture_d=1 ;
 patte_dy = 15;
+
 
 module vis()
 {
@@ -99,11 +100,11 @@ module boitier()
                 cube([couvercle_x , e , boitier_z ],center= true);
         }
         // trou cables
-        translate([0 ,boitier_y / 2 ,0 ])
+        translate([0 ,boitier_y / 2 ,-cable_usb_d/2 ])
             rotate([90,0,0])
                 cylinder(d=cable_usb_d,h=50,center=true);
-        translate([0 ,boitier_y / 2 , boitier_z / 4 + e/2 ])
-            cube([cable_usb_d,50,boitier_z/2+e],center=true);
+        translate([0 ,boitier_y / 2 , boitier_z / 4 + e -cable_usb_d/2])
+            cube([cable_usb_d,50,boitier_z/2+e + cable_usb_d/2+e],center=true);
     }
     // patte vis 
     translate([boitier_x/2-e,boitier_y/2 -serre_tete_e/2 ,boitier_z/2 -e])
@@ -125,7 +126,7 @@ module couvercle()
         union()
         {
             // couvercle
-            cube([boitier_x+e,boitier_y,e],center=true);
+            cube([boitier_x+e-0.5,boitier_y-0.5,e],center=true);
             translate([0,boitier_y/2 + e/2,0])
                 cube([cable_usb_d,e,e],center=true);
         }
@@ -159,7 +160,7 @@ module couvercle()
     *translate([0,0,105])
         cube([200,200,200],center = true );
 }
-*translate([0,0,5])
+*translate([0,0,10])
     couvercle();
 translate([boitier_x + 5 ,0,-boitier_z/2 ]) couvercle();
 translate([0 ,0,boitier_z/2 + e ]) boitier() ;
