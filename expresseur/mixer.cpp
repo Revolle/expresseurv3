@@ -4,7 +4,6 @@
 // Author:      Franck REVOLLE
 // Modified by:
 // Created:     03/04/2015
-// update : 03/12/2016 18:00
 // Copyright:   (c) Franck REVOLLE Expresseur
 // Licence:    Expresseur licence
 /////////////////////////////////////////////////////////////////////////////
@@ -350,8 +349,8 @@ void mixer::getMidiVi(wxString fullNameDevice, int *nrDevice, wxString *nameVi)
 		auto id = std::find(listVIused.begin(), listVIused.end(), nameDevice);
 		if (id == listVIused.end())
 			listVIused.push_back(nameDevice);
-		else
-			*nrDevice = VI_ZERO + std::distance(listVIused.begin(), id);
+		auto id2 = std::find(listVIused.begin(), listVIused.end(), nameDevice);
+		*nrDevice = VI_ZERO + std::distance(listVIused.begin(), id2);
 	}
 	else
 	{
@@ -406,9 +405,9 @@ void mixer::getMidioutDevices(std::vector <wxString> lMidiout, std::vector <wxSt
 		wxString sdir = getResourceDir();
 		wxFileName fvi;
 		fvi.AssignDir(sdir);
-		wxDir::GetAllFiles(sdir, &filesVI, "*.sf2", wxDIR_DEFAULT);
+		wxDir::GetAllFiles(sdir, &filesVI, "*.sf2", wxDIR_FILES);
 #ifdef VST
-		wxDir::GetAllFiles(sdir, &filesVI, "*.dll", wxDIR_DEFAULT);
+		wxDir::GetAllFiles(sdir, &filesVI, "*.dll", wxDIR_FILES);
 #endif
 		for (unsigned int nrVi = 0; nrVi < filesVI.Count(); nrVi++)
 		{
@@ -702,7 +701,7 @@ void mixer::reset(bool localoff ,bool doreset)
 	}
 
 	//mlog_in("mixer / reset / setTracks");
-	for (int nrTrack = nbTrack - 1; nrTrack >= 0; nrTrack--)
+	for (int nrTrack = nbTrack - 1; nrTrack >= 0; nrTrack--) 
 	{
 		if ((nrDevice[nrTrack] != NULL_INT) && (nrDevice[nrTrack] < VI_ZERO))
 		{
@@ -711,7 +710,7 @@ void mixer::reset(bool localoff ,bool doreset)
 			char bufInstrument[512];
 			strcpy(bufInstrument, instrument[nrTrack].c_str());
 			int n = nrTrack + 1;
-			//mlog_in("mixer / reset / setTrack %s(%d)",soutTrackOpenMidi,nrTrack);
+			mlog_in("mixer / reset / setTrack %s(%d)",soutTrackOpenMidi,nrTrack);
 			if ((nrDevice[nrTrack] < MAX_TRACK) && (nrDevice[nrTrack] >= 0))
 			{
 				basslua_call(moduleLuabass, soutTrackOpenMidi, "iisiisi", n, channel[nrTrack] + 1, bufInstrument, nrDevice[nrTrack] + 1, additionnalChannelPerDevice[nrDevice[nrTrack]], bufNameTrack, localoff);
@@ -736,7 +735,7 @@ void mixer::reset(bool localoff ,bool doreset)
 			int n = nrTrack + 1;
 			if ((nrDevice[nrTrack] < MAX_TRACK) && (nrDevice[nrTrack] >= 0))
 			{
-				//mlog_in("mixer / reset / setTrack VI=%d",nrTrack);
+				mlog_in("mixer / reset / setTrack VI=%d",nrTrack);
 				basslua_call(moduleLuabass, soutTrackOpenVi, "iissi", n, channel[nrTrack] + 1, bufInstrument, bufNameVi, additionnalChannelPerDevice[nrDevice[nrTrack]]);
 				basslua_table(moduleGlobal, tableTracks, -1, bufNameTrack, NULL, &n, tableSetKeyValue);
 				basslua_table(moduleGlobal, tableTracks, n, fieldCallFunction, bufNameTrack, &n, tableCallKeyFunction | tableCallTableFunction);
