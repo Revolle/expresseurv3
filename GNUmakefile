@@ -9,7 +9,7 @@ CPPFLAGS := -Wall -MD -MP
 CPPFLAGS := $(CPPFLAGS) -g -Wno-deprecated-declarations -Wno-unused-variable
 CXXFLAGS := -std=c++11 
 LDFLAGS  :=
-LILYPOND := lilypond-2.25.29
+LILYPOND := lilypond-2.25.30
 
 ifeq ($(PLATFORM),Darwin)
 	  
