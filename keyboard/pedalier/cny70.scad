@@ -12,8 +12,8 @@ chaussure_l_max = 85;
 
 fil_d = 3.0 ;
 
-cny70_x = 8 ;
-cny70_y = 8 ;
+cny70_x = 7.5 ;
+cny70_y = 7.5 ;
 cny70_z = 6.0 ;
 cny70_patte_x = 5.5 ;
 cny70_patte_y = 5.5 ;
@@ -126,7 +126,7 @@ module plaque()
             cube([lien_e, lien_l , 10 ], center = true);
 
         // vis
-        translate([-cny70_capsule_x/2, cny70_capsule_y + ruban_l / 2 +ycaptplus,cny70_z/ 2])
+        translate([-cny70_capsule_x/2, cny70_capsule_y + ruban_l / 2 +ycaptplus -0.5,cny70_z/ 2])
             rotate([-90,0,0])
                 vis() ;
         translate([-cny70_capsule_x/2 - fil_d, cny70_capsule_y + ruban_l / 2 +ycaptplus-3,cny70_capsule_z - vis_tete_d +1 ])
@@ -141,7 +141,7 @@ module plaque()
     cny70();
 }
 *cny70();
-difference()
+*difference()
 {
     plaque() ;
     translate([500,0,0])
@@ -150,7 +150,7 @@ difference()
         cube([1000,1000,1000],center=true);
 }
 *plaque();
-*translate ([0,ruban_l +30,0,])
+translate ([0,ruban_l +30,0,])
     rotate([0,0,180])
         mirror([1,0,0]) plaque();
 
