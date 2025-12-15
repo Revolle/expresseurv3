@@ -10,7 +10,7 @@ Tuning : Receive USB CC to tune analog parameters.
      - CC-102 : curve/aggressivity of noteOn velocity ; 
      - CC-103 : dynamic of noteOn velocity
 On board led : flashes on various events
-Analog pins must be compliant with multi-ADCs capabilities
+Analog pins must be compliant with dual-ADCs capabilities
 */
 
 #include <EEPROM.h>
@@ -20,28 +20,29 @@ Analog pins must be compliant with multi-ADCs capabilities
 #define prt Serial.print
 #define prtln Serial.println
 
-#define DEBUGMODE 5
-int loopnb = 0 ;
+//#define DEBUGMODE 0
 
 #define ONBOARD_LED_PIN 13
 bool onBoardLedOn = false ;
 #define FLASH_DT 500 // ms  flash
+long unsigned int dtled ;
 
 // optical button
 #define opticalNb 2      // nb optical button
-#define ADC_RESOLUION 8 // bits
-#define ADC_MAX 255 // max value delivered by ADC
+#define ADC_RESOLUTION 12 // bits
+#define ADC_MAX (1<<ADC_RESOLUTION) // max value delivered by ADC
 #define ADC_GAP_MIN 40 // Min gap between min-max to start the analysis
-#define ADC_TRIGGER_PERCENT 0.2 // limit ofr the riggers over min and max
+#define ADC_TRIGGER_PERCENT_ON 0.5 // limit for the triggers min
+#define ADC_TRIGGER_PERCENT_OFF 0.3 // limit for the triggers off
+#define ADC_NB_MEASURE 100.0 // number of measure for linear regression
 #define ADC_POSITIVE true // true if the sensor value increases while pressng the optical button (else false)
 #define ADC_DELAY 100 // ms to debounce states
-#define MIN_CLICK_TUNING 3 // nb of click to enter in status mode (while another button is on)
 struct T_optical {
   uint8_t nr;                                  // incremntal number of the optical button
   uint8_t pin;                                 // analog pin to read ( 3.1V max )
   float v , pv ;                                     // value of the analog read 8 bits
   float v_min, v_max;                          // min max of analog read v
-  float v_trigger_min, v_trigger_max;          // min max of the trigger applied on v
+  float v_trigger_on, v_trigger_off;          // min max of the trigger applied on v
   float slope_min, slope_max ;                 // min max of the slope
   unsigned long int ftv;                       // time of the analog convertion
   unsigned long int ftv0;                      // time of the beginning of the press
@@ -51,15 +52,15 @@ struct T_optical {
   uint8_t ccMidi ;                             // MIDI-Control-Change to send when value changes 
 };
 T_optical optical[opticalNb];                    // optical buttons
-uint8_t opticalPin[opticalNb] = { A2, A4 };      // analog pins for the optical button
+uint8_t opticalPin[opticalNb] = { A2, A3 };      // analog pins for the optical button compliant with dual-ADC
 void opticalAdcPreset(T_optical *o);
 elapsedMicros opticalSince;  // timer to measure the slope
 int veloMin = 10;        // velocity minimum ( velocity maximum = 128 - veloMin) 
 #define VELOMINDEFAULT 10
 #define CURVEMIN 0.2
 #define CURVEMAX 2.0
-#define CURVEDEFAULT 0.5
-float veloCurve = 0.5;  // velocity curve [CURVEMIN..CURVEMAX]
+#define CURVEDEFAULT 1.0
+float veloCurve = CURVEDEFAULT;  // velocity curve [CURVEMIN..CURVEMAX]
 #define DV_CONTROLCHANGE 2 // minimum Dv to send a Control-Change
 uint8_t controlMidi[opticalNb] = { 1, 4 };      // Midi-our-Control-Change for each optical button
 
@@ -119,17 +120,18 @@ void confWrite() {
 // On board Led
 ///////////////
 void ledOnboardFlash(int v) {
-  analogWrite(ONBOARD_LED_PIN, constrain(2*v,1,256));
+  digitalWrite(ONBOARD_LED_PIN,HIGH);
   sinceOnboardLed = 0;
+  dtled = v * 2 ;
   onBoardLedOn = true ;
 }
 void ledOnboardProcess() {
   // keep alive led
   if ( ! onBoardLedOn )
     return ;
-  if (sinceOnboardLed > FLASH_DT) {
-    pinMode(ONBOARD_LED_PIN, OUTPUT);
-    digitalWrite(ONBOARD_LED_PIN,HIGH);
+  
+  if (sinceOnboardLed > dtled) {
+    digitalWrite(ONBOARD_LED_PIN,LOW);
     onBoardLedOn = false ;
   }
 }
@@ -283,23 +285,23 @@ void opticalAdcPreset(T_optical *o) {
 
   // prepare two analog convertions
   
-  #if DEBUGMODE > 4
+  #if DEBUGMODE > 7
     prt("opticalAdcPreset adc0 on pin#");
     prtln(o->pin);
   #endif
   if ( ! adc->adc0->startSingleRead(o->pin) ) {
-     prt("Error startSingleRead adc0 on pin#);
+     prt("Error startSingleRead adc0 on pin#");
      prtln(o->pin);
   }
   o->ftv = opticalSince;
 
   if (o->nr < (opticalNb - 1)) {
-    #if DEBUGMODE > 4
+    #if DEBUGMODE > 7
         prt("opticalAdcPreset adc1 on pin#");
         prtln((o+1)->pin);
     #endif
     if ( ! adc->adc1->startSingleRead((o + 1)->pin) ) {
-          prt("Error startSingleRead adc1 on pin#);
+          prt("Error startSingleRead adc1 on pin#");
           prtln((o+1)->pin);
        }
     (o + 1)->ftv = opticalSince;
@@ -354,7 +356,7 @@ void opticalAdcRead(T_optical *o) {
     o->v = ADC_POSITIVE?(adc->adc0->readSingle()):(ADC_MAX - adc->adc0->readSingle());
   else {
     o->v = 0 ;
-    #if DEBUGMODE > 1
+    #ifdef DEBUGMODE
       prtln("Timeout adc0");
     #endif
   }
@@ -366,11 +368,11 @@ void opticalAdcRead(T_optical *o) {
       if (noloop++ > 3200000)
         break ;
     }
-    if ( adc->adc0->isComplete() )
+    if ( adc->adc1->isComplete() )
       (o + 1)->v = ADC_POSITIVE?(adc->adc1->readSingle()):(ADC_MAX - adc->adc1->readSingle());
     else {
       (o + 1)->v = 0 ;
-      #if DEBUGMODE > 1
+      #ifdef DEBUGMODE 
         prtln("Timeout adc1");
       #endif
     }
@@ -387,8 +389,8 @@ void opticalInit() {
     o->pin = opticalPin[nr];
     pinMode(o->pin, INPUT_DISABLE);  // ?
     o->state = 0;
-    o->v_trigger_min = ADC_MAX;
-    o->v_trigger_max = 0 ;
+    o->v_trigger_on = ADC_MAX;
+    o->v_trigger_off = 0 ;
     o->v_min = ADC_MAX ;
     o->v_max = 0 ;
     o->slope_min = 99999.0 ;
@@ -410,10 +412,10 @@ void opticalMidiControl(T_optical *o) {
 void opticalMidiNoteOn(T_optical *o) {
   // send notOn with calculated velocity
 
-  if ( o->slope < o->slope_min)
-    o->slope_min = 0.99 * o->slope ;
+    if ( o->slope < o->slope_min)
+    o->slope_min = o->slope ;
   if ( o->slope > o->slope_max)
-    o->slope_max = 1.01 * o->slope;
+    o->slope_max = o->slope;
   
   int v;
   float fveloMin = (float)veloMin ;
@@ -490,11 +492,12 @@ bool opticalProcess() {
     if (o->state > 0)
       allOff = false;
 
-    #if DEBUGMODE > 3
+    #if DEBUGMODE > 6
       prt("read value #");
       prt(o->nr);
       prt(" ");
       prtln(o->v);
+      delay(200);
     #endif
 
     limite_changed = false ;
@@ -510,27 +513,27 @@ bool opticalProcess() {
     }
     if (limite_changed)
     {
-      o->v_trigger_min = o->v_min + ( o->v_max - o->v_min ) * ADC_TRIGGER_PERCENT ;
-      o->v_trigger_max = o->v_max - ( o->v_max - o->v_min ) * ADC_TRIGGER_PERCENT ;
+      o->v_trigger_on = o->v_min + ( o->v_max - o->v_min ) * ADC_TRIGGER_PERCENT_ON ;
+      o->v_trigger_off = o->v_min + ( o->v_max - o->v_min ) * ADC_TRIGGER_PERCENT_OFF ;
       #if DEBUGMODE > 2
         prt("New limits optical button #");
         prt(o->nr);
         prt(" ");
         prt(o->v_min);
         prt(".. ");
-        prt(o->v_trigger_min);
+        prt(o->v_trigger_off);
         prt("=>");
-        prt(o->v_trigger_min);
+        prt(o->v_trigger_on);
         prt(".. ");
         prtln(o->v_max);
       #endif
-      if ( (o->v_max - o->v_min) < ADC_GAP_MIN )
-        continue ;
     }
+    if ( (o->v_max - o->v_min) < ADC_GAP_MIN )
+      continue ;
     
     switch (o->state) {
       case 0:
-        if (o->v > o->v_trigger_min) {
+        if (o->v > o->v_trigger_on) {
           allOff = false;
           o->state++;
           o->ftv0 = o->ftv;
@@ -545,7 +548,8 @@ bool opticalProcess() {
         break;
       case 1:
         opticalMeasure = true;
-        if (o->v > o->v_trigger_max) {
+        dt = o->ftv - o->ftv0;
+        if ((o->fnb > ADC_NB_MEASURE) || (dt > ADC_DELAY * 1000)) {
           o->state++;
           // linear regression ended
           float d = o->fnb * o->sumt2 - o->sumv * o->sumv;
@@ -554,13 +558,7 @@ bool opticalProcess() {
           o->ftv0 = opticalSince;
           break;
         }
-        if (o->v < o->v_trigger_min) {
-          // bad alert
-          o->state = 0;
-          break;
-        }
         // linear regression progress
-        dt = o->ftv - o->ftv0;
         o->sumt += (float)dt;
         o->sumv += o->v;
         o->sumtv += (float)(dt) * (float)(o->v);
@@ -572,7 +570,7 @@ bool opticalProcess() {
           o->state++;
         break;
       case 3:
-        if (o->v < o->v_trigger_min) {
+        if (o->v < o->v_trigger_off) {
           o->state++;
           opticalMidiNoteOff(o);
           o->ftv0 = o->ftv;
@@ -608,15 +606,15 @@ bool opticalProcess() {
 ////////
 void adcInit() {
   
-  adc->adc0->setResolution(ADC_RESOLUION);  // unsigned 8 bits [0..2^8]
-  adc->adc0->setAveraging(4);
-  adc->adc0->setConversionSpeed(ADC_CONVERSION_SPEED::HIGH_SPEED);
-  adc->adc0->setSamplingSpeed(ADC_SAMPLING_SPEED::HIGH_SPEED);
+  adc->adc0->setResolution(ADC_RESOLUTION);  // unsigned 8 bits [0..2^8]
+  adc->adc0->setAveraging(2);
+  adc->adc0->setConversionSpeed(ADC_CONVERSION_SPEED::LOW_SPEED);
+  adc->adc0->setSamplingSpeed(ADC_SAMPLING_SPEED::LOW_SPEED);
      
-  adc->adc1->setResolution(ADC_RESOLUION);
-  adc->adc1->setAveraging(4);
-  adc->adc1->setConversionSpeed(ADC_CONVERSION_SPEED::HIGH_SPEED);
-  adc->adc1->setSamplingSpeed(ADC_SAMPLING_SPEED::HIGH_SPEED);
+  adc->adc1->setResolution(ADC_RESOLUTION);
+  adc->adc1->setAveraging(2);
+  adc->adc1->setConversionSpeed(ADC_CONVERSION_SPEED::LOW_SPEED);
+  adc->adc1->setSamplingSpeed(ADC_SAMPLING_SPEED::LOW_SPEED);
   
   adcState = adcNothing;
 }
@@ -659,26 +657,10 @@ void setup() {
 // LOOP
 //////////
 void loop() {
-  #if DEBUGMODE > 3
-      if ( loopnb > 3)
-        return ;
-      loopnb ++ ;
-      prtln("loop");
-      delay (500);
-      // prt(analogRead(optical[0].pin));
-      // prt("\t");
-      // prtln(analogRead(optical[1].pin));
-      prtln("opticalAdcRead");
-      opticalAdcRead(optical);
-      prt(optical[0].v);
-      prt("\t");
-      prtln(optical[1].v);
-      return;
-  #endif  
   if (! opticalProcess()) {
     // no optical slope-measurement in progress
     // process buttons
-    // buttonProcess();
+    //// buttonProcess();
     // led onboard
     ledOnboardProcess();
     // transmit Midi-in => S2-expander
