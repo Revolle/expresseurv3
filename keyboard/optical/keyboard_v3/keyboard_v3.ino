@@ -10,6 +10,7 @@ Tuning : Receive USB CC to tune analog parameters.
      - CC-102 : curve/aggressivity of noteOn velocity ; 
      - CC-103 : dynamic of noteOn velocity
 On board led : flashes on various events
+Analog pins must be compliant with multi-ADCs capabilities
 */
 
 #include <EEPROM.h>
@@ -278,7 +279,7 @@ void buttonProcess() {
 // optical
 ////////////
 void opticalAdcPreset(T_optical *o) {
-  //////////////////////////////////
+//////////////////////////////////
 
   // prepare two analog convertions
   
@@ -286,7 +287,10 @@ void opticalAdcPreset(T_optical *o) {
     prt("opticalAdcPreset adc0 on pin#");
     prtln(o->pin);
   #endif
-  adc->adc0->startSingleRead(o->pin);
+  if ( ! adc->adc0->startSingleRead(o->pin) ) {
+     prt("Error startSingleRead adc0 on pin#);
+     prtln(o->pin);
+  }
   o->ftv = opticalSince;
 
   if (o->nr < (opticalNb - 1)) {
@@ -294,7 +298,10 @@ void opticalAdcPreset(T_optical *o) {
         prt("opticalAdcPreset adc1 on pin#");
         prtln((o+1)->pin);
     #endif
-    adc->adc1->startSingleRead((o + 1)->pin);
+    if ( ! adc->adc1->startSingleRead((o + 1)->pin) ) {
+          prt("Error startSingleRead adc1 on pin#);
+          prtln((o+1)->pin);
+       }
     (o + 1)->ftv = opticalSince;
   }
   adcState = adcOptical + o->nr;
@@ -605,7 +612,7 @@ void adcInit() {
   adc->adc0->setAveraging(4);
   adc->adc0->setConversionSpeed(ADC_CONVERSION_SPEED::HIGH_SPEED);
   adc->adc0->setSamplingSpeed(ADC_SAMPLING_SPEED::HIGH_SPEED);
-  
+     
   adc->adc1->setResolution(ADC_RESOLUION);
   adc->adc1->setAveraging(4);
   adc->adc1->setConversionSpeed(ADC_CONVERSION_SPEED::HIGH_SPEED);
