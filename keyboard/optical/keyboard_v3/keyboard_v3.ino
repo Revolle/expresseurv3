@@ -78,7 +78,7 @@ struct T_button {
   unsigned long int ftv0;   // time of the beginning of the press
 };
 T_button button[buttonNb];                      // mechanical buttons
-uint8_t buttonPin[buttonNb] = { 10 };  // digital pin for mechanical buttons
+uint8_t buttonPin[buttonNb] = { 10 };       // digital pin for mechanical buttons
 elapsedMillis buttonSince;                      // timer to measure the states
 
 // Analog Digital Converter tuning
@@ -112,7 +112,7 @@ void confRead(bool all) {
       return;
     }
   }
-  EEPROM.get(addr); addr += sizeof(veloMin) ;
+  EEPROM.get(addr, veloMin); addr += sizeof(veloMin) ;
   EEPROM.get(addr, veloCurve); addr += sizeof(veloCurve) ;
   if ( all ) {
        T_optical *o ;
@@ -152,29 +152,25 @@ void confWrite(bool all) {
 // On board Led
 ///////////////
 void ledOnboardFlash(int v) {
-  digitalWrite(ONBOARD_LED_PIN,tuningOnStart?LOW:HIGH);
+  ledOnboard(tuningOnStart?false:true);
   sinceOnboardLed = 0;
   dtled = v * 2 ;
-  onBoardLedOn = true ;
 }
 void ledOnboardProcess() {
   // keep alive led
-  if ( ! onBoardLedOn )
+  if ((onBoardLedOn && tuningOnStart )  || (! onBoardLedOn && ! tuningOnStart ))
     return ;
   
   if (sinceOnboardLed > dtled) {
-    digitalWrite(ONBOARD_LED_PIN,tuningOnStart?HIGH:LOW);
-    onBoardLedOn = false ;
+    ledOnboard(tuningOnStart?true:false);
   }
 }
-void ledOnboardOff() {
-    digitalWrite(ONBOARD_LED_PIN,LOW);
-    onBoardLedOn = false ;
+void ledOnboard(bool on) {
+    digitalWrite(ONBOARD_LED_PIN,on?HIGH:LOW);
+    onBoardLedOn = on ;
 }
 void ledOnboardInit() {
   pinMode(ONBOARD_LED_PIN, OUTPUT);
-  digitalWrite(ONBOARD_LED_PIN,HIGH);
-  onBoardLedOn = false ;
 }
 
 // MIDI-thru USB => S2
@@ -449,6 +445,16 @@ void opticalMidiControl(T_optical *o) {
 void opticalMidiNoteOn(T_optical *o) {
   // send notOn with calculated velocity
 
+  // switch off all current note-on , to have only one note-on active at one time
+  uint8_t nr;
+  T_optical *o ;
+  for (nr = 0, o = optical; nr < opticalNb; nr++, o++) {
+       if ( o->pitch > 0 ) {
+            midiNote(o->pitch, 0);
+            o->pitch = 0 ;
+       }
+  }
+     
   if ( tunigOnStart) {
        if ( o->slope < o->slope_min)
          o->slope_min = o->slope ;
@@ -527,7 +533,7 @@ bool opticalProcess() {
   for (nr = 0, o = optical, modulo2 = true, allOff = true, opticalMeasure = false; nr < opticalNb; nr++, o++, modulo2 = !modulo2) {
 
     if (modulo2)
-      opticalAdcRead(o);  // read adc0 and adc1, and prepare next ones. Unsigned 8 bits [0..2^8]
+      opticalAdcRead(o);  // read adc0 and adc1, and prepare the two next ones.
 
     if (o->state > 0)
       allOff = false;
@@ -639,7 +645,7 @@ bool opticalProcess() {
   if ( tuningOnStart ) {
        if ( opticalSince > (TUNINGDT * 1000000 )) {
             tuningOnStart = false ;
-            ledOnboardOff() ;
+            ledOnboard(false) ;
             int i ;
             bool nbOn = true ;
             for(i = 0 ; i < opticalNb ; i ++) {
@@ -697,6 +703,7 @@ void setup() {
   confRead(false);
   
   ledOnboardInit();
+  ledOnboard(true):
 
   adcInit();
   // s2Init(); // if serial is connected to an expander 
