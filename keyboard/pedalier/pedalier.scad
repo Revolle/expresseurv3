@@ -1,93 +1,73 @@
-$fn=50;
+$fn = 10 ;
+e = 3 ;
 
-teensy_x = 17.8 ;
-teensy_y = 36 ;
-teensy_z = 9 ;
+cny70_x = 7.5 ;
+cny70_y = 7.5 ;
+cny70_z = 6.0 ;
+cny70_patte_x = 5.5 ;
+cny70_patte_y = 5.5 ;
+cny70_patte_z = 8 ;
+cny70_fil_e = 2 ;
 
-capteur_d = 18.5 ;
-capteur_e = 0.5 ;
-capteur_y = 8 ;
-capteur_x = 57-capteur_d;
-capteur_pin_x = 4 ;
-capteur_a = 2 ;
+cny70_capsule_x = cny70_x + 2*e ;
+cny70_capsule_y = cny70_y + 2*e ;
+cny70_capsule_z = cny70_z + cny70_patte_z + cny70_fil_e  ;
 
+fil_d = 3.8;
+lien_l = 3 ;
+lien_e = 1.5 ;
+a = 15 ;
 
-connecteur_x = 5;
-connecteur_y = 6;
-connecteur_z = 4 ;
-e=4.5 ;
-
-plaque_x=185;
-plaque_y=teensy_y +  e;
-
-capteur_dx = plaque_x /2 - capteur_d / 2 - e ;
-
-module capteur(trou)
+module cny70(ep)
 {
-    hull()
-    {
-        cylinder(d=capteur_d,h = capteur_e,center=true);
-        translate([capteur_d/2,capteur_y/2,0])
-            cube([1,1,capteur_e],center=true);
-        translate([capteur_d/2,-capteur_y/2,0])
-            cube([1,1,capteur_e],center=true);
-    }
-    translate([capteur_d/2,0,0])
-        rotate([0,capteur_a,0])
-            union()
-            {
-                translate([capteur_x/2,0,0])
-                   cube([capteur_x,capteur_y,capteur_e],center = true);
-                translate([capteur_x + capteur_pin_x/2 ,2.54/2,0])
-                   cube([capteur_pin_x,1,capteur_e],center = true);
-                translate([capteur_x + capteur_pin_x/2 ,-2.54/2,0])
-                   cube([capteur_pin_x,1,capteur_e],center = true);
-                translate([capteur_x + 1 + connecteur_x /2 ,0,-1])
-                   cube([connecteur_x*trou,connecteur_y*trou,connecteur_z],center = true);
-            }
-}
-
-module teensy()
-{
-    cube([teensy_x,teensy_y,teensy_z],center= true );
-}
-
-module support()
-{
-    cube([plaque_x,plaque_y,e],center=true);
-    translate([capteur_dx,0,e/2])
-        cylinder(d=capteur_d+e,h = capteur_e,center=true);
-    translate([-capteur_dx,0,e/2])
-        cylinder(d=capteur_d+e,h = capteur_e,center=true);
-    translate([0,0,(teensy_z + e)/2 - e/2])
-        cube([teensy_x + 2*e ,plaque_y,teensy_z + e],center=true);
+     // pattes
+    translate([0,0,fil_d/2])
+        cube([cny70_x,cny70_y + 2 * cny70_patte_z ,fil_d],center = true);
+    // fil
+    translate([0,0,fil_d/2])
+        rotate([90,0,0])
+            cylinder(d=fil_d,h=15,center=true);
+   // capteur
+    translate([0,0,cny70_z/2 + fil_d + 1])
+        cube([cny70_x,cny70_y+ep,cny70_z],center = true);
+    translate([0,0,fil_d + 1/2])
+        cube([cny70_x-1.5,cny70_y-1.5,1],center = true);
 
 }
-
-rotate([90,0,0])
-difference()
+module decoupe_cny70()
 {
-    support() ;
-    translate([-capteur_dx,0,e/2+capteur_e/2])
-        capteur(1);
-    translate([capteur_dx,0,e/2+capteur_e/2])
-        rotate([0,0,180])
-            capteur(1);
-    //teensy
-    translate([0,e/2,teensy_z/2-e/2])
-        cube([teensy_x,teensy_y,teensy_z],center= true );
-    //raccords
-    translate([0,0,-18])
-        cube([65,connecteur_y,40],center= true );
+    // pattes
+    translate([5,0,fil_d/2])
+        cube([cny70_x+10,cny70_y + 2 * cny70_patte_z ,fil_d],center = true);
+    // fil
+    translate([0,0,fil_d/2])
+        rotate([90,0,0])
+            cylinder(d=fil_d,h=60,center=true);
+    translate([5,0,fil_d/2])
+        cube([10,60,fil_d],center=true);
+   // capteur
+    translate([5,0,cny70_z/2 + fil_d+2])
+        cube([cny70_x+10,cny70_y,cny70_z],center = true);
+    translate([5,0,cny70_z/2 + fil_d + 1])
+        cube([cny70_x+10,cny70_y,cny70_z],center = true);
+    translate([5,0,fil_d + 1/2])
+        cube([cny70_x-1.5+10,cny70_y-1.5,1],center = true);
+   
+}
+difference() {
+    hull() {
+        translate([0,0,2*e ]) 
+            rotate([0 , a  ,0]) 
+                cny70(15) ;
+        translate([-5,0,e/2])
+            cube([cny70_capsule_x + 10 ,cny70_capsule_y + 40 ,e],center = true);   
+        }
+    translate([0,0,2*e ]) 
+        rotate([0 , a  ,0]) 
+            decoupe_cny70() ;
 }
 
-*union()
-{
-    translate([-capteur_dx,0,e/2+capteur_e/2])
-        capteur(1);
-    translate([capteur_dx,0,e/2+capteur_e/2])
-        rotate([0,0,180])
-            capteur(1);
-    translate([0,e/2,teensy_z/2-e/2])
-        teensy() ;
-}
+*translate([0,0,2*e ]) 
+    rotate([0 , a  ,0]) 
+        cny70(0) ;
+*decoupe_cny70() ;
