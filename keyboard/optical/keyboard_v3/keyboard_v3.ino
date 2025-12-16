@@ -40,7 +40,7 @@ long unsigned int dtled ;
 struct T_optical {
   uint8_t nr;                                  // incremntal number of the optical button
   uint8_t pin;                                 // analog pin to read ( 3.1V max )
-  float v , pv ;                                     // value of the analog read 8 bits
+  float v , pv ;                                // value of the analog read 
   float v_min, v_max;                          // min max of analog read v
   float v_trigger_on, v_trigger_off;          // min max of the trigger applied on v
   float slope_min, slope_max ;                 // min max of the slope
@@ -50,6 +50,7 @@ struct T_optical {
   uint8_t state;                               // state of the optical button
   uint8_t pitch;                               // pitch sent on midiOn
   uint8_t ccMidi ;                             // MIDI-Control-Change to send when value changes 
+  int nbOn ;                                    // Nb On 
 };
 T_optical optical[opticalNb];                    // optical buttons
 uint8_t opticalPin[opticalNb] = { A2, A3 };      // analog pins for the optical button compliant with dual-ADC
@@ -63,6 +64,10 @@ int veloMin = 10;        // velocity minimum ( velocity maximum = 128 - veloMin)
 float veloCurve = CURVEDEFAULT;  // velocity curve [CURVEMIN..CURVEMAX]
 #define DV_CONTROLCHANGE 2 // minimum Dv to send a Control-Change
 uint8_t controlMidi[opticalNb] = { 1, 4 };      // Midi-our-Control-Change for each optical button
+// autotuning on start 
+bool tuningOnStart = true ;
+#define TUNINGDT 10 // secondes , delay to tune 
+#define TUNINGNB 5 // nb On miniam to validate the tuning (ele read from EEPROM last tuning
 
 // mechanical button
 #define buttonNb 1  // nb button
@@ -96,24 +101,31 @@ uint8_t conf_magic[CONF_ADDR_VMIN] = { 20,45,10,89 } ;  // keys to detect if EEP
 ///////////////
 // read conf from EEPROM
 //////////////
-void confRead() {
+void confRead(bool all) {
   byte value;
-  for (uint8_t i = 0; i < CONF_ADDR_VMIN; i++) {
-    value = EEPROM.read(i);
-    if (value != conf_magic[i]) {
+  uint8_t addr = 0  ;
+  for (addr = 0; addr < CONF_ADDR_VMIN; addr++) {
+    value = EEPROM.read(addr);
+    if (value != conf_magic[addr]) {
       veloMin = VELOMINDEFAULT;
       veloCurve = CURVEDEFAULT ; 
       return;
     }
   }
-  veloMin = EEPROM.read(CONF_ADDR_VMIN);
-  EEPROM.get(CONF_ADDR_VMIN + 1, veloCurve);
+  veloMin = EEPROM.get(addr); addr += sizeof(veloMin) ;
+  EEPROM.get(addr, veloCurve); addr += sizeof(veloCurve) ;
+  if ( all ) {
+       for(int i = 0 ; i < opticalNb ; i ++ ) {
+            EEPROM.get(addr,optical[i]) ; addr += sizeof(T_optical);
+       }
+  }
 }
-void confWrite() {
-  for (uint8_t i = 0; i < CONF_ADDR_VMIN; i++)
-    EEPROM.update(i, conf_magic[i]);
-  EEPROM.update(CONF_ADDR_VMIN, (byte)(veloMin));
-  EEPROM.put(CONF_ADDR_VMIN + 1, veloCurve);
+void confWrite(bool all) {
+  uint8_t addr = 0  ;
+  for (addr = 0; addr < CONF_ADDR_VMIN; addr++)
+    EEPROM.write(addr, conf_magic[addr]);
+  EEPROM.put(addr, veloMin); addr += sizeof(veloMin) ;
+  EEPROM.put(addr, veloCurve);addr += sizeof(veloCurve) ;
 }
 
 ///////////////
@@ -396,6 +408,7 @@ void opticalInit() {
     o->slope_min = 99999.0 ;
     o->slope_max = 0.0 ;
     o->ccMidi = controlMidi[nr];
+    o->nbOn = 0 ;
   }
   // prepare to read the two first optical sensors
   opticalAdcPreset(optical);
@@ -589,9 +602,28 @@ bool opticalProcess() {
         break;
     }
   }
-  if (allOff) {
-    // no activity on optical : reset µsecond counter
-    opticalSince = 0;
+  if ( tuningOnStart ) {
+       if ( opticalSince > (TUNINGDT * 1000000 )) {
+            tuningOnStart = false ;
+            int i ;
+            bool nbOn = true ;
+            for(i = 0 ; i < opticalNb ; i ++) {
+                 if ( optical[i].nbOn < TUNINGNB )
+                      nbOn = false ;
+            }
+            if (nbOn) {
+                 // tuning valide during this initialisation phase. Store these values in EEPROM
+            }
+            else {
+                 // no valide tuning, retrieve tuning from EEPROM
+            }
+       }
+  }
+  else {
+       if ((allOff) && (! tuningOnStart)) {
+         // no activity on optical : reset µsecond counter
+         opticalSince = 0;
+       }
   }
   if ( ! opticalMeasure )
     // send Control Chanage on MIDI
