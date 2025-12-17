@@ -68,7 +68,7 @@ uint8_t controlMidi[NB_OPTICAL] = { 0, 4 };      // Midi-our-Control-Change for 
 // autotuning on start 
 bool tuningOnStart = true ;
 #define DT_TUNING 10 // secondes , delay to tune 
-#define NB_TUNING 5 // nb On miniam to validate the tuning (ele read from EEPROM last tuning
+#define NB_TUNING 5 // nb On minimum to validate the tuning (else : read from EEPROM last tuning )
 
 // mechanical button
 #define buttonNb 1  // nb button
@@ -154,18 +154,24 @@ void confWrite(bool all) {
 ///////////////
 // On board Led
 ///////////////
-void ledOnboardFlash(int v) {
-  ledOnboard(tuningOnStart?false:true);
+void ledOnboardFlash(int v ,bool repeat ) {
+  ledOnboard(true);
   sinceOnboardLed = 0;
   dtled = v * 2 ;
+  repeatLed = repeat ;
 }
 void ledOnboardProcess() {
   // keep alive led
-  if ((onBoardLedOn && tuningOnStart )  || (! onBoardLedOn && ! tuningOnStart ))
+  if ((! onBoardLedOn ) && ( !repeatLed))
     return ;
   
+  if ((repeatLed) && (sinceOnboardLed > 2*dtled) {
+    ledOnboard(true);
+    sinceOnboardLed = 0 ;
+    return ;
+  }
   if (sinceOnboardLed > dtled) {
-    ledOnboard(tuningOnStart?true:false);
+    ledOnboard(false);
   }
 }
 void ledOnboard(bool on) {
@@ -181,7 +187,7 @@ void ledOnboardInit() {
 void s2Process() {
   // forward MIDI-in/USB to MIDI/S2
   if (usbMIDI.read()) {
-    ledOnboardFlash(64);
+    ledOnboardFlash(64 , false);
     midiType = usbMIDI.getType();
     midiLen = 3;
     midiBuf[0] = (midiType & 0xF0) | (usbMIDI.getChannel() - 1);
@@ -279,7 +285,7 @@ void buttonProcess() {
           b->state = 1;
           buttonAction(b,true);
           b->ftv0 = buttonSince;
-          ledOnboardFlash(64);
+          ledOnboardFlash(64 , false);
         }
         break;
       case 1:
@@ -457,13 +463,31 @@ void opticalMidiNoteOn(T_optical *o) {
             lo->pitch = 0 ;
        }
   }
-     
+
+  bool limite_changed = false ;
   if ( tuningOnStart) {
-       if ( o->slope < o->slope_min)
+       limite_changed = false ;
+       if ( o->slope < o->slope_min) {
          o->slope_min = o->slope ;
-       if ( o->slope > o->slope_max)
+         limite_changed = true ;
+       }
+       if ( o->slope > o->slope_max) {
          o->slope_max = o->slope;
+         limite_changed = true ;
+       }
        (o->nbOn) ++ ;
+          if (limite_changed)
+          {
+           #if DEBUGMODE > 2
+             prt("New limits slope optical button #");
+             prt(o->nr);
+             prt(" ");
+             prt(o->slope_min);
+             prt(".. ");
+             prtln(o->slope_max);
+           #endif
+          }
+       return ;
   }
   
   int v;
@@ -506,7 +530,7 @@ void opticalMidiNoteOn(T_optical *o) {
     prt(v);
     prtln(s);
   #endif
-  ledOnboardFlash(v);
+  ledOnboardFlash(v , false);
   if (v > (128 - veloMin)) 
     v = (128 - veloMin);
   if (v < veloMin) 
@@ -549,36 +573,41 @@ bool opticalProcess() {
       delay(200);
     #endif
     if ( tuningOnStart) {
-         limite_changed = false ;
-         if ( o->v < o->v_min )
-         {
-           limite_changed = true ;
-           o->v_min = o->v ;
+         if ( opticalSince > (DT_TUNING * 1000000 / 2 ))  {
+              ledOnboardFlash(128 , true);
          }
-         if ( o->v > o->v_max )
-         {
-           o->v_max = o->v ;
-           limite_changed = true ;
+         else {
+              // tune min max of value in first phase
+              limite_changed = false ;
+              if ( o->v < o->v_min )
+              {
+                limite_changed = true ;
+                o->v_min = o->v ;
+              }
+              if ( o->v > o->v_max )
+              {
+                o->v_max = o->v ;
+                limite_changed = true ;
+              }
+              if (limite_changed)
+              {
+                o->v_trigger_on = o->v_min + ( o->v_max - o->v_min ) * ADC_TRIGGER_PERCENT_ON ;
+                o->v_trigger_off = o->v_min + ( o->v_max - o->v_min ) * ADC_TRIGGER_PERCENT_OFF ;
+                #if DEBUGMODE > 2
+                  prt("New limits optical button #");
+                  prt(o->nr);
+                  prt(" ");
+                  prt(o->v_min);
+                  prt(".. ");
+                  prt(o->v_trigger_off);
+                  prt("=>");
+                  prt(o->v_trigger_on);
+                  prt(".. ");
+                  prtln(o->v_max);
+                #endif
+              }
+              continue ;
          }
-         if (limite_changed)
-         {
-           o->v_trigger_on = o->v_min + ( o->v_max - o->v_min ) * ADC_TRIGGER_PERCENT_ON ;
-           o->v_trigger_off = o->v_min + ( o->v_max - o->v_min ) * ADC_TRIGGER_PERCENT_OFF ;
-           #if DEBUGMODE > 2
-             prt("New limits optical button #");
-             prt(o->nr);
-             prt(" ");
-             prt(o->v_min);
-             prt(".. ");
-             prt(o->v_trigger_off);
-             prt("=>");
-             prt(o->v_trigger_on);
-             prt(".. ");
-             prtln(o->v_max);
-           #endif
-         }
-         if ( (o->v_max - o->v_min) < ADC_GAP_MIN )
-           continue ;
     }
     
     switch (o->state) {
@@ -641,10 +670,10 @@ bool opticalProcess() {
     }
   }
   if ( tuningOnStart ) {
-       if ( opticalSince > (DT_TUNING * 1000000 )) {
+       if ( opticalSince > ( DT_TUNING * 1000000 )) {
+            ledOnboardFlash(1 , false);
             tuningOnStart = false ;
-            ledOnboard(false) ;
-            int i ;
+            uint8_t i ;
             bool nbOn = true ;
             for(i = 0 ; i < NB_OPTICAL ; i ++) {
                  if ( optical[i].nbOn < NB_TUNING )
@@ -713,7 +742,8 @@ void setup() {
   // s2Init(); // if serial is connected to an expander 
   // buttonInit();
   opticalInit();
-  
+
+  ledOnboardFlash(64 , true);
 
 }
 
