@@ -39,10 +39,10 @@ bool repeatLed;
 #define ADC_POSITIVE true              // true if the sensor value increases while pressng the optical button (else false)
 #define ADC_DELAY 100                  // ms to debounce states
 struct T_optical {
-  uint8_t nr;                                  // incremntal number of the optical button
-  uint8_t pin;                                 // analog pin to read ( 3.1V max )
-  float v, pv ;                                // value of the analog read
-  int pvcc;                           
+  uint8_t nr;   // incremntal number of the optical button
+  uint8_t pin;  // analog pin to read ( 3.1V max )
+  float v, pv;  // value of the analog read
+  int pvcc;
   float v_min, v_max;                          // min max of analog read v
   float v_trigger_on, v_trigger_off;           // min max of the trigger applied on v
   float slope_min, slope_max;                  // min max of the slope
@@ -67,6 +67,8 @@ float veloCurve = CURVEDEFAULT;              // velocity curve [CURVEMIN..CURVEM
 #define DV_CONTROLCHANGE 2                   // minimum Dv to send a Control-Change
 #define DT_CONTROLCHANGE 100                 // minimum ms to send a Control-Change
 uint8_t controlMidi[NB_OPTICAL] = { 0, 4 };  // Midi-our-Control-Change for each optical button (0 for nothing)
+elapsedMillis midiccSince;
+
 // autotuning on start
 int tuning;
 #define DT_TUNING 40  // secondes , delay to tune
@@ -115,9 +117,9 @@ void confRead(bool all) {
   for (addr = 0; addr < CONF_ADDR_VMIN; addr++) {
     value = EEPROM.read(addr);
     if (value != conf_magic[addr]) {
-      #ifdef DEBUGMODE
+#ifdef DEBUGMODE
       prtln("no conf available in EEPROM, default values");
-      #endif
+#endif
       veloMin = VELOMINDEFAULT;
       veloCurve = CURVEDEFAULT;
       T_optical *o;
@@ -125,26 +127,34 @@ void confRead(bool all) {
       for (o = optical, i = 0; i < NB_OPTICAL; o++, i++) {
         o->v_trigger_on = ADC_MAX * ADC_TRIGGER_PERCENT_ON;
         o->v_trigger_off = ADC_MAX * ADC_TRIGGER_PERCENT_OFF;
-        o->slope_min = 0.0 ;
-        o->slope_max = 0.14 ;
-        o->v_min = 0.0 ;
-        o->v_max = (float)ADC_MAX ;
+        o->slope_min = 0.0;
+        o->slope_max = 0.14;
+        o->v_min = 0.0;
+        o->v_max = (float)ADC_MAX;
       }
       return;
     }
   }
-  EEPROM.get(addr, veloMin);  addr += sizeof(veloMin);
-  EEPROM.get(addr, veloCurve);  addr += sizeof(veloCurve);
+  EEPROM.get(addr, veloMin);
+  addr += sizeof(veloMin);
+  EEPROM.get(addr, veloCurve);
+  addr += sizeof(veloCurve);
   if (all) {
     T_optical *o;
     uint8_t i;
     for (o = optical, i = 0; i < NB_OPTICAL; o++, i++) {
-      EEPROM.get(addr,o->v_trigger_on);  addr += sizeof(float);
-      EEPROM.get(addr,o->v_trigger_off);  addr += sizeof(float);
-      EEPROM.get(addr,o->slope_min);  addr += sizeof(float);
-      EEPROM.get(addr,o->slope_max);  addr += sizeof(float);
-      EEPROM.get(addr,o->v_min);  addr += sizeof(float);
-      EEPROM.get(addr,o->v_max);  addr += sizeof(float);
+      EEPROM.get(addr, o->v_trigger_on);
+      addr += sizeof(float);
+      EEPROM.get(addr, o->v_trigger_off);
+      addr += sizeof(float);
+      EEPROM.get(addr, o->slope_min);
+      addr += sizeof(float);
+      EEPROM.get(addr, o->slope_max);
+      addr += sizeof(float);
+      EEPROM.get(addr, o->v_min);
+      addr += sizeof(float);
+      EEPROM.get(addr, o->v_max);
+      addr += sizeof(float);
     }
   }
 }
@@ -152,50 +162,67 @@ void confWrite(bool all) {
   uint addr = 0;
   for (addr = 0; addr < CONF_ADDR_VMIN; addr++)
     EEPROM.write(addr, conf_magic[addr]);
-  EEPROM.put(addr, veloMin);  addr += sizeof(veloMin);
-  EEPROM.put(addr, veloCurve);   addr += sizeof(veloCurve);
+  EEPROM.put(addr, veloMin);
+  addr += sizeof(veloMin);
+  EEPROM.put(addr, veloCurve);
+  addr += sizeof(veloCurve);
   if (all) {
     T_optical *o;
     float f;
     uint8_t i;
     for (o = optical, i = 0; i < NB_OPTICAL; o++, i++) {
-      EEPROM.put(addr,o->v_trigger_on);  
-      #ifdef DEBUGMODE
-        EEPROM.get(addr,f) ; 
-        if (f != o->v_trigger_on )  
-           prtln("EEPROM write ok");
-        else {
-          prt("EEPROM write ERROR !!! ");
+      EEPROM.put(addr, o->v_trigger_on);
+#ifdef DEBUGMODE
+      EEPROM.get(addr, f);
+      if (f != o->v_trigger_on)
+        prtln("EEPROM write ok");
+      else {
+        prt("EEPROM write ERROR !!! ");
         prt(o->v_trigger_on);
-          prt(" read=");
+        prt(" read=");
         prtln(f);
-        }
-      #endif
+      }
+#endif
       addr += sizeof(float);
-      EEPROM.put(addr,o->v_trigger_off);  addr += sizeof(float);
-      EEPROM.put(addr,o->slope_min);  addr += sizeof(float);
-      EEPROM.put(addr,o->slope_max);  addr += sizeof(float);
-      EEPROM.put(addr,o->v_min);  addr += sizeof(float);
-      EEPROM.put(addr,o->v_max);  addr += sizeof(float);
+      EEPROM.put(addr, o->v_trigger_off);
+      addr += sizeof(float);
+      EEPROM.put(addr, o->slope_min);
+      addr += sizeof(float);
+      EEPROM.put(addr, o->slope_max);
+      addr += sizeof(float);
+      EEPROM.put(addr, o->v_min);
+      addr += sizeof(float);
+      EEPROM.put(addr, o->v_max);
+      addr += sizeof(float);
     }
   }
 }
 void confPrint() {
 #ifdef DEBUGMODE
   prtln("Configuration :");
-  prt("tuning=");prtln(tuning);
-  prt("veloMin (CC103)="); prtln(veloMin);
-  prt("veloCurve (CC102)="); prtln(veloCurve);
+  prt("tuning=");
+  prtln(tuning);
+  prt("veloMin (CC103)=");
+  prtln(veloMin);
+  prt("veloCurve (CC102)=");
+  prtln(veloCurve);
   T_optical *o;
   uint8_t i;
   for (o = optical, i = 0; i < NB_OPTICAL; o++, i++) {
-    prt("button #"); prtln(i);
-    prt("  v_trigger_off="); prtln(o->v_trigger_off);
-    prt("  v_trigger_on="); prtln(o->v_trigger_on);
-    prt("  slope_min="); prtln(o->slope_min);
-    prt("  slope_max="); prtln(o->slope_max);
-    prt("  v_min="); prtln(o->v_min);
-    prt("  v_max="); prtln(o->v_max);
+    prt("button #");
+    prtln(i);
+    prt("  v_trigger_off=");
+    prtln(o->v_trigger_off);
+    prt("  v_trigger_on=");
+    prtln(o->v_trigger_on);
+    prt("  slope_min=");
+    prtln(o->slope_min);
+    prt("  slope_max=");
+    prtln(o->slope_max);
+    prt("  v_min=");
+    prtln(o->v_min);
+    prt("  v_max=");
+    prtln(o->v_max);
   }
 #endif
 }
@@ -494,7 +521,7 @@ void opticalMidiControl(T_optical *o) {
   // send Contorl Change according to position
   if (o->ccMidi == 0)
     return;
-  int vcc = constrain(map(o->v, o->v_min, o->v_max, 0, 127), 0, 127) ;
+  int vcc = constrain(map(o->v, o->v_min, o->v_max, 0, 127), 0, 127);
   if (abs(vcc - o->pvcc) > DV_CONTROLCHANGE) {
     o->pvcc = vcc;
     midiControl(o->ccMidi, vcc);
@@ -736,16 +763,17 @@ bool opticalProcess() {
     }
   }
   if (tuning == TUNING_OFF) {
-    if (opticalSince > DT_CONTROLCHANGE * 1000) {
+    if (midiccSince > DT_CONTROLCHANGE) {
       //send MIDI-ControlChange according to position
       for (nr = 0, o = optical; nr < NB_OPTICAL; nr++, o++) {
         opticalMidiControl(o);
       }
-      if (allOff) {
-        // no activity on optical
-        // reset µsecond counter
-        opticalSince = 0;
-      }
+      midiccSince = 0 ;
+    }
+    if ((allOff) && (opticalSince > DT_CONTROLCHANGE)) {
+      // no activity on optical
+      // reset µsecond counter
+      opticalSince = 0;
     }
   } else {
     if (opticalSince > (DT_TUNING * 1000000)) {
@@ -754,12 +782,12 @@ bool opticalProcess() {
       veloMin = VELOMINDEFAULT;
       veloCurve = CURVEDEFAULT;
       confWrite(true);
-      confPrint() ;
+      confPrint();
     }
   }
 
-// => opticalMeasure is false
-return opticalMeasure;
+  // => opticalMeasure is false
+  return opticalMeasure;
 }
 
 ////////
@@ -789,7 +817,7 @@ void resetInit() {
   pinMode(resetPin[1], INPUT_PULLUP);
 }
 bool resetPressed() {
-  return (! digitalRead(resetPin[1]));
+  return (!digitalRead(resetPin[1]));
 }
 ////////////
 // SETUP
@@ -812,7 +840,7 @@ void setup() {
   resetInit();
 
   confRead(true);
-  confPrint() ;
+  confPrint();
 
   tuning = TUNING_OFF;
 }
@@ -831,26 +859,27 @@ void loop() {
     s2Process();
   }
   if (resetPressed()) {
-    #ifdef DEBUGMODE
+#ifdef DEBUGMODE
     confPrint();
     prtln("Tuning mode ?");
-    #endif
+#endif
     delay(2000);
     if (resetPressed()) {
-      #ifdef DEBUGMODE
+#ifdef DEBUGMODE
       confRead(true);
       confPrint();
       prtln("Tuning mode !!!!");
-      #endif
-      while(resetPressed()) ;
+#endif
+      while (resetPressed())
+        ;
       delay(500);
       tuning = TUNING_VALUE;
       opticalInit();
       ledOnboardFlash(64, true);
     } else {
-      #ifdef DEBUGMODE
+#ifdef DEBUGMODE
       prtln("no Tuning mode");
-      #endif
+#endif
     }
   }
 }
