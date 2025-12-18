@@ -11,6 +11,7 @@ Tuning : Receive USB CC to tune analog parameters.
      - CC-103 : dynamic of noteOn velocity
 On board led : flashes on various events
 Analog pins must be compliant with dual-ADCs capabilities
+button reste on two pins to tune the parameters
 */
 
 #include <EEPROM.h>
@@ -40,7 +41,8 @@ bool repeatLed;
 struct T_optical {
   uint8_t nr;                                  // incremntal number of the optical button
   uint8_t pin;                                 // analog pin to read ( 3.1V max )
-  float v, pv, pvcc;                           // value of the analog read
+  float v, pv ;                                // value of the analog read
+  int pvcc;                           
   float v_min, v_max;                          // min max of analog read v
   float v_trigger_on, v_trigger_off;           // min max of the trigger applied on v
   float slope_min, slope_max;                  // min max of the slope
@@ -102,7 +104,7 @@ uint8_t midiJingle[] = { 0 };  // { 66, 68, 71, 76, 75, 71, 73, 0 }; // midi pit
 bool s2Open = false;           // true when serial is opened to forward Midi-In messages
 
 #define CONF_ADDR_VMIN 4                                  // number of keys in conf_magic
-uint8_t conf_magic[CONF_ADDR_VMIN] = { 20, 45, 10, 89 };  // keys to detect if EEPROM has been set
+uint8_t conf_magic[CONF_ADDR_VMIN] = { 20, 45, 11, 89 };  // keys to detect if EEPROM has been set
 
 ///////////////
 // read conf from EEPROM
@@ -125,6 +127,8 @@ void confRead(bool all) {
         o->v_trigger_off = ADC_MAX * ADC_TRIGGER_PERCENT_OFF;
         o->slope_min = 0.0 ;
         o->slope_max = 0.14 ;
+        o->v_min = 0.0 ;
+        o->v_max = (float)ADC_MAX ;
       }
       return;
     }
@@ -139,6 +143,8 @@ void confRead(bool all) {
       EEPROM.get(addr,o->v_trigger_off);  addr += sizeof(float);
       EEPROM.get(addr,o->slope_min);  addr += sizeof(float);
       EEPROM.get(addr,o->slope_max);  addr += sizeof(float);
+      EEPROM.get(addr,o->v_min);  addr += sizeof(float);
+      EEPROM.get(addr,o->v_max);  addr += sizeof(float);
     }
   }
 }
@@ -169,6 +175,8 @@ void confWrite(bool all) {
       EEPROM.put(addr,o->v_trigger_off);  addr += sizeof(float);
       EEPROM.put(addr,o->slope_min);  addr += sizeof(float);
       EEPROM.put(addr,o->slope_max);  addr += sizeof(float);
+      EEPROM.put(addr,o->v_min);  addr += sizeof(float);
+      EEPROM.put(addr,o->v_max);  addr += sizeof(float);
     }
   }
 }
@@ -186,6 +194,8 @@ void confPrint() {
     prt("  v_trigger_on="); prtln(o->v_trigger_on);
     prt("  slope_min="); prtln(o->slope_min);
     prt("  slope_max="); prtln(o->slope_max);
+    prt("  v_min="); prtln(o->v_min);
+    prt("  v_max="); prtln(o->v_max);
   }
 #endif
 }
@@ -484,9 +494,10 @@ void opticalMidiControl(T_optical *o) {
   // send Contorl Change according to position
   if (o->ccMidi == 0)
     return;
-  if (abs(o->v - o->pvcc) > DV_CONTROLCHANGE) {
-    o->pvcc = o->v;
-    midiControl(o->ccMidi, constrain(map(o->v, o->v_min, o->v_max, 0, 127), 0, 127));
+  int vcc = constrain(map(o->v, o->v_min, o->v_max, 0, 127), 0, 127) ;
+  if (abs(vcc - o->pvcc) > DV_CONTROLCHANGE) {
+    o->pvcc = vcc;
+    midiControl(o->ccMidi, vcc);
   }
 }
 void opticalMidiNoteOn(T_optical *o) {
@@ -725,13 +736,13 @@ bool opticalProcess() {
     }
   }
   if (tuning == TUNING_OFF) {
-    if (allOff) {
-      // no activity on optical
-      if (opticalSince > DT_CONTROLCHANGE * 1000) {
-        //send MIDI-ControlChange according to position
-        for (nr = 0, o = optical; nr < NB_OPTICAL; nr++, o++) {
-          opticalMidiControl(o);
-        }
+    if (opticalSince > DT_CONTROLCHANGE * 1000) {
+      //send MIDI-ControlChange according to position
+      for (nr = 0, o = optical; nr < NB_OPTICAL; nr++, o++) {
+        opticalMidiControl(o);
+      }
+      if (allOff) {
+        // no activity on optical
         // reset µsecond counter
         opticalSince = 0;
       }
