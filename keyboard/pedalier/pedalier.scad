@@ -54,6 +54,7 @@ module decoupe_cny70()
         cube([cny70_x-1.5+10,cny70_y-1.5,1],center = true);
    
 }
+rotate( [0,90-a,0])
 difference() {
     hull() {
         translate([0,0,2*e ]) 
