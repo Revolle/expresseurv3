@@ -21,7 +21,7 @@ button reste on two pins to tune the parameters
 #define prt Serial.print
 #define prtln Serial.println
 
-#define DEBUGMODE 5
+//#define DEBUGMODE 5
 
 #define ONBOARD_LED_PIN 13
 bool onBoardLedOn = false;
@@ -168,11 +168,11 @@ void confWrite(bool all) {
   addr += sizeof(veloCurve);
   if (all) {
     T_optical *o;
-    float f;
     uint8_t i;
     for (o = optical, i = 0; i < NB_OPTICAL; o++, i++) {
       EEPROM.put(addr, o->v_trigger_on);
 #ifdef DEBUGMODE
+      float f;
       EEPROM.get(addr, f);
       if (f != o->v_trigger_on)
         prtln("EEPROM write ok");
@@ -529,18 +529,6 @@ void opticalMidiControl(T_optical *o) {
 }
 void opticalMidiNoteOn(T_optical *o) {
   // send notOn with calculated velocity
-
-  // switch off all current note-on , to have only one note-on active at one time
-  uint8_t nr;
-  T_optical *lo;
-  for (nr = 0, lo = optical; nr < NB_OPTICAL; nr++, lo++) {
-    if (lo->pitch > 0) {
-      midiNote(lo->pitch, 0);
-      lo->pitch = 0;
-    }
-  }
-  prt("opticalMidiNoteOn slope = ");
-  prtln(o->slope, 8);
 
   if (tuning == TUNING_SLOPE) {
     bool limite_changed = false;
