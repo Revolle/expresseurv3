@@ -81,6 +81,7 @@ local noteOffStops = {}
 
 -- pseudo button id for legato
 local legatobid = 12532
+local previousbid = nil
 
 function applyLua(luastring,iTrackNr)
   -- the "Lua" string, set in an ornament, can be interpreted to do what needed here
@@ -421,6 +422,7 @@ function noteOff_Event(bid)
   
   -- stop the group of event started with the same button-id ( bid )
   --if trace then trace = string.rep("|",nb_events) end
+  if bid == nil then return end 
   local to_stop_index = noteOffStops[bid]
   if c_nrEvent_playing and c_nrEvent_playing[1] == bid then
       c_nrEvent_playing =  nil
@@ -470,6 +472,7 @@ function E.play( t, bid, ch, typemsg, pitch, velo , param , indexKey , medianeKe
   --   whiteMediane : idem medianeKey, but taking in account only "white keys"
   --   black[0,1] : 0 means white key. 1 means black key.)
   --luabass.logmsg("play score bid="..bid.." velo="..velo.." param="..param)
+
   collectgarbage("stop")
   if nb_events == 0 then return end
   
@@ -483,25 +486,42 @@ function E.play( t, bid, ch, typemsg, pitch, velo , param , indexKey , medianeKe
   end
   
   if (string.find((param or "") , "leg%a*" )) then
-    -- always legato, noteOn up to next noteOn
+    -- always legato, noteOff ignored : noteOnA noteOffA(ignored) noteOnB(=>nedA before) NoteOffB(ignored)
     if nVelo ~= 0 then
 	    --luabass.logmsg("play score legato")
 	    noteOff_Event(legatobid)
 	    c_nrEvent_playing = { legatobid , c_nrEvent_noteOn }
 	    noteOn_Event(legatobid , nVelo , dArpeggiate  )
     end 
-  else
-	  if nVelo == 0 then
-	    -- noteoff
-	    --luabass.logmsg("play score noteoff#"..bid)
-	    noteOff_Event(bid)
-	  else
-	    -- noteon
-	    c_nrEvent_playing = { bid , c_nrEvent_noteOn }
-	    --luabass.logmsg("lay score noteon#"..bid.." "..c_nrEvent_noteOn)
-	    noteOn_Event(bid , nVelo , dArpeggiate )
-	  end
+	return
   end
+
+  if (string.find((param or "") , "ove%a*" )) then
+	-- accept overlap : noteOnA noteOnB noteOffA noteOffB 
+	if nVelo == 0 then
+		-- noteoff
+		--luabass.logmsg("play score noteoff#"..bid)
+		noteOff_Event(bid)
+	else
+		-- noteon
+		c_nrEvent_playing = { bid , c_nrEvent_noteOn }
+		--luabass.logmsg("lay score noteon#"..bid.." "..c_nrEvent_noteOn)
+		noteOn_Event(bid , nVelo , dArpeggiate )
+	end
+	return
+  end
+
+  -- default mode : noteOnA noteOnB(=>endA before) noteOffA(useless) NoteOffB
+	if nVelo == 0 then
+		noteOff_Event(bid)
+	else
+		if previousbid ~= nil then 
+			noteOff_Event(previousbid)
+		end
+		c_nrEvent_playing = { bid , c_nrEvent_noteOn }
+		noteOn_Event(bid , nVelo , dArpeggiate  )
+		previousbid = bid
+	end 
 end
 
 function E.previousPos()
