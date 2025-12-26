@@ -362,7 +362,14 @@ private:
 	void addExpresseurPart();
 	void compileExpresseurPart();
 	void addNote(std::vector<c_measure>::iterator measure, bool after_measure , int from_t, int to_t, bool rest, bool tie_back, bool tie_next, bool *first_note , int * nrExpresseurNote, int nbOrnaments , wxString *text, bool *staccato, bool *fermata , bool *breath_mark , bool ternaire, bool cross, int* ituplet);
-	void addSymbolNote(std::vector<c_measure>::iterator measure, bool after_measure,  int duration, bool rest, bool tie_back, bool tie_next, bool *first_note, int* nrExpresseurNote, int nbOrnaments, wxString *text , bool *staccato, bool *fermata, bool *breath_mark, bool ternaire,  bool cross, int *ituplet);
+	void addSymbolNote(std::vector<c_measure>::iterator measure, bool after_measure,  
+		int duration, 
+		bool rest, 
+		bool tie_back, bool tie_next, 
+		bool *first_note, int* nrExpresseurNote, 
+		int nbOrnaments, wxString *text , bool *staccato, bool *fermata, bool *breath_mark, 
+		bool ternaire,  bool cross, 
+		int *ituplet, bool end_on_beat);
 	void calculateDuration(int duration, int divisions, bool ternaire , int *duration_done , wxString *typeNote , int *dot , int *tuplet);
 	wxFileName txtFile;
 	wxFileName musicxmlFile;

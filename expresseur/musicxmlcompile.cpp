@@ -3282,7 +3282,7 @@ void musicxmlcompile::addNote(std::vector<c_measure>::iterator measure, bool aft
 
 	if (from_t == to_t)
 		return;
-
+	bool end_on_beat;
 	/*
 	if (rest && (from_t == 0) && (to_t == measure->division_measure))
 	{
@@ -3312,11 +3312,11 @@ void musicxmlcompile::addNote(std::vector<c_measure>::iterator measure, bool aft
 		if (t0 < to_t)
 		{
 			int duration = t0 - from_t;
-			addSymbolNote(measure, after_measure, 
+			addSymbolNote(measure, after_measure,
 				duration, rest, tie_back, true, 
 				first_note, nrExpresseurNote, nbOrnaments, text, 
 				staccato, fermata, breath_mark, 
-				ternaire , cross , ituplet);
+				ternaire , cross , ituplet, true);
 			*first_note = false;
 			ttie_back = true;
 			ffrom_t = t0;
@@ -3324,13 +3324,17 @@ void musicxmlcompile::addNote(std::vector<c_measure>::iterator measure, bool aft
 	}
 	// insert figures starting on the beat
 	int duration = to_t - ffrom_t;
-	addSymbolNote(measure, after_measure, duration, rest, ttie_back, tie_next, first_note, nrExpresseurNote, nbOrnaments, text, staccato, fermata, breath_mark, ternaire , cross, ituplet);
+	end_on_beat = ((to_t % measure->division_beat) == 0 );
+	addSymbolNote(measure, after_measure, duration, rest, 
+		ttie_back, tie_next, first_note, nrExpresseurNote, 
+		nbOrnaments, text, staccato, fermata, breath_mark, ternaire , cross, 
+		ituplet, end_on_beat);
 }
 void musicxmlcompile::addSymbolNote(std::vector<c_measure>::iterator measure, bool after_measure, 
 								int duration, bool rest, bool tie_back, bool tie_next, 
 								bool *first_note, int * nrExpresseurNote, int nbOrnaments, wxString *text , 
 								bool *staccato, bool *fermata, bool *breath_mark, 
-								bool ternaire , bool cross, int *ituplet)
+								bool ternaire , bool cross, int *ituplet, bool end_on_beat)
 {
 	c_measure_sequence measure_sequence;
 	measure_sequence.note.used = true;
@@ -3356,12 +3360,13 @@ void musicxmlcompile::addSymbolNote(std::vector<c_measure>::iterator measure, bo
 			measure_sequence.note.dots = dot;
 			if (*ituplet > 0)
 			{
-				(*ituplet)--;
-				if (*ituplet == 1)
+				// (*ituplet)--;
+				if (end_on_beat ) // (*ituplet == 1)
 				{
 					measure_sequence.note.notations.used = true;
 					measure_sequence.note.notations.tuplet.used = true;
 					measure_sequence.note.notations.tuplet.type = "stop";
+					*ituplet = 0;
 				}
 
 			}
