@@ -239,6 +239,9 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id , bool log )
 	xmlCompile = NULL;
 
 	logLilypond = log;
+#ifdef _DEBUG
+	logLilypond = true;
+#endif
 
 	cleanTmp();
 }
@@ -1299,6 +1302,7 @@ bool musicxmlscore::readlilypos()
 		switch (etat)
 		{
 		default: 
+			// skip until the chexpr is found
 			if (ch == chexpr[etat])
 			{
 				if (etat == (strlen(chexpr) - 1))
@@ -1312,15 +1316,15 @@ bool musicxmlscore::readlilypos()
 		case 1000: 
 			if (ch == 'f')
 			{
-				memnrline = nrline+1;
-				memnrcolumn = nrcolumn -1; 
+				//memnrline = nrline+1;
+				//memnrcolumn = nrcolumn -1; 
 				etat++;
 				break;
 			}
 			if (ch == '\\')
 			{
 				memnrline = nrline+1;
-				memnrcolumn = nrcolumn - 1;
+				memnrcolumn = nrcolumn + 2;
 				etat = 2000;
 				break;
 			}
@@ -1523,7 +1527,7 @@ bool musicxmlscore::readlilypdf(uint32_t page, uint32_t xpng, uint32_t ypng)
 			for (auto & current_posnotes : lposnotes )
 			{
 				i++;
-				if ((current_posnotes.empty) && (mly.line == current_posnotes.ply.line) && (mly.column == current_posnotes.ply.column))
+				if ((current_posnotes.empty) && (mly.line == current_posnotes.ply.line) && (abs((int)(mly.column) - (int)(current_posnotes.ply.column)) < 2 ))
 				{
 					current_posnotes.empty = false;
 					current_posnotes.page = page;
@@ -1658,10 +1662,32 @@ bool musicxmlscore::readlilypond()
 	if (logLilypond)
 		mlog_in("  p:<page>:<x1>:<y1>:<x2>:<y2>");
 	fout.Create(expresseurpos);
+	int prevPage = 0;	
+	int prevx1 = 0;
+	int prevx2 = 0;
+	int prevy1 = 0;	
+	int prevy2 = 0;
+	int nrn = -1;
 	for (auto & current_posnotes : lposnotes )
 	{
+		nrn++;
 		wxString s;
-		s.Printf("%c:%u:%u:%u:%u:%u:", current_posnotes.empty?'?':'p' , current_posnotes.page, current_posnotes.png.x1, current_posnotes.png.y1, current_posnotes.png.x2, current_posnotes.png.y2);
+		if (current_posnotes.empty)
+		{
+			mlog_in("Error no position found for the note #%d, use previous note position shifted to the right" , nrn );
+			s.Printf("p:%u:%u:%u:%u:%u:%u:%u:error", prevPage, 
+				prevx2 +5 , prevy1 , prevx2 + 5 + ( prevx2 - prevx1), prevy2,
+				current_posnotes.ply.line, current_posnotes.ply.column );
+		}
+		else
+			s.Printf("p:%u:%u:%u:%u:%u:%u:%u",  current_posnotes.page, 
+				current_posnotes.png.x1, current_posnotes.png.y1, current_posnotes.png.x2, current_posnotes.png.y2 , 
+				current_posnotes.ply.line , current_posnotes.ply.column);
+		prevPage = current_posnotes.page;
+		prevx1 = current_posnotes.png.x1;
+		prevx2 = current_posnotes.png.x2;
+		prevy1 = current_posnotes.png.y1;
+		prevy2 = current_posnotes.png.y2;
 		if (logLilypond)
 			mlog_in("  %s", (const char*)(s.c_str()));
 		fout.AddLine(s);
