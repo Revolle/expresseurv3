@@ -78,6 +78,8 @@ local end_score = false
 -- list of note-off triggers 
 local noteOffStops = {}
 
+-- alternate mode for black keys
+local blackAlternate = 0
 
 -- pseudo button id for legato
 local legatobid = 12532
@@ -477,28 +479,27 @@ function E.play( t, bid, ch, typemsg, pitch, velo , param , indexKey , medianeKe
   if nb_events == 0 then return end
   
   local dArpeggiate = 0 
-  local nVelo = velo
   if velo > 0 then
 	  x,y,z = string.find((param or ""),"arp%a*[= ]*(%d+)")
 	  if x then
 		dArpeggiate = math.tointeger(z)
 	  end
   end
-  
+      
   if (string.find((param or "") , "leg%a*" )) then
     -- always legato, noteOff ignored : noteOnA noteOffA(ignored) noteOnB(=>nedA before) NoteOffB(ignored)
-    if nVelo ~= 0 then
+    if velo ~= 0 then
 	    --luabass.logmsg("play score legato")
 	    noteOff_Event(legatobid)
 	    c_nrEvent_playing = { legatobid , c_nrEvent_noteOn }
-	    noteOn_Event(legatobid , nVelo , dArpeggiate  )
+	    noteOn_Event(legatobid , velo , dArpeggiate  )
     end 
 	return
   end
 
   if (string.find((param or "") , "ove%a*" )) then
 	-- accept overlap : noteOnA noteOnB noteOffA noteOffB 
-	if nVelo == 0 then
+	if velo == 0 then
 		-- noteoff
 		--luabass.logmsg("play score noteoff#"..bid)
 		noteOff_Event(bid)
@@ -506,21 +507,54 @@ function E.play( t, bid, ch, typemsg, pitch, velo , param , indexKey , medianeKe
 		-- noteon
 		c_nrEvent_playing = { bid , c_nrEvent_noteOn }
 		--luabass.logmsg("lay score noteon#"..bid.." "..c_nrEvent_noteOn)
-		noteOn_Event(bid , nVelo , dArpeggiate )
+		noteOn_Event(bid , velo , dArpeggiate )
 	end
 	return
   end
 
+  local altBid = bid
+  if (string.find((param or "") , "alt%a*" )) then
+	-- alternate between left and right keys
+	if velo > 0 then
+		if blackAlternate == 0 then
+			if medianeKey >= 0 then
+				blackAlternate = 1
+			else
+				blackAlternate = -1
+			end
+		else
+			if medianeKey < 0 and blackAlternate == -1 then return end
+			if medianeKey >= 0 and blackAlternate == 1 then return end
+			if medianeKey < 0 and blackAlternate == 1 then
+				blackAlternate = -1
+			end
+			if medianeKey >= 0 and blackAlternate == -1 then
+				blackAlternate = 1
+			end
+		end
+	else
+		if blackAlternate == 0 then return end
+		if medianeKey < 0 and blackAlternate == 1 then return end
+		if medianeKey >= 0 and blackAlternate == -1 then return	end
+		blackAlternate = 0
+	end
+	if medianeKey >= 0 then
+		altBid = 2142
+	else
+		altBid = 2143
+	end
+  end
+
   -- default mode : noteOnA noteOnB(=>endA before) noteOffA(useless) NoteOffB
-	if nVelo == 0 then
-		noteOff_Event(bid)
+	if velo == 0 then
+		noteOff_Event(altBid)
 	else
 		if previousbid ~= nil then 
 			noteOff_Event(previousbid)
 		end
-		c_nrEvent_playing = { bid , c_nrEvent_noteOn }
-		noteOn_Event(bid , nVelo , dArpeggiate  )
-		previousbid = bid
+		c_nrEvent_playing = { altBid , c_nrEvent_noteOn }
+		noteOn_Event(altBid , velo , dArpeggiate  )
+		previousbid = altBid
 	end 
 end
 
@@ -532,7 +566,7 @@ function E.previousPos()
   c_nrEvent_noteOn = m - 1
   nextGroupEvent()
   resetPendingTuning()
-
+  blackAlternate= 0 
 end
 function E.firstPart()
   -- move to the beginning of the tune 
@@ -546,6 +580,7 @@ function E.firstPart()
   nextGroupEvent()
   resetPendingTuning()
   memPos()
+  blackAlternate= 0 
 end
 function E.nextEvent()
   -- move to the next event
@@ -553,6 +588,7 @@ function E.nextEvent()
   nextGroupEvent()
   playPendingTuningOff()
   memPos()
+  blackAlternate= 0 
 end
 function E.nextMeasure()
   -- move to the next part
@@ -570,6 +606,7 @@ function E.nextMeasure()
   end
   E.gotoNrEvent(j)
   memPos()
+  blackAlternate= 0 
 end
 function E.nextPart()
   -- move to the next part
@@ -587,6 +624,7 @@ function E.nextPart()
   end
   E.gotoNrEvent(j)
   memPos()
+  blackAlternate= 0 
 end
 function E.lastPart()
   -- move to the last part
@@ -604,6 +642,7 @@ function E.lastPart()
   end
   E.gotoNrEvent(pj)
   memPos()
+  blackAlternate= 0 
 end
 function E.previousPart()
   -- move to the previous mark
@@ -627,6 +666,7 @@ function E.previousPart()
     E.gotoNrEvent(pj)
   end
   memPos()
+  blackAlternate= 0 
 end
 function E.previousMeasure()
   -- move to the previous measure
@@ -650,6 +690,7 @@ function E.previousMeasure()
     E.gotoNrEvent(pj)
   end
   memPos()
+  blackAlternate= 0 
 end
 
 function E.previousEvent()
@@ -663,6 +704,7 @@ function E.previousEvent()
   c_nrEvent_noteOn = c_nrEvent_noteOn -1
   nextGroupEvent()
   memPos()
+  blackAlternate= 0 
 end
 
 function E.gotoNrEvent(nrEvent)
@@ -672,6 +714,7 @@ function E.gotoNrEvent(nrEvent)
   nextGroupEvent()
   resetPendingTuning()
   memPos()
+  blackAlternate= 0 
 end
 function E.getPosition()
   -- return the next ebvent to play, or the event playing

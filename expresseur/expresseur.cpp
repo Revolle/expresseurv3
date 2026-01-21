@@ -2669,6 +2669,7 @@ void Expresseur::openDmx()
 }
 void Expresseur::wizard(bool audio_only, bool midi_only , bool dmx_only)
 {
+	editMode = true;
 	luafile::reset(true , timerDt);
 
 	wxFileName fWizardJpeg ;
@@ -3032,6 +3033,7 @@ select the menu setup/wizard.";
 	}
 
 	mwizard->Destroy();
+	editMode = false; 
 }
 int Expresseur::getListAudio()
 {

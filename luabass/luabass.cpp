@@ -391,8 +391,9 @@ static bool g_process_SystemCommon, g_process_Clock , g_process_Timer ;
 static char g_path_out_error_txt[MAXBUFCHAR];
 
 
-#define DMX_CH_MAX 256
-#define DMX_V_MAX 256
+#define DMX_CH_MAX 255
+#define DMX_V_MAX 255
+#define DMX_COURBE 0.4f
 #ifdef V_DMX
 // dmx management
 struct sp_port** g_dmx_port_list;
@@ -401,6 +402,8 @@ int g_portdmx_nr = -1; // dmx comport number
 float g_dmx_float_value[DMX_CH_MAX]; // // dmx values actual
 float g_dmx_float_target[DMX_CH_MAX]; // // dmx values target
 byte g_dmx_byte_value[DMX_CH_MAX]; // // dmx values to send
+byte g_dmx_byte_fake[DMX_CH_MAX]; // // dmx fake to send
+bool g_dmx_inc_fake[DMX_CH_MAX]; // // dmx fake to send
 unsigned int g_dmx_byte_nb = 0; // number of dmx values to send
 float g_dmx_ramping = 1.0; // attack value in the time (0..256). 256==direct attack 0==slow ramping, default 256
 int g_dmx_track[MAXTRACK] ; // track to hook for DMX output
@@ -601,6 +604,29 @@ void dmxSend()
 {
 	if (!g_dmx_port)
 		return;
+	
+	/*for (int i = 0; i < g_dmx_byte_nb; i++)
+	{
+		if (g_dmx_byte_fake[i] < 5 )  g_dmx_inc_fake[i] = true;
+		if (g_dmx_byte_fake[i] > 250)  g_dmx_inc_fake[i] = false;
+		if (g_dmx_inc_fake[i]) 
+			g_dmx_byte_fake[i] += (i % 4) + 1;
+		else 
+			g_dmx_byte_fake[i] -= ( i % 4) + 1;
+		if (i % 4 == 3)
+			g_dmx_byte_fake[i] = 0;
+	}
+	sp_blocking_write(g_dmx_port, g_dmx_byte_fake, g_dmx_byte_nb, 200);
+	*/
+
+	/*
+	mlog_out("dmx,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+		g_dmx_byte_value[0], g_dmx_byte_value[1], g_dmx_byte_value[2], g_dmx_byte_value[3],
+		g_dmx_byte_value[4], g_dmx_byte_value[5], g_dmx_byte_value[6], g_dmx_byte_value[7],
+		g_dmx_byte_value[8], g_dmx_byte_value[9], g_dmx_byte_value[10], g_dmx_byte_value[11],
+		g_dmx_byte_value[12], g_dmx_byte_value[13], g_dmx_byte_value[14], g_dmx_byte_value[15]
+		);
+	*/
 	sp_blocking_write(g_dmx_port, g_dmx_byte_value, g_dmx_byte_nb, 200);
 }
 void dmx_init()
@@ -629,7 +655,7 @@ void dmxRefresh()
 			for (unsigned int i = 0; i < g_dmx_byte_nb; i++)
 			{
 				g_dmx_float_value[i] += (g_dmx_float_target[i] - g_dmx_float_value[i]) * g_dmx_ramping;
-				g_dmx_byte_value[i] = (byte)(cap((int)(g_dmx_float_value[i] * (float)(DMX_V_MAX)), 0, DMX_V_MAX, 0));
+				g_dmx_byte_value[i] = (byte)(cap((int)(pow(g_dmx_float_value[i] , DMX_COURBE) * (float)(DMX_V_MAX)), 0, DMX_V_MAX, 0));
 			}
 		}
 		if (g_dmx_tenuto != 0.0)
@@ -641,7 +667,7 @@ void dmxRefresh()
 				{
 					g_dmx_float_value[i] += (0.0 - g_dmx_float_value[i]) * g_dmx_tenuto;
 					g_dmx_float_target[i] = g_dmx_float_value[i];
-					g_dmx_byte_value[i] = (byte)(cap((int)(g_dmx_float_value[i] * (float)(DMX_V_MAX)), 0, DMX_V_MAX, 0));
+					g_dmx_byte_value[i] = (byte)(cap((int)(pow(g_dmx_float_value[i], DMX_COURBE) * (float)(DMX_V_MAX)), 0, DMX_V_MAX, 0));
 				}
 			}
 		}
@@ -713,7 +739,7 @@ static int LdmxSet(lua_State* L)
 		g_dmx_nb_midi_map = 0;
 		while (pt != NULL)
 		{
-			g_dmx_midi_map[g_dmx_nb_midi_map] = cap(atoi(pt), 0, DMX_CH_MAX, 0 );
+			g_dmx_midi_map[g_dmx_nb_midi_map] = cap(atoi(pt), 0, DMX_CH_MAX, 1 );
 			g_dmx_nb_midi_map++;
 			pt = strtok(NULL, ",");
 		}
@@ -2866,16 +2892,16 @@ static void string_to_control(int nrTrack, const char *param)
 		switch (nb_bankprogram)
 		{
 		case 1:
-			send_program(nrTrack, cap(atoi(bankprogram[0]), 0, 128, 0), 0);
+			send_program(nrTrack, cap(atoi(bankprogram[0]), 0, 128, 1), 0);
 			break;
 		case 2:
 			send_control(nrTrack, 0, cap(atoi(bankprogram[0]), 0, 128, 0), 0);
-			send_program(nrTrack, cap(atoi(bankprogram[1]), 0, 128, 0), 0);
+			send_program(nrTrack, cap(atoi(bankprogram[1]), 0, 128, 1), 0);
 			break;
 		case 3:
 			send_control(nrTrack, 0, cap(atoi(bankprogram[0]), 0, 128, 0), 0);
 			send_control(nrTrack, 0x20, cap(atoi(bankprogram[1]), 0, 128, 0), 0);
-			send_program(nrTrack, cap(atoi(bankprogram[2]), 0, 128, 0), 0);
+			send_program(nrTrack, cap(atoi(bankprogram[2]), 0, 128, 1), 0);
 			break;
 		default:
 			break;

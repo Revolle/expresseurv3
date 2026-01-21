@@ -18,57 +18,88 @@ lien_l = 3 ;
 lien_e = 1.5 ;
 a = 15 ;
 
+capteur_dy = 100 ;
+capteur_y = 40;
+capteur_x = 10 ;
+plateau_x = 50 ;
 module cny70(ep)
 {
      // pattes
-    translate([0,0,fil_d/2])
-        cube([cny70_x,cny70_y + 2 * cny70_patte_z ,fil_d],center = true);
+    translate([0,0,-3])
+        cube([cny70_x,cny70_y + 2 * cny70_patte_z ,6],center = true);
     // fil
-    translate([0,0,fil_d/2])
+    *translate([0,0,fil_d/2])
         rotate([90,0,0])
             cylinder(d=fil_d,h=15,center=true);
    // capteur
-    translate([0,0,cny70_z/2 + fil_d + 1])
+    translate([0,0,cny70_z/2+1 ])
         cube([cny70_x,cny70_y+ep,cny70_z],center = true);
-    translate([0,0,fil_d + 1/2])
+    translate([0,0,0.5])
         cube([cny70_x-1.5,cny70_y-1.5,1],center = true);
 
 }
-module decoupe_cny70()
+module decoupe_cny70(sens)
 {
     // pattes
-    translate([5,0,fil_d/2])
-        cube([cny70_x+10,cny70_y + 2 * cny70_patte_z ,fil_d],center = true);
-    // fil
     translate([0,0,fil_d/2])
+        cube([cny70_x,cny70_y + 2 * cny70_patte_z ,fil_d],center = true);
+    // fil
+    *translate([0,sens*30,fil_d/2])
         rotate([90,0,0])
             cylinder(d=fil_d,h=60,center=true);
-    translate([5,0,fil_d/2])
-        cube([10,60,fil_d],center=true);
+    *translate([0,sens*30,fil_d/2])
+        cube([fil_d,60,10],center=true);
    // capteur
-    translate([5,0,cny70_z/2 + fil_d+2])
+                translate([0,0,2*e ]) 
+                    rotate([0 , a  ,0]) 
+                        cny70(15) ;
+    translate([0,0,cny70_z/2 + fil_d+2])
+        cube([cny70_x,cny70_y,cny70_z],center = true);
+    *translate([5,0,cny70_z/2 + fil_d + 1])
         cube([cny70_x+10,cny70_y,cny70_z],center = true);
-    translate([5,0,cny70_z/2 + fil_d + 1])
-        cube([cny70_x+10,cny70_y,cny70_z],center = true);
-    translate([5,0,fil_d + 1/2])
+    *translate([5,0,fil_d + 1/2])
         cube([cny70_x-1.5+10,cny70_y-1.5,1],center = true);
    
 }
-rotate( [0,90-a,0])
-difference() {
-    hull() {
-        translate([0,0,2*e ]) 
-            rotate([0 , a  ,0]) 
-                cny70(15) ;
-        translate([-5,0,e/2])
-            cube([cny70_capsule_x + 10 ,cny70_capsule_y + 40 ,e],center = true);   
+module capteur(sens)
+{
+    
+    difference() {
+        union()
+        {
+            hull() {
+                translate([0,0,2*e  ]) 
+                    rotate([0 , a  ,0]) 
+                        cny70(15) ;
+                translate([-capteur_x/2,0,e/2])
+                    cube([cny70_capsule_x + capteur_x ,cny70_capsule_y + capteur_y ,e],center = true);   
+                }
+            translate([-plateau_x/4,sens*(capteur_dy)/2,e/2])
+                cube([plateau_x ,capteur_dy+cny70_capsule_y+capteur_y,e],center=true);
         }
-    translate([0,0,2*e ]) 
+       translate([0,0,2*e ]) 
         rotate([0 , a  ,0]) 
-            decoupe_cny70() ;
+            cny70(0) ;
+
+        *translate([0,0,e ]) 
+            rotate([0 , a  ,0]) 
+                decoupe_cny70(sens) ;
+    }
 }
 
-*translate([0,0,2*e ]) 
+module complet()
+{
+    translate([0,capteur_dy,0])
+        capteur(-1);
+    translate([0,-capteur_dy,0])
+        capteur(1);
+    *translate([-plateau_x/4,0,e/2])
+        cube([plateau_x ,2*capteur_dy+cny70_capsule_y+capteur_y,e],center=true);
+}
+
+//rotate( [0,-90+a,0])
+    complet();
+translate([0,0,2*e ]) 
     rotate([0 , a  ,0]) 
         cny70(0) ;
 *decoupe_cny70() ;
