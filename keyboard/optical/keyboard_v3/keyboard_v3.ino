@@ -9,6 +9,8 @@ MIDI-thru : USB-MidiIn => serial-midi-out
 Tuning : Receive USB CC to tune analog parameters. 
      - CC-102 : curve/aggressivity of noteOn velocity ; 
      - CC-103 : dynamic of noteOn velocity
+     - CC-104 : Control-Change Nr sent by optical button #0 ( 0 means no CC )
+     - CC-105 : Control-Change Nr sent by optical button #1 ( 0 means no CC )
 On board led : flashes on various events
 Analog pins must be compliant with dual-ADCs capabilities
 button reste on two pins to tune the parameters
@@ -122,6 +124,8 @@ void confRead(bool all) {
 #endif
       veloMin = VELOMINDEFAULT;
       veloCurve = CURVEDEFAULT;
+      controlMidi[0] = 0 ;
+      controlMidi[1] = 4 ;
       T_optical *o;
       uint8_t i;
       for (o = optical, i = 0; i < NB_OPTICAL; o++, i++) {
@@ -139,6 +143,10 @@ void confRead(bool all) {
   addr += sizeof(veloMin);
   EEPROM.get(addr, veloCurve);
   addr += sizeof(veloCurve);
+  EEPROM.get(addr, controlMidi[0]);
+  addr += sizeof(*controlMidi);
+  EEPROM.get(addr, controlMidi[1]);
+  addr += sizeof(*controlMidi);
   if (all) {
     T_optical *o;
     uint8_t i;
@@ -166,6 +174,10 @@ void confWrite(bool all) {
   addr += sizeof(veloMin);
   EEPROM.put(addr, veloCurve);
   addr += sizeof(veloCurve);
+  EEPROM.put(addr, controlMidi[0]);
+  addr += sizeof(*controlMidi);
+  EEPROM.put(addr, controlMidi[1]);
+  addr += sizeof(*controlMidi);
   if (all) {
     T_optical *o;
     uint8_t i;
@@ -206,6 +218,10 @@ void confPrint() {
   prtln(veloMin);
   prt("veloCurve (CC102)=");
   prtln(veloCurve);
+  prt("ControlChange(optical#0 (CC104)=");
+  prtln(controlMidi[0]);
+  prt("ControlChange(optical#1 (CC105)=");
+  prtln(controlMidi[1]);
   T_optical *o;
   uint8_t i;
   for (o = optical, i = 0; i < NB_OPTICAL; o++, i++) {
@@ -276,20 +292,32 @@ void s2Process() {
         break;
       case usbMIDI.ProgramChange:  // PROG is only two bytes
         midiLen = 2;               // no break to continue on default processing
-      case usbMIDI.ControlChange:  // CC 102 & 103 are trapped to tune the keyboard
-        if (usbMIDI.getData1() == 102) {
-          // curve of Midi-On velocity : 0=slow reactiviy ; 127=quick reactivity for high velocity
-          veloCurve = map((float)(usbMIDI.getData2()), 0.0, 127.0, CURVEMIN, CURVEMAX);
-          confWrite(false);
-          break;
+      case usbMIDI.ControlChange:  // CC 102 103 104 105 are trapped to tune the keyboard
+          swithch (usbMIDI.getData1() ) {
+           case  102 :
+               // curve of Midi-On velocity : 0=slow reactiviy ; 127=quick reactivity for high velocity
+               veloCurve = map((float)(usbMIDI.getData2()), 0.0, 127.0, CURVEMIN, CURVEMAX);
+               confWrite(false);
+               return;
+           case 103 :
+               // dynamic ofMidi-On velocity : 0=fixed velocity 64 ; 127=full range velocity 1..127
+               veloMin = map(usbMIDI.getData2(), 0, 127, 63, 1);
+               confWrite(false);
+               return;
+           case 104 :
+               // cc # to send on optical button #0
+               controlMidi[0] = usbMIDI.getData2() ;
+               confWrite(false);
+               return;
+           case 105 :
+               // cc # to send on optical button #1
+               controlMidi[1] = usbMIDI.getData2() ;
+               confWrite(false);
+               return;
+          default :
+               // CC not trapped, continue on default forward to Serial1
+               break ;
         }
-        if (usbMIDI.getData1() == 103) {
-          // dynamic ofMidi-On velocity : 0=fixed velocity 64 ; 127=full range velocity 1..127
-          veloMin = map(usbMIDI.getData2(), 0, 127, 63, 1);
-          confWrite(false);
-          break;
-        }
-        // CC not trapped, continue on default forward to Serial1
       default:
         // all Midi messages are sent on the S2-midi-expander
         midiBuf[0] = (midiType & 0xF0) | (usbMIDI.getChannel() - 1);
