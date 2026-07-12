@@ -16,9 +16,6 @@ public:
 	void OnLeftUp(wxMouseEvent& event);
 	void OnMouse(wxMouseEvent& event);
 
-	int getNbPaint();
-	int getNbSetPosition() ;
-
 	virtual bool isOk();
 	virtual bool setFile(const wxFileName &lfilename);
 	virtual bool displayFile(wxSize sizeClient);
@@ -30,7 +27,7 @@ public:
 	virtual void gotoNextPage(bool forward);
 
 private:
-	void refresh(wxDC& dc, int pos);
+	void refresh(int pos);
 	wxWindow *mParent;
 	
 	wxFileName filename;
@@ -39,18 +36,15 @@ private:
 	wxSize sizePage;
 
 	bool newLayout(wxSize sizeClient);
-	bool setPage(wxDC& gdc , bool redraw);
-	bool setCursor(wxDC& dc, int pos , bool redraw);
+	bool setPage(bool redraw);
+	bool setCursor(int pos , bool redraw);
 
 	double xScale, yScale;
 
-	int nbPaint = 0 ;
-	int nbSetPosition = 0 ;
-	
+	wxBitmap scoreBitmap;
 
-
-	wxRect prevRectPos ;
 	wxPoint mPointStart, mPointEnd;
+	wxRect prevRectPos, currentRectPos;
 	wxRect prevRect , selectedRect ;
 	int prevNrChord =1 ;
 	int prevPaintNrChord = -1 ;
@@ -59,7 +53,6 @@ private:
 	wxRect highlight(bool on, wxPoint start, wxPoint end, wxDC& dc);
 	wxRect rectChord[MAX_RECTCHORD];
 	int nbRectChord;
-	wxBitmap* scoreBitmap = NULL;
 	int nrChord = -1;
 	void readRectChord();
 	void writeRectChord();

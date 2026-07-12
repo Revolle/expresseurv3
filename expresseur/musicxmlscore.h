@@ -43,9 +43,6 @@ public:
 	bool playback();
 	wxString getPlayback();
 	
-	int getNbPaint();
-	int getNbSetPosition() ;
-
 	virtual bool displayFile(wxSize sizeClient);
 	virtual bool setFile(const wxFileName &lfilename);
 	virtual int getTrackCount();
@@ -76,12 +73,10 @@ private:
 	int totalPages = 0;;
 	int currentPos = 0;
 
-	int nbPaint = 0 ;
-	int nbSetPosition = 0 ;
-	
 	wxSize sizePage;
 	wxRect buttonPage;
-	wxRect prevRectPos;
+	wxRect prevRectPos, currentRectPos;
+	bool currentPlaying;
 	bool prevNrOrnament = false ;
 	int currentPageNr = 0 ;
 	int currentPageNrPartial = -1 ;

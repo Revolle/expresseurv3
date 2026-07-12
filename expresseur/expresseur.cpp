@@ -53,6 +53,7 @@
 #include "wx/tokenzr.h"
 #include "wx/kbdstate.h"
 #include "wx/webrequest.h"
+#include "wx/version.h"
 
 #include "version.h"
 #include "global.h"
@@ -348,6 +349,14 @@ IMPLEMENT_APP(MyApp)
 Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const wxPoint& pos,const wxSize& size,long style)
  :wxFrame(parent, id, title, pos, size, style)
 {
+
+#ifdef false 
+	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+	if (!SUCCEEDED(hr))
+	{
+		wxFAIL;
+	}
+#endif
 
 	// Give it a status line
 	wxStatusBar *mStatusBar = CreateStatusBar(3);
@@ -796,6 +805,7 @@ void Expresseur::postInit()
 		delete mViewerscore;
 	mViewerscore = new emptyscore(this, wxID_ANY);
 	setOrientation(posScrollVertical, posScrollHorizontal);
+
 	FileOpen(true);
 }
 void Expresseur::setRightDisplay(bool right)
@@ -1385,10 +1395,11 @@ void Expresseur::OnOpen(wxCommandEvent& WXUNUSED(event))
 	}
 	wxFileDialog
 		openFileDialog(this, "open file", "", "",
-		"music file (*.txt;*.png;*.xml;*.mxl)|*.txt;*.png;*.xml;*.mxl", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+			"music file (*.txt;*.png;*.xml;*.mxl)|*.txt;*.png;*.xml;*.mxl", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 	if (openFileDialog.ShowModal() == wxID_CANCEL)
 		return; // the user changed idea...
-	Open(openFileDialog.GetPath());
+	wxString mfile = openFileDialog.GetPath();
+	Open(mfile);
 	mTextscore->noNeedToSave();
 }
 void Expresseur::OnSave(wxCommandEvent& WXUNUSED(event)) 
@@ -2106,12 +2117,14 @@ bool Expresseur::settingReset(bool all)
 	wxBusyCursor wait;
 
 	bool retcode = true;
+
 	// stop the timer to be quite
 	if (mtimer != NULL)
 		mtimer->Stop();
 
 	// close and load the right LUA script
 	luafile::reset(all , timerDt );
+ 
 	if (all)
 	{
 		openMidiIn();
@@ -2151,7 +2164,8 @@ bool Expresseur::settingReset(bool all)
 	int v = posScrollVertical;
 
 	setAudioDefault();
-	
+
+
 	viewerscore *newViewerscore = NULL;
 	typeViewer = EMPTYVIEWER;
 	mode = modeNil;
@@ -2357,12 +2371,12 @@ void Expresseur::OnAbout(wxCommandEvent& WXUNUSED(event))
 	s.Printf("Expresseur 3.%d\n"
 		"(C) REVOLLE Franck <frevolle@gmail.com>\n"
 		"Acknowldgment to :\n"
-		"- wxWidgets.org : Cross-Platform GUI\n"
+		"- wxWidgets.org : Cross-Platform GUI %s\n"
 		"- lua.org : scripting language\n"
 		"- lilypond.org : music engraver\n"
 		"- un4seen.com : audio stack\n"
 		"- rtmidi : MIDI stack"
-		, VERSION_EXPRESSEUR);
+		, VERSION_EXPRESSEUR , wxVERSION_STRING );
  	wxMessageBox(s,"about");
 }
 void Expresseur::OnHelp(wxCommandEvent& WXUNUSED(event)) 
@@ -3303,10 +3317,9 @@ void Expresseur::OnResetConfiguration(wxCommandEvent& WXUNUSED(event))
 }
 void Expresseur::OnTest(wxCommandEvent& WXUNUSED(event))
 {
-	int nbPaint = ((musicxmlscore *)mViewerscore)->getNbPaint();
-	int nbSetPosition = ((musicxmlscore *)mViewerscore)->getNbSetPosition();
+
 	wxString s ;
-	s.Printf("NbPaint=%d nbSetPosition=%d",nbPaint,nbSetPosition);
+	s.Printf("OnTest");
 	wxMessageBox(s);
 }
 void Expresseur::OnRecentFile(wxCommandEvent& event)

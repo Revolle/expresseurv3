@@ -75,11 +75,6 @@ bitmapscore::bitmapscore(wxWindow *parent, wxWindowID id)
 }
 bitmapscore::~bitmapscore()
 {
-	if (scoreBitmap != NULL)
-	{
-		delete scoreBitmap;
-		scoreBitmap = NULL;
-	}
 }
 bool bitmapscore::isOk()
 {
@@ -129,14 +124,14 @@ bool bitmapscore::newLayout(wxSize sizeClient)
 	return true;
 
 }
-bool bitmapscore::setPage(wxDC& gdc , bool redraw)
+bool bitmapscore::setPage(bool redraw)
 {
 	
 
 	if (fileInDC == filename)
 	{
 		if ( redraw)
-			gdc.DrawBitmap(*scoreBitmap, 0, 0);
+			Refresh();
 		return true;
 	}
 
@@ -157,30 +152,28 @@ bool bitmapscore::setPage(wxDC& gdc , bool redraw)
 	yScale = (double)(sizeDisplay.GetHeight()) / (double)(wxSizeImage.GetHeight());
 	wxImage rimage = lbitmap.Scale(sizeDisplay.GetWidth(), sizeDisplay.GetHeight(), wxIMAGE_QUALITY_HIGH);
 
-	if (scoreBitmap) delete scoreBitmap;
-	scoreBitmap = new wxBitmap(rimage);
-	gdc.DrawBitmap(*scoreBitmap, 0, 0);
+	scoreBitmap.Create(sizePage.GetWidth(), sizePage.GetHeight());
+	// recreate the page
+	wxMemoryDC memDC(scoreBitmap);
+	wxBitmap bmpImage(rimage);
+	memDC.DrawBitmap(bmpImage, wxPoint(0, 0));
+	memDC.SelectObject(wxNullBitmap);
+
 	fileInDC = filename;
 	prevNrChord = -1;
 	prevPaintNrChord = -1;
 
 	return true;
 }
-bool bitmapscore::setCursor(wxDC& dc, int pos, bool redraw)
+bool bitmapscore::setCursor(int pos, bool redraw)
 {
-	if ( ! setPage(dc , redraw)) return false ;
+	if ( ! setPage(redraw)) return false ;
 	if ((pos < 0) || (pos >= MAX_RECTCHORD))
 	{
 		prevNrChord = nrChord;
 		return false;
 	}
 
-	if (prevRectPos.GetWidth() > 0)
-	{
-		wxDCClipper cursorclip(dc, prevRectPos);
-		dc.SetBackground(this->GetBackgroundColour());
-		dc.Clear();
-	}
 	if (!rectChord[pos].IsEmpty())
 	{
 		wxRect mrect, nrect;
@@ -193,14 +186,10 @@ bool bitmapscore::setCursor(wxDC& dc, int pos, bool redraw)
 		// underscore of the rectangle
 		mrect.SetY(mrect.GetY() + mrect.GetHeight());
 		mrect.SetHeight(5);
-		// clip on the underscore and clear(paint)
-		wxDCClipper clip(dc, mrect);
-		dc.SetBackground(*wxRED_BRUSH);
-		dc.Clear();
-		prevRectPos = mrect;
+		currentRectPos = mrect;
+
 	}
 
-	prevNrChord = nrChord;
 	return true;
 }
 void bitmapscore::setPosition(int pos, bool WXUNUSED( playing))
@@ -214,48 +203,47 @@ void bitmapscore::setPosition(int pos, bool WXUNUSED( playing))
 	newPaintNrChord = nrChord;
 	if (nrChord != prevNrChord)
 	{
-		Refresh();
+		setCursor(pos, false);
+		RefreshRect(prevRectPos);
+		RefreshRect(currentRectPos);
+		prevNrChord = nrChord;
+		Update();
 	}
 			
 }
 void bitmapscore::onPaint(wxPaintEvent& WXUNUSED(event))
 {
-	// onPaint
+	// Il faut obligatoirement créer un wxPaintDC dans un EVT_PAINT.
 	wxPaintDC dc(this);
-	if (!isOk()) return;
-	wxRegionIterator upd(GetUpdateRegion()); // get the update rect list
-	// int vX, vY, vW, vH;
-	bool redraw = false;
-	while (upd)
+
+	// Récupère la région de mise à jour (endommagee) depuis l'événement
+	wxRegion updateRegion = GetUpdateRegion();
+
+	// Itérateur sur les rectangles de la région
+	for (wxRegionIterator it(updateRegion); it; ++it)
 	{
-		redraw = true;
-		break;
-		/*
-		vX = upd.GetX();
-		vY = upd.GetY();
-		vW = upd.GetW();
-		vH = upd.GetH();
-		wxString sl ;
-		sl.Printf("onpaint v %d %d %d %d",vX,vY,vW,vH);
-		mlog_in(sl);
-		// Repaint this rectangle
-		upd++;
-		*/
+		wxRect r = it.GetRect();
+
+		// Restreindre le dessin au rectangle courant
+		dc.SetClippingRegion(r);
+
+		if (scoreBitmap.IsOk())
+		{
+			dc.DrawBitmap(scoreBitmap, 0, 0, false);
+		}
+		// Enlever le clipping avant le prochain rectangle
+		dc.DestroyClippingRegion();
 	}
 
-	setCursor(dc, newPaintNrChord, redraw);
-}
-int bitmapscore::getNbPaint()
-{
-	int i = nbPaint ;
-	nbPaint = 0 ;
-	return i;
-}
-int bitmapscore::getNbSetPosition()
-{
-	int i =  nbSetPosition;
-	nbSetPosition = 0 ;
-	return i ;
+	if (!currentRectPos.IsEmpty())
+	{
+		// draw the cursor
+		dc.SetClippingRegion(currentRectPos);
+		dc.SetBackground(*wxRED_BRUSH);
+		dc.Clear();
+		dc.DestroyClippingRegion();
+	}
+	prevRectPos = currentRectPos;
 }
 
 void bitmapscore::OnLeftDown(wxMouseEvent& event)

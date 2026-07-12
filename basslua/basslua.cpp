@@ -346,7 +346,7 @@ void mlog_in(const char * format, ...)
 	char msg[MAXBUFCHAR];
 	va_list args;
 	va_start(args, format);
-	vsprintf(msg, format, args);
+	vsnprintf(msg, MAXBUFCHAR - 2 , format, args);
 	va_end(args);
 	FILE * pFile = fopen(g_path_in_error_txt, "a");;
 	if (pFile != NULL)
@@ -364,7 +364,6 @@ void mlog_in(const char * format, ...)
 		if (nrInBufLog >= MAXNBLOGOUT)
 			nrInBufLog = 0;
 	}
-	return;
 }
 static void lock_mutex_in()
 {
@@ -1738,14 +1737,15 @@ bool basslua_open(const char* fluaname, const char* luaparam, bool reset, long d
 	basslua_close();
 	
 	log_in_init(logpath);
-	//mlog_in("debug basslua_open OK : log_in_init(%s)",logpath);
+	mlog_in("debug basslua_open OK : log_in_init(%s)",logpath);
+
 
 	// open the dedicated midiin-LUA-thread to process midiin msg
 	g_LUAstate = luaL_newstate(); // newthread 
 	luaL_openlibs(g_LUAstate);
 	mlog_in("debug basslua_open OK : luaL_openlibs getop=%d==0", lua_gettop(g_LUAstate));
 
- 	
+
 	lua_getglobal(g_LUAstate, "package"); // to modify the PATH
 	//lua_getfield(g_LUAstate, -1, "path"); // get field "path" from table at top of stack (-1)
 	//char cur_path[2056];
@@ -1763,15 +1763,6 @@ bool basslua_open(const char* fluaname, const char* luaparam, bool reset, long d
 		return(false);
 	}
 	mlog_in("debug basslua_open OK : lua_loadfile <%s>  getop=%d==1",fluaname, lua_gettop(g_LUAstate));
-
-
-#ifdef V_PC
-	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
-	if (!SUCCEEDED(hr))
-	{
-		mlog_in("Error : CoInitializeEx fails");
-	}
-#endif
 
 	// require the "chord" module for chord interpretation
 	lua_getglobal(g_LUAstate, "require");
@@ -1837,8 +1828,8 @@ bool basslua_open(const char* fluaname, const char* luaparam, bool reset, long d
 	// create the "info" table to receive instructions
 	lua_newtable(g_LUAstate);
 	lua_setglobal(g_LUAstate, tableInfo);
-	//mlog_in("debug basslua_open OK : lua_setglobal <%s>",tableInfo);
-
+	mlog_in("debug basslua_open OK : lua_setglobal <%s>",tableInfo);
+	
 	// run the script
 	if (lua_pcall(g_LUAstate, 0, 0, 0) != LUA_OK)
 	{
@@ -1886,29 +1877,33 @@ void basslua_close()
 
 	if (g_LUAstate)
 	{
-		//mlog_in("debug basslua_close");
+		mlog_in("debug basslua_close");
 
 		if ( ! basslua_call(moduleLuabass, soutAllNoteOff, "s", "a") )
 			mlog_in("debug basslua_close moduleLuabass.%s(a) : error",soutAllNoteOff);
-		//mlog_in("debug basslua_close moduleLuabass.%s(a) : OK",soutAllNoteOff);
+		mlog_in("debug basslua_close moduleLuabass.%s(a) : OK",soutAllNoteOff);
 
 		basslua_call(moduleGlobal, sonStop, "");
 
 		if ( ! basslua_call(moduleLuabass, sfree, ""))
 			mlog_in("debug basslua_close moduleLuabass.%s : error",sfree);
-		//mlog_in("debug basslua_close moduleLuabass.%s : OK",sfree);
+		mlog_in("debug basslua_close moduleLuabass.%s : OK",sfree);
 
 		free();
 
-		//lua_close(g_LUAstate);
-		//mlog_in("debug basslua_close free : OK");
+		lua_close(g_LUAstate);
+		mlog_in("debug basslua_close free : OK");
+	}
+	else
+	{
+		mlog_in("debug basslua_close : g_LUAstate == NULL");
 	}
 	g_LUAstate = 0;
 
-	char fmlog[1024];
-	strcpy(fmlog,g_path_in_error_txt);
-	strcat(fmlog,".mlog");
 #ifdef V_MLOG
+	char fmlog[1024];
+	strcpy(fmlog, g_path_in_error_txt);
+	strcat(fmlog, ".mlog");
 	mlogflush(fmlog);
 #endif
 }

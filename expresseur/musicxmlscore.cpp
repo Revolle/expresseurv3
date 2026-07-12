@@ -486,7 +486,8 @@ bool musicxmlscore::drawPage(int pageNr, bool turnPage)
 	scoreBitmap.Create(sizePage.GetWidth(), sizePage.GetHeight());
 	// recreate the page
 	wxMemoryDC memDC(scoreBitmap);
-	//mlog_in("setPage start bitmap(%s) memDC(%s)", (scoreBitmap.IsOk()) ? "OK" : "!!KO!!" , (memDC.IsOk()) ? "OK" : "!!KO!!");
+	if (logLilypond)
+		mlog_in("setPage start bitmap(%s) memDC(%s)", (scoreBitmap.IsOk()) ? "OK" : "!!KO!!" , (memDC.IsOk()) ? "OK" : "!!KO!!");
 
 	currentPageNr = pageNr;
 	currentTurnPage = turnPage;
@@ -496,7 +497,8 @@ bool musicxmlscore::drawPage(int pageNr, bool turnPage)
 	wxString fn = getNamePage(pageNr);
 	if (fn.IsEmpty()) return false;
 	wxBitmap fnbitmap(fn, wxBITMAP_TYPE_PNG);
-	//mlog_in("setPage bitmap=%s (%s)", (const char*)(fn.c_str()), (fnbitmap.IsOk()) ? "OK" : "!!KO!!" );
+	if (logLilypond)
+		mlog_in("setPage bitmap=%s (%s)", (const char*)(fn.c_str()), (fnbitmap.IsOk()) ? "OK" : "!!KO!!" );
 
 	currentPageNrPartial = -1;
 
@@ -563,30 +565,38 @@ bool musicxmlscore::drawPage(int pageNr, bool turnPage)
 			wxSize sizeNrPage = memDC.GetTextExtent(spage);
 			int xsPage = widthNrPage * nrPage + widthNrPage / 2 - sizeNrPage.GetWidth() / 2;
 			memDC.DrawText(spage, xsPage, buttonPage.y);
-			//mlog_in("setPage DrawText=%s", (const char*)(spage.c_str()));
+			if (logLilypond)
+				mlog_in("setPage DrawText=%s", (const char*)(spage.c_str()));
 
 		}
 	}
 	memDC.SelectObject(wxNullBitmap);
-	//mlog_in("setPage end (%s) ",(scoreBitmap.IsOk()) ? "OK" : "!!KO!!");
+	if (logLilypond)
+		mlog_in("setPage end (%s) ",(scoreBitmap.IsOk()) ? "OK" : "!!KO!!");
 	return true;
 }
 bool musicxmlscore::setPage(int pageNr, bool turnPage, bool redraw)
 {
 	if (!isOk() || !docOK )	return false;
-
-	// mlog_in("setPage pageNr=%d (%d) / turnPage=%d (%d) / %d\n", pageNr , currentPageNr , turnPage, currentTurnPage , redraw);
+	bool ret = false;
+	if (logLilypond)
+		mlog_in("setPage pageNr=%d (%d) / turnPage=%d (%d) / %d\n", pageNr , currentPageNr , turnPage, currentTurnPage , redraw);
 	if ((pageNr == -1) || ((currentPageNr == pageNr) && (currentTurnPage == turnPage)))
 	{
 		if ( redraw )
 		{
 			// redraw the page
-			return drawPage( pageNr,  turnPage);
+			ret = drawPage( pageNr,  turnPage);
 		}
 	}
 	else
 	{ 
-		return drawPage( pageNr,  turnPage);
+		ret = drawPage( pageNr,  turnPage);
+	}
+	if (ret)
+	{
+		Refresh();
+		Update();
 	}
 	return false;
 }
@@ -662,26 +672,11 @@ bool musicxmlscore::setCursor(int pos,bool playing, bool redraw )
 	}
 	wxMemoryDC memDC(scoreBitmap);
 
-	// redraw the previous picture behind the cursor)
-	if (! prevRectPos.IsEmpty() )
-	{
-		wxDCClipper cursorclip(memDC, prevRectPos);
-		memDC.SetBackground(this->GetBackgroundColour());
-		memDC.Clear();
-	}
 
-	if ( ! rectPos.IsEmpty() )
-	{
-		// draw the cursor
-		wxDCClipper cursorclip(memDC, rectPos);
-		if (playing)
-			memDC.SetBackground(*wxRED_BRUSH);
-		else
-			memDC.SetBackground(*wxGREEN_BRUSH);		
-		memDC.Clear();
-	}
+	currentPlaying = playing;
+	currentRectPos = rectPos;	
 
-	prevRectPos = rectPos;
+
 	return true;
 }
 void musicxmlscore::setPosition(int pos, bool playing)
@@ -691,53 +686,51 @@ void musicxmlscore::setPosition(int pos, bool playing)
 	// onIdle : set the current pos
 	if ((pos != prevPos) || (playing != prevPlaying))
 	{
+		setCursor(pos, playing, false);
 		prevPos = pos;
 		prevPlaying = playing;
-		Refresh();
+		RefreshRect(prevRectPos);
+		RefreshRect(currentRectPos);
+		Update();
 	}
 }
 
-void musicxmlscore::onPaint(wxPaintEvent& WXUNUSED(event))
+void musicxmlscore::onPaint(wxPaintEvent& WXUNUSED (event))
 {
-	// onPaint
+	// Il faut obligatoirement créer un wxPaintDC dans un EVT_PAINT.
 	wxPaintDC dc(this);
-	if (!isOk() || !docOK  || (prevPos < 0))	return;
-	wxRegionIterator upd(GetUpdateRegion()); // get the update rect list
-	//int vX, vY, vW, vH;
-	bool redraw = false;
-	while (upd)
+
+	// Récupère la région de mise à jour (endommagee) depuis l'événement
+	wxRegion updateRegion = GetUpdateRegion();
+
+	// Itérateur sur les rectangles de la région
+	for (wxRegionIterator it(updateRegion); it; ++it)
 	{
-		redraw = true;
-		break;
-		/*
-		vX = upd.GetX();
-		vY = upd.GetY();
-		vW = upd.GetW();
-		vH = upd.GetH();
-		wxString sl ;
-		sl.Printf("onpaint v %d %d %d %d",vX,vY,vW,vH);
-		mlog_in(sl);
-		// Repaint this rectangle
-		upd++;
-		*/
+		wxRect r = it.GetRect();
+
+		// Restreindre le dessin au rectangle courant
+		dc.SetClippingRegion(r);
+
+		if (scoreBitmap.IsOk())
+		{
+			dc.DrawBitmap(scoreBitmap, 0, 0, false);
+		}
+		// Enlever le clipping avant le prochain rectangle
+		dc.DestroyClippingRegion();
 	}
-	setCursor(prevPos, prevPlaying, redraw);
-	if (scoreBitmap.IsOk())
-		dc.DrawBitmap(scoreBitmap, 0, 0, false);
-	else
-		mlog_in("error scoreBitmap not OK on paint\n");
-}
-int musicxmlscore::getNbPaint()
-{
-	int i = nbPaint ;
-	nbPaint = 0 ;
-	return i;
-}
-int musicxmlscore::getNbSetPosition()
-{
-	int i =  nbSetPosition;
-	nbSetPosition = 0 ;
-	return i ;
+
+	if (!currentRectPos.IsEmpty())
+	{
+		// draw the cursor
+		dc.SetClippingRegion(currentRectPos);
+		if (currentPlaying)
+			dc.SetBackground(*wxRED_BRUSH);
+		else
+			dc.SetBackground(*wxGREEN_BRUSH);
+		dc.Clear();
+		dc.DestroyClippingRegion();
+	}
+	prevRectPos = currentRectPos;
 }
 void musicxmlscore::gotoNextPage(bool forward)
 {
