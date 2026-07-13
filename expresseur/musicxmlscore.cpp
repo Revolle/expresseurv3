@@ -1159,7 +1159,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 					{
 						if (str.Contains("\\U"))
 						{
-							str.Replace("\\U", "\\U "  + overridexpr , false);
+							str.Replace("\\U",  overridexpr + "\\U ", false);
 							firstU = false;
 						}
 					}
