@@ -501,7 +501,6 @@ bool musicxmlscore::drawPage(int pageNr, bool turnPage)
 
 	if (turnPage)
 	{
-		if (currentPageNr != pageNr)
 		{
 			// half page on right
 			wxRect halfPageRight;
@@ -510,11 +509,14 @@ bool musicxmlscore::drawPage(int pageNr, bool turnPage)
 			halfPageRight.width = sizePage.GetWidth() / 2 - sizePage.GetWidth() / WIDTH_SEPARATOR_PAGE;
 			halfPageRight.height = sizePage.GetHeight();
 
-			wxDCClipper clipTurnPage(memDC, halfPageRight);
+			wxDCClipper clipTurnPageRight(memDC, halfPageRight);
 			memDC.SetBackground(this->GetBackgroundColour());
 			memDC.Clear();
 			memDC.DrawBitmap(fnbitmap, 0, 0);
-			RefreshRect(halfPageRight);
+			if ( currentPageNr != pageNr )
+			{
+				RefreshRect(halfPageRight);
+			}
 		}
 		if (turnPage != currentTurnPage )
 		{
@@ -524,7 +526,7 @@ bool musicxmlscore::drawPage(int pageNr, bool turnPage)
 			halfPageLeft.y = 0;
 			halfPageLeft.width = sizePage.GetWidth() / 2;
 			halfPageLeft.height = sizePage.GetHeight();
-			wxDCClipper clipTurnPage(memDC, halfPageLeft);
+			wxDCClipper clipTurnPageLeft(memDC, halfPageLeft);
 			wxString fnturn = getNamePage(pageNr + 1);
 			if (!fnturn.IsEmpty())
 			{
