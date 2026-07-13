@@ -917,7 +917,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	lilyexe = fm.GetFullPath();
 #else
 #ifdef _DEBUG
-	fm.SetPath("C:\\Users\\franc\\Documents\\lilypond\\lilypond-2.25.30");
+	fm.SetPath("C:\\Users\\franc\\Documents\\lilypond\\lilypond-2.26.0");
 #else
 	fm.SetPath(getCwdDir());
 	fm.AppendDir("lilypond");

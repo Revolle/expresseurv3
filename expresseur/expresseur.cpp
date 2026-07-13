@@ -2373,8 +2373,9 @@ void Expresseur::OnAbout(wxCommandEvent& WXUNUSED(event))
 		"Acknowldgment to :\n"
 		"- wxWidgets.org : Cross-Platform GUI %s\n"
 		"- lua.org : scripting language\n"
-		"- lilypond.org : music engraver\n"
+		"- lilypond.org : music engraver 2.26.0\n"
 		"- un4seen.com : audio stack\n"
+		"- libserialport : com stack\n"
 		"- rtmidi : MIDI stack"
 		, VERSION_EXPRESSEUR , wxVERSION_STRING );
  	wxMessageBox(s,"about");
