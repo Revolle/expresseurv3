@@ -489,9 +489,6 @@ bool musicxmlscore::drawPage(int pageNr, bool turnPage)
 	if (logLilypond)
 		mlog_in("setPage start bitmap(%s) memDC(%s)", (scoreBitmap.IsOk()) ? "OK" : "!!KO!!" , (memDC.IsOk()) ? "OK" : "!!KO!!");
 
-	currentPageNr = pageNr;
-	currentTurnPage = turnPage;
-
 	wxFileName fp;
 	fp.SetPath(getTmpDir());
 	wxString fn = getNamePage(pageNr);
@@ -504,29 +501,46 @@ bool musicxmlscore::drawPage(int pageNr, bool turnPage)
 
 	if (turnPage)
 	{
+		if (currentPageNr != pageNr)
 		{
 			// half page on right
-			wxDCClipper clipTurnPage(memDC, wxRect(sizePage.GetWidth() / 2 + sizePage.GetWidth() / WIDTH_SEPARATOR_PAGE, 0, sizePage.GetWidth() / 2 - sizePage.GetWidth() / WIDTH_SEPARATOR_PAGE, sizePage.GetHeight()));
+			wxRect halfPageRight;
+			halfPageRight.x = sizePage.GetWidth() / 2 + sizePage.GetWidth() / WIDTH_SEPARATOR_PAGE;
+			halfPageRight.y = 0;
+			halfPageRight.width = sizePage.GetWidth() / 2 - sizePage.GetWidth() / WIDTH_SEPARATOR_PAGE;
+			halfPageRight.height = sizePage.GetHeight();
+
+			wxDCClipper clipTurnPage(memDC, halfPageRight);
 			memDC.SetBackground(this->GetBackgroundColour());
 			memDC.Clear();
 			memDC.DrawBitmap(fnbitmap, 0, 0);
+			RefreshRect(halfPageRight);
 		}
+		if (turnPage != currentTurnPage )
 		{
 			// anticipate half of the next page
+			wxRect halfPageLeft;
+			halfPageLeft.x = 0;
+			halfPageLeft.y = 0;
+			halfPageLeft.width = sizePage.GetWidth() / 2;
+			halfPageLeft.height = sizePage.GetHeight();
+			wxDCClipper clipTurnPage(memDC, halfPageLeft);
+			wxString fnturn = getNamePage(pageNr + 1);
+			if (!fnturn.IsEmpty())
 			{
-				wxDCClipper clipTurnPage(memDC, wxRect(0, 0, sizePage.GetWidth() / 2, sizePage.GetHeight()));
-				wxString fnturn = getNamePage(pageNr + 1);
-				if (!fnturn.IsEmpty())
-				{
-					wxBitmap fnturnbitmap(fnturn, wxBITMAP_TYPE_PNG);
-					memDC.SetBackground(this->GetBackgroundColour());
-					memDC.Clear();
-					memDC.DrawBitmap(fnturnbitmap, 0, 0);
-					currentPageNrPartial = pageNr + 1;
-				}
-			}
-			{
-				wxDCClipper clipTurnPage(memDC, wxRect(sizePage.GetWidth() / 2, 0, sizePage.GetWidth() / WIDTH_SEPARATOR_PAGE, sizePage.GetHeight()));
+				wxBitmap fnturnbitmap(fnturn, wxBITMAP_TYPE_PNG);
+				memDC.SetBackground(this->GetBackgroundColour());
+				memDC.Clear();
+				memDC.DrawBitmap(fnturnbitmap, 0, 0);
+				currentPageNrPartial = pageNr + 1;
+				RefreshRect(halfPageLeft);
+				// separation line between the two pages
+				wxRect sepPage;
+				sepPage.x = sizePage.GetWidth() / 2 - sizePage.GetWidth() / WIDTH_SEPARATOR_PAGE;
+				sepPage.y = 0;
+				sepPage.width = sizePage.GetWidth() / WIDTH_SEPARATOR_PAGE ;
+				sepPage.height = sizePage.GetHeight();
+				wxDCClipper clipsepPage(memDC, sepPage);
 				memDC.SetBackground(this->GetBackgroundColour());
 				memDC.Clear();
 			}
@@ -534,43 +548,50 @@ bool musicxmlscore::drawPage(int pageNr, bool turnPage)
 	}
 	else
 	{
-		// full page
-		memDC.SetBackground(this->GetBackgroundColour());
-		memDC.Clear();
-		memDC.DrawBitmap(fnbitmap, 0, 0);
-		//mlog_in("setPage DrawBitmap");
-	}
-
-	if (totalPages > 0)
-	{
-		// write the page indexes on the bottom
-		wxSize sizePageNr = memDC.GetTextExtent("0");
-		buttonPage.SetHeight(sizePageNr.GetHeight());
-		buttonPage.SetY(sizePage.GetHeight() - sizePageNr.GetHeight());
-		buttonPage.SetX(0);
-		buttonPage.SetWidth(sizePage.GetWidth());
-		int widthNrPage = sizePage.GetWidth() / totalPages;
-		wxDCClipper clipPageNr(memDC, buttonPage);
-		memDC.SetBackground(this->GetBackgroundColour());
-		memDC.Clear();
-		memDC.SetTextForeground(*wxBLACK);
-		//memDC.SetTextBackground(*wxWHITE);
-		for (int nrPage = 0; nrPage < totalPages; nrPage++)
+		if (currentPageNr != pageNr)
 		{
-			wxString spage;
-			if (nrPage == pageNr)
-				spage.Printf("[%d]", nrPage + 1);
-			else
-				spage.Printf("%d", nrPage + 1);
-			wxSize sizeNrPage = memDC.GetTextExtent(spage);
-			int xsPage = widthNrPage * nrPage + widthNrPage / 2 - sizeNrPage.GetWidth() / 2;
-			memDC.DrawText(spage, xsPage, buttonPage.y);
-			if (logLilypond)
-				mlog_in("setPage DrawText=%s", (const char*)(spage.c_str()));
+			// full page
+			memDC.SetBackground(this->GetBackgroundColour());
+			memDC.Clear();
+			memDC.DrawBitmap(fnbitmap, 0, 0);
+			if (totalPages > 0)
+			{
+				// write the page indexes on the bottom
+				wxSize sizePageNr = memDC.GetTextExtent("0");
+				buttonPage.SetHeight(sizePageNr.GetHeight());
+				buttonPage.SetY(sizePage.GetHeight() - sizePageNr.GetHeight());
+				buttonPage.SetX(0);
+				buttonPage.SetWidth(sizePage.GetWidth());
+				int widthNrPage = sizePage.GetWidth() / totalPages;
+				wxDCClipper clipPageNr(memDC, buttonPage);
+				memDC.SetBackground(this->GetBackgroundColour());
+				memDC.Clear();
+				memDC.SetTextForeground(*wxBLACK);
+				//memDC.SetTextBackground(*wxWHITE);
+				for (int nrPage = 0; nrPage < totalPages; nrPage++)
+				{
+					wxString spage;
+					if (nrPage == pageNr)
+						spage.Printf("[%d]", nrPage + 1);
+					else
+						spage.Printf("%d", nrPage + 1);
+					wxSize sizeNrPage = memDC.GetTextExtent(spage);
+					int xsPage = widthNrPage * nrPage + widthNrPage / 2 - sizeNrPage.GetWidth() / 2;
+					memDC.DrawText(spage, xsPage, buttonPage.y);
+					if (logLilypond)
+						mlog_in("setPage DrawText=%s", (const char*)(spage.c_str()));
 
+				}
+			}
+			Refresh();
+			//mlog_in("setPage DrawBitmap");
 		}
 	}
+
 	memDC.SelectObject(wxNullBitmap);
+	currentPageNr = pageNr;
+	currentTurnPage = turnPage;
+
 	if (logLilypond)
 		mlog_in("setPage end (%s) ",(scoreBitmap.IsOk()) ? "OK" : "!!KO!!");
 	return true;
@@ -578,25 +599,26 @@ bool musicxmlscore::drawPage(int pageNr, bool turnPage)
 bool musicxmlscore::setPage(int pageNr, bool turnPage, bool redraw)
 {
 	if (!isOk() || !docOK )	return false;
-	bool ret = false;
 	if (logLilypond)
 		mlog_in("setPage pageNr=%d (%d) / turnPage=%d (%d) / %d\n", pageNr , currentPageNr , turnPage, currentTurnPage , redraw);
-	if ((pageNr == -1) || ((currentPageNr == pageNr) && (currentTurnPage == turnPage)))
+	if (redraw)
 	{
-		if ( redraw )
+		currentPageNr = -1;
+		currentTurnPage = !turnPage;
+		if (drawPage(pageNr, turnPage))
 		{
-			// redraw the page
-			ret = drawPage( pageNr,  turnPage);
+			Refresh();
+			Update();
+			return true;
 		}
 	}
-	else
-	{ 
-		ret = drawPage( pageNr,  turnPage);
-	}
-	if (ret)
+	if ((pageNr != -1) && ((currentPageNr != pageNr) || (currentTurnPage != turnPage)))
 	{
-		Refresh();
-		Update();
+		if (drawPage(pageNr, turnPage))
+		{
+			Update();
+			return true;
+		}
 	}
 	return false;
 }
@@ -963,6 +985,8 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 			if (str.StartsWith("%%%%%%%%override Expresseur:"))
 			{
 				overridexpr = str.Mid(strlen("%%%%%%%%override Expresseur:"));
+				// used later inside the lilypond encoding
+				continue;
 			}
 			if (str.StartsWith("%%%%%%%%translate_xml_to_ly:"))
 			{
@@ -1089,7 +1113,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		fout.Open(lilysrc);
 		bool expresseurstaff = false;
 		int score = 0;
-		bool firstf8 = true;
+		bool firstU = true;
 		if (fin.IsOpened() && fout.IsOpened())
 		{
 			wxString str;
@@ -1127,22 +1151,17 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 				}
 				if (expresseurstaff)
 				{
-					if (str.Contains("staffLines \"treble\" 2"))
+					if (str.Contains("\\staffLines \"\" 2"))
 					{
-						str.Replace("staffLines \"treble\" 2", "staffLines \"percussion\" 2");
+						str.Replace("\\staffLines \"\" 2", "\\clef \"percussion\" \\staffLines \"\" 2");
 					}
-					if (firstf8)
+					if (firstU)
 					{
-						if (str.Contains("\\once \\stemUp f"))
+						if (str.Contains("\\U"))
 						{
-							str.Replace("\\once \\stemUp f", overridexpr + " f", false);
-							firstf8 = false;
+							str.Replace("\\U", "\\U "  + overridexpr , false);
+							firstU = false;
 						}
-					}
-					if (str.Contains("\\once \\stemUp f"))
-					{
-						str.Replace("\\once \\stemUp f", "f", true);
-						firstf8 = false;
 					}
 					fout.AddLine(str);
 					continue;
