@@ -3337,15 +3337,15 @@ void musicxmlcompile::addSymbolNote(std::vector<c_measure>::iterator measure, bo
 								bool ternaire , bool cross, int *ituplet, bool end_on_beat)
 {
 	c_measure_sequence measure_sequence;
-	measure_sequence.note.used = true;
 
 	int duration_todo = duration;
 	int antiLoop = 0;
 	while (duration_todo > 0)
 	{
+		measure_sequence = c_measure_sequence();
 		if (antiLoop++ > 10)
 			break;
-
+		measure_sequence.note.used = true;
 		wxString typeNote;
 		int duration_done;
 		int dot;
@@ -3413,6 +3413,7 @@ void musicxmlcompile::addSymbolNote(std::vector<c_measure>::iterator measure, bo
 					measure_sequence.note.notations.used = true;
 					measure_sequence.note.notations.tied.used = true;
 					measure_sequence.note.notations.tied.stop = true;
+
 					*first_note = false;
 				}
 				if (duration_todo > 0)
@@ -3420,6 +3421,7 @@ void musicxmlcompile::addSymbolNote(std::vector<c_measure>::iterator measure, bo
 					measure_sequence.note.notations.used = true;
 					measure_sequence.note.notations.tied.used = true;
 					measure_sequence.note.notations.tied.start = true;
+
 				}
 			}
 
@@ -3482,12 +3484,13 @@ void musicxmlcompile::addSymbolNote(std::vector<c_measure>::iterator measure, bo
 		}
 	}
 
-	if ((! rest) && (tie_next) && ( measure_sequence.note.used ) && (after_measure))
+	if (!measure->measure_sequences.empty() && (! rest) && (tie_next) && ( measure_sequence.note.used ) && (after_measure))
 	{
+		c_measure_sequence &lmeasure_sequence = measure->measure_sequences.back();
+		lmeasure_sequence.note.notations.used = true;
+		lmeasure_sequence.note.notations.tied.used = true;
+		lmeasure_sequence.note.notations.tied.start = true;
 
-		measure_sequence.note.notations.used = true;
-		measure_sequence.note.notations.tied.used = true;
-		measure_sequence.note.notations.tied.start = true;
 	}
 }
 void musicxmlcompile::calculateDuration(int duration, int division_quarter, bool ternaire , 
