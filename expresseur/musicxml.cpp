@@ -987,6 +987,7 @@ void c_slur::write(wxFFile *f)
 
 // score-partwise/list/part/measure/note/notations/tied
 //---------------------------------------------------------
+// iaison graphique uniquementt
 c_tied::c_tied(wxXmlNode *xmlnode) 
 {
 	used = true;
@@ -1011,6 +1012,7 @@ void c_tied::write(wxFFile *f)
 }
 // score-partwise/list/part/measure/note/notations/tie
 //---------------------------------------------------------
+// liaison utile de sommation de duree
 c_tie::c_tie(wxXmlNode *xmlnode)
 {
 	used = true;

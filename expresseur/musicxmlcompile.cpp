@@ -1759,7 +1759,7 @@ void musicxmlcompile::compileTie(const c_part & part, const c_note & note, int *
 		*t = 0;
 		(*measureNr)++;
 	}
-	if ((! note.tie.used == false) || (note.tie.start == false))
+	if ((note.tie.used == false) || (note.tie.start == false))
 		return;
 	// scan a note which can be tied to current note
 	for (auto & current_measure : part.measures )
