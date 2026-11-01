@@ -143,8 +143,8 @@ void setConfig()
 	//dtmp.AssignDir(stmp);
 	//dtmp.AppendDir(APP_NAME);
 	wxFileName ftmpDir;
-	ftmpDir.AssignDir(resourceDir);
-	ftmpDir.AppendDir("tmp");
+	ftmpDir.AssignDir(mpath.GetTempDir());
+	ftmpDir.AppendDir(APP_NAME);
 	tmpDir = ftmpDir.GetFullPath() ;
 	if ( ! ftmpDir.DirExists() )
 		wxFileName::Mkdir(tmpDir) ;

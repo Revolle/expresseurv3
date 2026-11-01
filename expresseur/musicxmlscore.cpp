@@ -925,7 +925,8 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 #ifdef RUN_MAC
 	// liliy translator 
 	fm.SetPath(getCwdDir());
-	fm.AppendDir(wxGetCpuArchitectureName());
+	// fm.AppendDir(wxGetCpuArchitectureName());
+	fm.AppendDir("x86_64");
 	fm.AppendDir("lilypond");
 	fm.AppendDir("libexec");
 	pythonexe = wxDir::FindFirst(fm.GetPath(), "python*" );

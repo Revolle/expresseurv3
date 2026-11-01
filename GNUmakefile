@@ -1,178 +1,114 @@
 # Generate expresseur/Expresseur.app
-# platform Linux
 # platform MAC Darwin
 #
-EXPRESSEURAPP := expresseur/Expresseur.app
+EXPRESSEUR_APP := expresseur/Expresseur.app
 
 PLATFORM := $(shell uname)
+
 CPPFLAGS := -Wall -MD -MP
 CPPFLAGS := $(CPPFLAGS) -g -Wno-deprecated-declarations -Wno-unused-variable
 CXXFLAGS := -std=c++11 
 LDFLAGS  :=
-LILYPOND := lilypond-2.25.30
 
-ifeq ($(PLATFORM),Darwin)
+LILYPOND := lilypond-2.26.0
+LILYPOND_X86_64_TAR := ../lilypond/$(LILYPOND)-darwin-x86_64.tar
+LILYPOND_ARM64_TAR := ../lilypond/$(LILYPOND)-darwin-arm64.tar
 	  
-    WX_CONFIG =/Users/revolle/wxWidgets/build64/wx-config
+WX_CONFIG =/Users/revolle/wxWidgets/build64/wx-config
 
-    CXXFLAGS := $(CXXFLAGS) -mmacosx-version-min=10.15 -D__MACOSX_CORE__
-    LDFLAGS := $(LDFLAGS) -mmacosx-version-min=10.15
+CXXFLAGS := $(CXXFLAGS) -mmacosx-version-min=10.15 -D__MACOSX_CORE__
+LDFLAGS := $(LDFLAGS) -mmacosx-version-min=10.15
 
-    # dynamic library for basslua ( called by GUI expresseur )
-    DYNLIB_EXT := dylib
-    DYNLIB_LDFLAGS := $(LDFLAGS) -dynamiclib
-    
-    # lua C module for luabass , loaded by lua
-    SHAREDLIB_EXT := so
-    SHAREDLIB_LDFLAGS := $(LDFLAGS) -undefined dynamic_lookup 
+# dynamic library for basslua ( called by GUI expresseur )
+DYNLIB_EXT := dylib
+DYNLIB_LDFLAGS := $(LDFLAGS) -dynamiclib
 
-		DIRPLATFORM := osx
-		LUADIR := ../lua/src
-		RTMIDIDIR := ../rtmidi
-		BASSDIR := $(DIRPLATFORM)/bass
-		SERIALDIR := $(DIRPLATFORM)/libserial
-		LUABASS_LIBS :=  -L$(BASSDIR) -lbass -lbassmidi -lbassmix -framework CoreFoundation -framework CoreAudio -framework CoreMIDI -L$(SERIALDIR) -lserialport
-		BASSLUA_LIBS := $(LUABASS_LIBS) -L$(LUADIR) -llua 
-		LILYPOND_X86_64_TAR := ../lilypond/$(LILYPOND)-darwin-x86_64.tar
-		LILYPOND_ARM64_TAR := ../lilypond/$(LILYPOND)-darwin-arm64.tar
-		WXWIDGESTLIB = $(shell $(WX_CONFIG) --libs base,net,core,adv,xml)
-		EXPRESSCMD_LIBS := 
-		EXPRESSEUR_LIBS := $(WXWIDGESTLIB) $(EXPRESSCMD_LIBS) 
-		TEST_LIBS := $(WXWIDGESTLIB) 
-		EXPRESSEURCONTENT := $(EXPRESSEURAPP)/Contents/MacOS
-		EXPRESSEURRESOURCES := $(EXPRESSEURAPP)/Contents/Resources
-else
-ifeq ($(PLATFORM),Linux)
-		
-		CPPFLAGS := $(CPPFLAGS) -O -fPIC -D__LINUX_ALSA__ 
+# lua C module for luabass , loaded by lua
+SHAREDLIB_EXT := so
+SHAREDLIB_LDFLAGS := $(LDFLAGS) -undefined dynamic_lookup 
 
-		WX_CONFIG=../wxWidgets/buildgtk/wx-config
+PLATFORM_DIR := osx
 
-    # dynamic library for basslua ( called by GUI expresseur )
-    DYNLIB_EXT := dylib
-    DYNLIB_LDFLAGS := $(LDFLAGS) -O -shared -fpic  
-   
-    # lua C module for luabass , loaded by lua
-    SHAREDLIB_EXT := so
-    SHAREDLIB_LDFLAGS := $(LDFLAGS) -O -shared -fpic 
+LUA_DIR := ../lua/src
+RTMIDI_DIR := ../rtmidi
 
-		DIRPLATFORM := linux
-		LUADIR := $(DIRPLATFORM)/lua/src
-		RTMIDIDIR := $(DIRPLATFORM)/rtmidi
-		BASSDIR := $(DIRPLATFORM)/bass
-		SERIALDIR := (DIRPLATFORM)/libserial
-		LILYPOND_X86_64_TAR := ../lilypond/$(LILYPOND)-darwin-x86_64.tar
-		LILYPOND_ARM64_TAR := ../lilypond/$(LILYPOND)-darwin-arm64.tar
-		MORIGIN := $$ORIGIN
-		EXPRESS_LIBPATH := -Wl,-rpath=$(BASSDIR),-rpath=../$(BASSDIR),-rpath=basslua,-rpath=luabass
-		LUABASS_LIBS := -L$(BASSDIR) -lbass -lbassmidi -lbassmix -lrt -lm -ldl -lasound -lpthread $(EXPRESS_LIBPATH) -L${SERIALDIR} -lserialport
-		BASSLUA_LIBS := $(LUABASS_LIBS)  -L$(LUADIR) -llua $(EXPRESS_LIBPATH)
-		WXWIDGESTLIB = $(shell $(WX_CONFIG) --libs base,net,core,adv,xml)
-		EXPRESSCMD_LIBS := -lrt -lm -ldl $(EXPRESS_LIBPATH)
-		EXPRESSEUR_LIBS := $(WXWIDGESTLIB)  $(EXPRESSCMD_LIBS) 
-		TEST_LIBS := $(WXWIDGESTLIB) 
-		EXPRESSEURCONTENT := $(EXPRESSEURAPP)/Contents/Linux
-		EXPRESSEURRESOURCES := $(EXPRESSEURAPP)/Contents/Resources
-else
-    $(error Define PLATFORM_DIR containing the required headers and libraries)
+BASS_DIR := ../bass/$(PLATFORM_DIR)
 
-    DYNLIB_EXT := so
-    DYNLIB_LDFLAGS := -Wl,-z,defs -shared
-endif
-endif
+WXWIDGEST_LIB = $(shell $(WX_CONFIG) --libs base,net,core,adv,xml)
+EXPRESSCMD_LIBS := 
+EXPRESSEUR_LIBS := $(WXWIDGEST_LIB) $(EXPRESSCMD_LIBS) 
+TEST_LIBS := $(WXWIDGEST_LIB) 
+
+EXPRESSEUR_CONTENT := $(EXPRESSEURAPP)/Contents/MacOS
+EXPRESSEUR_RESOURCES := $(EXPRESSEURAPP)/Contents/Resources
 
 EXPRESSEUR := expresseur/expresseur
-EXPRESSEUR_OBJECTS := $(patsubst %.cpp,%.o,$(wildcard expresseur/*.cpp))
+EXPRESSEUR_OBJECTS := expresseur/bitmapscore.o expresseur/editshortcut.o expresseur/emptyscore.o \
+						expresseur/expresseur.o	expresseur/expression.o expresseur/logError.o \
+						expresseur/luafile.o expresseur/midishortcut.o expresseur/mixer.o \
+						expresseur/musicxml.o expresseur/musicxmlcompile.o expresseur/musicxmlscore.o \
+						expresseur/mxconf.o expresseur/textscore.o expresseur/viewerscore.o 
 $(EXPRESSEUR_OBJECTS): CPPFLAGS += $(shell $(WX_CONFIG) --cxxflags)
-
-TEST := test/test
-TEST_OBJECTS := $(patsubst %.cpp,%.o,$(wildcard test/*.cpp))
-$(TEST_OBJECTS): CPPFLAGS += $(shell $(WX_CONFIG) --cxxflags)
+#$(info	EXPRESSEUR_OBJECTS = $(EXPRESSEUR_OBJECTS) )
 
 EXPRESSCMD := expresscmd/expresscmd
-EXPRESSCMDEXE := expresscmd/expresscmd.exe
-EXPRESSCMD_OBJECTS := $(patsubst %.cpp,%.o,$(wildcard expresscmd/*.cpp))
+EXPRESSCMD_EXE := expresscmd/expresscmd.exe
+EXPRESSCMD_OBJECTS := expresscmd/expresscmd.o
+
+SERIALPORT_DIR := ../libserialport
+SERIALPORT := $(SERIALPORT_DIR)/serialport.o
+SERIALPORT_OBJECTS = $(SERIALPORT_DIR)/serialport.d
 
 LIBBASSLUA := basslua/libbasslua.$(DYNLIB_EXT)
-LIBBASSLUA_OBJECTS := $(patsubst %.cpp,%.o,$(wildcard basslua/*.cpp))
-RTMIDI_OBJECTS := $(patsubst %.cpp,%.o,$(wildcard $(RTMIDIDIR)/*.cpp))
-
-LUA_OBJECTS := lua/*.*
+LIBBASSLUA_OBJECTS := basslua/basslua.o
+BASSLUA_LIBS := -L$(LUA_DIR) -llua  -L$(BASS_DIR) -lbass -lbassmidi -lbassmix -framework CoreFoundation -framework CoreAudio -framework CoreMIDI
 
 LIBLUABASS := luabass/luabass.$(SHAREDLIB_EXT)
-LIBLUABASS_OBJECTS := $(patsubst %.cpp,%.o,$(wildcard luabass/*.cpp))
+LIBLUABASS_OBJECTS := luabass/luabass.o $(RTMIDI_DIR)/RtMidi.o
+LUABASS_LIBS :=  -L$(LUA_DIR) -llua  -L$(BASS_DIR) -lbass -lbassmidi -framework CoreFoundation -framework CoreAudio -framework CoreMIDI
 
-CPPFLAGS += -Ibasslua -Iluabass -Iexpresseur -I$(BASSDIR) -I$(LUADIR) -I$(RTMIDIDIR) -I$(SERIALDIR)
-
-print-%  : ; @echo $* = $($*)
-
-ifeq ($(PLATFORM),Darwin)
-all: $(LIBBASSLUA) $(LIBLUABASS) $(EXPRESSCMDEXE) $(EXPRESSEURAPP) $(TEST)
-
-
-$(EXPRESSEURAPP): $(EXPRESSEUR) $(LUA_OBJECTS) expresseur/Info.plist
-	-mkdir -p $(EXPRESSEURRESOURCES)
-	-mkdir -p $(EXPRESSEURCONTENT)
-	-mkdir -p $(EXPRESSEURCONTENT)/example
-	-mkdir -p $(EXPRESSEURCONTENT)/ressources
-	cp expresseur/AppIcon.icns $(EXPRESSEURRESOURCES)
-	cp expresseur/Info.plist $@/Contents
-	cp $(EXPRESSEUR) $(LIBLUABASS) $(LIBBASSLUA) $(BASSDIR)/*.dylib $(LUADIR)/liblua.a $(LUA_OBJECTS) $(SERIALDIR)/*.dylib $(EXPRESSEURCONTENT)
-	-mkdir -p $(EXPRESSEURCONTENT)/arm64
-	tar -xf $(LILYPOND_ARM64_TAR) -C $(EXPRESSEURCONTENT)/arm64/
-	mv $(EXPRESSEURCONTENT)/arm64/$(LILYPOND) $(EXPRESSEURCONTENT)/arm64/lilypond
-	-mkdir -p $(EXPRESSEURCONTENT)/x86_64
-	tar -xf $(LILYPOND_X86_64_TAR) -C $(EXPRESSEURCONTENT)/x86_64/
-	mv $(EXPRESSEURCONTENT)/x86_64/$(LILYPOND) $(EXPRESSEURCONTENT)/x86_64/lilypond
-	cp ressources/*.* $(EXPRESSEURCONTENT)/ressources
-	cp example/*.* $(EXPRESSEURCONTENT)/example
-	install_name_tool -change /usr/local/lib/libserialport.0.dylib @loader_path/libserialport.dylib $(EXPRESSEURCONTENT)/luabass.so
-	install_name_tool -change /usr/local/lib/libserialport.0.dylib @loader_path/libserialport.dylib $(EXPRESSEURCONTENT)/libbasslua.dylib
-	install_name_tool -change @rpath/libbass.dylib @loader_path/libbass.dylib $(EXPRESSEURCONTENT)/luabass.so
-	install_name_tool -change @rpath/libbassmidi.dylib @loader_path/libbassmidi.dylib $(EXPRESSEURCONTENT)/luabass.so
-	install_name_tool -change @rpath/libbassmix.dylib @loader_path/libbassmix.dylib $(EXPRESSEURCONTENT)/luabass.so
-	install_name_tool -change @rpath/libbass.dylib @loader_path/libbass.dylib $(EXPRESSEURCONTENT)/libbasslua.dylib
-	install_name_tool -change @rpath/libbassmidi.dylib @loader_path/libbassmidi.dylib $(EXPRESSEURCONTENT)/libbasslua.dylib
-	install_name_tool -change @rpath/libbassmix.dylib @loader_path/libbassmix.dylib $(EXPRESSEURCONTENT)/libbasslua.dylib
-	install_name_tool -change basslua/libbasslua.dylib @loader_path/libbasslua.dylib $(EXPRESSEURCONTENT)/expresseur
-	cp lua/*.* $(EXPRESSEURCONTENT)
-	
-$(EXPRESSCMDEXE) : $(EXPRESSCMD)
-	-mkdir -p $(EXPRESSEURCONTENT)
-	cp $(EXPRESSCMD) $(LIBLUABASS) $(LIBBASSLUA) $(BASSDIR)/*.dylib $(LUADIR)/liblua.a $(LUA_OBJECTS) $(EXPRESSEURCONTENT)
-	install_name_tool -change basslua/libbasslua.dylib @loader_path/libbasslua.dylib $(EXPRESSEURCONTENT)/expresscmd
-	cp lua/*.* $(EXPRESSEURCONTENT)
-endif
-
+CPPFLAGS += -Ibasslua -Iluabass -Iexpresseur -I$(BASS_DIR) -I$(LUA_DIR) -I$(RTMIDI_DIR) -I$(SERIALPORT_DIR)
         
-ifeq ($(PLATFORM),Linux)
-all:  $(LIBLUABASS) $(LIBBASSLUA) $(EXPRESSCMDEXE) $(EXPRESSEURAPP) 
+all: $(LIBBASSLUA) $(LIBLUABASS) $(EXPRESSCMD_EXE) $(EXPRESSEUR_APP)
 
-$(EXPRESSEURAPP): $(EXPRESSEUR) $(LUA_OBJECTS)
-	-mkdir -p $(EXPRESSEURCONTENT)/example
-	-mkdir -p $(EXPRESSEURCONTENT)/ressources
-	-mkdir -p $(EXPRESSEURCONTENT)/basslua
-	-mkdir -p $(EXPRESSEURCONTENT)/$(BASSDIR)
-	cp $(BASSDIR)/lib*.so $(EXPRESSEURCONTENT)/$(BASSDIR)
-	cp $(EXPRESSEUR) $(LIBLUABASS) $(LUA_OBJECTS) $(EXPRESSEURCONTENT)
-	cp $(LIBBASSLUA) $(EXPRESSEURCONTENT)/basslua
-	-mkdir -p $(EXPRESSEURCONTENT)/arm64
-	tar -xf $(LILYPOND_ARM64_TAR) -C $(EXPRESSEURCONTENT)/arm64/
-	-mkdir -p $(EXPRESSEURCONTENT)/x86_64
-	tar -xf $(LILYPOND_X86_64_TAR) -C $(EXPRESSEURCONTENT)/x86_64/
-	cp ressources/*.* $(EXPRESSEURCONTENT)/ressources
-	cp example/*.* $(EXPRESSEURCONTENT)/example
-	cp lua/*.* $(EXPRESSEURCONTENT)
-	cp expresseur/*.ico $(EXPRESSEURCONTENT)
+serialport: $(SERIALPORT)
+luabass: $(LIBLUABASS)
+basslua: $(LIBBASSLUA)
+expresscmd: $(EXPRESSCMD)
+expresseur: $(EXPRESSEUR)
+app: $(EXPRESSCMD_EXE) $(EXPRESSEUR_APP)
+
+
+$(EXPRESSEUR_APP): $(EXPRESSEUR) expresseur/Info.plist
+	-mkdir -p $(EXPRESSEUR_RESOURCES)
+	-mkdir -p $(EXPRESSEUR_CONTENT)
+	-mkdir -p $(EXPRESSEUR_CONTENT)/example
+	-mkdir -p $(EXPRESSEUR_CONTENT)/ressources
+	cp expresseur/AppIcon.icns $(EXPRESSEUR_RESOURCES)
+	cp expresseur/Info.plist $@/Contents
+	cp $(EXPRESSEUR) $(LIBLUABASS) $(LIBBASSLUA) $(BASS_DIR)/*.dylib $(LUA_DIR)/liblua.a $(SERIAL_DIR)/*.dylib $(EXPRESSEUR_CONTENT)
+	-mkdir -p $(EXPRESSEUR_CONTENT)/arm64
+	tar -xf $(LILYPOND_ARM64_TAR) -C $(EXPRESSEUR_CONTENT)/arm64/
+	mv $(EXPRESSEUR_CONTENT)/arm64/$(LILYPOND) $(EXPRESSEUR_CONTENT)/arm64/lilypond
+	-mkdir -p $(EXPRESSEUR_CONTENT)/x86_64
+	tar -xf $(LILYPOND_X86_64_TAR) -C $(EXPRESSEUR_CONTENT)/x86_64/
+	mv $(EXPRESSEUR_CONTENT)/x86_64/$(LILYPOND) $(EXPRESSEUR_CONTENT)/x86_64/lilypond
+	cp ressources/*.* $(EXPRESSEUR_CONTENT)/ressources
+	cp example/*.* $(EXPRESSEUR_CONTENT)/example
+	install_name_tool -change @rpath/libbass.dylib @loader_path/libbass.dylib $(EXPRESSEUR_CONTENT)/luabass.so
+	install_name_tool -change @rpath/libbassmidi.dylib @loader_path/libbassmidi.dylib $(EXPRESSEUR_CONTENT)/luabass.so
+	install_name_tool -change @rpath/libbassmix.dylib @loader_path/libbassmix.dylib $(EXPRESSEUR_CONTENT)/luabass.so
+	install_name_tool -change @rpath/libbass.dylib @loader_path/libbass.dylib $(EXPRESSEUR_CONTENT)/libbasslua.dylib
+	install_name_tool -change @rpath/libbassmidi.dylib @loader_path/libbassmidi.dylib $(EXPRESSEUR_CONTENT)/libbasslua.dylib
+	install_name_tool -change @rpath/libbassmix.dylib @loader_path/libbassmix.dylib $(EXPRESSEUR_CONTENT)/libbasslua.dylib
+	install_name_tool -change basslua/libbasslua.dylib @loader_path/libbasslua.dylib $(EXPRESSEUR_CONTENT)/expresseur
+	cp lua/*.* $(EXPRESSEUR_CONTENT)
 	
-$(EXPRESSCMDEXE) : $(EXPRESSCMD)
-	-mkdir -p $(EXPRESSEURCONTENT)/basslua
-	-mkdir -p $(EXPRESSEURCONTENT)/$(BASSDIR)
-	cp $(BASSDIR)/lib*.so $(EXPRESSEURCONTENT)/$(BASSDIR)
-	cp $(EXPRESSCMD) $(LIBLUABASS) $(LUA_OBJECTS) $(EXPRESSEURCONTENT)
-	cp $(LIBBASSLUA) $(EXPRESSEURCONTENT)/basslua
-	cp lua/*.* $(EXPRESSEURCONTENT)
-endif
+$(EXPRESSCMD_EXE) : $(EXPRESSCMD)
+	-mkdir -p $(EXPRESSEUR_CONTENT)
+	cp $(EXPRESSCMD) $(LIBLUABASS) $(LIBBASSLUA) $(BASS_DIR)/*.dylib $(LUA_DIR)/liblua.a $(EXPRESSEUR_CONTENT)
+	install_name_tool -change basslua/libbasslua.dylib @loader_path/libbasslua.dylib $(EXPRESSEUR_CONTENT)/expresscmd
+	cp lua/*.* $(EXPRESSEUR_CONTENT)
 
 $(EXPRESSEUR):  $(EXPRESSEUR_OBJECTS) $(LIBBASSLUA) 
 	$(CXX) $(LDFLAGS) -o $@ $^ $(EXPRESSEUR_LIBS)
@@ -183,12 +119,12 @@ $(EXPRESSCMD): $(EXPRESSCMD_OBJECTS)  $(LIBBASSLUA)
 $(LIBBASSLUA): $(LIBBASSLUA_OBJECTS)
 	$(CXX) $(DYNLIB_LDFLAGS) -o $@ $^ $(BASSLUA_LIBS)
 
-$(LIBLUABASS): $(LIBLUABASS_OBJECTS) $(RTMIDI_OBJECTS)
+$(LIBLUABASS): $(LIBLUABASS_OBJECTS) $(SERIALPORT)
 	$(CXX) $(CXXFLAGS) $(SHAREDLIB_LDFLAGS) -o $@ $^ $(LUABASS_LIBS)
 
-$(TEST): $(TEST_OBJECTS)  
-	$(CXX) $(LDFLAGS) -o $@ $^ $(TEST_LIBS)
-
+$(SERIALPORT): $(SERIALPORT_OBJECTS)
+	$(CXX) $(CXXFLAGS) -D__APPLE__ -DLIBSERIALPORT_ATBUILD -c $< -o $@
+	
 clean:
 	-$(RM) -r $(EXPRESSEURAPP)
 	$(RM) $(EXPRESSEUR_OBJECTS:.o=.d) $(EXPRESSEUR_OBJECTS) $(EXPRESSEUR) \

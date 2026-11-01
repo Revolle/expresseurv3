@@ -3,34 +3,61 @@
 <plist version="1.0">
 <dict>
        <key>CFBundleInfoDictionaryVersion</key>
-       <string>6.0</string>
+       		<string>6.0</string>
+       		
        <key>CFBundleDevelopmentRegion</key>
-       <string>English</string>
+       		<string>English</string>
+       		
        <key>CFBundleIdentifier</key>
-       <string>com.revolle.expresseur</string>
+       		<string>com.revolle.expresseur</string>
+       		
        <key>CFBundleExecutable</key>
-       <string>Expresseur</string>
-       <key>CFBundleGetInfoString</key>
-       <string>Expresseur 3.6</string>
-       <key>CFBundleLongVersionString</key>
-       <string>3.6</string>
+       		<string>Expresseur</string>
+       		
        <key>CFBundleName</key>
-       <string>Expresseur</string>
+       		<string>Expresseur</string>
 	   <key>CFBundleIconFile</key>
-	   <string>AppIcon.icns</string>
+	   		<string>AppIcon.icns</string>
        <key>CFBundlePackageType</key>
-       <string>APPL</string>
+       		<string>APPL</string>
        <key>CFBundleSignature</key>
-       <string>expr</string>
+       		<string>expr</string>
+       <key>CFBundleGetInfoString</key>
+       		<string>Expresseur 3.61</string>
+       <key>CFBundleLongVersionString</key>
+       		<string>3.61</string>
        <key>CFBundleShortVersionString</key>
-       <string>3.6</string>
+       		<string>3.61</string>
        <key>CFBundleVersion</key>
-       <string>3.6</string>
+       		<string>3.61</string>
+       
        <key>LSRequiresCarbon</key>
-       <true/>
+       		<true/>
+       
        <key>NSHumanReadableCopyright</key>
-       <string>Copyright (c) 2017 Franck Revolle</string>
+       		<string>Copyright (c) 2017 Franck Revolle</string>
+       
        <key>NSHighResolutionCapable</key>
-       <true/>
+       		<true/>
+
+       <!-- Sandbox activé -->
+    	<key>com.apple.security.app-sandbox</key>
+    		<true/>
+
+	    <!-- Internet -->
+	    <key>com.apple.security.network.client</key>
+		    <true/>
+	    <key>com.apple.security.network.server</key>
+		    <true/>
+
+	    <!-- Documents -->
+	    <key>com.apple.security.files.documents</key>
+		    <true/>
+    	<key>com.apple.security.files.user-selected.read-write</key>
+    		<true/>
+
+    	<!-- USB -->
+    	<key>com.apple.security.device.usb</key>
+    		<true/>
 </dict>
 </plist>

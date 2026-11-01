@@ -48,8 +48,9 @@ git clone --recurse-submodules https://github.com/wxWidgets/wxWidgets.git
 cd wxWidgets
 mkdir build64
 cd build64
-../configure --with-macosx-version-min=10.9 --disable-shared --disable-sys-libs --prefix="$(pwd)"
+../configure --with-macosx-version-min=10.15 --disable-shared --disable-sys-libs --prefix="$(pwd)"
 make
+
 build lua5.3.3 64 bits ( used by basslua & luabass )
 
 cd $root_dir/../mac ( $root_dir is the platform where the git project is downloaded )

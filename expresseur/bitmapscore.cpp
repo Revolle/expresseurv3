@@ -55,7 +55,6 @@ bitmapscore::bitmapscore(wxWindow *parent, wxWindowID id)
 : viewerscore(parent, id)
 {
 	mParent = parent;
-	scoreBitmap = NULL;
 	mPointStart = wxDefaultPosition;
 	alertSetRect = true;
 	selectedRect.SetWidth(0);
