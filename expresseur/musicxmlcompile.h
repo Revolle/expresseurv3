@@ -312,6 +312,7 @@ public:
 	wxString music_xml_complete_file;
 	wxString music_xml_displayed_file;
 	c_score_partwise *compiled_score = NULL; // score compiled, refer to score, measureList, partidToPlay, partidToPlay
+	void buildBars();
 
 	void initRecordPlayback();
 	void initPlayback();
@@ -355,7 +356,6 @@ private:
 	void removeExpresseurPart();
 	void createListMeasures();
 	void buildMeasures();
-	void buildBars();
 	void compilePlayedScore();
 	void deleteBarLabel(c_measure* newMeasure);
 	void sortLyric(c_measure* newMeasure , int nrrepeat);

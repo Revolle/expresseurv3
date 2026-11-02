@@ -27,6 +27,7 @@ bool configExists(wxString key, bool prefix = false, wxString name = "");
 wxString getAppDir();
 wxString getCwdDir();
 wxString getTmpDir();
+wxString getCacheDir();
 wxString getResourceDir();
 wxString getUserDir();
 wxString getConfPath();

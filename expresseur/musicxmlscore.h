@@ -27,8 +27,8 @@ public:
 	void onPaint(wxPaintEvent& event);
 	void OnLeftDown(wxMouseEvent& event);
 	bool isOk();
-	void cleanTmp();
-	static void cleanCache(int nbDayCache);
+	void cleanDir(wxString dir, wxString masks);
+	static void cleanOldCache(int nbDayCache);
 
 	void xmlProcessScore();
 	void xmlProcessPartList(wxXmlNode *xmlParentIn, wxXmlNode *xmlParentOut);

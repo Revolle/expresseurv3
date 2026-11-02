@@ -50,6 +50,7 @@ bool todoDir = true;
 wxString appDir ;
 wxString cwdDir ;
 wxString tmpDir ;
+wxString cacheDir ;
 wxString userDir;
 wxString confPath;
 wxString resourceDir ;
@@ -138,11 +139,17 @@ void setConfig()
 	if ( ! fresourcesDir.DirExists() )
 		wxMessageBox(resourceDir , "Directory ressource error");	
 
-	//wxFileName dtmp;
-	//wxString stmp = wxFileName::GetTempDir() ;
-	//dtmp.AssignDir(stmp);
-	//dtmp.AppendDir(APP_NAME);
-	wxFileName ftmpDir;
+	wxFileName fcacheDir;	
+	fcacheDir.AssignDir(resourceDir);
+	fcacheDir.AppendDir("cache");	
+	cacheDir = fcacheDir.GetFullPath() ;
+	if ( ! fcacheDir.DirExists() )
+		wxFileName::Mkdir(cacheDir) ;
+	if ( ! fcacheDir.DirExists() )
+		wxMessageBox(cacheDir , "Directory cache error");	
+
+
+	wxFileName ftmpDir;	
 	ftmpDir.AssignDir(mpath.GetTempDir());
 	ftmpDir.AppendDir(APP_NAME);
 	tmpDir = ftmpDir.GetFullPath() ;
@@ -165,6 +172,11 @@ wxString getTmpDir()
 {
 	setConfig();
 	return tmpDir ;
+}
+wxString getCacheDir()
+{
+	setConfig();
+	return cacheDir ;
 }
 wxString getUserDir()
 {

@@ -2898,6 +2898,7 @@ void musicxmlcompile::buildBars()
 		wxRemoveFile(sf);
 	if (!fn.FileExists())
 		f.Create(sf);
+	mlog_in("buildBars : %s", (const char*)(sf.c_str()));
 	f.Open(sf);
 	if (!f.IsOpened())
 	{

@@ -565,7 +565,7 @@ Expresseur::Expresseur(wxFrame* parent,wxWindowID id,const wxString& title,const
 }
 Expresseur::~Expresseur()
 {
-	musicxmlscore::cleanCache(configGet(CONFIG_DAYCACHE, 15));
+	musicxmlscore::cleanOldCache(configGet(CONFIG_DAYCACHE, 15));
 	
 	if ( fileHistory)
 		fileHistory->Save(*configGet());
@@ -715,6 +715,7 @@ bool Expresseur::checkConfig()
 	msg += "\nConf=" + getConfPath() + "\n";
 	msg += "Working directory=" + getCwdDir() + "\n";
 	msg += "User directory=" + getUserDir() + "\n";
+	msg += "Cache directory=" + getCacheDir() + "\n";
 	msg += "Temp directory=" + getTmpDir() + "\n";
 	msg += "App directory=" + getAppDir() + "\n";
 
@@ -2318,7 +2319,7 @@ void Expresseur::OnReset(wxCommandEvent& WXUNUSED(event))
 }
 void Expresseur::OnDeleteCache(wxCommandEvent& WXUNUSED(event))
 {
-	musicxmlscore::cleanCache(-1);
+	musicxmlscore::cleanOldCache(-1);
 }
 void Expresseur::OnLog(wxCommandEvent& WXUNUSED(event))
 {

@@ -4,7 +4,7 @@
 %%%% Template from expresseur_setting_temlate.ly
 
 %%%%%%%%translate_xml_to_ly:"%s" "%s" --npl --no-beaming --output %s %s
-%%%%%%%%translate_ly_to_png:"%s" -dlog-file=%s -dinclude-settings=%s -dresolution=72 -dseparate-page-formats=pdf,png  %s
+%%%%%%%%translate_ly_to_png:"%s" -dinclude-settings=%s -dresolution=72 -dseparate-page-formats=pdf,png  %s
 
 %%%%%%%%override Expresseur:\override NoteHead.color = darkslategrey \override Beam.color = darkslategrey \override Flag.color = darkslategrey \override Stem.color = darkslategrey \stemUp
 

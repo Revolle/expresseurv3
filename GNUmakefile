@@ -76,17 +76,22 @@ luabass: $(LIBLUABASS)
 basslua: $(LIBBASSLUA)
 expresscmd: $(EXPRESSCMD)
 expresseur: $(EXPRESSEUR)
-app: $(EXPRESSCMD_EXE) $(EXPRESSEUR_APP)
+expresseurapp: $(EXPRESSEUR_APP)
+expresscmdapp: $(EXPRESSCMD_EXE)
 
 
-$(EXPRESSEUR_APP): $(EXPRESSEUR) expresseur/Info.plist
+$(EXPRESSEUR_APP): $(EXPRESSEUR)
 	-mkdir -p $(EXPRESSEUR_RESOURCES)
 	-mkdir -p $(EXPRESSEUR_CONTENT)
 	-mkdir -p $(EXPRESSEUR_CONTENT)/example
 	-mkdir -p $(EXPRESSEUR_CONTENT)/ressources
 	cp expresseur/AppIcon.icns $(EXPRESSEUR_RESOURCES)
 	cp expresseur/Info.plist $@/Contents
-	cp $(EXPRESSEUR) $(LIBLUABASS) $(LIBBASSLUA) $(BASS_DIR)/*.dylib $(LUA_DIR)/liblua.a $(SERIAL_DIR)/*.dylib $(EXPRESSEUR_CONTENT)
+	cp $(EXPRESSEUR) $(EXPRESSEUR_CONTENT)
+	cp $(LIBLUABASS) $(EXPRESSEUR_CONTENT)
+	cp $(LIBBASSLUA) $(EXPRESSEUR_CONTENT)
+	cp $(BASS_DIR)/*.dylib $(EXPRESSEUR_CONTENT)
+	cp $(LUA_DIR)/liblua.a $(EXPRESSEUR_CONTENT)
 	-mkdir -p $(EXPRESSEUR_CONTENT)/arm64
 	tar -xf $(LILYPOND_ARM64_TAR) -C $(EXPRESSEUR_CONTENT)/arm64/
 	mv $(EXPRESSEUR_CONTENT)/arm64/$(LILYPOND) $(EXPRESSEUR_CONTENT)/arm64/lilypond

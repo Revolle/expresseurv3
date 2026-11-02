@@ -173,7 +173,7 @@ void luafile::reset(bool all, int timerDt)
 	dduser = d.GetTicks();
 	luauserscriptfile = fuser.GetFullPath();
 
-	wxFileName dtmp(getTmpDir());
+	wxFileName dtmp(getCacheDir());
 	dtmp.SetName("expresseur_log");
 	wxString slog = dtmp.GetFullPath();
 

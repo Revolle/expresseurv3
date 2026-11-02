@@ -243,7 +243,8 @@ musicxmlscore::musicxmlscore(wxWindow *parent, wxWindowID id , bool log )
 	logLilypond = true;
 #endif
 
-	cleanTmp();
+	cleanDir(getCacheDir(), "ex*.png ex*.pdf ex*.ly* ex*.pos ex*.xml ex*.log");
+	cleanDir(getTmpDir(),  "ex*.png ex*.pdf ex*.ly* ex*.pos ex*.xml ex*.log");
 }
 musicxmlscore::~musicxmlscore()
 {
@@ -252,35 +253,38 @@ musicxmlscore::~musicxmlscore()
 		delete xmlCompile;
 	xmlCompile = NULL;
 }
-void musicxmlscore::cleanTmp()
+void musicxmlscore::cleanDir(wxString dir, wxString masks)
 {
 	wxFileName ft;
-	ft.SetPath(getTmpDir());
+	ft.SetPath(dir);
 	wxString filename;
-	std::vector<wxString> masqs = { "ex*.png" , "ex*.pdf", "ex*.ly*" , "ex*.pos" , "ex*.xml" , "ex*.log"};
 	std::vector<wxString> fileToBeDeleted;
-	wxDir dir(getTmpDir());
-	if (dir.IsOpened())
+	wxDir wdir(dir);
+	if (wdir.IsOpened())
 	{
-		for (auto & masq : masqs)
-		{
-			bool cont = dir.GetFirst(&filename, masq, wxDIR_FILES);
+	    wxStringTokenizer tokenizer(masks); // default: whitespace delimiters
+
+    	while (tokenizer.HasMoreTokens()) 
+    	{  
+        	wxString mask = tokenizer.GetNextToken(); 
+			bool cont = wdir.GetFirst(&filename, mask, wxDIR_FILES);
 			while (cont)
 			{
 				ft.SetFullName(filename);
 				fileToBeDeleted.push_back(ft.GetFullPath());
-				cont = dir.GetNext(&filename);
+				cont = wdir.GetNext(&filename);
 			}
 		}
-		for (auto f : fileToBeDeleted)
-		{
-			wxRemoveFile(f);
-		}
+	}
+	for (auto f : fileToBeDeleted)
+	{
+		wxRemoveFile(f);
+		mlog_in("Delete useless file %s" , (const char*)(f.c_str()));
 	}
 }
-void musicxmlscore::cleanCache(int nbDayCache)
+void musicxmlscore::cleanOldCache(int nbDayCache)
 {
-	wxDir dir(getTmpDir());
+	wxDir dir(getCacheDir());
 	if (dir.IsOpened())
 	{
 		wxDateTime mlimitdate = wxDateTime::Now();
@@ -290,7 +294,7 @@ void musicxmlscore::cleanCache(int nbDayCache)
 		}
 		wxString filename;
 		wxFileName ft;
-		ft.SetPath(getTmpDir());
+		ft.SetPath(getCacheDir());
 		wxString sn;
 		sn.Printf("%s*.*", PREFIX_CACHE);
 		std::vector<wxString> fileToBeDeleted;
@@ -309,6 +313,7 @@ void musicxmlscore::cleanCache(int nbDayCache)
 		for(auto f : fileToBeDeleted)
 		{
 			wxRemoveFile(f);
+			mlog_in("Delete old file %s" , (const char*)(f.c_str()));
 		}
 	}
 }
@@ -327,7 +332,7 @@ bool musicxmlscore::setFile(const wxFileName &lfilename)
 	xmlCompile = new musicxmlcompile();
 
 	wxFileName fm;
-	fm.SetPath(getTmpDir());
+	fm.SetPath(getCacheDir());
 	fm.SetFullName(FILE_IN_XML);
 	xmlCompile->music_xml_complete_file = fm.GetFullPath();
 
@@ -458,7 +463,7 @@ wxString musicxmlscore::getNamePage(int pageNr)
 	wxString fn;
 	fn.Printf(FILE_SCORE_PNG, pageNr + 1);
 	wxFileName fp;
-	fp.SetPath(getTmpDir());
+	fp.SetPath(getCacheDir());
 	fp.SetName(fn);
 
 	if (!fp.IsFileReadable())
@@ -490,7 +495,7 @@ bool musicxmlscore::drawPage(int pageNr, bool turnPage)
 		mlog_in("setPage start bitmap(%s) memDC(%s)", (scoreBitmap.IsOk()) ? "OK" : "!!KO!!" , (memDC.IsOk()) ? "OK" : "!!KO!!");
 
 	wxFileName fp;
-	fp.SetPath(getTmpDir());
+	fp.SetPath(getCacheDir());
 	wxString fn = getNamePage(pageNr);
 	if (fn.IsEmpty()) return false;
 	wxBitmap fnbitmap(fn, wxBITMAP_TYPE_PNG);
@@ -862,8 +867,8 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	wxBitmap bitmapSplash;
 	wxSplashScreen* splash = NULL ;
 	mlog_in("newLayout file %s" , (const char*)(xmlName.GetFullPath().c_str()));
-	wxFileName fm;
-	wxString xmlout, lilyscore, pythonexe, pythonscript,lilyexe, lilysetting, lilypresetting , lilylog , lilybar ;
+	wxFileName fcwd , ftmp , fcache;
+	wxString xmlout, xmlin , lilyscore, pythonexe, pythonscript,lilyexe, lilysetting, lilypresetting , lilylog , lilybar ;
 	wxString command_xmltolily , command_lilytopng;
 	wxString overridexpr;
 	long lexec;
@@ -880,80 +885,148 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		wxMessageBox("Window too small for music display", "build score", wxOK | wxICON_ERROR);
 		return false;
 	}
+
+	cleanDir(getCacheDir(),"ex*.png ex*.pdf ex*.ly* ex*.pos ex*.xml ex*.log");
+	cleanDir(getTmpDir(),  "ex*.png ex*.pdf ex*.ly* ex*.pos ex*.xml ex*.log");
+
+	ftmp.SetPath(getTmpDir());
+	fcache.SetPath(getCacheDir());
+	fcwd.SetPath(getCwdDir());
 	
 	// XML score to display
-	fm.SetPath(getTmpDir());
-	fm.SetFullName(FILE_OUT_XML);
-	xmlout = fm.GetFullPath();
+	fcache.SetFullName(FILE_OUT_XML);
+	xmlout = fcache.GetFullPath();
+	// create the musicXml file to display
+	xmlCompile->music_xml_displayed_file = xmlout;
+	xmlCompile->compiled_score->write(xmlCompile->music_xml_displayed_file);
+	if ( fcache.Exists())
+	{
+		ftmp.SetFullName(FILE_OUT_XML);
+		xmlin = ftmp.GetFullPath();
+		if (ftmp.Exists())
+			wxRemoveFile(xmlin);
+		fin.Open(xmlout);
+		fout.Create(xmlin);
+		fout.Open(xmlin);
+		if (fin.IsOpened() && fout.IsOpened())
+		{
+			wxString str;
+			for (str = fin.GetFirstLine(); !fin.Eof(); str = fin.GetNextLine())
+			{
+				fout.AddLine(str);
+			}
+			fin.Close();
+			fout.Write();
+			fout.Close();
+		}
+		else
+		{
+			wxString serr;
+			if (splash != NULL)
+				delete splash ;
+			serr.Printf("Cannot copy musicxmlscore for Lilypond %s", FILE_OUT_XML);
+			wxMessageBox(serr, "build score, error copy score", wxOK | wxICON_ERROR);
+			mlog_in("Error: musicxmlscore : cannot copy from %s to %s",(const char*)(xmlout.c_str()) , (const char*)(xmlin.c_str()) );
+			return false;
+		}
+	}
+	else
+	{
+		mlog_in("Error : musicxmlscore ; musicXML has not been created by musicxmlcompile ; %s ", (const char*)(xmlout.c_str())) ;
+		wxLogError("Error : Expresseur musicXML not available") ;
+		if (splash != NULL)
+			delete splash ;
+		return false ;
+	}
+
+	
 	//  file to store lilypond position of notes
-	fm.SetFullName(FILE_POS_LILY);
-	lilypos = fm.GetFullPath();
-	if (fm.Exists())
+	fcache.SetFullName(FILE_POS_LILY);
+	lilypos = fcache.GetFullPath();
+	if (fcache.Exists())
 		wxRemoveFile(lilypos);
+		
 	//  file to store position of notes
-	fm.SetFullName(FILE_POS_TXT);
-	expresseurpos = fm.GetFullPath();
-	if (fm.Exists())
+	fcache.SetFullName(FILE_POS_TXT);
+	expresseurpos = fcache.GetFullPath();
+	if (fcache.Exists())
 		wxRemoveFile(expresseurpos);
+		
 	// file to translate xml to lilypond
-	fm.SetFullName(FILE_OUT_LILY);
-	lilyscore = fm.GetFullPath();
-	if (fm.Exists())
+	ftmp.SetFullName(FILE_OUT_LILY);
+	lilyscore = ftmp.GetFullPath();
+	if (ftmp.Exists())
 		wxRemoveFile(lilyscore);
+		
 	// files to adapt lilypond xml translation
-	fm.SetFullName(FILE_SRC_LILY);
-	lilysrc = fm.GetFullPath();
-	if (fm.Exists())
+	ftmp.SetFullName(FILE_SRC_LILY);
+	lilysrc = ftmp.GetFullPath();
+	if (ftmp.Exists())
 		wxRemoveFile(lilysrc);
+		
 	// log file 
-	fm.SetFullName(FILE_LOG_LILY);
-	lilylog = fm.GetFullPath();
-	if (fm.Exists())
+	ftmp.SetFullName(FILE_LOG_LILY);
+	lilylog = ftmp.GetFullPath();
+	if (ftmp.Exists())
 		wxRemoveFile(lilylog);
+		
 	// barres de mesure
-	fm.SetFullName(FILE_BAR_LILY);
-	lilybar = fm.GetFullPath();
+	ftmp.SetFullName(FILE_BAR_LILY);
+	lilybar = ftmp.GetFullPath();
+	xmlCompile->buildBars();
+	if (! ftmp.Exists())
+	{
+		mlog_in("Error : musicxmlscore ; file bars has not been created by musicxmlcompile ; %s ", (const char*)(lilybar.c_str())) ;
+		wxLogError("Error : file bars not available") ;
+		if (splash != NULL)
+			delete splash ;
+		return false ;
+	}
+	
 	// settings for lilypond
-	fm.SetFullName(FILE_OUT_SETLILY);
-	lilysetting = fm.GetFullPath();
-	if (fm.Exists())
+	ftmp.SetFullName(FILE_OUT_SETLILY);
+	lilysetting = ftmp.GetFullPath();
+	if (ftmp.Exists())
 		wxRemoveFile(lilysetting);
-	fm.SetPath(getCwdDir());
+		
 	// presettings for lilypond
-	fm.SetFullName(FILE_IN_PRESETLILY);
-	lilypresetting = fm.GetFullPath();
+	fcwd.SetFullName(FILE_IN_PRESETLILY);
+	lilypresetting = fcwd.GetFullPath();
+	
 #ifdef RUN_MAC
 	// liliy translator 
-	fm.SetPath(getCwdDir());
-	// fm.AppendDir(wxGetCpuArchitectureName());
-	fm.AppendDir("x86_64");
-	fm.AppendDir("lilypond");
-	fm.AppendDir("libexec");
-	pythonexe = wxDir::FindFirst(fm.GetPath(), "python*" );
+	wxString cpu=wxGetCpuArchitectureName() ;
+	if ( cpu.Contains("arm"))
+		fcwd.AppendDir("arm_64");
+	else
+		fcwd.AppendDir("x86_64");
+	fcwd.AppendDir("lilypond");
+	fcwd.AppendDir("libexec");
+	pythonexe = wxDir::FindFirst(fcwd.GetPath(), "python*" );
 
-	fm.SetFullName("musicxml2ly");
-	pythonscript = fm.GetFullPath();
+	fcwd.SetFullName("musicxml2ly");
+	pythonscript = fcwd.GetFullPath();
 	// lilypond bin
-	fm.SetPath(getCwdDir());
-	fm.AppendDir(wxGetCpuArchitectureName());
-	fm.AppendDir("lilypond");
-	fm.AppendDir("bin");
-	fm.SetFullName("lilypond");
-	lilyexe = fm.GetFullPath();
+	fcwd.SetPath(getCwdDir());
+	fcwd.AppendDir(wxGetCpuArchitectureName());
+	fcwd.AppendDir("lilypond");
+	fcwd.AppendDir("bin");
+	fcwd.SetFullName("lilypond");
+	lilyexe = fcwd.GetFullPath();
 #else
 #ifdef _DEBUG
-	fm.SetPath("C:\\Users\\franc\\Documents\\lilypond\\lilypond-2.26.0");
+	fcwd.SetPath("C:\\Users\\franc\\Documents\\lilypond\\lilypond-2.26.0");
 #else
-	fm.SetPath(getCwdDir());
-	fm.AppendDir("lilypond");
+	fcwd.SetPath(getCwdDir());
+	fcwd.AppendDir("lilypond");
 #endif
-	fm.AppendDir("bin");
+	fcwd.AppendDir("bin");
 	pythonexe = wxDir::FindFirst(fm.GetPath(), "python*" );
 	// liliy translator 
-	fm.SetFullName("musicxml2ly.py");
+	fcwd.SetFullName("musicxml2ly.py");
 	pythonscript = fm.GetFullPath();
 	// lilypond bin
-	fm.SetFullName("lilypond.exe");
+	fcwd.SetFullName("lilypond.exe");
 	lilyexe = fm.GetFullPath();
 #endif
 
@@ -966,10 +1039,6 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	// clean useless temp files
 	// cleanTmp();
 
-
-	// create the musicXml file to display
-	xmlCompile->music_xml_displayed_file = xmlout;
-	xmlCompile->compiled_score->write(xmlCompile->music_xml_displayed_file);
 
 	// adapt lilypond settings
 	fin.Open(lilypresetting);
@@ -1000,7 +1069,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 			}
 			if (str.StartsWith("%%%%%%%%translate_ly_to_png:"))
 			{
-				command_lilytopng.Printf(str, lilyexe, FILE_LOG_LILY, FILE_OUT_SETLILY, FILE_SRC_LILY );
+				command_lilytopng.Printf(str, lilyexe, FILE_OUT_SETLILY, FILE_SRC_LILY );
 				fout.AddLine(command_lilytopng);
 				command_lilytopng.Replace("%%%%translate_ly_to_png:", "");
 				continue;
@@ -1048,7 +1117,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	prefix_cache.Printf("%s_%llu_", PREFIX_CACHE, crc_value);
 
 	wxFileName poscache;
-	poscache.SetPath(getTmpDir());
+	poscache.SetPath(getCacheDir());
 	poscache.SetFullName( prefix_cache + FILE_POS_TXT);
 	if (poscache.FileExists())
 	{
@@ -1057,9 +1126,9 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		if ( ! wxCopyFile(poscache.GetFullPath(), expresseurpos) ) alreadyAvailable = false ;
 		// copy pages
 		wxFileName fsource;
-		fsource.SetPath(getTmpDir());
+		fsource.SetPath(getCacheDir());
 		wxFileName fdest;
-		fdest.SetPath(getTmpDir());
+		fdest.SetPath(getCacheDir());
 		wxString ffn;
 		int pp = 1;
 		while (true)
@@ -1087,10 +1156,10 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		
 		wxExecuteEnv execenv;
 		execenv.cwd = getTmpDir();
-		wxArrayString stdouput;
-		wxArrayString stderror;
+		wxArrayString stdoutput_tolily;
+		wxArrayString stderror_tolily;
 		mlog_in((const char*)(command_xmltolily.c_str()));
-		lexec = wxExecute(command_xmltolily, stdouput , stderror , wxEXEC_SYNC | wxEXEC_HIDE_CONSOLE  , &execenv);
+		lexec = wxExecute(command_xmltolily, stdoutput_tolily , stderror_tolily , wxEXEC_SYNC | wxEXEC_HIDE_CONSOLE  , &execenv);
 		if (lexec < 0)
 		{
 			if (splash != NULL)
@@ -1099,17 +1168,17 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 			mlog_in("Cannot translate XML to Lilypond");
 			return false;
 		}
-		if ( stdouput.GetCount() > 0 )
+		if ( stdoutput_tolily.GetCount() > 0 )
 			mlog_in("stdout translate XML to Lilypond");
-		for (size_t i = 0; i < stdouput.GetCount(); ++i)
+		for (size_t i = 0; i < stdoutput_tolily.GetCount(); ++i)
 		{
-			mlog_in("%s", (const char*)(stdouput[i].c_str()));
+			mlog_in("%s", (const char*)(stdoutput_tolily[i].c_str()));
 		}
-		if ( stderror.GetCount() > 0 )
+		if ( stderror_tolily.GetCount() > 0 )
 			mlog_in("stderror translate XML to Lilypond");
-		for (size_t i = 0; i < stderror.GetCount(); ++i)
+		for (size_t i = 0; i < stderror_tolily.GetCount(); ++i)
 		{
-			mlog_in("%s", (const char*)(stderror[i].c_str()));
+			mlog_in("%s", (const char*)(stderror_tolily[i].c_str()));
 		}
 		fin.Open(lilyscore);
 		fout.Create(lilysrc);
@@ -1212,7 +1281,9 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 
 		// run the lilypond batch to build he pages and the positions
 		mlog_in((const char*)(command_lilytopng.c_str()));
-		lexec = wxExecute(command_lilytopng, stdouput, stderror, wxEXEC_SYNC | wxEXEC_HIDE_CONSOLE, &execenv);
+		wxArrayString stdoutput_topng;
+		wxArrayString stderror_topng;
+		lexec = wxExecute(command_lilytopng, stdoutput_topng, stderror_topng, wxEXEC_SYNC | wxEXEC_HIDE_CONSOLE, &execenv);
 		if (lexec < 0)
 		{
 			if (splash != NULL)
@@ -1221,17 +1292,17 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 			mlog_in("Cannot translate Lilypond to PNG : %s\n", (const char*)(command_lilytopng.c_str()));
 			return false;
 		}
-		if (stdouput.GetCount() > 0)
+		if (stdoutput_topng.GetCount() > 0)
 			mlog_in("stdout translate Lilypond to PNG");
-		for (size_t i = 0; i < stdouput.GetCount(); ++i)
+		for (size_t i = 0; i < stdoutput_topng.GetCount(); ++i)
 		{
-			mlog_in("%s", (const char*)(stdouput[i].c_str()));
+			mlog_in("%s", (const char*)(stdoutput_topng[i].c_str()));
 		}
-		if (stderror.GetCount() > 0)
+		if (stderror_topng.GetCount() > 0)
 			mlog_in("stderror translate Lilypond to PNG");
-		for (size_t i = 0; i < stderror.GetCount(); ++i)
+		for (size_t i = 0; i < stderror_topng.GetCount(); ++i)
 		{
-			mlog_in("%s", (const char*)(stderror[i].c_str()));
+			mlog_in("%s", (const char*)(stderror_topng[i].c_str()));
 		}
 		
 		readlilypond();
@@ -1245,7 +1316,7 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 		wxFileName fsource;
 		fsource.SetPath(getTmpDir());
 		wxFileName fdest;
-		fdest.SetPath(getTmpDir());
+		fdest.SetPath(getCacheDir());
 		wxString ffn;
 		int pp = 1;
 		while (true)
@@ -1254,6 +1325,8 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 			fsource.SetFullName(ffn);
 			if (!fsource.IsFileReadable())
 				break;
+			fdest.SetFullName(ffn);
+			wxCopyFile(fsource.GetFullPath(), fdest.GetFullPath());
 			fdest.SetFullName(prefix_cache + ffn);
 			wxCopyFile(fsource.GetFullPath(), fdest.GetFullPath());
 			pp++;
