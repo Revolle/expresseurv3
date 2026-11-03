@@ -56,16 +56,14 @@ EXPRESSCMD_EXE := expresscmd/expresscmd.exe
 EXPRESSCMD_OBJECTS := expresscmd/expresscmd.o
 
 SERIALPORT_DIR := ../libserialport
-SERIALPORT := $(SERIALPORT_DIR)/serialport.o
-SERIALPORT_OBJECTS = $(SERIALPORT_DIR)/serialport.d
 
 LIBBASSLUA := basslua/libbasslua.$(DYNLIB_EXT)
 LIBBASSLUA_OBJECTS := basslua/basslua.o
 BASSLUA_LIBS := -L$(LUA_DIR) -llua  -L$(BASS_DIR) -lbass -lbassmidi -lbassmix -framework CoreFoundation -framework CoreAudio -framework CoreMIDI
 
 LIBLUABASS := luabass/luabass.$(SHAREDLIB_EXT)
-LIBLUABASS_OBJECTS := luabass/luabass.o $(RTMIDI_DIR)/RtMidi.o
-LUABASS_LIBS :=  -L$(LUA_DIR) -llua  -L$(BASS_DIR) -lbass -lbassmidi -framework CoreFoundation -framework CoreAudio -framework CoreMIDI
+LIBLUABASS_OBJECTS := luabass/luabass.o $(RTMIDI_DIR)/RtMidi.o $(SERIALPORT_DIR)/serialport.o $(SERIALPORT_DIR)/timing.o $(SERIALPORT_DIR)/macosx.o
+LUABASS_LIBS :=  -L$(LUA_DIR) -llua  -L$(BASS_DIR) -lbass -lbassmidi -L$(SERIALPORT_DIR) -lserialport -framework CoreFoundation -framework CoreAudio -framework CoreMIDI
 
 CPPFLAGS += -Ibasslua -Iluabass -Iexpresseur -I$(BASS_DIR) -I$(LUA_DIR) -I$(RTMIDI_DIR) -I$(SERIALPORT_DIR)
         
@@ -124,11 +122,12 @@ $(EXPRESSCMD): $(EXPRESSCMD_OBJECTS)  $(LIBBASSLUA)
 $(LIBBASSLUA): $(LIBBASSLUA_OBJECTS)
 	$(CXX) $(DYNLIB_LDFLAGS) -o $@ $^ $(BASSLUA_LIBS)
 
-$(LIBLUABASS): $(LIBLUABASS_OBJECTS) $(SERIALPORT)
-	$(CXX) $(CXXFLAGS) $(SHAREDLIB_LDFLAGS) -o $@ $^ $(LUABASS_LIBS)
+$(LIBLUABASS): $(LIBLUABASS_OBJECTS)
+	$(CXX) $(CXXFLAGS) -fPIC -shared $(SHAREDLIB_LDFLAGS) -o $@ $^ $(LUABASS_LIBS)
 
-$(SERIALPORT): $(SERIALPORT_OBJECTS)
-	$(CXX) $(CXXFLAGS) -D__APPLE__ -DLIBSERIALPORT_ATBUILD -c $< -o $@
+$(SERIALPORT_DIR)/serialport.o:
+$(SERIALPORT_DIR)/timing.o:
+$(SERIALPORT_DIR)/macosx.o:
 	
 clean:
 	-$(RM) -r $(EXPRESSEUR_APP)

@@ -1,5 +1,4 @@
 // expresscmd.cpp 
-// update : 31 / 10 / 2016 10 : 00
 // console app.
 //
 // Simple usage of basslua ans luabass module.

@@ -19,6 +19,8 @@
 
 //////////////////////////////////////////////
 
+// #define LOG_STDERR 1 // print log on stderr
+
 
 #ifdef _WIN32
 #define V_PC 1
@@ -348,6 +350,10 @@ void mlog_in(const char * format, ...)
 	va_start(args, format);
 	vsnprintf(msg, MAXBUFCHAR - 2 , format, args);
 	va_end(args);
+#ifdef LOG_STDERR
+	fprintf(stderr, "%s", msg);
+	fprintf(stderr, "\n");
+#endif
 	FILE * pFile = fopen(g_path_in_error_txt, "a");;
 	if (pFile != NULL)
 	{

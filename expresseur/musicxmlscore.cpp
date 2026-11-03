@@ -279,7 +279,7 @@ void musicxmlscore::cleanDir(wxString dir, wxString masks)
 	for (auto f : fileToBeDeleted)
 	{
 		wxRemoveFile(f);
-		mlog_in("Delete useless file %s" , (const char*)(f.c_str()));
+		//mlog_in("Delete useless file %s" , (const char*)(f.c_str()));
 	}
 }
 void musicxmlscore::cleanOldCache(int nbDayCache)
@@ -313,7 +313,7 @@ void musicxmlscore::cleanOldCache(int nbDayCache)
 		for(auto f : fileToBeDeleted)
 		{
 			wxRemoveFile(f);
-			mlog_in("Delete old file %s" , (const char*)(f.c_str()));
+			//mlog_in("Delete old file %s" , (const char*)(f.c_str()));
 		}
 	}
 }
