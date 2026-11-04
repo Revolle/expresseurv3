@@ -106,7 +106,8 @@ $(EXPRESSEUR_APP): $(EXPRESSEUR)
 	install_name_tool -change @rpath/libbassmix.dylib @loader_path/libbassmix.dylib $(EXPRESSEUR_CONTENT)/libbasslua.dylib
 	install_name_tool -change basslua/libbasslua.dylib @loader_path/libbasslua.dylib $(EXPRESSEUR_CONTENT)/expresseur
 	cp lua/*.* $(EXPRESSEUR_CONTENT)
-	
+	cp /usr/local/lib/libserialport.dylib $(EXPRESSEUR_CONTENT)
+	install_name_tool -change /usr/local/lib/libserialport.0.dylib  @loader_path/libserialport.dylib luabass.so
 $(EXPRESSCMD_EXE) : $(EXPRESSCMD)
 	-mkdir -p $(EXPRESSEUR_CONTENT)
 	cp $(EXPRESSCMD) $(LIBLUABASS) $(LIBBASSLUA) $(BASS_DIR)/*.dylib $(LUA_DIR)/liblua.a $(EXPRESSEUR_CONTENT)

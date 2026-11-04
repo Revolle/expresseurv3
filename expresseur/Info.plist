@@ -25,11 +25,11 @@
        <key>CFBundleGetInfoString</key>
        		<string>Expresseur 3.61</string>
        <key>CFBundleLongVersionString</key>
-       		<string>3.61</string>
+       		<string>3.62</string>
        <key>CFBundleShortVersionString</key>
-       		<string>3.61</string>
+       		<string>3.62</string>
        <key>CFBundleVersion</key>
-       		<string>3.61</string>
+       		<string>3.62</string>
        
        <key>LSRequiresCarbon</key>
        		<true/>

@@ -3,7 +3,7 @@ echo "**********************************"
 echo "rm old Expresseur.app"
 echo "**********************************"
 rm -r expresseur/Expresseur.app
-rm -r /Applications/Expresseur.app
+#rm -r /Applications/Expresseur.app
 echo "**********************************"
 echo "make"
 echo "**********************************"
