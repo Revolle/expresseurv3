@@ -1021,13 +1021,13 @@ bool musicxmlscore::newLayout(wxSize sizeClient)
 	fcwd.AppendDir("lilypond");
 #endif
 	fcwd.AppendDir("bin");
-	pythonexe = wxDir::FindFirst(fm.GetPath(), "python*" );
+	pythonexe = wxDir::FindFirst(fcwd.GetPath(), "python*" );
 	// liliy translator 
 	fcwd.SetFullName("musicxml2ly.py");
-	pythonscript = fm.GetFullPath();
+	pythonscript = fcwd.GetFullPath();
 	// lilypond bin
 	fcwd.SetFullName("lilypond.exe");
-	lilyexe = fm.GetFullPath();
+	lilyexe = fcwd.GetFullPath();
 #endif
 
 	// calculation for the page layout
