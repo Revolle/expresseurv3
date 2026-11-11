@@ -1,4 +1,4 @@
-$fn = 10 ;
+$fn = 100 ;
 pouce=2.54;
 
 e = 3 ;
@@ -63,7 +63,8 @@ dzteensy = 0 ;
 l_trou_usb = 12 ;
 h_trou_usb = 9 ;
 
-poussoir_d = 7 ;
+poussoir_d = 7.5 ;
+poussoir_ecrou_d = 13 ;
 poussoir_h = 7 ;
 poussoir_dy = 12 ;
 poussoir_dz = -5 ;
@@ -73,7 +74,7 @@ vis_d = 2.3 ;
 vis_tete_d=4.5 ;
 vis_h=11;
 vis_tete_h=1.5;
-vis_dy = 20 ;
+vis_dy = 22 ;
 
 pcb_x = touches_x ;
 pcb_y = 3*cny70_y ;
@@ -320,7 +321,7 @@ module boitier(vis_dd)
                 cube([8,poussoir_d + 10,poussoir_d + 12] , center = true );
             // support fil usb
             translate([-(boitier_x/2-pilier_dx),-boitier_y/2-3+poussoir_dy, boitier_coupe_z ])
-                cube([14, 14,20] , center = true );
+                cube([14, 16,20] , center = true );
             // support pcb
             rotate([pcb_a,0,0])
                 translate([pcb_dx1,pcb_dy,-pcb_support_z/2 + pcb_dz])
@@ -368,6 +369,9 @@ module boitier(vis_dd)
         translate([-boitier_x/2+e,-boitier_y/2+12 , poussoir_dz ])
             rotate([0,90,0])
                     cylinder(d=poussoir_d, h = poussoir_h + 20  , center = true );
+        translate([-boitier_x/2+2,-boitier_y/2+12 , poussoir_dz ])
+            rotate([0,90,0])
+                    cylinder(d=poussoir_ecrou_d, h = 10  , center = true );
         // passe-fil
         translate([-24,(boitier_y - touche_y)/2 - butee_y  - touche_y/2 + e/2,-boitier_z/2+7])
             cube([8,20,6],center = true);
@@ -443,12 +447,12 @@ module boitier_haut()
     translate([500,0,0])
         cube([1000,1000,1000],center=true);
 }
-*touche();
+touche();
 *touche_incline(touche_a) ;
 *boitier(0);
-boitier_bas() ;
-translate([boitier_x  +2,0,-boitier_coupe_z - boitier_z/2 + renfort_z ])
-    boitier_haut() ;
+*boitier_bas() ;
+//*translate([boitier_x  +2,0,-boitier_coupe_z - boitier_z/2 + renfort_z ])
+*   boitier_haut() ;
 *pcb();
 *difference()
 {
@@ -457,7 +461,7 @@ translate([boitier_x  +2,0,-boitier_coupe_z - boitier_z/2 + renfort_z ])
        *boitier(0);
        boitier_bas()
        *boitier_haut();
-       *touches(0);
+       touches(0);
        *touches(touche_a);
         // teensy
         translate([0,-30,0])
@@ -467,7 +471,7 @@ translate([boitier_x  +2,0,-boitier_coupe_z - boitier_z/2 + renfort_z ])
             translate([0,pcb_dy, pcb_dz])
                 pcb();
     }
-    translate([500 + boitier_x/2 -4.5,00,0])
+    translate([500 + boitier_x/2 -14.5,00,0])
         cube([1000,1000,1000],center=true);
 }
 *difference()
