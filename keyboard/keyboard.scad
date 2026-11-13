@@ -1,4 +1,11 @@
-$fn = 100 ;
+// to be printed
+// *************
+*touche();
+*boitier_bas() ;
+*boitier_haut() ;
+
+$fn = 10 ;
+
 pouce=2.54;
 
 e = 3 ;
@@ -375,6 +382,10 @@ module boitier(vis_dd)
         // passe-fil
         translate([-24,(boitier_y - touche_y)/2 - butee_y  - touche_y/2 + e/2,-boitier_z/2+7])
             cube([8,20,6],center = true);
+        // trou de regard led Teensy4
+        // trou de regard led Teensy4
+        translate([27,-boitier_y/2,3])
+            cube([3,10,3],center = true);
     }
     // rondelle d ecartement
     difference()
@@ -387,7 +398,6 @@ module boitier(vis_dd)
             rotate([0,90,0])
                 cylinder(d=axe_d,h= boitier_x -9,center = true);
     }
-
 }
 module touches(a)
 {
@@ -435,6 +445,10 @@ module boitier_haut()
         }  
     }
 }
+
+////////////////////
+// tests
+////////////////////
 *rotate([180,0,0])
     translate([0,0,vis_h+vis_tete_h])
         vis(15,0);
@@ -447,14 +461,14 @@ module boitier_haut()
     translate([500,0,0])
         cube([1000,1000,1000],center=true);
 }
-touche();
+*touche();
 *touche_incline(touche_a) ;
 *boitier(0);
 *boitier_bas() ;
 //*translate([boitier_x  +2,0,-boitier_coupe_z - boitier_z/2 + renfort_z ])
 *   boitier_haut() ;
 *pcb();
-*difference()
+difference()
 {
     union()
     {
@@ -471,7 +485,7 @@ touche();
             translate([0,pcb_dy, pcb_dz])
                 pcb();
     }
-    translate([500 + boitier_x/2 -14.5,00,0])
+    *translate([500 +29,00,0])
         cube([1000,1000,1000],center=true);
 }
 *difference()
@@ -480,3 +494,6 @@ touche();
         cube([100,100,100],center=true);
     renfort_vis();
 }  
+
+
+
