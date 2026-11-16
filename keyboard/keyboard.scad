@@ -84,10 +84,14 @@ vis_tete_h=1.5;
 vis_dy = 22 ;
 
 pcb_x = touches_x ;
+echo ( "largeur pcb" , pcb_x ) ;
 pcb_y = 3*cny70_y ;
+echo ( "longeur pcb" , pcb_y ) ;
 pcb_e = 1.6 ;
 pcb_dx1 = 6*pouce ;
+echo ( "position trou 1", pcb_dx1 - pcb_x/2 , pcb_y/2);
 pcb_dx2 = -3*pouce ;
+echo ( "position trou 2", pcb_dx2 - pcb_x/2 , pcb_y/2);
 pcb_dy=25;
 pcb_dz = -1 ;
 pcb_a = -6 ;
@@ -184,6 +188,7 @@ module pcb()
             // capteurs
             for(i=[1:touche_n])
             {
+                echo("cny70 x =" ,(i-(touche_n+1)/2) * ( touche_x + touche_dd ) + pcb_x / 2) ;
                 translate([(i-(touche_n+1)/2) * ( touche_x + touche_dd ) ,0,pcb_e/2])
                 {
                     translate([0,5*pouce/2,cny70_z])
@@ -467,8 +472,8 @@ module boitier_haut()
 *boitier_bas() ;
 //*translate([boitier_x  +2,0,-boitier_coupe_z - boitier_z/2 + renfort_z ])
 *   boitier_haut() ;
-*pcb();
-difference()
+pcb();
+*difference()
 {
     union()
     {
