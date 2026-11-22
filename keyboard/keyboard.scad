@@ -65,7 +65,6 @@ cny70_patte_y = 5.5 ;
 cny70_patte_z = 8 ;
 cny70_fil_l = e ;
 
-dzusbteensy = 4.3 ;
 dzteensy = 0 ;
 l_trou_usb = 12 ;
 h_trou_usb = 9 ;
@@ -110,51 +109,39 @@ module vis(em , dd)
             cylinder(d=vis_tete_d,h=vis_tete_h+em,center=true);
     }
 }
-module teensy2()
+module teensy4()
 {
+    translate([0,0,-7-1.6/2])
      union()
     {
-        for(i=[-6,-5,-4,-3,2,3,5])
+        *for(i=[-6,-5,-4,-3,2,3,5])
         {
             translate([-3*pouce,(i+0.5)* pouce ,4]) cube([0.7,0.7,8],center=true) ;
             translate([3*pouce,(i+0.5)* pouce ,4]) cube([0.7,0.7,8],center=true) ;
         }
         // circuit
         translate([0,0,7])
-            cube([7.5*pouce,12*pouce,1.2],center=true);
+            cube([17.78,36.26,1.6],center=true);
         // usb
-        translate([0,10.5,dzusbteensy])
+        translate([0,36.26/2-4.5,4.9])
             difference()
             {
                 cube([7,9,4],true);
                 cube([5,10,2],true);
             }
         // bouton
-        translate([0,-4.5*pouce,4.5])
+        *translate([0,36.26/2  - (29.21+pouce/2),4.5])
             cube([3,3,3],true);
+        // led 
+        translate([-2*pouce,-36.26/2  +pouce*3/2,6])
+            cube([2,2,2],true);
    }
 }
-module cny70(pattex)
+module cny70()
 {
     // capteur
     translate([0,0,cny70_z/2])
         cube([cny70_x,cny70_y,cny70_z],center = true);
-    // fils cone
-    *hull()
-    {
-        translate([0,0,0.05+cny70_z])
-            cube([cny70_patte_x,cny70_patte_y,0.1],center = true);
-        translate([0,0,cny70_patte_z+cny70_z])
-            cylinder(d=fil_d,h=4,center=true);
-    }
-    *translate([0,0,cny70_patte_z+cny70_z+cny70_fil_l/2])
-        cylinder(d= d_fil,h=cny70_fil_l,center= true);
-    // pattes
-    *translate([0,0,pattex*cny70_patte_z/2+cny70_z])
-        cube([cny70_patte_x,cny70_patte_y,pattex*cny70_patte_z],center = true);
-    // fil
-    *translate([0,0,(cny70_fil_l+6)/2+cny70_patte_z+cny70_z])
-        cylinder(d=fil_d,h=cny70_fil_l +6,center=true);
     //pattes
     translate([pouce/2,pouce/2,7])
         cube([1,1,3],center=true);
@@ -457,7 +444,7 @@ module boitier_haut()
 *rotate([180,0,0])
     translate([0,0,vis_h+vis_tete_h])
         vis(15,0);
-*teensy2() ;
+teensy4() ;
 *cny70() ;
 *capteur(20) ;
 *difference()
@@ -472,7 +459,7 @@ module boitier_haut()
 *boitier_bas() ;
 //*translate([boitier_x  +2,0,-boitier_coupe_z - boitier_z/2 + renfort_z ])
 *   boitier_haut() ;
-pcb();
+*pcb();
 *difference()
 {
     union()
